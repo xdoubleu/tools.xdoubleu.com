@@ -30,6 +30,9 @@ func validRepo(name string) *factoryv1.Repo {
 		SetupCommands:     "npm ci",
 		AgentInstructions: "Be careful.",
 		TimeLimitMinutes:  15,
+		SentryProject:     "check-in",
+		RedPrLabel:        "deps",
+		RedPrBranchPrefix: "agent/",
 	}
 }
 
@@ -89,6 +92,9 @@ func TestCreateRepoStoresEverySetting(t *testing.T) {
 	assert.Equal(t, "npm ci", got.SetupCommands)
 	assert.Equal(t, "Be careful.", got.AgentInstructions)
 	assert.EqualValues(t, 15, got.TimeLimitMinutes)
+	assert.Equal(t, "check-in", got.SentryProject)
+	assert.Equal(t, "deps", got.RedPrLabel)
+	assert.Equal(t, "agent/", got.RedPrBranchPrefix)
 }
 
 func TestCreateRepoDefaults(t *testing.T) {

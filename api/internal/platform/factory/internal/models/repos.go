@@ -32,6 +32,14 @@ type Repo struct {
 	TimeLimitMinutes  int
 	// AutoPickup lets the runner take this repo's Ready tasks without a press of Run.
 	AutoPickup bool
-	CreatedAt  time.Time
-	UpdatedAt  time.Time
+	// SentryProject is the Sentry project slug whose issues belong to this repo;
+	// empty for none.
+	SentryProject string
+	// RedPRLabel and RedPRBranchPrefix scope which open PRs count as red: those
+	// carrying the label or whose head branch starts with the prefix. Either
+	// may be empty.
+	RedPRLabel        string
+	RedPRBranchPrefix string
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
 }

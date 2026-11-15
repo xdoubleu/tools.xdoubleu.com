@@ -35,6 +35,9 @@ describe('RepoDialog', () => {
     expect(screen.getByLabelText('Time limit (minutes)')).toHaveValue(60)
     expect(screen.getByLabelText('Setup commands')).toHaveValue('')
     expect(screen.getByLabelText('Agent instructions')).toHaveValue('')
+    expect(screen.getByLabelText('Sentry project')).toHaveValue('')
+    expect(screen.getByLabelText('Red PR label')).toHaveValue('dependencies')
+    expect(screen.getByLabelText('Red PR branch prefix')).toHaveValue('claude/')
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled()
 
@@ -46,6 +49,9 @@ describe('RepoDialog', () => {
     fill('Time limit (minutes)', '15')
     fill('Setup commands', 'npm ci')
     fill('Agent instructions', 'Be careful.')
+    fill('Sentry project', 'check-in')
+    fill('Red PR label', 'deps')
+    fill('Red PR branch prefix', 'agent/')
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     await waitFor(() =>
@@ -56,7 +62,10 @@ describe('RepoDialog', () => {
         autoPickup: true,
         setupCommands: 'npm ci',
         agentInstructions: 'Be careful.',
-        timeLimitMinutes: 15
+        timeLimitMinutes: 15,
+        sentryProject: 'check-in',
+        redPrLabel: 'deps',
+        redPrBranchPrefix: 'agent/'
       })
     )
     await waitFor(() => expect(onClose).toHaveBeenCalled())
@@ -72,7 +81,10 @@ describe('RepoDialog', () => {
       autoPickup: true,
       setupCommands: 'make deps',
       agentInstructions: 'Follow AGENTS.md.',
-      timeLimitMinutes: 90
+      timeLimitMinutes: 90,
+      sentryProject: 'cat-web',
+      redPrLabel: '',
+      redPrBranchPrefix: 'bot/'
     })
     const onClose = vi.fn()
     render(<RepoDialog repo={repo} onClose={onClose} />)
@@ -85,6 +97,9 @@ describe('RepoDialog', () => {
     expect(screen.getByLabelText('Time limit (minutes)')).toHaveValue(90)
     expect(screen.getByLabelText('Setup commands')).toHaveValue('make deps')
     expect(screen.getByLabelText('Agent instructions')).toHaveValue('Follow AGENTS.md.')
+    expect(screen.getByLabelText('Sentry project')).toHaveValue('cat-web')
+    expect(screen.getByLabelText('Red PR label')).toHaveValue('')
+    expect(screen.getByLabelText('Red PR branch prefix')).toHaveValue('bot/')
 
     fill('Time limit (minutes)', '30')
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))

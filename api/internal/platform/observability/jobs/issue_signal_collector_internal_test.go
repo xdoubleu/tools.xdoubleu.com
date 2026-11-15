@@ -35,6 +35,12 @@ func (g stubGithubClient) ListFailingPullRequests(
 	return g.prs, g.prsErr
 }
 
+func (g stubGithubClient) ListFailingPullRequestsIn(
+	_ context.Context, _ string, _ github.PRScope,
+) ([]github.PullRequest, error) {
+	return g.prs, g.prsErr
+}
+
 func (g stubGithubClient) ListRepositoryVariables(
 	_ context.Context,
 ) (map[string]string, error) {
@@ -293,6 +299,8 @@ func failingPRs(n int) []github.PullRequest {
 // resetGauges clears the process-wide gauges between tests.
 func resetGauges() {
 	githubFailingPullRequests.Set(0)
+	githubFailingPullRequestsByRepo.Reset()
+	sentryUnresolvedIssuesByRepo.Reset()
 	githubWorkflowRunFailed.Reset()
 	githubOpenSecurityAlerts.Reset()
 	githubSecurityAlertsFetchOK.Set(0)

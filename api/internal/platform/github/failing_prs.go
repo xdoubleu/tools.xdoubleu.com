@@ -15,11 +15,27 @@ const (
 	maxPages = 10
 )
 
-// fetchFailingPullRequests returns open PRs with a failing check that carry
-// DependenciesLabel or a ClaudeBranchPrefix head; other PRs have a human
-// driving them.
+// PRScope selects which open PRs count as red: those carrying Label or whose
+// head branch starts with BranchPrefix; other PRs have a human driving them.
+// An empty field turns its rule off.
+type PRScope struct {
+	Label        string
+	BranchPrefix string
+}
+
+// DefaultPRScope is Renovate's label plus agent-opened branches.
+func DefaultPRScope() PRScope {
+	return PRScope{Label: DependenciesLabel, BranchPrefix: ClaudeBranchPrefix}
+}
+
+func (s PRScope) matches(pr PullRequest) bool {
+	return (s.Label != "" && pr.HasLabel(s.Label)) ||
+		(s.BranchPrefix != "" && strings.HasPrefix(pr.HeadRef, s.BranchPrefix))
+}
+
+// fetchFailingPullRequests returns open PRs in scope with a failing check.
 func (c *client) fetchFailingPullRequests(
-	ctx context.Context, token, repo string,
+	ctx context.Context, token, repo string, scope PRScope,
 ) ([]PullRequest, error) {
 	wires, err := pagedGet(func(page int) ([]prWire, error) {
 		var batch []prWire
@@ -46,8 +62,7 @@ func (c *client) fetchFailingPullRequests(
 			Labels:        labelNames(w.Labels),
 			FailingChecks: nil,
 		}
-		if !pr.HasLabel(DependenciesLabel) &&
-			!strings.HasPrefix(pr.HeadRef, ClaudeBranchPrefix) {
+		if !scope.matches(pr) {
 			continue
 		}
 		pr.FailingChecks, err = c.fetchFailingChecks(ctx, token, repo, pr.HeadSHA)

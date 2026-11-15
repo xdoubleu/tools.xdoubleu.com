@@ -149,6 +149,9 @@ export interface RepoFields {
   setupCommands: string
   agentInstructions: string
   timeLimitMinutes: number
+  sentryProject: string
+  redPrLabel: string
+  redPrBranchPrefix: string
 }
 
 const isFactoryKey = (key: unknown) => {

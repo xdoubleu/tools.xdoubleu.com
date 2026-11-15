@@ -2432,9 +2432,17 @@ type Repo struct {
 	TimeLimitMinutes  int32  `protobuf:"varint,8,opt,name=time_limit_minutes,json=timeLimitMinutes,proto3" json:"time_limit_minutes,omitempty"`
 	// Lets the runner take this repo's Ready tasks without a press of Run, as the
 	// human approved them at the Ready move. Off by default.
-	AutoPickup    bool `protobuf:"varint,10,opt,name=auto_pickup,json=autoPickup,proto3" json:"auto_pickup,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	AutoPickup bool `protobuf:"varint,10,opt,name=auto_pickup,json=autoPickup,proto3" json:"auto_pickup,omitempty"`
+	// The Sentry project slug whose issues belong to this repo, shown on
+	// /monitoring; empty for none.
+	SentryProject string `protobuf:"bytes,11,opt,name=sentry_project,json=sentryProject,proto3" json:"sentry_project,omitempty"`
+	// Which open PRs count as red for this repo: those with this label or whose
+	// head branch starts with the prefix. Empty turns a rule off. Create and
+	// update store what is sent, so a client that omits them clears both.
+	RedPrLabel        string `protobuf:"bytes,12,opt,name=red_pr_label,json=redPrLabel,proto3" json:"red_pr_label,omitempty"`
+	RedPrBranchPrefix string `protobuf:"bytes,13,opt,name=red_pr_branch_prefix,json=redPrBranchPrefix,proto3" json:"red_pr_branch_prefix,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *Repo) Reset() {
@@ -2521,6 +2529,27 @@ func (x *Repo) GetAutoPickup() bool {
 		return x.AutoPickup
 	}
 	return false
+}
+
+func (x *Repo) GetSentryProject() string {
+	if x != nil {
+		return x.SentryProject
+	}
+	return ""
+}
+
+func (x *Repo) GetRedPrLabel() string {
+	if x != nil {
+		return x.RedPrLabel
+	}
+	return ""
+}
+
+func (x *Repo) GetRedPrBranchPrefix() string {
+	if x != nil {
+		return x.RedPrBranchPrefix
+	}
+	return ""
 }
 
 type ListReposRequest struct {
@@ -2931,7 +2960,7 @@ const file_factory_v1_factory_proto_rawDesc = "" +
 	"\x12StopRoutineRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\"8\n" +
 	"\x13StopRoutineResponse\x12!\n" +
-	"\x03job\x18\x01 \x01(\v2\x0f.factory.v1.JobR\x03job\"\xb8\x02\n" +
+	"\x03job\x18\x01 \x01(\v2\x0f.factory.v1.JobR\x03job\"\xb2\x03\n" +
 	"\x04Repo\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05owner\x18\x02 \x01(\tR\x05owner\x12\x12\n" +
@@ -2942,7 +2971,11 @@ const file_factory_v1_factory_proto_rawDesc = "" +
 	"\x12time_limit_minutes\x18\b \x01(\x05R\x10timeLimitMinutes\x12\x1f\n" +
 	"\vauto_pickup\x18\n" +
 	" \x01(\bR\n" +
-	"autoPickupJ\x04\b\x05\x10\x06J\x04\b\t\x10\n" +
+	"autoPickup\x12%\n" +
+	"\x0esentry_project\x18\v \x01(\tR\rsentryProject\x12 \n" +
+	"\fred_pr_label\x18\f \x01(\tR\n" +
+	"redPrLabel\x12/\n" +
+	"\x14red_pr_branch_prefix\x18\r \x01(\tR\x11redPrBranchPrefixJ\x04\b\x05\x10\x06J\x04\b\t\x10\n" +
 	"R\x0fdefault_harnessR\rdefault_model\"\x12\n" +
 	"\x10ListReposRequest\";\n" +
 	"\x11ListReposResponse\x12&\n" +

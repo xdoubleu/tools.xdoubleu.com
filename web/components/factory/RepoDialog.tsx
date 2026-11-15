@@ -19,6 +19,9 @@ import { Textarea } from '@/components/ui/textarea'
 const DEFAULT_LIMIT_MINUTES = 60
 const MIN_LIMIT_MINUTES = 1
 const MAX_LIMIT_MINUTES = 1440
+// The red-PR scope a new repo starts with: Renovate's label and agent branches.
+const DEFAULT_RED_PR_LABEL = 'dependencies'
+const DEFAULT_RED_PR_PREFIX = 'claude/'
 
 function failureMessage(err: unknown): string {
   const code = ConnectError.from(err).code
@@ -43,6 +46,9 @@ export default function RepoDialog({ repo, onClose }: RepoDialogProps) {
   const [limit, setLimit] = useState(String(repo?.timeLimitMinutes ?? DEFAULT_LIMIT_MINUTES))
   const [setup, setSetup] = useState(repo?.setupCommands ?? '')
   const [instructions, setInstructions] = useState(repo?.agentInstructions ?? '')
+  const [sentryProject, setSentryProject] = useState(repo?.sentryProject ?? '')
+  const [redPrLabel, setRedPrLabel] = useState(repo?.redPrLabel ?? DEFAULT_RED_PR_LABEL)
+  const [redPrPrefix, setRedPrPrefix] = useState(repo?.redPrBranchPrefix ?? DEFAULT_RED_PR_PREFIX)
   const [pending, setPending] = useState(false)
   const [failure, setFailure] = useState('')
   const minutes = Number(limit)
@@ -61,7 +67,10 @@ export default function RepoDialog({ repo, onClose }: RepoDialogProps) {
       autoPickup,
       setupCommands: setup,
       agentInstructions: instructions,
-      timeLimitMinutes: minutes
+      timeLimitMinutes: minutes,
+      sentryProject,
+      redPrLabel,
+      redPrBranchPrefix: redPrPrefix
     }
     try {
       if (repo) await updateRepo(repo.id, fields)
@@ -160,6 +169,45 @@ export default function RepoDialog({ repo, onClose }: RepoDialogProps) {
               rows={4}
               value={instructions}
               onChange={(e) => setInstructions(e.target.value)}
+            />
+          </Field>
+          <Field
+            label="Sentry project"
+            htmlFor="repo-sentry-project"
+            hint="The project slug whose issues show for this repo on /monitoring. It must be one of the projects picked in the Sentry connection."
+          >
+            <Input
+              id="repo-sentry-project"
+              value={sentryProject}
+              autoCapitalize="none"
+              autoCorrect="off"
+              onChange={(e) => setSentryProject(e.target.value)}
+            />
+          </Field>
+          <Field
+            label="Red PR label"
+            htmlFor="repo-red-pr-label"
+            hint="Open PRs with this label count as red when a check fails."
+          >
+            <Input
+              id="repo-red-pr-label"
+              value={redPrLabel}
+              autoCapitalize="none"
+              autoCorrect="off"
+              onChange={(e) => setRedPrLabel(e.target.value)}
+            />
+          </Field>
+          <Field
+            label="Red PR branch prefix"
+            htmlFor="repo-red-pr-prefix"
+            hint="Open PRs from branches starting with this count too, such as agent/."
+          >
+            <Input
+              id="repo-red-pr-prefix"
+              value={redPrPrefix}
+              autoCapitalize="none"
+              autoCorrect="off"
+              onChange={(e) => setRedPrPrefix(e.target.value)}
             />
           </Field>
           {failure && <Alert tone="danger">{failure}</Alert>}

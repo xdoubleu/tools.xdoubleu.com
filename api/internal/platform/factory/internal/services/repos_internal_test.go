@@ -9,8 +9,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"tools.xdoubleu.com/internal/platform/factory/internal/models"
 )
 
 // repoInput builds a RepoInput that passes validation, then lets mod edit it.
@@ -23,6 +21,9 @@ func repoInput(mod func(*RepoInput)) RepoInput {
 		AgentInstructions: "",
 		TimeLimitMinutes:  60,
 		AutoPickup:        false,
+		SentryProject:     "",
+		RedPRLabel:        "",
+		RedPRBranchPrefix: "",
 	}
 	mod(&in)
 	return in
@@ -126,22 +127,37 @@ func TestUpdateRequiresEverySetting(t *testing.T) {
 	}
 }
 
-func TestCheckModel(t *testing.T) {
-	ok := func(h models.Harness, m string) {
-		t.Helper()
-		assert.NoError(t, checkModel(h, m))
-	}
-	bad := func(h models.Harness, m string) {
-		t.Helper()
-		assert.Equal(t, http.StatusBadRequest, status(t, checkModel(h, m)))
+func TestNormaliseRepoSignalSettings(t *testing.T) {
+	got, err := normaliseRepo(repoInput(func(r *RepoInput) {
+		r.SentryProject = " check-in "
+		r.RedPRLabel = " deps "
+		r.RedPRBranchPrefix = " agent/ "
+	}))
+	require.NoError(t, err)
+	assert.Equal(t, "check-in", got.SentryProject)
+	assert.Equal(t, "deps", got.RedPRLabel)
+	assert.Equal(t, "agent/", got.RedPRBranchPrefix)
+
+	for name, mod := range map[string]func(*RepoInput){
+		"sentry slug upper": func(r *RepoInput) { r.SentryProject = "Check-In" },
+		"sentry slug space": func(r *RepoInput) { r.SentryProject = "a b" },
+		"sentry slug dash":  func(r *RepoInput) { r.SentryProject = "-a" },
+		"label too long": func(r *RepoInput) {
+			r.RedPRLabel = strings.Repeat("a", maxRepoLabelLen+1)
+		},
+		"prefix has space": func(r *RepoInput) { r.RedPRBranchPrefix = "a b/" },
+		"prefix has tilde": func(r *RepoInput) { r.RedPRBranchPrefix = "a~/" },
+		"prefix too long": func(r *RepoInput) {
+			r.RedPRBranchPrefix = strings.Repeat("a", maxBranchLen+1)
+		},
+	} {
+		_, err = normaliseRepo(repoInput(mod))
+		assert.Equal(t, http.StatusBadRequest, status(t, err), name)
 	}
 
-	ok(models.HarnessClaudeCode, "")
-	ok(models.HarnessOpenCode, "vendor/model")
-	ok(models.HarnessOpenCode, "vendor/model:free")
-	bad(models.HarnessClaudeCode, "vendor/model")
-	bad(models.HarnessOpenCode, "")
-	bad(models.HarnessOpenCode, "no-vendor")
-	bad(models.HarnessOpenCode, "-x/model")
-	bad(models.HarnessOpenCode, "vendor/"+strings.Repeat("m", maxModelLen))
+	_, err = normaliseRepo(repoInput(func(r *RepoInput) {
+		r.Owner = strings.Repeat("a", 39)
+		r.Name = strings.Repeat("b", 100)
+	}))
+	assert.NoError(t, err, "limits are inclusive")
 }

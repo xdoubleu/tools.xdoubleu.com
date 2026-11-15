@@ -13,6 +13,7 @@ import (
 	"tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/platform/github"
 	"tools.xdoubleu.com/internal/platform/oauthconn"
+	"tools.xdoubleu.com/internal/platform/reposignals"
 	"tools.xdoubleu.com/internal/platform/repositories"
 	"tools.xdoubleu.com/internal/platform/sentryapi"
 )
@@ -53,6 +54,10 @@ type Deps struct {
 	OAuthState   *oauthconn.StateStore
 	GithubClient github.Client
 	SentryClient sentryapi.Client
+	// Repos lists the registered repos whose Sentry project and red-PR scope
+	// the monitoring signals use. Nil, or no repo yet, falls back to the
+	// admin-picked GitHub repo and every picked Sentry project.
+	Repos reposignals.Source
 
 	// StorageScan starts the scheduled R2 walk on the books job queue, so a
 	// request can trigger it without the request budget cutting it.

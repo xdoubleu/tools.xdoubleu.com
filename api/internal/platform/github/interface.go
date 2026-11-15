@@ -17,6 +17,11 @@ var ErrAccessDenied = errors.New("github: access denied")
 type Client interface {
 	// ListFailingPullRequests returns open PRs with a failing check on their head.
 	ListFailingPullRequests(ctx context.Context) ([]PullRequest, error)
+	// ListFailingPullRequestsIn is the same for repo ("owner/name"), limited to
+	// the PRs in scope.
+	ListFailingPullRequestsIn(
+		ctx context.Context, repo string, scope PRScope,
+	) ([]PullRequest, error)
 	// ListSecurityAlerts returns open Dependabot, code-scanning and secret-scanning
 	// alerts.
 	ListSecurityAlerts(ctx context.Context) ([]SecurityAlert, error)

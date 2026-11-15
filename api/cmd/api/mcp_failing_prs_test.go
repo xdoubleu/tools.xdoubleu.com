@@ -20,6 +20,7 @@ func callFailingPullRequestsTool(
 	t.Helper()
 	promoteToAdmin(t)
 	t.Cleanup(func() { demoteToUser(t) })
+	withoutMonitoredRepos(t)
 
 	srv := jsonServer(t, status, body)
 	github.SetBaseURL(srv.URL)
@@ -54,4 +55,13 @@ func TestAppsMCPFailingPullRequests_UpstreamErrorIsToolError(t *testing.T) {
 	res := callFailingPullRequestsTool(t, http.StatusInternalServerError, ``)
 
 	assert.True(t, res.IsError, "an upstream failure must not read as an empty list")
+}
+
+// withoutMonitoredRepos makes the failing-PR tools use the admin-picked
+// GitHub repo, as before any repo is registered on the board.
+func withoutMonitoredRepos(t *testing.T) {
+	t.Helper()
+	prev := testApp.repoSignals
+	testApp.repoSignals = nil
+	t.Cleanup(func() { testApp.repoSignals = prev })
 }

@@ -67,6 +67,9 @@ func protoRepo(r *models.Repo) *factoryv1.Repo {
 		AutoPickup:        r.AutoPickup,
 		SetupCommands:     r.SetupCommands,
 		AgentInstructions: r.AgentInstructions,
+		SentryProject:     r.SentryProject,
+		RedPrLabel:        r.RedPRLabel,
+		RedPrBranchPrefix: r.RedPRBranchPrefix,
 		//nolint:gosec // bounded to 1..1440 by the service and the column
 		TimeLimitMinutes: int32(r.TimeLimitMinutes),
 	}
@@ -80,6 +83,9 @@ func repoInput(r *factoryv1.Repo) services.RepoInput {
 		AutoPickup:        r.GetAutoPickup(),
 		SetupCommands:     r.GetSetupCommands(),
 		AgentInstructions: r.GetAgentInstructions(),
+		SentryProject:     r.GetSentryProject(),
+		RedPRLabel:        r.GetRedPrLabel(),
+		RedPRBranchPrefix: r.GetRedPrBranchPrefix(),
 		TimeLimitMinutes:  int(r.GetTimeLimitMinutes()),
 	}
 }

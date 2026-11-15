@@ -58,8 +58,7 @@ type client struct {
 	configRepo configStore
 
 	mu            sync.Mutex
-	cachedPRs     []PullRequest
-	cachedPRAt    time.Time
+	cachedPRs     map[prCacheKey]prCacheEntry
 	cachedAlerts  []SecurityAlert
 	cachedAlertAt time.Time
 	cachedRuns    []WorkflowRun
@@ -88,8 +87,17 @@ func (c *client) ListFailingPullRequests(ctx context.Context) ([]PullRequest, er
 	if err != nil {
 		return nil, err
 	}
+	return c.ListFailingPullRequestsIn(ctx, repo, DefaultPRScope())
+}
 
-	if cached, ok := c.cachedPullRequests(); ok {
+func (c *client) ListFailingPullRequestsIn(
+	ctx context.Context, repo string, scope PRScope,
+) ([]PullRequest, error) {
+	if repo == "" {
+		return nil, ErrNotConfigured
+	}
+	key := prCacheKey{repo: repo, scope: scope}
+	if cached, ok := c.cachedPullRequests(key); ok {
 		return cached, nil
 	}
 
@@ -101,12 +109,12 @@ func (c *client) ListFailingPullRequests(ctx context.Context) ([]PullRequest, er
 		return nil, err
 	}
 
-	prs, err := c.fetchFailingPullRequests(ctx, token, repo)
+	prs, err := c.fetchFailingPullRequests(ctx, token, repo, scope)
 	if err != nil {
 		return nil, err
 	}
 
-	c.storePullRequests(prs)
+	c.storePullRequests(key, prs)
 	return prs, nil
 }
 
@@ -261,20 +269,33 @@ func (c *client) resolveRepo(ctx context.Context) (string, error) {
 	return cfg.Repo, nil
 }
 
-func (c *client) cachedPullRequests() ([]PullRequest, bool) {
+// prCacheKey keys the failing-PR cache: a repo's result depends on its scope.
+type prCacheKey struct {
+	repo  string
+	scope PRScope
+}
+
+type prCacheEntry struct {
+	prs []PullRequest
+	at  time.Time
+}
+
+func (c *client) cachedPullRequests(key prCacheKey) ([]PullRequest, bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	if c.cachedPRs != nil && time.Since(c.cachedPRAt) < cacheTTL {
-		return c.cachedPRs, true
+	if e, ok := c.cachedPRs[key]; ok && time.Since(e.at) < cacheTTL {
+		return e.prs, true
 	}
 	return nil, false
 }
 
-func (c *client) storePullRequests(prs []PullRequest) {
+func (c *client) storePullRequests(key prCacheKey, prs []PullRequest) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	c.cachedPRs = prs
-	c.cachedPRAt = time.Now()
+	if c.cachedPRs == nil {
+		c.cachedPRs = make(map[prCacheKey]prCacheEntry)
+	}
+	c.cachedPRs[key] = prCacheEntry{prs: prs, at: time.Now()}
 }
 
 func (c *client) cachedSecurityAlerts() ([]SecurityAlert, bool) {

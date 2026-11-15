@@ -14,6 +14,7 @@ import (
 	essentialogger "tools.xdoubleu.com/internal/kit/logging"
 	"tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/platform/github"
+	"tools.xdoubleu.com/internal/platform/reposignals"
 	"tools.xdoubleu.com/internal/platform/sentryapi"
 )
 
@@ -26,6 +27,11 @@ var (
 		Name: "github_failing_pull_requests",
 		Help: "Open pull requests with at least one failing CI check.",
 	})
+	githubFailingPullRequestsByRepo = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "github_failing_pull_requests_by_repo",
+		Help: "Open pull requests in a registered repo's red-PR scope with at " +
+			"least one failing CI check.",
+	}, []string{"repo"})
 	githubWorkflowRunFailed = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "github_workflow_run_failed",
 		Help: "1 when the most recent completed workflow run on the main " +
@@ -55,6 +61,11 @@ var (
 		Help: "Unresolved Sentry issues across every project the connected " +
 			"token can see.",
 	})
+	sentryUnresolvedIssuesByRepo = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "sentry_unresolved_issues_by_repo",
+		Help: "Unresolved Sentry issues by the registered repo that owns their " +
+			"project; " + unassignedRepo + " when no repo claims it.",
+	}, []string{"repo"})
 	sentryUnresolvedFetchOK = promauto.NewGauge(prometheus.GaugeOpts{
 		Name: "sentry_unresolved_issues_fetch_ok",
 		Help: "1 when the last Sentry unresolved-issue fetch succeeded, 0 when " +
@@ -121,10 +132,16 @@ const neverOpenedSentinelSeconds = 1 << 30
 
 const mainBranch = "main"
 
+// unassignedRepo is the repo label of Sentry issues no repo claims.
+const unassignedRepo = "unassigned"
+
 const millisPerSecond = 1000
 
 type failingPRLister interface {
 	ListFailingPullRequests(ctx context.Context) ([]github.PullRequest, error)
+	ListFailingPullRequestsIn(
+		ctx context.Context, repo string, scope github.PRScope,
+	) ([]github.PullRequest, error)
 }
 
 type securityAlertLister interface {
@@ -195,6 +212,34 @@ type IssueSignalCollectorJob struct {
 	schemaSizes     schemaSizer
 	automatedAction automatedActionGetter
 	latencyTrends   latencyTrendsGetter
+	repos           reposignals.Source
+}
+
+// WithRepos makes the PR and Sentry signals follow the registered repos' own
+// scopes. Without it, or while none is registered, they cover the admin-picked
+// GitHub repo and every picked Sentry project.
+func (j *IssueSignalCollectorJob) WithRepos(
+	repos reposignals.Source,
+) *IssueSignalCollectorJob {
+	j.repos = repos
+	return j
+}
+
+// monitoredRepos lists the registered repos; none when unwired or unreadable.
+func (j *IssueSignalCollectorJob) monitoredRepos(
+	ctx context.Context, logger *slog.Logger,
+) []reposignals.Repo {
+	if j.repos == nil {
+		return nil
+	}
+	repos, err := j.repos.MonitoredRepos(ctx)
+	if err != nil {
+		logger.WarnContext(ctx,
+			"issue-signal-collector: failed to list monitored repos",
+			essentialogger.ErrAttr(err))
+		return nil
+	}
+	return repos
 }
 
 func NewIssueSignalCollectorJob(
@@ -216,6 +261,7 @@ func NewIssueSignalCollectorJob(
 		schemaSizes:     schemaSizes,
 		automatedAction: automatedAction,
 		latencyTrends:   latencyTrends,
+		repos:           nil,
 	}
 }
 
@@ -258,6 +304,46 @@ func (j *IssueSignalCollectorJob) Run(
 }
 
 func (j *IssueSignalCollectorJob) collectFailingPullRequests(
+	ctx context.Context,
+	logger *slog.Logger,
+) {
+	repos := j.monitoredRepos(ctx, logger)
+	if len(repos) == 0 {
+		j.collectPickedRepoFailingPullRequests(ctx, logger)
+		return
+	}
+
+	counts := make(map[string]int, len(repos))
+	total := 0
+	for _, r := range repos {
+		prs, err := j.gh.ListFailingPullRequestsIn(ctx, r.Slug, github.PRScope{
+			Label:        r.RedPRLabel,
+			BranchPrefix: r.RedPRBranchPrefix,
+		})
+		if errors.Is(err, github.ErrNotConfigured) {
+			return
+		}
+		if err != nil {
+			// A partial total would read as the others having recovered, so
+			// leave every gauge as it was.
+			logAPIErr(ctx, logger,
+				"issue-signal-collector: failed to list failing pull requests",
+				err, github.IsTransientAPIError(err))
+			return
+		}
+		counts[r.Slug] = len(prs)
+		total += len(prs)
+	}
+	githubFailingPullRequests.Set(float64(total))
+	githubFailingPullRequestsByRepo.Reset()
+	for slug, n := range counts {
+		githubFailingPullRequestsByRepo.WithLabelValues(slug).Set(float64(n))
+	}
+}
+
+// collectPickedRepoFailingPullRequests is the fallback while no repo is
+// registered: the admin-picked GitHub repo under the default scope.
+func (j *IssueSignalCollectorJob) collectPickedRepoFailingPullRequests(
 	ctx context.Context,
 	logger *slog.Logger,
 ) {
@@ -348,6 +434,16 @@ func (j *IssueSignalCollectorJob) collectSentryIssues(
 	}
 	sentryUnresolvedIssues.Set(float64(len(issues)))
 	sentryUnresolvedFetchOK.Set(1)
+
+	repos := j.monitoredRepos(ctx, logger)
+	sentryUnresolvedIssuesByRepo.Reset()
+	for _, is := range issues {
+		repo := reposignals.RepoForSentryProject(repos, is.Project)
+		if repo == "" {
+			repo = unassignedRepo
+		}
+		sentryUnresolvedIssuesByRepo.WithLabelValues(repo).Inc()
+	}
 }
 
 func (j *IssueSignalCollectorJob) collectStorage(

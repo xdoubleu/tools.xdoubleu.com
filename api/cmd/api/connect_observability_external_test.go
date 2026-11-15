@@ -78,6 +78,7 @@ func jsonServer(t *testing.T, status int, body string) *httptest.Server {
 // --- Failing pull requests ---
 
 func TestObservabilityGetFailingPullRequests_AsAdmin(t *testing.T) {
+	withoutMonitoredRepos(t)
 	promoteToAdmin(t)
 	t.Cleanup(func() { demoteToUser(t) })
 
@@ -121,6 +122,7 @@ func TestObservabilityGetFailingPullRequests_AsAdmin(t *testing.T) {
 }
 
 func TestObservabilityGetFailingPullRequests_NotConfigured(t *testing.T) {
+	withoutMonitoredRepos(t)
 	promoteToAdmin(t)
 	t.Cleanup(func() { demoteToUser(t) })
 	testApp.githubClient = github.New(

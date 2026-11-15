@@ -23,6 +23,12 @@ type resolveSentryIssueArgs struct {
 	IssueID string `json:"issue_id" jsonschema:"Sentry issue ID, from get_sentry_issues"`
 }
 
+// repoArgs is the input for the per-repo tools; Repo empty covers every
+// registered repo.
+type repoArgs struct {
+	Repo string `json:"repo,omitempty" jsonschema:"owner/name of a repo; omit for all"`
+}
+
 // getSentryIssueEventArgs is the input for get_sentry_issue_event.
 type getSentryIssueEventArgs struct {
 	IssueID string `json:"issue_id" jsonschema:"Sentry issue ID, from get_sentry_issues"`
@@ -146,12 +152,12 @@ func RegisterMCPTools(srv *mcp.Server, deps *Deps) {
 			return h.databaseStats(ctx)
 		})
 	addObsToolWithDefaults(srv, "get_failing_pull_requests",
-		"Open pull requests with at least one failing CI check, limited to "+
-			"red-pr-repair's scope: labelled dependencies or on a claude/ "+
-			"branch. An empty pullRequests list means none; an upstream "+
-			"GitHub failure is a tool error.",
-		func(ctx context.Context, _ NoArgs) (proto.Message, error) {
-			return h.failingPullRequests(ctx)
+		"Open pull requests with at least one failing CI check, across every "+
+			"registered repo (or one, via repo), limited to each repo's red-PR "+
+			"scope: its label or branch prefix. An empty pullRequests list "+
+			"means none; an upstream GitHub failure is a tool error.",
+		func(ctx context.Context, a repoArgs) (proto.Message, error) {
+			return h.failingPullRequests(ctx, a.Repo)
 		})
 	addObsToolWithDefaults(srv, "get_workflow_runs",
 		"Recent pull-request and push (main branch) GitHub Actions workflow "+
@@ -178,10 +184,11 @@ func RegisterMCPTools(srv *mcp.Server, deps *Deps) {
 			return h.oauthConnections(ctx)
 		})
 	addObsToolWithDefaults(srv, "get_sentry_issues",
-		"Unresolved Sentry issues for the project. An empty issues list means "+
-			"none.",
-		func(ctx context.Context, _ NoArgs) (proto.Message, error) {
-			return h.sentryIssues(ctx), nil
+		"Unresolved Sentry issues across the picked projects, each tagged with "+
+			"the registered repo that owns its project (or one repo's, via "+
+			"repo). An empty issues list means none.",
+		func(ctx context.Context, a repoArgs) (proto.Message, error) {
+			return h.sentryIssues(ctx, a.Repo), nil
 		})
 	addObsToolWithDefaults(srv, "get_sentry_issue_event",
 		"Latest event of a Sentry issue with its database spans (offender=true "+

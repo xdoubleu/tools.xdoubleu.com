@@ -37,9 +37,11 @@ write `$ROUTINE_OUTCOME_PATH` (step 9).
      (Grafana-managed alerts never reach `ALERTS{}`). A rule in
      `Alerting` is the ground truth for "something changed". Rules:
      `infra/grafana/provisioning/alerting/rules.yml`.
-   - `get_sentry_issues` — unresolved errors (no gauge; cross-check Grafana's
-     `IssueSentryUnresolved`).
-   - `get_failing_pull_requests` — gauge `github_failing_pull_requests`.
+   - `get_sentry_issues` — unresolved errors, each tagged with its registered
+     repo (cross-check Grafana's `IssueSentryUnresolved`).
+   - `get_failing_pull_requests` — every registered repo's red PRs, each in the
+     repo's own scope (gauge `github_failing_pull_requests`). Both tools take
+     an optional `repo`.
    - `get_workflow_runs` — is the *latest* `event: push, branch: main` run
      failed? Gauge `github_workflow_run_failed{branch="main"}`.
    - `get_security_alerts` — zero is blind while `SecurityAlertsUnreadable`
