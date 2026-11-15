@@ -42,4 +42,10 @@ Settings live in the menu bar; `config …` scripts them. Log: `~/Library/Logs/f
 
 ## Building
 
-`make build | dist | test | test/cov/diff (CI's diff gate) | test/mutation/diff | lint | lint/darwin | lint/fix | image`. CI lints on macOS: run `lint/darwin` too; per-OS `syscall` types need `//nolint:gosec,nolintlint`. Tests need no keychain, network, VM or launchd.
+Targets, one per line:
+
+- `make build | dist | test | image`
+- `make test/cov/diff` (CI's diff gate), `test/mutation/diff`
+- `make lint | lint/darwin | lint/fix`: CI lints on macOS, so run `lint/darwin` too; per-OS `syscall` types need `//nolint:gosec,nolintlint`
+
+Tests need no keychain, network, VM or launchd.
