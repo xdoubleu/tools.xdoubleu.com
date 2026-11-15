@@ -442,8 +442,12 @@ func (s *ContainerSandbox) npmCacheSource() string {
 // what changed since. Without a proxy the VM stays offline.
 func (s *ContainerSandbox) registryEnv(proxyURL string) map[string]string {
 	env := map[string]string{
-		"GOMODCACHE":       "/tmp/gomodcache",
-		"GOPROXY":          "file://" + imageGoDownloadCache,
+		"GOMODCACHE": "/tmp/gomodcache",
+		"GOPROXY":    "file://" + imageGoDownloadCache,
+		// Tools the Makefile installs by version have no sumdb route offline; the
+		// image's cache was verified when it was built.
+		"GOSUMDB":          "off",
+		"GOTOOLCHAIN":      "local",
 		"npm_config_cache": jobNPMCache,
 	}
 	if s.GoModCache != "" {
