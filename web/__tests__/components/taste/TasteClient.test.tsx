@@ -21,6 +21,10 @@ vi.mock('@/components/taste/TasteStats', () => ({
   __esModule: true,
   default: () => <div data-testid="stats" />
 }))
+vi.mock('@/components/taste/TasteShows', () => ({
+  __esModule: true,
+  default: () => <div data-testid="shows" />
+}))
 vi.mock('@/components/taste/TasteEvents', () => ({
   __esModule: true,
   default: () => <div data-testid="events" />
@@ -38,6 +42,7 @@ describe('TasteClient', () => {
     expect(screen.getByTestId('profile')).toBeInTheDocument()
     expect(screen.getByTestId('recommendations')).toBeInTheDocument()
     expect(screen.getByTestId('stats')).toBeInTheDocument()
+    expect(screen.getByTestId('shows')).toBeInTheDocument()
     expect(screen.getByText('Log')).toBeInTheDocument()
     expect(screen.getByTestId('events')).toBeInTheDocument()
   })
@@ -47,5 +52,7 @@ describe('TasteClient', () => {
     render(<TasteClient />)
     expect(screen.getByRole('tab', { name: 'Family' })).toHaveAttribute('aria-selected', 'true')
     expect(screen.getByText(/read as one person/)).toBeInTheDocument()
+    // Shows are personal: the shared list covers movies and series only.
+    expect(screen.queryByTestId('shows')).not.toBeInTheDocument()
   })
 })

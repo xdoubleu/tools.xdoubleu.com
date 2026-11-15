@@ -11,13 +11,17 @@ import (
 	"embed"
 	"errors"
 	"log/slog"
+	"slices"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"tools.xdoubleu.com/apps/internal/consumption"
 	"tools.xdoubleu.com/apps/taste/internal/jobs"
 	"tools.xdoubleu.com/apps/taste/internal/repositories"
 	"tools.xdoubleu.com/apps/taste/internal/services"
+	"tools.xdoubleu.com/apps/taste/internal/showsmigrations"
+	"tools.xdoubleu.com/apps/taste/pkg/itunes"
 	"tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/config"
 	"tools.xdoubleu.com/internal/kit/database/postgres"
@@ -47,6 +51,7 @@ type Taste struct {
 	auth     auth.Service
 	family   *family.Repository
 	log      *services.LogService
+	shows    *services.ShowService
 	profiles *services.ProfileService
 	picks    *services.RecommendService
 	notify   *services.NotifyService
@@ -55,7 +60,8 @@ type Taste struct {
 }
 
 // New builds the app over sources, which must already be constructed
-// (registration order in cmd/api/apps.go).
+// (registration order in cmd/api/apps.go). Its favourite shows are looked up
+// on iTunes and feed the podcasts domain.
 func New(
 	ctx context.Context,
 	authService auth.Service,
@@ -73,10 +79,23 @@ func New(
 	if mail != nil {
 		sender = mail
 	}
-	return NewInner(
+	var a *Taste
+	catalogs.Podcasts = func(
+		ctx context.Context, userID, title string,
+	) (*consumption.CatalogMatch, error) {
+		return a.FindShow(ctx, userID, title)
+	}
+	a = NewInner(
 		ctx, authService, logger, cfg, db, familyRepo, llm, sender, catalogs,
 		sources...,
 	)
+	return a
+}
+
+// WithITunes swaps the iTunes client behind the favourite shows, for tests.
+func (a *Taste) WithITunes(c itunes.Client) *Taste {
+	a.shows = services.NewShowService(repositories.NewShowsRepository(a.db), c)
+	return a
 }
 
 // NewInner allows tests to inject a fake OpenRouter client and mail sender
@@ -96,14 +115,17 @@ func NewInner(
 	if cfg.OpenRouterAPIKey == "" {
 		logger.Warn("OPENROUTER_API_KEY not set; taste profiles are disabled")
 	}
-	//nolint:exhaustruct // jobQueue, genJob initialised below
+	//nolint:exhaustruct // log, jobQueue, genJob initialised below
 	a := &Taste{
 		Base:   app.NewBase(ctx, authService, logger, cfg),
 		db:     db,
 		auth:   authService,
 		family: familyRepo,
-		log:    services.NewLogService(sources),
+		shows: services.NewShowService(
+			repositories.NewShowsRepository(db), itunes.New(),
+		),
 	}
+	a.log = services.NewLogService(slices.Concat(sources, []Source{showSource{app: a}}))
 	profiles := repositories.NewProfilesRepository(db)
 	a.profiles = services.NewProfileService(
 		a.log, profiles, llm, cfg.TasteGeneratorModel, cfg.OpenRouterAPIKey != "",
@@ -130,7 +152,14 @@ func (a *Taste) Shutdown(ctx context.Context) error {
 	return errors.Join(a.Base.Shutdown(ctx), a.jobQueue.Wait(ctx))
 }
 
+// ApplyMigrations also runs the favourite shows' migrations, which keep their
+// own "podcasts" schema, ahead of taste's.
 func (a *Taste) ApplyMigrations(ctx context.Context, db *pgxpool.Pool) error {
+	if err := a.ApplyMigrationsFromFS(
+		ctx, db, showsmigrations.FS, "podcasts",
+	); err != nil {
+		return err
+	}
 	return a.ApplyMigrationsFromFS(ctx, db, embedMigrations, a.GetName())
 }
 

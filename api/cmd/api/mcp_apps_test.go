@@ -63,11 +63,11 @@ var appsToolNames = []string{
 	// movies (5)
 	"movies_search_titles", "movies_list_backlog", "movies_get_title",
 	"movies_get_stats", "movies_get_settings",
-	// podcasts (2)
-	"podcasts_list_favourites",
-	// taste (4)
+	// taste (7); add/remove_favourite_show mutate
 	"taste_get_stats", "taste_list_events", "taste_get_profile",
 	"taste_list_recommendations",
+	"taste_list_favourite_shows", "taste_add_favourite_show",
+	"taste_remove_favourite_show",
 	// observability (21, admin-gated)
 	"get_job_stats", "get_automated_actions", "record_action",
 	"get_usage_stats", "get_storage_stats", "get_database_stats",
@@ -87,6 +87,7 @@ var appsNetworkTools = map[string]bool{
 	"books_search_external":        true,
 	"books_get_external_book":      true,
 	"books_get_book_sources":       true,
+	"taste_add_favourite_show":     true,
 	"get_failing_pull_requests":    true,
 	"get_workflow_runs":            true,
 	"get_security_alerts":          true,
@@ -376,6 +377,7 @@ func TestAppsMCPCallAllToolsAsAdmin(t *testing.T) {
 		"learningpaths_get_todoist_status":        map[string]any{"id": uid},
 		"movies_search_titles":                    map[string]any{"query": "x"},
 		"movies_get_title":                        map[string]any{"id": uid},
+		"taste_remove_favourite_show":             map[string]any{"id": uid},
 		"learningpaths_update_path": map[string]any{
 			"id": uid, "title": "t",
 		},
@@ -438,7 +440,7 @@ func TestAppsMCPAccessGate(t *testing.T) {
 		},
 	}
 	for _, name := range []string{
-		"books_get_library", "recipes_list_recipes", "podcasts_list_favourites",
+		"books_get_library", "recipes_list_recipes", "taste_list_favourite_shows",
 		"learningpaths_get_path", "learningpaths_create_path",
 		"recipes_create_recipe",
 	} {

@@ -271,10 +271,10 @@ describe('UserManagementClient', () => {
     await waitFor(() => expect(mockSetAppAccess).toHaveBeenCalledWith('1', 'books', true))
   })
 
-  it('offers podcasts access', () => {
+  it('no longer offers podcasts access', () => {
     mockUseUsers.mockReturnValue({ data: { users: [] }, isLoading: false, error: undefined })
     render(<UserManagementClient />)
-    expect(screen.getByRole('columnheader', { name: 'podcasts' })).toBeInTheDocument()
+    expect(screen.queryByRole('columnheader', { name: 'podcasts' })).not.toBeInTheDocument()
   })
 
   it('offers taste access', () => {

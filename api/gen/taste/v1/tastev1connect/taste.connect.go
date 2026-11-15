@@ -49,6 +49,17 @@ const (
 	// TasteServiceSetEmailNewPicksProcedure is the procedure name of the TasteService's
 	// SetEmailNewPicks RPC.
 	TasteServiceSetEmailNewPicksProcedure = "/taste.v1.TasteService/SetEmailNewPicks"
+	// TasteServiceSearchShowsProcedure is the procedure name of the TasteService's SearchShows RPC.
+	TasteServiceSearchShowsProcedure = "/taste.v1.TasteService/SearchShows"
+	// TasteServiceListFavouriteShowsProcedure is the procedure name of the TasteService's
+	// ListFavouriteShows RPC.
+	TasteServiceListFavouriteShowsProcedure = "/taste.v1.TasteService/ListFavouriteShows"
+	// TasteServiceAddFavouriteShowProcedure is the procedure name of the TasteService's
+	// AddFavouriteShow RPC.
+	TasteServiceAddFavouriteShowProcedure = "/taste.v1.TasteService/AddFavouriteShow"
+	// TasteServiceRemoveFavouriteShowProcedure is the procedure name of the TasteService's
+	// RemoveFavouriteShow RPC.
+	TasteServiceRemoveFavouriteShowProcedure = "/taste.v1.TasteService/RemoveFavouriteShow"
 )
 
 var (
@@ -122,6 +133,34 @@ var (
 			Procedure:  TasteServiceSetEmailNewPicksProcedure,
 		}
 	})
+	tasteServiceSearchShowsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_taste_v1_taste_proto.Services().ByName("TasteService").Methods().ByName("SearchShows"),
+			Procedure:  TasteServiceSearchShowsProcedure,
+		}
+	})
+	tasteServiceListFavouriteShowsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_taste_v1_taste_proto.Services().ByName("TasteService").Methods().ByName("ListFavouriteShows"),
+			Procedure:  TasteServiceListFavouriteShowsProcedure,
+		}
+	})
+	tasteServiceAddFavouriteShowSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_taste_v1_taste_proto.Services().ByName("TasteService").Methods().ByName("AddFavouriteShow"),
+			Procedure:  TasteServiceAddFavouriteShowProcedure,
+		}
+	})
+	tasteServiceRemoveFavouriteShowSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_taste_v1_taste_proto.Services().ByName("TasteService").Methods().ByName("RemoveFavouriteShow"),
+			Procedure:  TasteServiceRemoveFavouriteShowProcedure,
+		}
+	})
 )
 
 // TasteServiceClient is a client for the taste.v1.TasteService service.
@@ -136,6 +175,12 @@ type TasteServiceClient interface {
 	SetSaved(context.Context, *v1.SetSavedRequest) (*v1.SetSavedResponse, error)
 	AcceptRecommendation(context.Context, *v1.AcceptRecommendationRequest) (*v1.AcceptRecommendationResponse, error)
 	SetEmailNewPicks(context.Context, *v1.SetEmailNewPicksRequest) (*v1.SetEmailNewPicksResponse, error)
+	// Favourite podcast shows (found through iTunes) are the podcasts domain's
+	// only signal.
+	SearchShows(context.Context, *v1.SearchShowsRequest) (*v1.SearchShowsResponse, error)
+	ListFavouriteShows(context.Context, *v1.ListFavouriteShowsRequest) (*v1.ListFavouriteShowsResponse, error)
+	AddFavouriteShow(context.Context, *v1.AddFavouriteShowRequest) (*v1.AddFavouriteShowResponse, error)
+	RemoveFavouriteShow(context.Context, *v1.RemoveFavouriteShowRequest) (*v1.RemoveFavouriteShowResponse, error)
 }
 
 // NewTasteServiceClient constructs a client for the taste.v1.TasteService service. Multiple service
@@ -156,6 +201,12 @@ type TasteServiceHandler interface {
 	SetSaved(context.Context, *v1.SetSavedRequest) (*v1.SetSavedResponse, error)
 	AcceptRecommendation(context.Context, *v1.AcceptRecommendationRequest) (*v1.AcceptRecommendationResponse, error)
 	SetEmailNewPicks(context.Context, *v1.SetEmailNewPicksRequest) (*v1.SetEmailNewPicksResponse, error)
+	// Favourite podcast shows (found through iTunes) are the podcasts domain's
+	// only signal.
+	SearchShows(context.Context, *v1.SearchShowsRequest) (*v1.SearchShowsResponse, error)
+	ListFavouriteShows(context.Context, *v1.ListFavouriteShowsRequest) (*v1.ListFavouriteShowsResponse, error)
+	AddFavouriteShow(context.Context, *v1.AddFavouriteShowRequest) (*v1.AddFavouriteShowResponse, error)
+	RemoveFavouriteShow(context.Context, *v1.RemoveFavouriteShowRequest) (*v1.RemoveFavouriteShowResponse, error)
 }
 
 // RegisterTasteServiceHandler registers svc as the taste.v1.TasteService implementation on server.
@@ -172,6 +223,10 @@ func RegisterTasteServiceHandler(server *connect.Server, svc TasteServiceHandler
 		connect.Method{Spec: tasteServiceSetSavedSpec(), Handler: adapter.setSaved},
 		connect.Method{Spec: tasteServiceAcceptRecommendationSpec(), Handler: adapter.acceptRecommendation},
 		connect.Method{Spec: tasteServiceSetEmailNewPicksSpec(), Handler: adapter.setEmailNewPicks},
+		connect.Method{Spec: tasteServiceSearchShowsSpec(), Handler: adapter.searchShows},
+		connect.Method{Spec: tasteServiceListFavouriteShowsSpec(), Handler: adapter.listFavouriteShows},
+		connect.Method{Spec: tasteServiceAddFavouriteShowSpec(), Handler: adapter.addFavouriteShow},
+		connect.Method{Spec: tasteServiceRemoveFavouriteShowSpec(), Handler: adapter.removeFavouriteShow},
 	)
 }
 
@@ -216,6 +271,22 @@ func (UnimplementedTasteServiceHandler) AcceptRecommendation(context.Context, *v
 
 func (UnimplementedTasteServiceHandler) SetEmailNewPicks(context.Context, *v1.SetEmailNewPicksRequest) (*v1.SetEmailNewPicksResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "taste.v1.TasteService.SetEmailNewPicks is not implemented")
+}
+
+func (UnimplementedTasteServiceHandler) SearchShows(context.Context, *v1.SearchShowsRequest) (*v1.SearchShowsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "taste.v1.TasteService.SearchShows is not implemented")
+}
+
+func (UnimplementedTasteServiceHandler) ListFavouriteShows(context.Context, *v1.ListFavouriteShowsRequest) (*v1.ListFavouriteShowsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "taste.v1.TasteService.ListFavouriteShows is not implemented")
+}
+
+func (UnimplementedTasteServiceHandler) AddFavouriteShow(context.Context, *v1.AddFavouriteShowRequest) (*v1.AddFavouriteShowResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "taste.v1.TasteService.AddFavouriteShow is not implemented")
+}
+
+func (UnimplementedTasteServiceHandler) RemoveFavouriteShow(context.Context, *v1.RemoveFavouriteShowRequest) (*v1.RemoveFavouriteShowResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "taste.v1.TasteService.RemoveFavouriteShow is not implemented")
 }
 
 type tasteServiceClient struct {
@@ -297,6 +368,38 @@ func (c *tasteServiceClient) AcceptRecommendation(ctx context.Context, req *v1.A
 func (c *tasteServiceClient) SetEmailNewPicks(ctx context.Context, req *v1.SetEmailNewPicksRequest) (*v1.SetEmailNewPicksResponse, error) {
 	var res v1.SetEmailNewPicksResponse
 	if err := c.client.CallUnary(ctx, tasteServiceSetEmailNewPicksSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *tasteServiceClient) SearchShows(ctx context.Context, req *v1.SearchShowsRequest) (*v1.SearchShowsResponse, error) {
+	var res v1.SearchShowsResponse
+	if err := c.client.CallUnary(ctx, tasteServiceSearchShowsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *tasteServiceClient) ListFavouriteShows(ctx context.Context, req *v1.ListFavouriteShowsRequest) (*v1.ListFavouriteShowsResponse, error) {
+	var res v1.ListFavouriteShowsResponse
+	if err := c.client.CallUnary(ctx, tasteServiceListFavouriteShowsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *tasteServiceClient) AddFavouriteShow(ctx context.Context, req *v1.AddFavouriteShowRequest) (*v1.AddFavouriteShowResponse, error) {
+	var res v1.AddFavouriteShowResponse
+	if err := c.client.CallUnary(ctx, tasteServiceAddFavouriteShowSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *tasteServiceClient) RemoveFavouriteShow(ctx context.Context, req *v1.RemoveFavouriteShowRequest) (*v1.RemoveFavouriteShowResponse, error) {
+	var res v1.RemoveFavouriteShowResponse
+	if err := c.client.CallUnary(ctx, tasteServiceRemoveFavouriteShowSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -418,6 +521,54 @@ func (h tasteServiceHandler) setEmailNewPicks(ctx context.Context, _ connect.Spe
 		return err
 	}
 	res, err := h.svc.SetEmailNewPicks(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h tasteServiceHandler) searchShows(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SearchShowsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SearchShows(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h tasteServiceHandler) listFavouriteShows(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListFavouriteShowsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListFavouriteShows(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h tasteServiceHandler) addFavouriteShow(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.AddFavouriteShowRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.AddFavouriteShow(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h tasteServiceHandler) removeFavouriteShow(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.RemoveFavouriteShowRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.RemoveFavouriteShow(ctx, &req)
 	if err != nil {
 		return err
 	}
