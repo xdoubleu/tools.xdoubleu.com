@@ -3,6 +3,7 @@ package runner_test
 import (
 	"context"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -121,4 +122,48 @@ func TestTheSandboxFixIsToldToBranchOffTheDefaultBranch(t *testing.T) {
 	require.NoError(t, err)
 	assert.Contains(t, env.sandbox.specs[0].Stdin,
 		"git switch -c agent/sandbox-<slug> origin/<the repository's default branch>")
+}
+
+func TestATakenOverCloneHasItsTrackedEditsCommittedBeforeTheAgentStarts(t *testing.T) {
+	first := func(_ context.Context, spec runner.SandboxSpec) (int, error) {
+		commitFile(spec.CloneDir, "agent.txt", "work")
+		_ = os.WriteFile(filepath.Join(spec.CloneDir, "agent.txt"), []byte("edited"), 0o644)
+		_ = os.WriteFile(filepath.Join(spec.OutcomeDir, "outcome.md"), []byte("1"), 0o644)
+		return 0, nil
+	}
+	env := newEnv(t, laterJob(first), newJob())
+	_, err := env.runner.Next(context.Background())
+	require.NoError(t, err)
+	env.api.jobs = append(env.api.jobs, replyJob())
+
+	_, err = env.runner.Next(context.Background())
+	require.NoError(t, err)
+
+	clone := env.sandbox.specs[1].CloneDir
+	out, err := exec.Command("git", "-C", clone, "status", "--porcelain",
+		"--untracked-files=no").CombinedOutput()
+	require.NoError(t, err, string(out))
+	assert.Empty(t, strings.TrimSpace(string(out)))
+	content, err := os.ReadFile(filepath.Join(clone, "agent.txt"))
+	require.NoError(t, err)
+	assert.Equal(t, "edited", string(content))
+}
+
+func TestATakenOverCloneThatCannotBeCommittedInIsStillUsed(t *testing.T) {
+	first := func(_ context.Context, spec runner.SandboxSpec) (int, error) {
+		commitFile(spec.CloneDir, "agent.txt", "work")
+		alternates := filepath.Join(spec.CloneDir, ".git", "objects", "info", "alternates")
+		_ = os.WriteFile(alternates, []byte("/elsewhere"), 0o644)
+		_ = os.WriteFile(filepath.Join(spec.OutcomeDir, "outcome.md"), []byte("1"), 0o644)
+		return 0, nil
+	}
+	env := newEnv(t, laterJob(first), newJob())
+	_, err := env.runner.Next(context.Background())
+	require.NoError(t, err)
+	env.api.jobs = append(env.api.jobs, replyJob())
+
+	_, err = env.runner.Next(context.Background())
+	require.NoError(t, err)
+
+	assert.Len(t, env.sandbox.specs, 2, "the agent still started")
 }
