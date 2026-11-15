@@ -122,7 +122,6 @@ const routineLabel = "routine"
 //nolint:gochecknoglobals //small fixed list, read-only, mirrors the collectors above
 var knownRoutines = []string{
 	"nightly-maintenance-sweep",
-	"ready-issues-executor",
 	"red-pr-repair",
 }
 
