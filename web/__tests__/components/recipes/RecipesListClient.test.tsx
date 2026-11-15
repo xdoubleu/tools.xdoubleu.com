@@ -116,4 +116,41 @@ describe('RecipesListClient', () => {
     expect(screen.getAllByRole('link', { name: 'New recipe' })).toHaveLength(2)
     expect(screen.queryByRole('searchbox')).not.toBeInTheDocument()
   })
+
+  it('shows categories on cards and filters by them', () => {
+    mockRecipes({
+      data: create(ListRecipesResponseSchema, {
+        recipes: [
+          create(RecipeSchema, {
+            id: 'r1',
+            name: 'Soup',
+            baseServings: 2,
+            mealType: 'light_meal',
+            effort: 'low'
+          }),
+          create(RecipeSchema, { id: 'r2', name: 'Roast', baseServings: 4, effort: 'high' }),
+          create(RecipeSchema, { id: 'r3', name: 'Salad', baseServings: 2, mealType: 'light_meal' })
+        ]
+      }),
+      isLoading: false
+    })
+    render(<RecipesListClient />)
+    expect(screen.getByRole('link', { name: /Soup/ })).toHaveTextContent(
+      'Serves 2 · Light meal · Low effort'
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Light meal' }))
+    expect(screen.queryByRole('link', { name: /Roast/ })).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Salad/ })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Low effort' }))
+    expect(screen.queryByRole('link', { name: /Salad/ })).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Soup/ })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Light meal' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Low effort' }))
+    fireEvent.click(screen.getByRole('button', { name: 'High effort' }))
+    expect(screen.getByRole('link', { name: /Roast/ })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /Soup/ })).not.toBeInTheDocument()
+  })
 })

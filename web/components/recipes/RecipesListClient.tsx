@@ -13,13 +13,20 @@ import { LoadMoreButton } from '@/components/ui/LoadMoreButton'
 import { PageContainer } from '@/components/ui/page-container'
 import { PageHeader } from '@/components/ui/page-header'
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
+import { EFFORTS, MEAL_TYPES, effortLabel, mealTypeLabel } from '@/lib/recipes/categories'
 
 function RecipeCard({ recipe }: { recipe: Recipe }) {
   return (
     <ItemCard
       href={`/recipes/${recipe.id}`}
       title={recipe.name}
-      meta={`Serves ${recipe.baseServings}`}
+      meta={[
+        `Serves ${recipe.baseServings}`,
+        mealTypeLabel(recipe.mealType),
+        effortLabel(recipe.effort)
+      ]
+        .filter(Boolean)
+        .join(' · ')}
       status={recipe.isDraft ? <Badge variant="secondary">Draft</Badge> : undefined}
     />
   )
@@ -42,12 +49,18 @@ export default function RecipesListClient() {
 
   const [query, setQuery] = useState('')
   const [draftsOnly, setDraftsOnly] = useState(false)
+  const [mealType, setMealType] = useState('')
+  const [effort, setEffort] = useState('')
   const shown = useMemo(() => {
     const needle = query.trim().toLowerCase()
     return recipes.filter(
-      (r) => (!draftsOnly || r.isDraft) && r.name.toLowerCase().includes(needle)
+      (r) =>
+        (!draftsOnly || r.isDraft) &&
+        (!mealType || r.mealType === mealType) &&
+        (!effort || r.effort === effort) &&
+        r.name.toLowerCase().includes(needle)
     )
-  }, [recipes, query, draftsOnly])
+  }, [recipes, query, draftsOnly, mealType, effort])
 
   return (
     <PageContainer>
@@ -88,7 +101,19 @@ export default function RecipesListClient() {
                 label: 'Drafts',
                 active: draftsOnly,
                 onToggle: () => setDraftsOnly((on) => !on)
-              }
+              },
+              ...MEAL_TYPES.map((o) => ({
+                id: o.value,
+                label: o.label,
+                active: mealType === o.value,
+                onToggle: () => setMealType((cur) => (cur === o.value ? '' : o.value))
+              })),
+              ...EFFORTS.map((o) => ({
+                id: o.value,
+                label: o.label,
+                active: effort === o.value,
+                onToggle: () => setEffort((cur) => (cur === o.value ? '' : o.value))
+              }))
             ]}
             count={shown.length}
           />

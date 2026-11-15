@@ -155,6 +155,21 @@ describe('RecipeForm (new recipe)', () => {
     })
   })
 
+  it('sends the chosen meal type and effort', async () => {
+    mockCreateRecipe.mockResolvedValue({ id: 'new-id', synced: true })
+    render(<RecipeForm onSave={vi.fn()} onCancel={vi.fn()} />)
+
+    fireEvent.change(screen.getByLabelText('Meal type'), { target: { value: 'light_meal' } })
+    fireEvent.change(screen.getByLabelText('Effort'), { target: { value: 'low' } })
+    fireEvent.submit(screen.getByRole('button', { name: 'Save Recipe' }).closest('form')!)
+
+    await waitFor(() => {
+      expect(mockCreateRecipe).toHaveBeenCalledWith(
+        expect.objectContaining({ mealType: 'light_meal', effort: 'low' })
+      )
+    })
+  })
+
   it('sends isDraft when the Draft box is checked', async () => {
     mockCreateRecipe.mockResolvedValue({ id: 'new-id', synced: true })
     render(<RecipeForm onSave={vi.fn()} onCancel={vi.fn()} />)

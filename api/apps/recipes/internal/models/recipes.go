@@ -6,6 +6,24 @@ import (
 	"github.com/google/uuid"
 )
 
+// Allowed category values; the empty string means uncategorised.
+const (
+	MealTypeLight = "light_meal"
+	MealTypeMain  = "main_meal"
+	EffortLow     = "low"
+	EffortHigh    = "high"
+)
+
+// ValidMealType reports whether v is empty or a known meal type.
+func ValidMealType(v string) bool {
+	return v == "" || v == MealTypeLight || v == MealTypeMain
+}
+
+// ValidEffort reports whether v is empty or a known effort level.
+func ValidEffort(v string) bool {
+	return v == "" || v == EffortLow || v == EffortHigh
+}
+
 type Recipe struct {
 	ID            uuid.UUID
 	UserID        string
@@ -15,6 +33,8 @@ type Recipe struct {
 	BaseServings  int
 	BatchServings *int
 	IsDraft       bool
+	MealType      string
+	Effort        string
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
 	Ingredients   []Ingredient

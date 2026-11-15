@@ -32,6 +32,8 @@ type RecipesRepository struct {
 func (r *RecipesRepository) ListForFamily(
 	ctx context.Context,
 	familyID uuid.UUID,
+	mealType string,
+	effort string,
 	limit int32,
 	offset int32,
 ) ([]models.Recipe, bool, error) {
@@ -39,12 +41,15 @@ func (r *RecipesRepository) ListForFamily(
 
 	rows, err := r.db.Query(ctx, `
 		SELECT r.id, r.user_id, r.family_id, r.name,
-		       r.base_servings, r.is_draft, r.created_at, r.updated_at
+		       r.base_servings, r.is_draft, r.meal_type, r.effort,
+		       r.created_at, r.updated_at
 		FROM recipes.recipes r
 		WHERE r.family_id = $1
+		  AND ($2 = '' OR r.meal_type = $2)
+		  AND ($3 = '' OR r.effort = $3)
 		ORDER BY r.name, r.id
-		LIMIT $2 OFFSET $3`,
-		familyID, sqlLimit, offset,
+		LIMIT $4 OFFSET $5`,
+		familyID, mealType, effort, sqlLimit, offset,
 	)
 	if err != nil {
 		return nil, false, err
@@ -56,7 +61,7 @@ func (r *RecipesRepository) ListForFamily(
 		var recipe models.Recipe
 		if err = rows.Scan(
 			&recipe.ID, &recipe.UserID, &recipe.FamilyID, &recipe.Name,
-			&recipe.BaseServings, &recipe.IsDraft,
+			&recipe.BaseServings, &recipe.IsDraft, &recipe.MealType, &recipe.Effort,
 			&recipe.CreatedAt, &recipe.UpdatedAt,
 		); err != nil {
 			return nil, false, err
@@ -78,14 +83,16 @@ func (r *RecipesRepository) GetByID(
 	var recipe models.Recipe
 	err := r.db.QueryRow(ctx, `
 		SELECT id, user_id, family_id, name,
-		instructions, base_servings, batch_servings, is_draft, created_at, updated_at
+		instructions, base_servings, batch_servings, is_draft, meal_type, effort,
+		created_at, updated_at
 		FROM recipes.recipes
 		WHERE id = $1`,
 		id,
 	).Scan(
 		&recipe.ID, &recipe.UserID, &recipe.FamilyID, &recipe.Name,
 		&recipe.Instructions, &recipe.BaseServings, &recipe.BatchServings,
-		&recipe.IsDraft, &recipe.CreatedAt, &recipe.UpdatedAt,
+		&recipe.IsDraft, &recipe.MealType, &recipe.Effort,
+		&recipe.CreatedAt, &recipe.UpdatedAt,
 	)
 	if err != nil {
 		return nil, postgres.PgxErrorToHTTPError(err)
@@ -104,8 +111,9 @@ func (r *RecipesRepository) Create(
 	err := r.db.QueryRow(
 		ctx,
 		`INSERT INTO recipes.recipes
-		(id, user_id, family_id, name, instructions, base_servings, batch_servings, is_draft)
-		VALUES (COALESCE($8::uuid, gen_random_uuid()), $1, $2, $3, $4, $5, $6, $7)
+		(id, user_id, family_id, name, instructions, base_servings, batch_servings,
+		is_draft, meal_type, effort)
+		VALUES (COALESCE($8::uuid, gen_random_uuid()), $1, $2, $3, $4, $5, $6, $7, $9, $10)
 		ON CONFLICT (id) DO UPDATE SET id = EXCLUDED.id
 			WHERE recipes.family_id = EXCLUDED.family_id
 		RETURNING id, created_at, updated_at`,
@@ -117,6 +125,8 @@ func (r *RecipesRepository) Create(
 		recipe.BatchServings,
 		recipe.IsDraft,
 		clientID,
+		recipe.MealType,
+		recipe.Effort,
 	).Scan(&recipe.ID, &recipe.CreatedAt, &recipe.UpdatedAt)
 	if err != nil {
 		return nil, postgres.PgxErrorToHTTPError(err)
@@ -132,7 +142,8 @@ func (r *RecipesRepository) Update(
 		ctx,
 		`UPDATE recipes.recipes
 		SET name = $3, instructions = $4,
-		base_servings = $5, batch_servings = $6, is_draft = $7, updated_at = now()
+		base_servings = $5, batch_servings = $6, is_draft = $7,
+		meal_type = $8, effort = $9, updated_at = now()
 		WHERE id = $1 AND family_id = $2`,
 		recipe.ID,
 		recipe.FamilyID,
@@ -141,6 +152,8 @@ func (r *RecipesRepository) Update(
 		recipe.BaseServings,
 		recipe.BatchServings,
 		recipe.IsDraft,
+		recipe.MealType,
+		recipe.Effort,
 	)
 	return err
 }

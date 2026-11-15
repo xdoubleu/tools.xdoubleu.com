@@ -23,7 +23,7 @@ func (h *recipesConnectHandler) ListRecipes(
 	}
 
 	list, hasMore, err := h.app.services.Recipes.List(
-		ctx, user.ID, req.Limit, req.Offset,
+		ctx, user.ID, req.MealType, req.Effort, req.Limit, req.Offset,
 	)
 	if err != nil {
 		return nil, mapError(err)
@@ -105,6 +105,8 @@ func (h *recipesConnectHandler) CreateRecipe(
 	)
 	recipe.Ingredients = ingredients
 	recipe.IsDraft = req.IsDraft
+	recipe.MealType = req.MealType
+	recipe.Effort = req.Effort
 	if req.BatchServings != nil {
 		v := int(*req.BatchServings)
 		recipe.BatchServings = &v
@@ -158,6 +160,8 @@ func (h *recipesConnectHandler) UpdateRecipe(
 	recipe.ID = id
 	recipe.Ingredients = ingredients
 	recipe.IsDraft = req.IsDraft
+	recipe.MealType = req.MealType
+	recipe.Effort = req.Effort
 	if req.BatchServings != nil {
 		v := int(*req.BatchServings)
 		recipe.BatchServings = &v

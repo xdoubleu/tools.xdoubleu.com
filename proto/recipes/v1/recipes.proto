@@ -33,11 +33,18 @@ message Recipe {
   reserved 9; // was: repeated string shared_with (per-recipe sharing removed)
   optional int32 batch_servings = 10;
   bool is_draft = 11;
+  // Empty, "light_meal" or "main_meal".
+  string meal_type = 12;
+  // Empty, "low" or "high".
+  string effort = 13;
 }
 
 message ListRecipesRequest {
   int32 limit = 1;
   int32 offset = 2;
+  // Optional exact-match filters; empty matches every recipe.
+  string meal_type = 3;
+  string effort = 4;
 }
 message ListRecipesResponse {
   // Summaries: instructions and ingredients are left empty (list queries never
@@ -72,6 +79,8 @@ message CreateRecipeRequest {
   // nothing and returns the existing recipe (offline replay).
   string id = 10;
   repeated string ingredient_alternative_groups = 11;
+  string meal_type = 12;
+  string effort = 13;
 }
 message CreateRecipeResponse { Recipe recipe = 1; }
 
@@ -87,6 +96,8 @@ message UpdateRecipeRequest {
   repeated string ingredient_group_names = 9;
   bool is_draft = 10;
   repeated string ingredient_alternative_groups = 11;
+  string meal_type = 12;
+  string effort = 13;
 }
 message UpdateRecipeResponse {}
 

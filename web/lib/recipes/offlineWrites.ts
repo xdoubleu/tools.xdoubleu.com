@@ -25,6 +25,8 @@ type RecipeFields = Pick<
   | 'baseServings'
   | 'batchServings'
   | 'isDraft'
+  | 'mealType'
+  | 'effort'
   | 'ingredientNames'
   | 'ingredientAmounts'
   | 'ingredientUnits'
@@ -64,6 +66,8 @@ function toRecipe(id: string, req: RecipeFields, base?: Recipe): Recipe {
     baseServings: req.baseServings > 0 ? req.baseServings : 2,
     batchServings: req.batchServings,
     isDraft: req.isDraft,
+    mealType: req.mealType,
+    effort: req.effort,
     ingredients
   })
 }
