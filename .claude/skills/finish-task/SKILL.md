@@ -31,15 +31,16 @@ Run the steps in order. Opening the PR is pre-authorized; a branch without a PR 
 
 ## 2. Coverage (≥80% on changed code)
 
-- API: `cd api && docker-compose up -d && make test/cov/report`. **Never
+- API: `docker-compose up -d`, then `make test/cov/diff` in `api/`. **Never
   `docker-compose down`** — worktrees share that Postgres.
   Repositories: also `make test/reads`.
-- Web: `cd web && npm run test:cov`.
+- Web: `npm run test:cov` in `web/`.
+- `factory-runner/`, `selfupdate/`: same target.
 
 **Sandboxed (routine) runs:** `routine-sandbox` points `GOLANGCI_LINT_CACHE`
 and the coverage profile at the sandbox home; run lint read-only and
 hand-apply golines/gci diffs. Skip `make grafana/verify` (needs Docker; CI's
-Build Grafana job covers it) and say so in the PR body.
+Build Grafana job covers it).
 
 ## 3. Build (web changes)
 
