@@ -93,15 +93,24 @@ type PullRequestRef struct {
 	URL, Title, Branch, Body, MergeSHA string
 }
 
-// taskID is a task written T-<number> in a title or body.
+// taskID is a task written T-<number>.
 var taskID = regexp.MustCompile(`\bT-[0-9]+\b`)
+
+// titleTask is the task a title names in parentheses, such as `Fix it (T-123)`.
+var titleTask = regexp.MustCompile(`\((T-[0-9]+)\)`)
 
 // branchTask is the task a branch is named for, such as agent/t483-fix.
 var branchTask = regexp.MustCompile(`(?i)(?:^|[^a-z0-9])t-?([0-9]+)(?:[^0-9]|$)`)
 
+// bodyTaskList is a closing keyword (`Closes T-1, T-2`) or a `Tasks:` line
+// followed by a list of tasks. A task mentioned in prose is not one.
+var bodyTaskList = regexp.MustCompile(
+	`(?im)(?:\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?|part of|refs?)\s+|^Tasks:\s*)` +
+		`(T-[0-9]+(?:(?:\s*,\s*|\s*&\s*|\s+and\s+|\s+)T-[0-9]+)*)`)
+
 // linkedTasks is every reference (T-<number> or UUID) a pull request links, each
-// once, in order: a `Task:` line of the body, then T-<number> in its title,
-// branch and body.
+// once, in order: a `Task:` line of the body, the task in its title, its branch,
+// then the tasks a closing keyword or `Tasks:` line of the body lists.
 func linkedTasks(pr PullRequestRef) []string {
 	var refs []string
 	seen := map[string]bool{}
@@ -114,13 +123,16 @@ func linkedTasks(pr PullRequestRef) []string {
 	for _, m := range taskLine.FindAllStringSubmatch(pr.Body, -1) {
 		add(m[1])
 	}
-	for _, text := range []string{pr.Title, pr.Body} {
-		for _, m := range taskID.FindAllString(text, -1) {
-			add(m)
-		}
+	for _, m := range titleTask.FindAllStringSubmatch(pr.Title, -1) {
+		add(m[1])
 	}
 	if m := branchTask.FindStringSubmatch(pr.Branch); m != nil {
 		add("T-" + m[1])
+	}
+	for _, m := range bodyTaskList.FindAllStringSubmatch(pr.Body, -1) {
+		for _, id := range taskID.FindAllString(m[1], -1) {
+			add(id)
+		}
 	}
 	return refs
 }
