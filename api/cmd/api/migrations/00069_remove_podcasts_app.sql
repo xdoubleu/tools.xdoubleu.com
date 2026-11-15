@@ -14,7 +14,7 @@ DELETE FROM global.app_opens
 WHERE app = 'podcasts';
 UPDATE global.app_users
 SET tab_pins = array_remove(tab_pins, 'podcasts')
-WHERE 'podcasts' = ANY(tab_pins);
+WHERE 'podcasts' = any(tab_pins);
 -- +goose StatementEnd
 
 -- +goose Down
