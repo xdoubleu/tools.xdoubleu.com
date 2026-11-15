@@ -28,8 +28,9 @@ const (
 	maxBodyRunes   = 60000
 	maxGitHubBody  = 1 << 20
 	// publishTries is how often a transient failure is tried before giving up.
-	publishTries = 3
-	// PublishRetry is the default pause between those tries.
+	publishTries = 5
+	// PublishRetry is the default pause before the first retry; it doubles each
+	// time, so an outage of about half a minute is ridden out.
 	PublishRetry = 2 * time.Second
 	zeroWidth    = "\u200b"
 )
@@ -372,6 +373,7 @@ func (e *finalError) Unwrap() error { return e.err }
 
 func (r *JobRunner) retry(ctx context.Context, fn func() error) error {
 	var err error
+	pause := cmp.Or(r.PublishRetry, PublishRetry)
 	for try := range publishTries {
 		if err = fn(); err == nil {
 			return nil
@@ -383,8 +385,9 @@ func (r *JobRunner) retry(ctx context.Context, fn func() error) error {
 		select {
 		case <-ctx.Done():
 			return err
-		case <-time.After(cmp.Or(r.PublishRetry, PublishRetry)):
+		case <-time.After(pause):
 		}
+		pause *= 2
 	}
 	return err
 }
