@@ -1,0 +1,15 @@
+TN:
+SF:lib/analytics.ts
+FN:4,track
+FNF:1
+FNH:1
+FNDA:1,track
+DA:5,1
+DA:6,0
+LF:2
+LH:1
+BRDA:5,0,0,1
+BRDA:5,0,1,0
+BRF:2
+BRH:1
+end_of_record
