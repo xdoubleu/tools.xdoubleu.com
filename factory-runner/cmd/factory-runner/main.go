@@ -292,7 +292,8 @@ func (a *app) serve(
 	if loop == nil {
 		err = beat(ctx)
 	} else {
-		err = alongside(ctx, beat, loop.Loop, a.activity.Idle, idlePoll)
+		onRestart := func(ctx context.Context) { a.awaitRestart(ctx, cfg.Server, token) }
+		err = alongside(ctx, beat, loop.Loop, onRestart, a.activity.Idle, idlePoll)
 	}
 	if errors.Is(err, runner.ErrRestart) {
 		fmt.Fprintln(a.stdout, "Updated to a new release; restarting.")
@@ -311,6 +312,7 @@ const idlePoll = time.Second
 func alongside(
 	ctx context.Context,
 	first, second func(context.Context) error,
+	onRestart func(context.Context),
 	idle func() bool,
 	poll time.Duration,
 ) error {
@@ -321,10 +323,30 @@ func alongside(
 	go func() { errs <- second(ctx) }()
 	one := <-errs
 	if errors.Is(one, runner.ErrRestart) {
+		if onRestart != nil {
+			go onRestart(ctx)
+		}
 		waitIdle(ctx, idle, poll)
 	}
 	cancel()
 	return mostTelling(one, <-errs)
+}
+
+// awaitRestart holds new claims and keeps the heartbeat going while running
+// jobs finish before the restart, so the board still shows the runner online.
+func (a *app) awaitRestart(ctx context.Context, server, token string) {
+	if a.control != nil {
+		a.control.SetRestarting()
+	}
+	hb := a.newBeat(server)
+	for ctx.Err() == nil {
+		if err := hb.Heartbeat(ctx, token); err != nil {
+			select {
+			case <-ctx.Done():
+			case <-time.After(idlePoll):
+			}
+		}
+	}
 }
 
 // waitIdle returns once idle reports true, or ctx ends.
