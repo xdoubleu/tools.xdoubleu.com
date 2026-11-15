@@ -9,8 +9,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"tools.xdoubleu.com/internal/platform/factory/internal/models"
 )
 
 // repoInput builds a RepoInput that passes validation, then lets mod edit it.
@@ -19,8 +17,6 @@ func repoInput(mod func(*RepoInput)) RepoInput {
 		Owner:             "octo",
 		Name:              "repo",
 		DefaultBranch:     "main",
-		DefaultHarness:    models.HarnessClaudeCode,
-		DefaultModel:      "",
 		SetupCommands:     "",
 		AgentInstructions: "",
 		TimeLimitMinutes:  60,
@@ -78,14 +74,12 @@ func TestNormaliseRepoTrimsAndDefaults(t *testing.T) {
 		r.Owner = " octo "
 		r.Name = " repo "
 		r.DefaultBranch = ""
-		r.DefaultHarness = ""
 		r.TimeLimitMinutes = 0
 	}))
 	require.NoError(t, err)
 	assert.Equal(t, "octo", got.Owner)
 	assert.Equal(t, "repo", got.Name)
 	assert.Equal(t, "main", got.DefaultBranch)
-	assert.Equal(t, models.HarnessClaudeCode, got.DefaultHarness)
 	assert.Equal(t, defaultTimeLimit, got.TimeLimitMinutes)
 
 	got, err = normaliseRepo(repoInput(func(r *RepoInput) { r.DefaultBranch = " dev " }))
@@ -119,25 +113,6 @@ func TestNormaliseRepoBounds(t *testing.T) {
 		r.AgentInstructions = strings.Repeat("a", maxInstructionsLen+1)
 	})
 
-	ok(func(r *RepoInput) {
-		r.DefaultHarness, r.DefaultModel = models.HarnessOpenCode, "vendor/model"
-	})
-	ok(func(r *RepoInput) {
-		r.DefaultHarness, r.DefaultModel = models.HarnessOpenCode, " vendor/model:free "
-	})
-	bad(func(r *RepoInput) { r.DefaultHarness = models.HarnessOpenCode })
-	bad(func(r *RepoInput) {
-		r.DefaultHarness, r.DefaultModel = models.HarnessOpenCode, "no-vendor"
-	})
-	bad(func(r *RepoInput) {
-		r.DefaultHarness, r.DefaultModel = models.HarnessOpenCode, "-x/model"
-	})
-	bad(func(r *RepoInput) {
-		r.DefaultHarness = models.HarnessOpenCode
-		r.DefaultModel = "vendor/" + strings.Repeat("m", maxModelLen)
-	})
-	bad(func(r *RepoInput) { r.DefaultModel = "vendor/model" })
-	bad(func(r *RepoInput) { r.DefaultHarness = models.HarnessInvalid })
 	bad(func(r *RepoInput) { r.DefaultBranch = "-x" })
 }
 
@@ -145,7 +120,6 @@ func TestUpdateRequiresEverySetting(t *testing.T) {
 	svc := &RepoService{repo: nil}
 	for name, mod := range map[string]func(*RepoInput){
 		"no branch":     func(r *RepoInput) { r.DefaultBranch = "  " },
-		"no harness":    func(r *RepoInput) { r.DefaultHarness = "" },
 		"no time limit": func(r *RepoInput) { r.TimeLimitMinutes = 0 },
 	} {
 		_, err := svc.Update(context.Background(), uuid.New(), repoInput(mod))

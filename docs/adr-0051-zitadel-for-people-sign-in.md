@@ -18,7 +18,8 @@ No provider covers the second half: none of the hosted free tiers (Auth0, WorkOS
 - **The api is an OIDC relying party for people.** Sign-in redirects to Zitadel; the api issues its own session from the ID token. `auth.users` links each user to the Zitadel subject. Any OIDC provider can replace Zitadel by configuration.
 - **The api keeps** users, roles, app grants, family, agent accounts, delegation and the MCP authorization server. MCP tokens, agent credentials and Grafana's OIDC sign-in ([adr-0021](adr-0021-oauth-as-general-purpose-oidc-idp.md)) are unaffected.
 - **User management calls Zitadel's user API** to create, invite and deactivate people; grants stay in the api.
-- **Cutover imports** bcrypt hashes and TOTP secrets into Zitadel, so no one resets a password; everyone signs in once more.
+- **Cutover imports** bcrypt hashes and TOTP secrets into Zitadel, so no one resets a password; everyone signs in once more. Recovery codes don't carry over; people generate new ones in Zitadel. Until the password, TOTP and recovery-code code is removed in a later change, unsetting `OIDC_SIGN_IN` rolls back.
+- **Cutover runbook**: `ImportJob` runs hourly once `ZITADEL_SERVICE_TOKEN` is set and links each person by subject; let it finish, warn the family, set `OIDC_SIGN_IN=true`.
 - **Zitadel is pinned and patched promptly.** Renovate tracks it; a security advisory for it is handled like one for the api.
 
 ## Alternatives considered

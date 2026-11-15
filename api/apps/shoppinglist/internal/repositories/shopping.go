@@ -181,7 +181,13 @@ const mealPlanExportItemsQuery = `
 		FROM recipe_effective_servings res
 		JOIN recipes.ingredients i ON i.recipe_id = res.recipe_id
 		LEFT JOIN aliases a ON a.alias = LOWER(TRIM(i.name))
-		WHERE i.group_name IS NULL OR NOT (i.group_name = ANY($5::text[]))
+		WHERE (i.group_name IS NULL OR NOT (i.group_name = ANY($5::text[])))
+		  -- Only the default (first) option of an alternative group is bought.
+		  AND (i.alternative_group IS NULL OR NOT EXISTS (
+		      SELECT 1 FROM recipes.ingredients p
+		      WHERE p.recipe_id = i.recipe_id
+		        AND p.alternative_group = i.alternative_group
+		        AND p.sort_order < i.sort_order))
 		GROUP BY
 		    res.recipe_name,
 		    i.group_name,

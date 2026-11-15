@@ -64,6 +64,9 @@ func (l *jobLoop) runGates() string {
 	if len(gates) == 0 {
 		return ""
 	}
+	if c := l.syncBase(); c != "" {
+		return c
+	}
 	var diff bytes.Buffer
 	code, err := l.session.Exec(l.ctx, []string{bashCmd, "-c",
 		"git diff --name-only origin/main...HEAD || git ls-files"}, "", &diff)
@@ -74,7 +77,8 @@ func (l *jobLoop) runGates() string {
 	for _, g := range gatesFor(gates, changed) {
 		ctx, cancel := context.WithTimeout(l.ctx, gateLimit)
 		var out bytes.Buffer
-		gateCode, runErr := l.session.Exec(ctx, []string{bashCmd, "-lc", g.command}, "", &out)
+		// Not a login shell: /etc/profile would reset the image's PATH (go).
+		gateCode, runErr := l.session.Exec(ctx, []string{bashCmd, "-c", g.command}, "", &out)
 		cancel()
 		if runErr == nil && gateCode == 0 {
 			continue
@@ -82,13 +86,90 @@ func (l *jobLoop) runGates() string {
 		if l.ended() != "" {
 			return ""
 		}
-		tail := strings.ToValidUTF8(out.String(), "")
-		if len(tail) > gateTail {
-			tail = tail[len(tail)-gateTail:]
-		}
-		return fmt.Sprintf("The host ran the gate `%s` before pushing and it failed:"+
+		tail := gateExcerpt(out.String(), gateTail)
+		return fmt.Sprintf("The gate `%s` before pushing and it failed:"+
 			"\n\n%s\n\nFix it, run it yourself, commit, and write the outcome again.",
 			g.command, redact(tail, l.events.redactions))
 	}
 	return ""
+}
+
+const (
+	excerptContext = 2
+	excerptTail    = 15
+)
+
+// gateNoise reports passing-package lines that bury the failure.
+func gateNoise(line string) bool {
+	return strings.HasPrefix(line, "ok ") || strings.HasPrefix(line, "ok\t") ||
+		strings.Contains(line, "(cached)") || strings.Contains(line, "[no test files]")
+}
+
+func gateFailure(line string) bool {
+	if strings.HasPrefix(line, "FAIL\t") || strings.HasPrefix(line, "FAIL ") {
+		return true
+	}
+	for _, m := range []string{"--- FAIL", "panic:", "Error", "error:", "make: ***"} {
+		if strings.Contains(line, m) {
+			return true
+		}
+	}
+	return false
+}
+
+// gateExcerpt keeps the failure lines of a gate's output with a little context,
+// then the output tail if it fits, within limit bytes. Over the limit, the
+// earliest failures go first.
+func gateExcerpt(output string, limit int) string {
+	var lines []string
+	for _, l := range strings.Split(output, "\n") {
+		if !gateNoise(l) {
+			lines = append(lines, l)
+		}
+	}
+	keep := make([]bool, len(lines))
+	mark := func(from, to int) {
+		for i := max(from, 0); i <= to && i < len(lines); i++ {
+			keep[i] = true
+		}
+	}
+	for i, l := range lines {
+		if gateFailure(l) {
+			mark(i-excerptContext, i+excerptContext)
+		}
+	}
+	text := joinKept(lines, keep)
+	if text == "" {
+		text = strings.Join(lines, "\n")
+	} else if len(text) <= limit {
+		withTail := append([]bool(nil), keep...)
+		for i := max(len(lines)-excerptTail, 0); i < len(lines); i++ {
+			withTail[i] = true
+		}
+		if t := joinKept(lines, withTail); len(t) <= limit {
+			text = t
+		}
+	}
+	if len(text) > limit {
+		text = text[len(text)-limit:]
+	}
+	return strings.ToValidUTF8(text, "")
+}
+
+func joinKept(lines []string, keep []bool) string {
+	var b strings.Builder
+	gap := false
+	for i, l := range lines {
+		if !keep[i] {
+			gap = b.Len() > 0
+			continue
+		}
+		if gap {
+			b.WriteString("...\n")
+			gap = false
+		}
+		b.WriteString(l)
+		b.WriteByte('\n')
+	}
+	return strings.TrimRight(b.String(), "\n")
 }

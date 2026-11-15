@@ -64,6 +64,7 @@ func TestLogsInsertBatch(t *testing.T) {
 			pgxCfg, err := pgxpool.ParseConfig(testhelper.NewTestConfig().DBDsn)
 			require.NoError(t, err)
 			pgxCfg.ConnConfig.DefaultQueryExecMode = mode
+			pgxCfg.ConnConfig.RuntimeParams["client_encoding"] = "UTF8"
 			pool, err := pgxpool.NewWithConfig(t.Context(), pgxCfg)
 			require.NoError(t, err)
 			defer pool.Close()
@@ -261,6 +262,7 @@ func TestLogsQuery_AllFiltersSimpleProtocol(t *testing.T) {
 	pgxCfg, err := pgxpool.ParseConfig(cfg.DBDsn)
 	require.NoError(t, err)
 	pgxCfg.ConnConfig.DefaultQueryExecMode = pgx.QueryExecModeSimpleProtocol
+	pgxCfg.ConnConfig.RuntimeParams["client_encoding"] = "UTF8"
 	pool, err := pgxpool.NewWithConfig(t.Context(), pgxCfg)
 	require.NoError(t, err)
 	defer pool.Close()

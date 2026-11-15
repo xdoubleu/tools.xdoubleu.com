@@ -67,6 +67,25 @@ func TestPruneKeepsTheCurrentReleaseAndImagesInUse(t *testing.T) {
 	assert.ElementsMatch(t, []string{
 		"docker.io/library/factory-job:old1",
 		"docker.io/library/factory-job:dev",
+		"ghcr.io/x/factory-job-image@sha256:abc",
+	}, x.deleted)
+}
+
+const sharedImages = `[
+ {"configuration":{"name":"docker.io/library/factory-job:cur"},
+  "descriptor":{"digest":"sha256:cur"}},
+ {"configuration":{"name":"ghcr.io/x/factory-job-image@sha256:cur"},
+  "descriptor":{"digest":"sha256:cur"}},
+ {"configuration":{"name":"ghcr.io/x/factory-job-image@sha256:old"},
+  "descriptor":{"digest":"sha256:old"}},
+ {"configuration":{"name":"ghcr.io/x/factory-job-image"}}]`
+
+func TestPruneKeepsThePulledCopyOfTheCurrentImage(t *testing.T) {
+	x := newPrune(sharedImages, "[]")
+	runner.PruneJobImages(context.Background(), x, "factory-job:cur", quiet())
+	assert.ElementsMatch(t, []string{
+		"ghcr.io/x/factory-job-image@sha256:old",
+		"ghcr.io/x/factory-job-image",
 	}, x.deleted)
 }
 

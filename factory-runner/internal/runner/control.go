@@ -47,7 +47,9 @@ type Control struct {
 	check  bool
 	// draining stops new claims until the pending update has run.
 	draining bool
-	notify   func(title, body string)
+	// restarting is set once an update is installed and only the restart waits.
+	restarting bool
+	notify     func(title, body string)
 	// mode reads the config mode for the menu; nil leaves it unshown.
 	mode     func() string
 	unpaired bool
@@ -61,21 +63,22 @@ type Control struct {
 func NewControl(pausePath, version string, activity *Activity) *Control {
 	_, err := os.Stat(pausePath)
 	return &Control{
-		pausePath: pausePath,
-		version:   version,
-		activity:  activity,
-		now:       time.Now,
-		mu:        sync.Mutex{},
-		paused:    err == nil,
-		beat:      time.Time{},
-		update:    "",
-		check:     false,
-		draining:  false,
-		notify:    nil,
-		mode:      nil,
-		unpaired:  false,
-		paired:    make(chan struct{}, 1),
-		wake:      make(chan struct{}, 1),
+		pausePath:  pausePath,
+		version:    version,
+		activity:   activity,
+		now:        time.Now,
+		mu:         sync.Mutex{},
+		paused:     err == nil,
+		beat:       time.Time{},
+		update:     "",
+		check:      false,
+		draining:   false,
+		restarting: false,
+		notify:     nil,
+		mode:       nil,
+		unpaired:   false,
+		paired:     make(chan struct{}, 1),
+		wake:       make(chan struct{}, 1),
 	}
 }
 
@@ -255,6 +258,20 @@ func (c *Control) Draining() bool {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	return c.draining
+}
+
+// SetRestarting stops new claims until the process restarts.
+func (c *Control) SetRestarting() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.restarting = true
+}
+
+// Restarting reports whether an installed update waits for the restart.
+func (c *Control) Restarting() bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.restarting
 }
 
 // takeCheck reports and clears a requested check.

@@ -1370,7 +1370,8 @@ type Job struct {
 	PrCi string `protobuf:"bytes,8,opt,name=pr_ci,json=prCi,proto3" json:"pr_ci,omitempty"`
 	// The standing review while it is open: "approved" or "changes_requested".
 	PrReview string `protobuf:"bytes,9,opt,name=pr_review,json=prReview,proto3" json:"pr_review,omitempty"`
-	// What ran it: the harness, and for OpenCode its OpenRouter model.
+	// What ran it, as the runner reported on claiming: the harness, and for OpenCode
+	// its OpenRouter model. Unspecified and empty while the job is queued.
 	Harness Harness `protobuf:"varint,10,opt,name=harness,proto3,enum=factory.v1.Harness" json:"harness,omitempty"`
 	Model   string  `protobuf:"bytes,11,opt,name=model,proto3" json:"model,omitempty"`
 	// The provider's usage limit stopped it; RFC3339 reset time, empty if unknown.
@@ -1687,11 +1688,7 @@ type RunTaskRequest struct {
 	state  protoimpl.MessageState `protogen:"open.v1"`
 	TaskId string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
 	// Added to the prompt after the task; optional.
-	Text string `protobuf:"bytes,2,opt,name=text,proto3" json:"text,omitempty"`
-	// Overrides the repo's default harness for this job; unspecified keeps it.
-	Harness Harness `protobuf:"varint,3,opt,name=harness,proto3,enum=factory.v1.Harness" json:"harness,omitempty"`
-	// The OpenRouter model for an OpenCode job; empty uses the repo's default.
-	Model         string `protobuf:"bytes,4,opt,name=model,proto3" json:"model,omitempty"`
+	Text          string `protobuf:"bytes,2,opt,name=text,proto3" json:"text,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1736,20 +1733,6 @@ func (x *RunTaskRequest) GetTaskId() string {
 func (x *RunTaskRequest) GetText() string {
 	if x != nil {
 		return x.Text
-	}
-	return ""
-}
-
-func (x *RunTaskRequest) GetHarness() Harness {
-	if x != nil {
-		return x.Harness
-	}
-	return Harness_HARNESS_UNSPECIFIED
-}
-
-func (x *RunTaskRequest) GetModel() string {
-	if x != nil {
-		return x.Model
 	}
 	return ""
 }
@@ -2437,20 +2420,16 @@ func (x *StopRoutineResponse) GetJob() *Job {
 }
 
 type Repo struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	Id             string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Owner          string                 `protobuf:"bytes,2,opt,name=owner,proto3" json:"owner,omitempty"`
-	Name           string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
-	DefaultBranch  string                 `protobuf:"bytes,4,opt,name=default_branch,json=defaultBranch,proto3" json:"default_branch,omitempty"`
-	DefaultHarness Harness                `protobuf:"varint,5,opt,name=default_harness,json=defaultHarness,proto3,enum=factory.v1.Harness" json:"default_harness,omitempty"`
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Owner         string                 `protobuf:"bytes,2,opt,name=owner,proto3" json:"owner,omitempty"`
+	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	DefaultBranch string                 `protobuf:"bytes,4,opt,name=default_branch,json=defaultBranch,proto3" json:"default_branch,omitempty"`
 	// Free text, run in the sandbox before the agent.
 	SetupCommands string `protobuf:"bytes,6,opt,name=setup_commands,json=setupCommands,proto3" json:"setup_commands,omitempty"`
 	// Free text added to every prompt for this repo.
 	AgentInstructions string `protobuf:"bytes,7,opt,name=agent_instructions,json=agentInstructions,proto3" json:"agent_instructions,omitempty"`
 	TimeLimitMinutes  int32  `protobuf:"varint,8,opt,name=time_limit_minutes,json=timeLimitMinutes,proto3" json:"time_limit_minutes,omitempty"`
-	// The OpenRouter model OpenCode runs on, "vendor/model"; required when the
-	// default harness is OpenCode, empty for Claude Code.
-	DefaultModel string `protobuf:"bytes,9,opt,name=default_model,json=defaultModel,proto3" json:"default_model,omitempty"`
 	// Lets the runner take this repo's Ready tasks without a press of Run, as the
 	// human approved them at the Ready move. Off by default.
 	AutoPickup bool `protobuf:"varint,10,opt,name=auto_pickup,json=autoPickup,proto3" json:"auto_pickup,omitempty"`
@@ -2524,13 +2503,6 @@ func (x *Repo) GetDefaultBranch() string {
 	return ""
 }
 
-func (x *Repo) GetDefaultHarness() Harness {
-	if x != nil {
-		return x.DefaultHarness
-	}
-	return Harness_HARNESS_UNSPECIFIED
-}
-
 func (x *Repo) GetSetupCommands() string {
 	if x != nil {
 		return x.SetupCommands
@@ -2550,13 +2522,6 @@ func (x *Repo) GetTimeLimitMinutes() int32 {
 		return x.TimeLimitMinutes
 	}
 	return 0
-}
-
-func (x *Repo) GetDefaultModel() string {
-	if x != nil {
-		return x.DefaultModel
-	}
-	return ""
 }
 
 func (x *Repo) GetAutoPickup() bool {
@@ -2845,89 +2810,6 @@ func (x *UpdateRepoResponse) GetRepo() *Repo {
 	return nil
 }
 
-// The OpenRouter models OpenCode jobs can run on, for a picker. A call from a
-// client with no fetched list gets an empty response.
-type ListOpenRouterModelsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ListOpenRouterModelsRequest) Reset() {
-	*x = ListOpenRouterModelsRequest{}
-	mi := &file_factory_v1_factory_proto_msgTypes[43]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ListOpenRouterModelsRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ListOpenRouterModelsRequest) ProtoMessage() {}
-
-func (x *ListOpenRouterModelsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_factory_v1_factory_proto_msgTypes[43]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ListOpenRouterModelsRequest.ProtoReflect.Descriptor instead.
-func (*ListOpenRouterModelsRequest) Descriptor() ([]byte, []int) {
-	return file_factory_v1_factory_proto_rawDescGZIP(), []int{43}
-}
-
-type ListOpenRouterModelsResponse struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Model ids, "vendor/model", sorted.
-	ModelIds      []string `protobuf:"bytes,1,rep,name=model_ids,json=modelIds,proto3" json:"model_ids,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ListOpenRouterModelsResponse) Reset() {
-	*x = ListOpenRouterModelsResponse{}
-	mi := &file_factory_v1_factory_proto_msgTypes[44]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ListOpenRouterModelsResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ListOpenRouterModelsResponse) ProtoMessage() {}
-
-func (x *ListOpenRouterModelsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_factory_v1_factory_proto_msgTypes[44]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ListOpenRouterModelsResponse.ProtoReflect.Descriptor instead.
-func (*ListOpenRouterModelsResponse) Descriptor() ([]byte, []int) {
-	return file_factory_v1_factory_proto_rawDescGZIP(), []int{44}
-}
-
-func (x *ListOpenRouterModelsResponse) GetModelIds() []string {
-	if x != nil {
-		return x.ModelIds
-	}
-	return nil
-}
-
 var File_factory_v1_factory_proto protoreflect.FileDescriptor
 
 const file_factory_v1_factory_proto_rawDesc = "" +
@@ -3040,12 +2922,10 @@ const file_factory_v1_factory_proto_rawDesc = "" +
 	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x12\x1b\n" +
 	"\tafter_seq\x18\x02 \x01(\x05R\bafterSeq\"E\n" +
 	"\x15ListJobEventsResponse\x12,\n" +
-	"\x06events\x18\x01 \x03(\v2\x14.factory.v1.JobEventR\x06events\"\x82\x01\n" +
+	"\x06events\x18\x01 \x03(\v2\x14.factory.v1.JobEventR\x06events\"Y\n" +
 	"\x0eRunTaskRequest\x12\x17\n" +
 	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12\x12\n" +
-	"\x04text\x18\x02 \x01(\tR\x04text\x12-\n" +
-	"\aharness\x18\x03 \x01(\x0e2\x13.factory.v1.HarnessR\aharness\x12\x14\n" +
-	"\x05model\x18\x04 \x01(\tR\x05model\"4\n" +
+	"\x04text\x18\x02 \x01(\tR\x04textJ\x04\b\x03\x10\x04J\x04\b\x04\x10\x05R\aharnessR\x05model\"4\n" +
 	"\x0fRunTaskResponse\x12!\n" +
 	"\x03job\x18\x01 \x01(\v2\x0f.factory.v1.JobR\x03job\"?\n" +
 	"\x10ReplyTaskRequest\x12\x17\n" +
@@ -3080,24 +2960,23 @@ const file_factory_v1_factory_proto_rawDesc = "" +
 	"\x12StopRoutineRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\"8\n" +
 	"\x13StopRoutineResponse\x12!\n" +
-	"\x03job\x18\x01 \x01(\v2\x0f.factory.v1.JobR\x03job\"\xe9\x03\n" +
+	"\x03job\x18\x01 \x01(\v2\x0f.factory.v1.JobR\x03job\"\xb2\x03\n" +
 	"\x04Repo\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05owner\x18\x02 \x01(\tR\x05owner\x12\x12\n" +
 	"\x04name\x18\x03 \x01(\tR\x04name\x12%\n" +
-	"\x0edefault_branch\x18\x04 \x01(\tR\rdefaultBranch\x12<\n" +
-	"\x0fdefault_harness\x18\x05 \x01(\x0e2\x13.factory.v1.HarnessR\x0edefaultHarness\x12%\n" +
+	"\x0edefault_branch\x18\x04 \x01(\tR\rdefaultBranch\x12%\n" +
 	"\x0esetup_commands\x18\x06 \x01(\tR\rsetupCommands\x12-\n" +
 	"\x12agent_instructions\x18\a \x01(\tR\x11agentInstructions\x12,\n" +
-	"\x12time_limit_minutes\x18\b \x01(\x05R\x10timeLimitMinutes\x12#\n" +
-	"\rdefault_model\x18\t \x01(\tR\fdefaultModel\x12\x1f\n" +
+	"\x12time_limit_minutes\x18\b \x01(\x05R\x10timeLimitMinutes\x12\x1f\n" +
 	"\vauto_pickup\x18\n" +
 	" \x01(\bR\n" +
 	"autoPickup\x12%\n" +
 	"\x0esentry_project\x18\v \x01(\tR\rsentryProject\x12 \n" +
 	"\fred_pr_label\x18\f \x01(\tR\n" +
 	"redPrLabel\x12/\n" +
-	"\x14red_pr_branch_prefix\x18\r \x01(\tR\x11redPrBranchPrefix\"\x12\n" +
+	"\x14red_pr_branch_prefix\x18\r \x01(\tR\x11redPrBranchPrefixJ\x04\b\x05\x10\x06J\x04\b\t\x10\n" +
+	"R\x0fdefault_harnessR\rdefault_model\"\x12\n" +
 	"\x10ListReposRequest\";\n" +
 	"\x11ListReposResponse\x12&\n" +
 	"\x05repos\x18\x01 \x03(\v2\x10.factory.v1.RepoR\x05repos\"9\n" +
@@ -3108,10 +2987,7 @@ const file_factory_v1_factory_proto_rawDesc = "" +
 	"\x11UpdateRepoRequest\x12$\n" +
 	"\x04repo\x18\x01 \x01(\v2\x10.factory.v1.RepoR\x04repo\":\n" +
 	"\x12UpdateRepoResponse\x12$\n" +
-	"\x04repo\x18\x01 \x01(\v2\x10.factory.v1.RepoR\x04repo\"\x1d\n" +
-	"\x1bListOpenRouterModelsRequest\";\n" +
-	"\x1cListOpenRouterModelsResponse\x12\x1b\n" +
-	"\tmodel_ids\x18\x01 \x03(\tR\bmodelIds*\xdb\x01\n" +
+	"\x04repo\x18\x01 \x01(\v2\x10.factory.v1.RepoR\x04repo*\xdb\x01\n" +
 	"\n" +
 	"TaskStatus\x12\x1b\n" +
 	"\x17TASK_STATUS_UNSPECIFIED\x10\x00\x12\x17\n" +
@@ -3158,14 +3034,13 @@ const file_factory_v1_factory_proto_rawDesc = "" +
 	"\vSaveRoutine\x12\x1e.factory.v1.SaveRoutineRequest\x1a\x1f.factory.v1.SaveRoutineResponse\x12K\n" +
 	"\n" +
 	"RunRoutine\x12\x1d.factory.v1.RunRoutineRequest\x1a\x1e.factory.v1.RunRoutineResponse\x12N\n" +
-	"\vStopRoutine\x12\x1e.factory.v1.StopRoutineRequest\x1a\x1f.factory.v1.StopRoutineResponse2\xdc\x02\n" +
+	"\vStopRoutine\x12\x1e.factory.v1.StopRoutineRequest\x1a\x1f.factory.v1.StopRoutineResponse2\xf1\x01\n" +
 	"\vRepoService\x12H\n" +
 	"\tListRepos\x12\x1c.factory.v1.ListReposRequest\x1a\x1d.factory.v1.ListReposResponse\x12K\n" +
 	"\n" +
 	"CreateRepo\x12\x1d.factory.v1.CreateRepoRequest\x1a\x1e.factory.v1.CreateRepoResponse\x12K\n" +
 	"\n" +
-	"UpdateRepo\x12\x1d.factory.v1.UpdateRepoRequest\x1a\x1e.factory.v1.UpdateRepoResponse\x12i\n" +
-	"\x14ListOpenRouterModels\x12'.factory.v1.ListOpenRouterModelsRequest\x1a(.factory.v1.ListOpenRouterModelsResponseB-Z+tools.xdoubleu.com/gen/factory/v1;factoryv1b\x06proto3"
+	"UpdateRepo\x12\x1d.factory.v1.UpdateRepoRequest\x1a\x1e.factory.v1.UpdateRepoResponseB-Z+tools.xdoubleu.com/gen/factory/v1;factoryv1b\x06proto3"
 
 var (
 	file_factory_v1_factory_proto_rawDescOnce sync.Once
@@ -3180,57 +3055,55 @@ func file_factory_v1_factory_proto_rawDescGZIP() []byte {
 }
 
 var file_factory_v1_factory_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
-var file_factory_v1_factory_proto_msgTypes = make([]protoimpl.MessageInfo, 45)
+var file_factory_v1_factory_proto_msgTypes = make([]protoimpl.MessageInfo, 43)
 var file_factory_v1_factory_proto_goTypes = []any{
-	(TaskStatus)(0),                      // 0: factory.v1.TaskStatus
-	(TaskPriority)(0),                    // 1: factory.v1.TaskPriority
-	(Harness)(0),                         // 2: factory.v1.Harness
-	(JobStatus)(0),                       // 3: factory.v1.JobStatus
-	(*Task)(nil),                         // 4: factory.v1.Task
-	(*Comment)(nil),                      // 5: factory.v1.Comment
-	(*ListTasksRequest)(nil),             // 6: factory.v1.ListTasksRequest
-	(*ListTasksResponse)(nil),            // 7: factory.v1.ListTasksResponse
-	(*SetPickupPausedRequest)(nil),       // 8: factory.v1.SetPickupPausedRequest
-	(*SetPickupPausedResponse)(nil),      // 9: factory.v1.SetPickupPausedResponse
-	(*GetTaskRequest)(nil),               // 10: factory.v1.GetTaskRequest
-	(*GetTaskResponse)(nil),              // 11: factory.v1.GetTaskResponse
-	(*PullRequest)(nil),                  // 12: factory.v1.PullRequest
-	(*CreateTaskRequest)(nil),            // 13: factory.v1.CreateTaskRequest
-	(*CreateTaskResponse)(nil),           // 14: factory.v1.CreateTaskResponse
-	(*UpdateTaskRequest)(nil),            // 15: factory.v1.UpdateTaskRequest
-	(*UpdateTaskResponse)(nil),           // 16: factory.v1.UpdateTaskResponse
-	(*MoveTaskRequest)(nil),              // 17: factory.v1.MoveTaskRequest
-	(*MoveTaskResponse)(nil),             // 18: factory.v1.MoveTaskResponse
-	(*AddCommentRequest)(nil),            // 19: factory.v1.AddCommentRequest
-	(*AddCommentResponse)(nil),           // 20: factory.v1.AddCommentResponse
-	(*Job)(nil),                          // 21: factory.v1.Job
-	(*JobEvent)(nil),                     // 22: factory.v1.JobEvent
-	(*ListJobEventsRequest)(nil),         // 23: factory.v1.ListJobEventsRequest
-	(*ListJobEventsResponse)(nil),        // 24: factory.v1.ListJobEventsResponse
-	(*RunTaskRequest)(nil),               // 25: factory.v1.RunTaskRequest
-	(*RunTaskResponse)(nil),              // 26: factory.v1.RunTaskResponse
-	(*ReplyTaskRequest)(nil),             // 27: factory.v1.ReplyTaskRequest
-	(*ReplyTaskResponse)(nil),            // 28: factory.v1.ReplyTaskResponse
-	(*StopJobRequest)(nil),               // 29: factory.v1.StopJobRequest
-	(*StopJobResponse)(nil),              // 30: factory.v1.StopJobResponse
-	(*Routine)(nil),                      // 31: factory.v1.Routine
-	(*ListRoutinesRequest)(nil),          // 32: factory.v1.ListRoutinesRequest
-	(*ListRoutinesResponse)(nil),         // 33: factory.v1.ListRoutinesResponse
-	(*SaveRoutineRequest)(nil),           // 34: factory.v1.SaveRoutineRequest
-	(*SaveRoutineResponse)(nil),          // 35: factory.v1.SaveRoutineResponse
-	(*RunRoutineRequest)(nil),            // 36: factory.v1.RunRoutineRequest
-	(*RunRoutineResponse)(nil),           // 37: factory.v1.RunRoutineResponse
-	(*StopRoutineRequest)(nil),           // 38: factory.v1.StopRoutineRequest
-	(*StopRoutineResponse)(nil),          // 39: factory.v1.StopRoutineResponse
-	(*Repo)(nil),                         // 40: factory.v1.Repo
-	(*ListReposRequest)(nil),             // 41: factory.v1.ListReposRequest
-	(*ListReposResponse)(nil),            // 42: factory.v1.ListReposResponse
-	(*CreateRepoRequest)(nil),            // 43: factory.v1.CreateRepoRequest
-	(*CreateRepoResponse)(nil),           // 44: factory.v1.CreateRepoResponse
-	(*UpdateRepoRequest)(nil),            // 45: factory.v1.UpdateRepoRequest
-	(*UpdateRepoResponse)(nil),           // 46: factory.v1.UpdateRepoResponse
-	(*ListOpenRouterModelsRequest)(nil),  // 47: factory.v1.ListOpenRouterModelsRequest
-	(*ListOpenRouterModelsResponse)(nil), // 48: factory.v1.ListOpenRouterModelsResponse
+	(TaskStatus)(0),                 // 0: factory.v1.TaskStatus
+	(TaskPriority)(0),               // 1: factory.v1.TaskPriority
+	(Harness)(0),                    // 2: factory.v1.Harness
+	(JobStatus)(0),                  // 3: factory.v1.JobStatus
+	(*Task)(nil),                    // 4: factory.v1.Task
+	(*Comment)(nil),                 // 5: factory.v1.Comment
+	(*ListTasksRequest)(nil),        // 6: factory.v1.ListTasksRequest
+	(*ListTasksResponse)(nil),       // 7: factory.v1.ListTasksResponse
+	(*SetPickupPausedRequest)(nil),  // 8: factory.v1.SetPickupPausedRequest
+	(*SetPickupPausedResponse)(nil), // 9: factory.v1.SetPickupPausedResponse
+	(*GetTaskRequest)(nil),          // 10: factory.v1.GetTaskRequest
+	(*GetTaskResponse)(nil),         // 11: factory.v1.GetTaskResponse
+	(*PullRequest)(nil),             // 12: factory.v1.PullRequest
+	(*CreateTaskRequest)(nil),       // 13: factory.v1.CreateTaskRequest
+	(*CreateTaskResponse)(nil),      // 14: factory.v1.CreateTaskResponse
+	(*UpdateTaskRequest)(nil),       // 15: factory.v1.UpdateTaskRequest
+	(*UpdateTaskResponse)(nil),      // 16: factory.v1.UpdateTaskResponse
+	(*MoveTaskRequest)(nil),         // 17: factory.v1.MoveTaskRequest
+	(*MoveTaskResponse)(nil),        // 18: factory.v1.MoveTaskResponse
+	(*AddCommentRequest)(nil),       // 19: factory.v1.AddCommentRequest
+	(*AddCommentResponse)(nil),      // 20: factory.v1.AddCommentResponse
+	(*Job)(nil),                     // 21: factory.v1.Job
+	(*JobEvent)(nil),                // 22: factory.v1.JobEvent
+	(*ListJobEventsRequest)(nil),    // 23: factory.v1.ListJobEventsRequest
+	(*ListJobEventsResponse)(nil),   // 24: factory.v1.ListJobEventsResponse
+	(*RunTaskRequest)(nil),          // 25: factory.v1.RunTaskRequest
+	(*RunTaskResponse)(nil),         // 26: factory.v1.RunTaskResponse
+	(*ReplyTaskRequest)(nil),        // 27: factory.v1.ReplyTaskRequest
+	(*ReplyTaskResponse)(nil),       // 28: factory.v1.ReplyTaskResponse
+	(*StopJobRequest)(nil),          // 29: factory.v1.StopJobRequest
+	(*StopJobResponse)(nil),         // 30: factory.v1.StopJobResponse
+	(*Routine)(nil),                 // 31: factory.v1.Routine
+	(*ListRoutinesRequest)(nil),     // 32: factory.v1.ListRoutinesRequest
+	(*ListRoutinesResponse)(nil),    // 33: factory.v1.ListRoutinesResponse
+	(*SaveRoutineRequest)(nil),      // 34: factory.v1.SaveRoutineRequest
+	(*SaveRoutineResponse)(nil),     // 35: factory.v1.SaveRoutineResponse
+	(*RunRoutineRequest)(nil),       // 36: factory.v1.RunRoutineRequest
+	(*RunRoutineResponse)(nil),      // 37: factory.v1.RunRoutineResponse
+	(*StopRoutineRequest)(nil),      // 38: factory.v1.StopRoutineRequest
+	(*StopRoutineResponse)(nil),     // 39: factory.v1.StopRoutineResponse
+	(*Repo)(nil),                    // 40: factory.v1.Repo
+	(*ListReposRequest)(nil),        // 41: factory.v1.ListReposRequest
+	(*ListReposResponse)(nil),       // 42: factory.v1.ListReposResponse
+	(*CreateRepoRequest)(nil),       // 43: factory.v1.CreateRepoRequest
+	(*CreateRepoResponse)(nil),      // 44: factory.v1.CreateRepoResponse
+	(*UpdateRepoRequest)(nil),       // 45: factory.v1.UpdateRepoRequest
+	(*UpdateRepoResponse)(nil),      // 46: factory.v1.UpdateRepoResponse
 }
 var file_factory_v1_factory_proto_depIdxs = []int32{
 	0,  // 0: factory.v1.Task.status:type_name -> factory.v1.TaskStatus
@@ -3250,64 +3123,60 @@ var file_factory_v1_factory_proto_depIdxs = []int32{
 	3,  // 14: factory.v1.Job.status:type_name -> factory.v1.JobStatus
 	2,  // 15: factory.v1.Job.harness:type_name -> factory.v1.Harness
 	22, // 16: factory.v1.ListJobEventsResponse.events:type_name -> factory.v1.JobEvent
-	2,  // 17: factory.v1.RunTaskRequest.harness:type_name -> factory.v1.Harness
-	21, // 18: factory.v1.RunTaskResponse.job:type_name -> factory.v1.Job
-	21, // 19: factory.v1.ReplyTaskResponse.job:type_name -> factory.v1.Job
-	21, // 20: factory.v1.StopJobResponse.job:type_name -> factory.v1.Job
-	21, // 21: factory.v1.Routine.last_job:type_name -> factory.v1.Job
-	31, // 22: factory.v1.ListRoutinesResponse.routines:type_name -> factory.v1.Routine
-	31, // 23: factory.v1.SaveRoutineResponse.routine:type_name -> factory.v1.Routine
-	21, // 24: factory.v1.RunRoutineResponse.job:type_name -> factory.v1.Job
-	21, // 25: factory.v1.StopRoutineResponse.job:type_name -> factory.v1.Job
-	2,  // 26: factory.v1.Repo.default_harness:type_name -> factory.v1.Harness
-	40, // 27: factory.v1.ListReposResponse.repos:type_name -> factory.v1.Repo
-	40, // 28: factory.v1.CreateRepoRequest.repo:type_name -> factory.v1.Repo
-	40, // 29: factory.v1.CreateRepoResponse.repo:type_name -> factory.v1.Repo
-	40, // 30: factory.v1.UpdateRepoRequest.repo:type_name -> factory.v1.Repo
-	40, // 31: factory.v1.UpdateRepoResponse.repo:type_name -> factory.v1.Repo
-	6,  // 32: factory.v1.TaskService.ListTasks:input_type -> factory.v1.ListTasksRequest
-	8,  // 33: factory.v1.TaskService.SetPickupPaused:input_type -> factory.v1.SetPickupPausedRequest
-	10, // 34: factory.v1.TaskService.GetTask:input_type -> factory.v1.GetTaskRequest
-	13, // 35: factory.v1.TaskService.CreateTask:input_type -> factory.v1.CreateTaskRequest
-	15, // 36: factory.v1.TaskService.UpdateTask:input_type -> factory.v1.UpdateTaskRequest
-	17, // 37: factory.v1.TaskService.MoveTask:input_type -> factory.v1.MoveTaskRequest
-	19, // 38: factory.v1.TaskService.AddComment:input_type -> factory.v1.AddCommentRequest
-	25, // 39: factory.v1.TaskService.RunTask:input_type -> factory.v1.RunTaskRequest
-	27, // 40: factory.v1.TaskService.ReplyTask:input_type -> factory.v1.ReplyTaskRequest
-	29, // 41: factory.v1.TaskService.StopJob:input_type -> factory.v1.StopJobRequest
-	23, // 42: factory.v1.TaskService.ListJobEvents:input_type -> factory.v1.ListJobEventsRequest
-	32, // 43: factory.v1.TaskService.ListRoutines:input_type -> factory.v1.ListRoutinesRequest
-	34, // 44: factory.v1.TaskService.SaveRoutine:input_type -> factory.v1.SaveRoutineRequest
-	36, // 45: factory.v1.TaskService.RunRoutine:input_type -> factory.v1.RunRoutineRequest
-	38, // 46: factory.v1.TaskService.StopRoutine:input_type -> factory.v1.StopRoutineRequest
-	41, // 47: factory.v1.RepoService.ListRepos:input_type -> factory.v1.ListReposRequest
-	43, // 48: factory.v1.RepoService.CreateRepo:input_type -> factory.v1.CreateRepoRequest
-	45, // 49: factory.v1.RepoService.UpdateRepo:input_type -> factory.v1.UpdateRepoRequest
-	47, // 50: factory.v1.RepoService.ListOpenRouterModels:input_type -> factory.v1.ListOpenRouterModelsRequest
-	7,  // 51: factory.v1.TaskService.ListTasks:output_type -> factory.v1.ListTasksResponse
-	9,  // 52: factory.v1.TaskService.SetPickupPaused:output_type -> factory.v1.SetPickupPausedResponse
-	11, // 53: factory.v1.TaskService.GetTask:output_type -> factory.v1.GetTaskResponse
-	14, // 54: factory.v1.TaskService.CreateTask:output_type -> factory.v1.CreateTaskResponse
-	16, // 55: factory.v1.TaskService.UpdateTask:output_type -> factory.v1.UpdateTaskResponse
-	18, // 56: factory.v1.TaskService.MoveTask:output_type -> factory.v1.MoveTaskResponse
-	20, // 57: factory.v1.TaskService.AddComment:output_type -> factory.v1.AddCommentResponse
-	26, // 58: factory.v1.TaskService.RunTask:output_type -> factory.v1.RunTaskResponse
-	28, // 59: factory.v1.TaskService.ReplyTask:output_type -> factory.v1.ReplyTaskResponse
-	30, // 60: factory.v1.TaskService.StopJob:output_type -> factory.v1.StopJobResponse
-	24, // 61: factory.v1.TaskService.ListJobEvents:output_type -> factory.v1.ListJobEventsResponse
-	33, // 62: factory.v1.TaskService.ListRoutines:output_type -> factory.v1.ListRoutinesResponse
-	35, // 63: factory.v1.TaskService.SaveRoutine:output_type -> factory.v1.SaveRoutineResponse
-	37, // 64: factory.v1.TaskService.RunRoutine:output_type -> factory.v1.RunRoutineResponse
-	39, // 65: factory.v1.TaskService.StopRoutine:output_type -> factory.v1.StopRoutineResponse
-	42, // 66: factory.v1.RepoService.ListRepos:output_type -> factory.v1.ListReposResponse
-	44, // 67: factory.v1.RepoService.CreateRepo:output_type -> factory.v1.CreateRepoResponse
-	46, // 68: factory.v1.RepoService.UpdateRepo:output_type -> factory.v1.UpdateRepoResponse
-	48, // 69: factory.v1.RepoService.ListOpenRouterModels:output_type -> factory.v1.ListOpenRouterModelsResponse
-	51, // [51:70] is the sub-list for method output_type
-	32, // [32:51] is the sub-list for method input_type
-	32, // [32:32] is the sub-list for extension type_name
-	32, // [32:32] is the sub-list for extension extendee
-	0,  // [0:32] is the sub-list for field type_name
+	21, // 17: factory.v1.RunTaskResponse.job:type_name -> factory.v1.Job
+	21, // 18: factory.v1.ReplyTaskResponse.job:type_name -> factory.v1.Job
+	21, // 19: factory.v1.StopJobResponse.job:type_name -> factory.v1.Job
+	21, // 20: factory.v1.Routine.last_job:type_name -> factory.v1.Job
+	31, // 21: factory.v1.ListRoutinesResponse.routines:type_name -> factory.v1.Routine
+	31, // 22: factory.v1.SaveRoutineResponse.routine:type_name -> factory.v1.Routine
+	21, // 23: factory.v1.RunRoutineResponse.job:type_name -> factory.v1.Job
+	21, // 24: factory.v1.StopRoutineResponse.job:type_name -> factory.v1.Job
+	40, // 25: factory.v1.ListReposResponse.repos:type_name -> factory.v1.Repo
+	40, // 26: factory.v1.CreateRepoRequest.repo:type_name -> factory.v1.Repo
+	40, // 27: factory.v1.CreateRepoResponse.repo:type_name -> factory.v1.Repo
+	40, // 28: factory.v1.UpdateRepoRequest.repo:type_name -> factory.v1.Repo
+	40, // 29: factory.v1.UpdateRepoResponse.repo:type_name -> factory.v1.Repo
+	6,  // 30: factory.v1.TaskService.ListTasks:input_type -> factory.v1.ListTasksRequest
+	8,  // 31: factory.v1.TaskService.SetPickupPaused:input_type -> factory.v1.SetPickupPausedRequest
+	10, // 32: factory.v1.TaskService.GetTask:input_type -> factory.v1.GetTaskRequest
+	13, // 33: factory.v1.TaskService.CreateTask:input_type -> factory.v1.CreateTaskRequest
+	15, // 34: factory.v1.TaskService.UpdateTask:input_type -> factory.v1.UpdateTaskRequest
+	17, // 35: factory.v1.TaskService.MoveTask:input_type -> factory.v1.MoveTaskRequest
+	19, // 36: factory.v1.TaskService.AddComment:input_type -> factory.v1.AddCommentRequest
+	25, // 37: factory.v1.TaskService.RunTask:input_type -> factory.v1.RunTaskRequest
+	27, // 38: factory.v1.TaskService.ReplyTask:input_type -> factory.v1.ReplyTaskRequest
+	29, // 39: factory.v1.TaskService.StopJob:input_type -> factory.v1.StopJobRequest
+	23, // 40: factory.v1.TaskService.ListJobEvents:input_type -> factory.v1.ListJobEventsRequest
+	32, // 41: factory.v1.TaskService.ListRoutines:input_type -> factory.v1.ListRoutinesRequest
+	34, // 42: factory.v1.TaskService.SaveRoutine:input_type -> factory.v1.SaveRoutineRequest
+	36, // 43: factory.v1.TaskService.RunRoutine:input_type -> factory.v1.RunRoutineRequest
+	38, // 44: factory.v1.TaskService.StopRoutine:input_type -> factory.v1.StopRoutineRequest
+	41, // 45: factory.v1.RepoService.ListRepos:input_type -> factory.v1.ListReposRequest
+	43, // 46: factory.v1.RepoService.CreateRepo:input_type -> factory.v1.CreateRepoRequest
+	45, // 47: factory.v1.RepoService.UpdateRepo:input_type -> factory.v1.UpdateRepoRequest
+	7,  // 48: factory.v1.TaskService.ListTasks:output_type -> factory.v1.ListTasksResponse
+	9,  // 49: factory.v1.TaskService.SetPickupPaused:output_type -> factory.v1.SetPickupPausedResponse
+	11, // 50: factory.v1.TaskService.GetTask:output_type -> factory.v1.GetTaskResponse
+	14, // 51: factory.v1.TaskService.CreateTask:output_type -> factory.v1.CreateTaskResponse
+	16, // 52: factory.v1.TaskService.UpdateTask:output_type -> factory.v1.UpdateTaskResponse
+	18, // 53: factory.v1.TaskService.MoveTask:output_type -> factory.v1.MoveTaskResponse
+	20, // 54: factory.v1.TaskService.AddComment:output_type -> factory.v1.AddCommentResponse
+	26, // 55: factory.v1.TaskService.RunTask:output_type -> factory.v1.RunTaskResponse
+	28, // 56: factory.v1.TaskService.ReplyTask:output_type -> factory.v1.ReplyTaskResponse
+	30, // 57: factory.v1.TaskService.StopJob:output_type -> factory.v1.StopJobResponse
+	24, // 58: factory.v1.TaskService.ListJobEvents:output_type -> factory.v1.ListJobEventsResponse
+	33, // 59: factory.v1.TaskService.ListRoutines:output_type -> factory.v1.ListRoutinesResponse
+	35, // 60: factory.v1.TaskService.SaveRoutine:output_type -> factory.v1.SaveRoutineResponse
+	37, // 61: factory.v1.TaskService.RunRoutine:output_type -> factory.v1.RunRoutineResponse
+	39, // 62: factory.v1.TaskService.StopRoutine:output_type -> factory.v1.StopRoutineResponse
+	42, // 63: factory.v1.RepoService.ListRepos:output_type -> factory.v1.ListReposResponse
+	44, // 64: factory.v1.RepoService.CreateRepo:output_type -> factory.v1.CreateRepoResponse
+	46, // 65: factory.v1.RepoService.UpdateRepo:output_type -> factory.v1.UpdateRepoResponse
+	48, // [48:66] is the sub-list for method output_type
+	30, // [30:48] is the sub-list for method input_type
+	30, // [30:30] is the sub-list for extension type_name
+	30, // [30:30] is the sub-list for extension extendee
+	0,  // [0:30] is the sub-list for field type_name
 }
 
 func init() { file_factory_v1_factory_proto_init() }
@@ -3321,7 +3190,7 @@ func file_factory_v1_factory_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_factory_v1_factory_proto_rawDesc), len(file_factory_v1_factory_proto_rawDesc)),
 			NumEnums:      4,
-			NumMessages:   45,
+			NumMessages:   43,
 			NumExtensions: 0,
 			NumServices:   2,
 		},

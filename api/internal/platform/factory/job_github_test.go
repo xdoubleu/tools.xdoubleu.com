@@ -108,14 +108,15 @@ func (f *fakeGitHub) InstallationToken(
 
 var _ services.JobGitHub = (*fakeGitHub)(nil)
 
-func githubEnv(t *testing.T) (jobEnv, *fakeGitHub) {
+func githubEnv(t *testing.T, extra ...factory.Option) (jobEnv, *fakeGitHub) {
 	t.Helper()
 	gh := &fakeGitHub{
 		mu: sync.Mutex{}, asked: nil, err: nil, pulls: map[int]pullAnswer{},
 		polled: nil, merged: nil, open: nil, live: map[string]bool{}, deployErr: nil,
 		deployHangs: false,
 	}
-	return newJobEnvWith(t, true, "browser", factory.WithGitHub(gh)), gh
+	opts := append([]factory.Option{factory.WithGitHub(gh)}, extra...)
+	return newJobEnvWith(t, true, "browser", opts...), gh
 }
 
 func (e jobEnv) pushToken(

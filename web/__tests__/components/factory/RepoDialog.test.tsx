@@ -5,20 +5,17 @@ import { Code, ConnectError } from '@connectrpc/connect'
 
 const mockCreate = vi.fn()
 const mockUpdate = vi.fn()
-const mockModels = vi.fn()
 vi.mock('@/hooks/useFactory', () => ({
-  useFactoryActions: vi.fn(() => ({ createRepo: mockCreate, updateRepo: mockUpdate })),
-  useFactoryModels: () => mockModels()
+  useFactoryActions: vi.fn(() => ({ createRepo: mockCreate, updateRepo: mockUpdate }))
 }))
 
 import RepoDialog from '@/components/factory/RepoDialog'
-import { Harness, RepoSchema } from '@/lib/gen/factory/v1/factory_pb'
+import { RepoSchema } from '@/lib/gen/factory/v1/factory_pb'
 
 beforeEach(() => {
   vi.clearAllMocks()
   mockCreate.mockResolvedValue(undefined)
   mockUpdate.mockResolvedValue(undefined)
-  mockModels.mockReturnValue({ data: undefined })
 })
 
 function fill(label: string, value: string) {
@@ -33,7 +30,8 @@ describe('RepoDialog', () => {
     expect(screen.getByLabelText('Owner')).toHaveValue('')
     expect(screen.getByLabelText('Name')).toHaveValue('')
     expect(screen.getByLabelText('Default branch')).toHaveValue('main')
-    expect(screen.getByLabelText('Default harness')).toHaveValue(String(Harness.CLAUDE_CODE))
+    expect(screen.queryByLabelText('Default harness')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Default model')).not.toBeInTheDocument()
     expect(screen.getByLabelText('Time limit (minutes)')).toHaveValue(60)
     expect(screen.getByLabelText('Setup commands')).toHaveValue('')
     expect(screen.getByLabelText('Agent instructions')).toHaveValue('')
@@ -46,9 +44,6 @@ describe('RepoDialog', () => {
     fill('Owner', 'octo')
     fill('Name', 'cat')
     fill('Default branch', 'dev')
-    expect(screen.queryByLabelText('Default model')).not.toBeInTheDocument()
-    fill('Default harness', String(Harness.OPENCODE))
-    fill('Default model', ' vendor/model ')
     expect(screen.getByLabelText('Pick up Ready tasks automatically')).not.toBeChecked()
     fireEvent.click(screen.getByLabelText('Pick up Ready tasks automatically'))
     fill('Time limit (minutes)', '15')
@@ -64,8 +59,6 @@ describe('RepoDialog', () => {
         owner: 'octo',
         name: 'cat',
         defaultBranch: 'dev',
-        defaultHarness: Harness.OPENCODE,
-        defaultModel: 'vendor/model',
         autoPickup: true,
         setupCommands: 'npm ci',
         agentInstructions: 'Be careful.',
@@ -85,8 +78,6 @@ describe('RepoDialog', () => {
       owner: 'octo',
       name: 'cat',
       defaultBranch: 'trunk',
-      defaultHarness: Harness.OPENCODE,
-      defaultModel: 'vendor/old',
       autoPickup: true,
       setupCommands: 'make deps',
       agentInstructions: 'Follow AGENTS.md.',
@@ -102,8 +93,6 @@ describe('RepoDialog', () => {
     expect(screen.getByLabelText('Owner')).toHaveValue('octo')
     expect(screen.getByLabelText('Name')).toHaveValue('cat')
     expect(screen.getByLabelText('Default branch')).toHaveValue('trunk')
-    expect(screen.getByLabelText('Default harness')).toHaveValue(String(Harness.OPENCODE))
-    expect(screen.getByLabelText('Default model')).toHaveValue('vendor/old')
     expect(screen.getByLabelText('Pick up Ready tasks automatically')).toBeChecked()
     expect(screen.getByLabelText('Time limit (minutes)')).toHaveValue(90)
     expect(screen.getByLabelText('Setup commands')).toHaveValue('make deps')
@@ -123,34 +112,6 @@ describe('RepoDialog', () => {
     )
     await waitFor(() => expect(onClose).toHaveBeenCalled())
     expect(mockCreate).not.toHaveBeenCalled()
-  })
-
-  it('starts the model empty and drops it when the repo goes back to Claude Code', async () => {
-    const { unmount } = render(<RepoDialog onClose={vi.fn()} />)
-    fill('Default harness', String(Harness.OPENCODE))
-    expect(screen.getByLabelText('Default model')).toHaveValue('')
-    unmount()
-
-    const repo = create(RepoSchema, {
-      id: 'r1',
-      owner: 'octo',
-      name: 'cat',
-      defaultBranch: 'main',
-      defaultHarness: Harness.OPENCODE,
-      defaultModel: 'vendor/old',
-      timeLimitMinutes: 60
-    })
-    render(<RepoDialog repo={repo} onClose={vi.fn()} />)
-    fill('Default harness', String(Harness.CLAUDE_CODE))
-    expect(screen.queryByLabelText('Default model')).not.toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
-
-    await waitFor(() =>
-      expect(mockUpdate).toHaveBeenCalledWith(
-        'r1',
-        expect.objectContaining({ defaultHarness: Harness.CLAUDE_CODE, defaultModel: '' })
-      )
-    )
   })
 
   it('keeps Save off for a blank owner or name', () => {
@@ -246,25 +207,5 @@ describe('RepoDialog', () => {
       fill('Time limit (minutes)', ok)
       expect(save, ok).toBeEnabled()
     }
-  })
-
-  it('offers the OpenRouter models as suggestions and keeps a custom id', () => {
-    mockModels.mockReturnValue({ data: ['vendor/alpha', 'vendor/zeta', 'vendor/model'] })
-    render(<RepoDialog onClose={vi.fn()} />)
-    fill('Default harness', String(Harness.OPENCODE))
-    const model = screen.getByLabelText('Default model')
-    expect(model).toHaveValue('')
-
-    // The catalog's suggestions are shown once something is typed, and the
-    // first (alphabetically) is pickable.
-    fireEvent.change(model, { target: { value: 'vendor' } })
-    expect(screen.getByText('vendor/alpha')).toBeInTheDocument()
-    fireEvent.keyDown(model, { key: 'ArrowDown' })
-    fireEvent.keyDown(model, { key: 'Enter' })
-    expect(screen.getByLabelText('Default model')).toHaveValue('vendor/alpha')
-
-    // An id the catalog doesn't know can still be typed.
-    fireEvent.change(screen.getByLabelText('Default model'), { target: { value: 'custom/v1' } })
-    expect(screen.getByLabelText('Default model')).toHaveValue('custom/v1')
   })
 })

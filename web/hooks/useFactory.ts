@@ -8,7 +8,6 @@ import { RunnerAdminService } from '@/lib/gen/factory/v1/runners_pb'
 import type {
   GetTaskResponse,
   JobEvent,
-  Harness,
   ListReposResponse,
   ListRoutinesResponse,
   ListTasksResponse,
@@ -28,15 +27,6 @@ export function useFactoryTasks() {
 export function useFactoryRepos() {
   const client = createServiceClient(RepoService)
   return useSWR<ListReposResponse, Error>(swrKeys.factoryRepos, () => client.listRepos({}))
-}
-
-/** The OpenRouter models OpenCode jobs can run on, for the model pickers. */
-export function useFactoryModels() {
-  const client = createServiceClient(RepoService)
-  return useSWR<string[], Error>(
-    swrKeys.factoryOpenRouterModels,
-    async () => (await client.listOpenRouterModels({})).modelIds
-  )
 }
 
 /** The agent accounts, to name the actors on the board. Shares the user-management cache. */
@@ -144,12 +134,6 @@ interface TaskFields {
   labels: string[]
 }
 
-/** A per-job choice of harness; the model is for OpenCode only. */
-export interface HarnessPick {
-  harness: Harness
-  model: string
-}
-
 export interface RoutineFields {
   name: string
   repoId: string
@@ -161,8 +145,6 @@ export interface RepoFields {
   owner: string
   name: string
   defaultBranch: string
-  defaultHarness: Harness
-  defaultModel: string
   autoPickup: boolean
   setupCommands: string
   agentInstructions: string
@@ -204,9 +186,9 @@ export function useFactoryActions() {
       await refresh()
     },
     /** Queues a job for the task; refused unless the body was last edited in a browser. */
-    run: async (taskId: string, text: string, pick?: HarnessPick) => {
+    run: async (taskId: string, text: string) => {
       try {
-        await client.runTask({ taskId, text, ...pick })
+        await client.runTask({ taskId, text })
       } finally {
         // A refusal still comments on the task and moves it to Needs you.
         await refresh()

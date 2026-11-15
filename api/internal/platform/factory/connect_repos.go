@@ -2,7 +2,6 @@ package factory
 
 import (
 	"context"
-	"sort"
 
 	"connectrpc.com/connect/v2"
 
@@ -47,27 +46,16 @@ func harnessToProto(h models.Harness) factoryv1.Harness {
 	return factoryv1.Harness_HARNESS_UNSPECIFIED
 }
 
-// harnessFromProto maps unspecified to "", which the service defaults, and an
-// unknown value to one the service rejects.
+// harnessFromProto reads unspecified as Claude Code, what a runner that does not
+// report one ran; an unknown value maps to one the service rejects.
 func harnessFromProto(h factoryv1.Harness) models.Harness {
 	switch h {
-	case factoryv1.Harness_HARNESS_CLAUDE_CODE:
+	case factoryv1.Harness_HARNESS_CLAUDE_CODE, factoryv1.Harness_HARNESS_UNSPECIFIED:
 		return models.HarnessClaudeCode
 	case factoryv1.Harness_HARNESS_OPENCODE:
 		return models.HarnessOpenCode
-	case factoryv1.Harness_HARNESS_UNSPECIFIED:
-		return ""
 	}
 	return models.HarnessInvalid
-}
-
-// harnessFromProtoOptional is harnessFromProto where unspecified means "the repo's
-// default", not an error.
-func harnessFromProtoOptional(h factoryv1.Harness) models.Harness {
-	if h == factoryv1.Harness_HARNESS_UNSPECIFIED {
-		return ""
-	}
-	return harnessFromProto(h)
 }
 
 func protoRepo(r *models.Repo) *factoryv1.Repo {
@@ -76,8 +64,6 @@ func protoRepo(r *models.Repo) *factoryv1.Repo {
 		Owner:             r.Owner,
 		Name:              r.Name,
 		DefaultBranch:     r.DefaultBranch,
-		DefaultHarness:    harnessToProto(r.DefaultHarness),
-		DefaultModel:      r.DefaultModel,
 		AutoPickup:        r.AutoPickup,
 		SetupCommands:     r.SetupCommands,
 		AgentInstructions: r.AgentInstructions,
@@ -94,8 +80,6 @@ func repoInput(r *factoryv1.Repo) services.RepoInput {
 		Owner:             r.GetOwner(),
 		Name:              r.GetName(),
 		DefaultBranch:     r.GetDefaultBranch(),
-		DefaultHarness:    harnessFromProto(r.GetDefaultHarness()),
-		DefaultModel:      r.GetDefaultModel(),
 		AutoPickup:        r.GetAutoPickup(),
 		SetupCommands:     r.GetSetupCommands(),
 		AgentInstructions: r.GetAgentInstructions(),
@@ -154,22 +138,4 @@ func (h *repoConnectHandler) UpdateRepo(
 		return nil, mapError(err)
 	}
 	return &factoryv1.UpdateRepoResponse{Repo: protoRepo(repo)}, nil
-}
-
-func (h *repoConnectHandler) ListOpenRouterModels(
-	ctx context.Context,
-	_ *factoryv1.ListOpenRouterModelsRequest,
-) (*factoryv1.ListOpenRouterModelsResponse, error) {
-	if _, err := actorFrom(ctx); err != nil {
-		return nil, err
-	}
-	if h.app.models == nil {
-		return &factoryv1.ListOpenRouterModelsResponse{}, nil
-	}
-	ids, err := h.app.models.ListModels(ctx)
-	if err != nil {
-		return nil, mapError(err)
-	}
-	sort.Strings(ids)
-	return &factoryv1.ListOpenRouterModelsResponse{ModelIds: ids}, nil
 }

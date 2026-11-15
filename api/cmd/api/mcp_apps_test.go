@@ -476,6 +476,7 @@ func TestAppsMCPObservabilityToolNonAdmin(t *testing.T) {
 
 // TestAppsMCPObservabilityToolReturnsData checks one tool end-to-end.
 func TestAppsMCPObservabilityToolReturnsData(t *testing.T) {
+	withoutMonitoredRepos(t)
 	promoteToAdmin(t)
 	t.Cleanup(func() { demoteToUser(t) })
 

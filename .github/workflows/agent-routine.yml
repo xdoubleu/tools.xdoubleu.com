@@ -171,8 +171,11 @@ jobs:
         run: |
           token_url=$(curl -fsS "$APPS_BASE_URL/.well-known/oauth-authorization-server" \
             | jq -r .token_endpoint)
-          token=$(curl -fsS -u "routines:${CLIENT_SECRET}" \
-            -d grant_type=client_credentials "$token_url" | jq -r .access_token)
+          if ! token=$(curl -fsS -u "routines:${CLIENT_SECRET}" \
+            -d grant_type=client_credentials "$token_url" | jq -er .access_token); then
+            echo "::error::The token endpoint refused the routines client (401 means a wrong secret). The agents environment's OAUTH_ROUTINES_CLIENT_SECRET must equal the production one the api was deployed with. Re-set it with: gh secret set OAUTH_ROUTINES_CLIENT_SECRET --env agents"
+            exit 1
+          fi
           echo "::add-mask::$token"
           echo "token=$token" >> "$GITHUB_OUTPUT"
 
@@ -187,8 +190,11 @@ jobs:
         run: |
           token_url=$(curl -fsS "$APPS_BASE_URL/.well-known/oauth-authorization-server" \
             | jq -r .token_endpoint)
-          token=$(curl -fsS -u "${CLIENT_ID}:${CLIENT_SECRET}" \
-            -d grant_type=client_credentials "$token_url" | jq -r .access_token)
+          if ! token=$(curl -fsS -u "${CLIENT_ID}:${CLIENT_SECRET}" \
+            -d grant_type=client_credentials "$token_url" | jq -er .access_token); then
+            echo "::error::The token endpoint refused the routines agent account (401 means a wrong or unknown client). Check the FACTORY_ROUTINES_AGENT_CLIENT_ID variable and re-set the secret with: gh secret set FACTORY_ROUTINES_AGENT_CLIENT_SECRET --env agents"
+            exit 1
+          fi
           echo "::add-mask::$token"
           echo "token=$token" >> "$GITHUB_OUTPUT"
 

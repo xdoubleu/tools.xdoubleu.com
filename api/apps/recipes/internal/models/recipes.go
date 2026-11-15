@@ -28,4 +28,6 @@ type Ingredient struct {
 	Unit      string
 	SortOrder int
 	GroupName *string
+	// AlternativeGroup links interchangeable options; the first is the default.
+	AlternativeGroup *string
 }

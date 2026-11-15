@@ -42,8 +42,10 @@ deploy key can push but can't open a pull request.
   A merge moves a task that is still In review to Testing and a close without a merge
   to Needs you; a task a person has moved on, or one a newer job is on, is left.
   The same poll also reads each repo's recently merged PRs and moves the In-review
-  task named by a `Task: <title> (<id>)` body line to Testing, whoever opened the
-  PR, unless the task has jobs of its own.
+  task named by a `Task: <title> (<id>)` body line, or by `T-<number>` in the PR's
+  title, branch or body, to Testing, whoever opened the PR, unless the task has
+  jobs of its own. An open PR moves such a Ready, In progress or Needs you task to
+  In review; a close without merging only comments.
 - **Webhook:** the App also delivers `pull_request` events to
   `POST /factory/github-webhook`, so a merge moves its task at once; the poll is
   the backstop for a missed delivery. It needs the App subscribed to the

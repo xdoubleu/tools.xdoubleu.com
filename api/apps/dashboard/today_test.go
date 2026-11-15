@@ -18,6 +18,7 @@ import (
 	"tools.xdoubleu.com/internal/kit/logging"
 	"tools.xdoubleu.com/internal/kit/testhelper"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
+	"tools.xdoubleu.com/internal/platform/factory/messyseed"
 	"tools.xdoubleu.com/internal/platform/family"
 )
 
@@ -105,4 +106,16 @@ func TestGetToday_FailedBlockIsLeftUnset(t *testing.T) {
 
 	assert.Nil(t, resp.Watching)
 	assert.NotNil(t, resp.Meals)
+}
+
+// A block that fails is left unset, so the read must assert it is present.
+func TestMessyReadsTheTodayBlocks(t *testing.T) {
+	messyseed.Seed(t, testDB)
+	client := newTodayClient(t, newAdminDashboard())
+
+	resp, err := client.GetToday(context.Background(), &dashboardv1.GetTodayRequest{})
+	require.NoError(t, err)
+
+	require.NotNil(t, resp.Factory)
+	assert.NotEmpty(t, resp.Factory.Tasks)
 }

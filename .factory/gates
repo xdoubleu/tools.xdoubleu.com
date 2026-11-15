@@ -1,5 +1,5 @@
 # <changed path prefix> | <command run in the job VM before the first push>
 # "*" matches always. Gates the sandbox cannot run (darwin/cgo) stay CI-only.
-api/ | cd api && make lint test
+api/ | cd api && make lint test test/reads
 web/ | cd web && npm run lint && npm test && npm run build
 * | make lint/docs

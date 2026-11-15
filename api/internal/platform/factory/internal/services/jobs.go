@@ -111,41 +111,6 @@ func promptFor(repo *models.Repo, task *models.Task, text string) string {
 	return b.String()
 }
 
-// HarnessPick is a per-job choice of harness and model; the zero value keeps the
-// repo's defaults.
-type HarnessPick struct {
-	Harness models.Harness
-	Model   string
-}
-
-// resolveHarness is the harness and model a job runs on: the pick where it names
-// one, else the repo's defaults. A pick of OpenCode without a model takes the repo's
-// default model when the repo's default harness is OpenCode too.
-func resolveHarness(
-	repo *models.Repo,
-	pick HarnessPick,
-) (models.Harness, string, error) {
-	harness := pick.Harness
-	model := strings.TrimSpace(pick.Model)
-	if harness == "" {
-		harness = repo.DefaultHarness
-		if model == "" {
-			model = repo.DefaultModel
-		}
-	}
-	if !harness.Valid() {
-		return "", "", badRequest("invalid harness")
-	}
-	if harness == models.HarnessOpenCode && model == "" &&
-		repo.DefaultHarness == models.HarnessOpenCode {
-		model = repo.DefaultModel
-	}
-	if err := checkModel(harness, model); err != nil {
-		return "", "", err
-	}
-	return harness, model, nil
-}
-
 // Run queues a job for a task and moves the task to In progress. Only a human
 // admin in a browser may run a task, as for Ready. A task whose title or body holds
 // text that isn't rendered (an HTML comment, an invisible character) is refused:
@@ -155,7 +120,6 @@ func (s *JobService) Run(
 	actor models.Actor,
 	taskID uuid.UUID,
 	text string,
-	pick HarnessPick,
 ) (*models.Job, error) {
 	if !actor.CanMoveToReady() {
 		return nil, forbidden("only a human admin in a browser session can run a task")
@@ -170,10 +134,6 @@ func (s *JobService) Run(
 		return nil, err
 	}
 	repo, err := s.repos.Get(ctx, task.RepoID)
-	if err != nil {
-		return nil, err
-	}
-	harness, model, err := resolveHarness(repo, pick)
 	if err != nil {
 		return nil, err
 	}
@@ -193,9 +153,8 @@ func (s *JobService) Run(
 
 	job, err := s.jobs.Create(ctx, models.Job{
 		ID: uuid.Nil, TaskID: taskID, TaskNumber: 0, Routine: "", RepoID: repo.ID,
-		Harness: harness,
-		Model:   model,
-		Prompt:  promptFor(repo, task, text), Status: "", Branch: branchFor(task),
+		Harness: "", Model: "",
+		Prompt: promptFor(repo, task, text), Status: "", Branch: branchFor(task),
 		SessionID: "", Outcome: "", ParentJobID: nil, PRURL: "", RunnerID: nil,
 		PRState: "", PRCI: "", PRReview: "", CreatedBy: actor.String(),
 		CreatedAt: time.Time{}, Limited: false, LimitResetsAt: nil,
@@ -255,9 +214,8 @@ func (s *JobService) Reply(
 	}
 	job, err := s.jobs.Create(ctx, models.Job{
 		ID: uuid.Nil, TaskID: taskID, TaskNumber: 0, Routine: "", RepoID: last.RepoID,
-		Harness: last.Harness,
-		Model:   last.Model,
-		Prompt:  text, Status: "", Branch: last.Branch, SessionID: "", Outcome: "",
+		Harness: "", Model: "",
+		Prompt: text, Status: "", Branch: last.Branch, SessionID: "", Outcome: "",
 		ParentJobID: &last.ID, PRURL: "", RunnerID: nil, PRState: "", PRCI: "",
 		PRReview: "", CreatedBy: actor.String(), CreatedAt: time.Time{},
 		Limited: false, LimitResetsAt: nil,
@@ -272,8 +230,10 @@ func (s *JobService) Reply(
 	return job, nil
 }
 
-// FinishedTasks returns those of the given tasks that are Done or no longer exist:
-// the runner's session state for them can go.
+// FinishedTasks returns those of the given tasks whose job directories on the
+// runner can go: Done or gone ones, and Testing ones that opened a pull request
+// (a Testing task's PR has merged). A task without a PR keeps its directory until
+// Done.
 func (s *JobService) FinishedTasks(
 	ctx context.Context,
 	ids []uuid.UUID,
@@ -282,9 +242,15 @@ func (s *JobService) FinishedTasks(
 	if err != nil {
 		return nil, err
 	}
+	withPR, err := s.jobs.WithPullRequest(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
 	out := []uuid.UUID{}
 	for _, id := range ids {
-		if status, ok := statuses[id]; !ok || status == models.StatusDone {
+		status, ok := statuses[id]
+		if !ok || status == models.StatusDone ||
+			(status == models.StatusTesting && withPR[id]) {
 			out = append(out, id)
 		}
 	}
@@ -326,25 +292,38 @@ func (s *JobService) Stop(
 }
 
 // Claim starts the oldest queued job, or returns nil when there is none or the
-// runner already runs maxJobs (below 1 means 1). It first marks jobs that
+// runner already runs maxJobs (below 1 means 1), and records the harness and
+// model the runner runs it on. It first marks jobs that
 // stopped checking in as lost.
 func (s *JobService) Claim(
 	ctx context.Context,
 	runnerID uuid.UUID,
 	maxJobs int,
+	harness models.Harness,
+	model string,
 ) (*ClaimedJob, error) {
+	model = strings.TrimSpace(model)
+	if !harness.Valid() {
+		return nil, badRequest("invalid harness")
+	}
+	if err := checkModel(harness, model); err != nil {
+		return nil, err
+	}
 	if err := s.ExpireLost(ctx); err != nil {
 		return nil, err
 	}
 	// Best effort: a failure here leaves the queue as it was, and the next claim
 	// looks again.
+	_ = s.runners.SetMaxJobs(ctx, runnerID, max(maxJobs, 1))
 	_ = s.pickUp(ctx)
 	// A Claude job claimed in a limit would only fail the same way.
 	until, limitErr := s.jobs.ActiveLimit(ctx)
 	if limitErr != nil {
 		return nil, limitErr
 	}
-	job, err := s.jobs.Claim(ctx, runnerID, max(maxJobs, 1), until != nil)
+	job, err := s.jobs.Claim(
+		ctx, runnerID, max(maxJobs, 1), harness, model, until != nil,
+	)
 	if errors.Is(err, database.ErrResourceNotFound) ||
 		errors.Is(err, database.ErrResourceConflict) {
 		return nil, nil //nolint:nilnil // no job is an answer, not an error
@@ -352,6 +331,8 @@ func (s *JobService) Claim(
 	if err != nil {
 		return nil, err
 	}
+	// The claim may leave a slot free for the next Ready task.
+	_ = s.pickUp(ctx)
 	repo, err := s.repos.Get(ctx, job.RepoID)
 	if err != nil {
 		return nil, err
@@ -499,7 +480,7 @@ func (s *JobService) requeueLimited(
 	}
 	_, err = s.jobs.Create(ctx, models.Job{
 		ID: uuid.Nil, TaskID: job.TaskID, TaskNumber: 0, Routine: "", RepoID: job.RepoID,
-		Harness: job.Harness, Model: job.Model, Prompt: prompt, Status: "",
+		Harness: "", Model: "", Prompt: prompt, Status: "",
 		Branch: job.Branch, SessionID: "", Outcome: "", ParentJobID: parent,
 		PRURL: "", RunnerID: nil, PRState: "", PRCI: "", PRReview: "",
 		CreatedBy: systemAuthor, CreatedAt: time.Time{}, StartedAt: nil,
@@ -629,7 +610,8 @@ func (s *JobService) ExpireLost(ctx context.Context) error {
 const autoPickupAuthor = "system:auto-pickup"
 
 // pickUp queues a job for the oldest highest-priority Ready task of a repo with auto
-// pickup on, when nothing is queued or running and the board isn't paused. The
+// pickup on, when nothing is queued, an online runner has a free slot and the
+// board isn't paused. The
 // Ready move was the approval, so the prompt is built from the text as it stood
 // then, not the task's current text. The runner calling Claim is the online runner
 // the job is for.
@@ -645,16 +627,10 @@ func (s *JobService) pickUp(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	harness, model, err := resolveHarness(repo, HarnessPick{Harness: "", Model: ""})
-	if err != nil {
-		return s.cannotPickUp(ctx, next.TaskID, err)
-	}
 	// While Claude is limited a Claude job would only fail the same way, and each
 	// one would park its task in Needs you. The oldest Ready task waits.
-	if harness == models.HarnessClaudeCode {
-		if until, limitErr := s.jobs.ActiveLimit(ctx); limitErr == nil && until != nil {
-			return nil
-		}
+	if until, limitErr := s.jobs.ActiveLimit(ctx); limitErr == nil && until != nil {
+		return nil
 	}
 	approved := approvedTask(next)
 	if err = checkRenderable(approved.Title, approved.Body); err != nil {
@@ -662,8 +638,7 @@ func (s *JobService) pickUp(ctx context.Context) error {
 	}
 	_, err = s.jobs.Create(ctx, models.Job{
 		ID: uuid.Nil, TaskID: next.TaskID, TaskNumber: 0, Routine: "", RepoID: repo.ID,
-		Harness: harness,
-		Model:   model, Prompt: promptFor(repo, approved, ""), Status: "",
+		Harness: "", Model: "", Prompt: promptFor(repo, approved, ""), Status: "",
 		Branch: branchFor(approved), SessionID: "", Outcome: "", ParentJobID: nil,
 		PRURL: "", RunnerID: nil, PRState: "", PRCI: "", PRReview: "",
 		CreatedBy: autoPickupAuthor, CreatedAt: time.Time{}, StartedAt: nil,
@@ -674,19 +649,6 @@ func (s *JobService) pickUp(ctx context.Context) error {
 	}
 	_, err = s.tasks.Move(ctx, next.TaskID, models.StatusInProgress)
 	return err
-}
-
-// cannotPickUp records why a Ready task the repo's settings can't run is passed
-// over, so one such task doesn't hold up every other and the owner can see why.
-// It leaves the task in Ready (the factory skipped it; it isn't waiting on you);
-// a fresh Ready move clears the reason and retries.
-func (s *JobService) cannotPickUp(
-	ctx context.Context,
-	taskID uuid.UUID,
-	reason error,
-) error {
-	return s.blockPickup(ctx, taskID, reason.Error()+
-		". Fix the repo's settings, then move the task to Ready again to retry.")
 }
 
 // blockPickup comments why a Ready task was passed over and records it so

@@ -1,9 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Code, ConnectError } from '@connectrpc/connect'
-import { Harness, type Repo } from '@/lib/gen/factory/v1/factory_pb'
-import { HARNESSES } from '@/lib/factory/board'
+import { type Repo } from '@/lib/gen/factory/v1/factory_pb'
 import { useFactoryActions } from '@/hooks/useFactory'
-import { FactoryModelPicker } from '@/components/factory/FactoryModelPicker'
 import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -16,7 +14,6 @@ import {
 } from '@/components/ui/dialog'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { Select } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 
 const DEFAULT_LIMIT_MINUTES = 60
@@ -45,8 +42,6 @@ export default function RepoDialog({ repo, onClose }: RepoDialogProps) {
   const [owner, setOwner] = useState(repo?.owner ?? '')
   const [name, setName] = useState(repo?.name ?? '')
   const [branch, setBranch] = useState(repo?.defaultBranch ?? 'main')
-  const [harness, setHarness] = useState<Harness>(repo?.defaultHarness ?? Harness.CLAUDE_CODE)
-  const [model, setModel] = useState(repo?.defaultModel ?? '')
   const [autoPickup, setAutoPickup] = useState(repo?.autoPickup ?? false)
   const [limit, setLimit] = useState(String(repo?.timeLimitMinutes ?? DEFAULT_LIMIT_MINUTES))
   const [setup, setSetup] = useState(repo?.setupCommands ?? '')
@@ -69,9 +64,6 @@ export default function RepoDialog({ repo, onClose }: RepoDialogProps) {
       owner,
       name,
       defaultBranch: branch,
-      defaultHarness: harness,
-      // Claude Code chooses its own model.
-      defaultModel: harness === Harness.OPENCODE ? model.trim() : '',
       autoPickup,
       setupCommands: setup,
       agentInstructions: instructions,
@@ -126,29 +118,6 @@ export default function RepoDialog({ repo, onClose }: RepoDialogProps) {
               onChange={(e) => setBranch(e.target.value)}
             />
           </Field>
-          <Field label="Default harness" htmlFor="repo-harness">
-            <Select
-              id="repo-harness"
-              value={harness}
-              onChange={(e) => setHarness(Number(e.target.value))}
-            >
-              {HARNESSES.map((h) => (
-                <option key={h.harness} value={h.harness}>
-                  {h.label}
-                </option>
-              ))}
-            </Select>
-          </Field>
-          {harness === Harness.OPENCODE && (
-            <FactoryModelPicker
-              id="repo-model"
-              label="Default model"
-              hint="An OpenRouter model, such as vendor/model. Pick one or type a custom id."
-              value={model}
-              onChange={setModel}
-              required
-            />
-          )}
           <div className="space-y-1">
             <Checkbox
               id="repo-auto-pickup"

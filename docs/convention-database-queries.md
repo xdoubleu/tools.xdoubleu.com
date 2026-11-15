@@ -1,6 +1,6 @@
 # Convention: never select a wide TEXT column in a list query
 
-- Enforced by: nothing but review
+- Enforced by: review; `make lint/scalar-subqueries` and `make test/reads` for scalar subqueries
 - Issues: #1027
 
 ## Rule
@@ -9,6 +9,17 @@
 and `RETURNING` clauses select `<col> IS NOT NULL AND <col> <> ''` as a boolean;
 only a dedicated single-row read selects the column. A query whose result is
 discarded (e.g. a job that only needs which rows exist) selects ids only.
+
+## Rule: a scalar subquery returns at most one row
+
+`(SELECT col FROM t WHERE ...)` used as a value fails with SQLSTATE 21000 as
+soon as two rows match. It must aggregate, end in `LIMIT 1`, or filter on a
+unique key of its table; a table that holds one row by design carries
+`-- single-row` in the subquery. `make lint/scalar-subqueries` checks this
+against the migrations' primary keys and unique indexes. Reviewers also check
+that a new link table or relation adds its fan-out rows to the messy seed
+(`api/internal/platform/factory/messyseed`), which `make test/reads` reads
+through every RPC, MCP tool and job; it fails on any error.
 
 ## Why
 
@@ -24,6 +35,10 @@ Every byte returned costs egress on every request. That's also why
 
 Listing `feeds.items.content_html` exhausted the monthly egress quota and took
 the site down (#1027); nothing could say which endpoint was responsible.
+
+A board lookup by PR URL returned a row per linked task once one PR linked
+several, and every board read failed until `LIMIT 1` was added; the tests only
+ever linked one task per PR.
 
 ## Related: allowed cross-schema read direction
 
