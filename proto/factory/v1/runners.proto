@@ -90,6 +90,9 @@ message ClaimedJob {
   string mcp_client_secret = 12;
   // Set for a Reply's job: the harness session to resume on the existing branch.
   string resume_session_id = 13;
+  // Set for a routine's job, which has no task (task_id is empty). The runner
+  // runs only a routine it knows by name and builds the prompt itself.
+  string routine = 15;
 }
 
 message ClaimJobRequest {
@@ -172,6 +175,7 @@ message JobTimings {
   int32 gate_retries = 6;
   int32 push_retries = 7;
   int32 ci_retries = 8;
+  double gates_seconds = 9;
 }
 message CompleteJobResponse {}
 

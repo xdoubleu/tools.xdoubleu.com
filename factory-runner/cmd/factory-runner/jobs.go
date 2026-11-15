@@ -62,7 +62,7 @@ func newJobRunner(
 			RunWithEnv: nil,
 		},
 		Sandbox: box,
-		Paused:  a.notClaiming,
+		Paused:  a.holdClaims,
 		MaxJobs: a.maxJobs,
 		Mode:    a.mode,
 		Harness: runner.ClaudeCode{},
@@ -131,6 +131,11 @@ func (a *app) setMaxJobsTo(n int) error {
 // notClaiming is whether the claim loop stays idle: Stop, or no harness chosen.
 func (a *app) notClaiming() bool {
 	return a.mode() == runner.ModeOff
+}
+
+// holdClaims is notClaiming, or a newer release waiting for running jobs.
+func (a *app) holdClaims() bool {
+	return a.notClaiming() || (a.control != nil && a.control.Draining())
 }
 
 // pruneImages drops job images of other releases once this one is in place. It

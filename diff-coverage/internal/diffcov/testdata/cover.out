@@ -1,0 +1,8 @@
+mode: set
+example.com/mod/pkg/a.go:5.20,7.2 1 1
+example.com/mod/pkg/a.go:8.2,10.16 2 1
+example.com/mod/pkg/a.go:10.16,12.3 1 0
+example.com/mod/pkg/a.go:14.2,15.2 1 1
+example.com/mod/pkg/b.go:3.10,4.5 1 0
+example.com/mod/pkg/b.go:4.5,6.2 1 0
+example.com/other/c.go:1.1,2.2 1 1

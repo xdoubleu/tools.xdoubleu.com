@@ -171,3 +171,24 @@ func TestACancelledCheckIsNoEarlyVerdictWhileCiPassIsPending(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, runner.CIPending, st.CI)
 }
+
+func TestAPullRequestThatConflictsWithItsBaseIsFlagged(t *testing.T) {
+	for name, tc := range map[string]struct {
+		pull string
+		want bool
+	}{
+		"mergeable false": {
+			`{"state":"open","merged":false,"mergeable":false,"head":{"sha":"abc"}}`, true},
+		"dirty": {`{"state":"open","merged":false,"mergeable":null,` +
+			`"mergeable_state":"dirty","head":{"sha":"abc"}}`, true},
+		"still computing": {`{"state":"open","merged":false,"mergeable":null,` +
+			`"mergeable_state":"unknown","head":{"sha":"abc"}}`, false},
+		"clean": {`{"state":"open","merged":false,"mergeable":true,` +
+			`"mergeable_state":"clean","head":{"sha":"abc"}}`, false},
+	} {
+		c := githubServing(t, tc.pull, `{"check_runs":[]}`, "")
+		st, err := c.PullRequestStatus(context.Background(), "tok", pullRefOf())
+		require.NoError(t, err, name)
+		assert.Equal(t, tc.want, st.Conflict, name)
+	}
+}

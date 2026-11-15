@@ -28,6 +28,8 @@ type ClaimedJob struct {
 	// ResumeSessionID is set for a Reply's job: the harness session to continue
 	// on the task's existing branch.
 	ResumeSessionID string `json:"resumeSessionId"`
+	// Routine names the routine of a task-less job; TaskID is then empty.
+	Routine string `json:"routine"`
 }
 
 // JobAPI is the server side of running jobs.
@@ -109,6 +111,7 @@ type completeJobRequest struct {
 // timingsJSON is a job's phase times and retries, in seconds and counts.
 type timingsJSON struct {
 	AgentSeconds   float64 `json:"agentSeconds"`
+	GatesSeconds   float64 `json:"gatesSeconds"`
 	PublishSeconds float64 `json:"publishSeconds"`
 	CISeconds      float64 `json:"ciSeconds"`
 	MergeSeconds   float64 `json:"mergeSeconds"`
@@ -123,8 +126,9 @@ func (p *phaseTimes) json(total time.Duration) *timingsJSON {
 		return nil
 	}
 	return &timingsJSON{
-		AgentSeconds: p.agent.Seconds(), PublishSeconds: p.publish.Seconds(),
-		CISeconds: p.ci.Seconds(), MergeSeconds: p.merge.Seconds(),
+		AgentSeconds: p.agent.Seconds(), GatesSeconds: p.gates.Seconds(),
+		PublishSeconds: p.publish.Seconds(),
+		CISeconds:      p.ci.Seconds(), MergeSeconds: p.merge.Seconds(),
 		TotalSeconds: total.Seconds(), GateRetries: p.retries["gate"],
 		PushRetries: p.retries["push"], CIRetries: p.retries["ci"],
 	}

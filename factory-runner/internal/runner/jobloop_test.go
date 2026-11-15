@@ -58,6 +58,7 @@ func cloneHead(t *testing.T, p *publishing) func() string {
 func ciRed(names ...string) runner.PullStatus {
 	st := runner.PullStatus{
 		State: runner.PullOpen, HeadSHA: "", CI: runner.CIFailure, Failed: nil,
+		Conflict: false,
 	}
 	for _, n := range names {
 		st.Failed = append(st.Failed, runner.CheckFailure{Name: n, Excerpt: n + " broke"})
@@ -101,9 +102,11 @@ func TestRedCIAfterThePullRequestOpensIsFedBackAndPushedAgain(t *testing.T) {
 	))
 	p.gh.head = cloneHead(t, p)
 	p.gh.statuses = []runner.PullStatus{
-		{State: runner.PullOpen, HeadSHA: "", CI: runner.CIPending, Failed: nil},
+		{State: runner.PullOpen, HeadSHA: "", CI: runner.CIPending,
+			Failed: nil, Conflict: false},
 		ciRed("api-test", "web-lint"),
-		{State: runner.PullMerged, HeadSHA: "", CI: "", Failed: nil},
+		{State: runner.PullMerged, HeadSHA: "", CI: "",
+			Failed: nil, Conflict: false},
 	}
 
 	_, err := p.runner.Next(context.Background())
@@ -129,7 +132,8 @@ func TestACIFailureOnAnOlderCommitIsIgnored(t *testing.T) {
 	stale := ciRed("api-test")
 	stale.HeadSHA = "0000000000000000000000000000000000000000"
 	p.gh.statuses = []runner.PullStatus{
-		stale, {State: runner.PullMerged, HeadSHA: "", CI: "", Failed: nil},
+		stale, {State: runner.PullMerged, HeadSHA: "", CI: "",
+			Failed: nil, Conflict: false},
 	}
 	p.gh.head = cloneHead(t, p)
 
@@ -212,7 +216,8 @@ func TestABlockedJobWhosePullRequestOpenedStillGetsItsRedCI(t *testing.T) {
 	p.gh.head = cloneHead(t, p)
 	p.gh.statuses = []runner.PullStatus{
 		ciRed("web-test"),
-		{State: runner.PullMerged, HeadSHA: "", CI: "", Failed: nil},
+		{State: runner.PullMerged, HeadSHA: "", CI: "",
+			Failed: nil, Conflict: false},
 	}
 
 	_, err := p.runner.Next(context.Background())
@@ -227,6 +232,7 @@ func TestAPullRequestClosedWithoutMergingEndsTheJob(t *testing.T) {
 	p := newPublishing(t, attempts(agentRuns("Did it"+passAll, true)))
 	p.gh.statuses = []runner.PullStatus{{
 		State: runner.PullClosed, HeadSHA: "", CI: "", Failed: nil,
+		Conflict: false,
 	}}
 
 	_, err := p.runner.Next(context.Background())
@@ -242,6 +248,7 @@ func TestAJobStoppedFromTheBoardWhileWatchingItsPullRequestEnds(t *testing.T) {
 	p := newPublishing(t, attempts(agentRuns("Did it"+passAll, true)))
 	p.gh.statuses = []runner.PullStatus{{
 		State: runner.PullOpen, HeadSHA: "", CI: runner.CIPending, Failed: nil,
+		Conflict: false,
 	}}
 	p.gh.onRead = func() {
 		p.api.mu.Lock()
@@ -263,6 +270,7 @@ func TestARunnerShutdownWhileWatchingEndsTheJobAndTellsTheServer(t *testing.T) {
 	p := newPublishing(t, attempts(agentRuns("Did it"+passAll, true)))
 	p.gh.statuses = []runner.PullStatus{{
 		State: runner.PullOpen, HeadSHA: "", CI: runner.CIPending, Failed: nil,
+		Conflict: false,
 	}}
 	p.gh.onRead = cancel
 
@@ -276,6 +284,7 @@ func TestAPullRequestThatNeverMergesIsGivenUpOn(t *testing.T) {
 	p.runner.MaxWatch = 30 * time.Millisecond
 	p.gh.statuses = []runner.PullStatus{{
 		State: runner.PullOpen, HeadSHA: "", CI: runner.CIPending, Failed: nil,
+		Conflict: false,
 	}}
 
 	_, err := p.runner.Next(context.Background())
@@ -398,7 +407,7 @@ func TestAnUnreadableBranchTipDoesNotStopAPublishedJob(t *testing.T) {
 	p.runner.Git.Run = func(
 		ctx context.Context, dir string, args ...string,
 	) ([]byte, error) {
-		if len(args) > 0 && args[0] == "rev-parse" {
+		if len(args) > 0 && args[0] == "rev-parse" && args[1] != "--verify" {
 			return nil, errors.New("no")
 		}
 		cmd := exec.CommandContext(ctx, "git", args...)
@@ -427,9 +436,12 @@ func TestWatchPollsFastWhileChecksRunAndSlowerOnceGreen(t *testing.T) {
 	p.runner.RunningPollEvery = 3 * time.Millisecond
 	p.gh.head = cloneHead(t, p)
 	p.gh.statuses = []runner.PullStatus{
-		{State: runner.PullOpen, HeadSHA: "", CI: runner.CIPending, Failed: nil},
-		{State: runner.PullOpen, HeadSHA: "", CI: runner.CISuccess, Failed: nil},
-		{State: runner.PullMerged, HeadSHA: "", CI: "", Failed: nil},
+		{State: runner.PullOpen, HeadSHA: "", CI: runner.CIPending,
+			Failed: nil, Conflict: false},
+		{State: runner.PullOpen, HeadSHA: "", CI: runner.CISuccess,
+			Failed: nil, Conflict: false},
+		{State: runner.PullMerged, HeadSHA: "", CI: "",
+			Failed: nil, Conflict: false},
 	}
 
 	_, err := p.runner.Next(context.Background())
@@ -442,4 +454,29 @@ func TestWatchPollsFastWhileChecksRunAndSlowerOnceGreen(t *testing.T) {
 		}
 	}
 	assert.Equal(t, []time.Duration{3 * time.Millisecond, 7 * time.Millisecond}, polls)
+}
+
+func TestAConflictingPullRequestIsHandedBackWithTheBaseFetched(t *testing.T) {
+	p := newPublishing(t, attempts(
+		agentRuns("Did it"+passAll, true),
+		agentRuns("Merged main"+passAll, true),
+	))
+	p.gh.head = cloneHead(t, p)
+	p.gh.statuses = []runner.PullStatus{
+		{State: runner.PullOpen, HeadSHA: "", CI: runner.CISuccess, Failed: nil,
+			Conflict: true},
+		{State: runner.PullMerged, HeadSHA: "", CI: "",
+			Failed: nil, Conflict: false},
+	}
+
+	_, err := p.runner.Next(context.Background())
+	require.NoError(t, err)
+
+	require.Len(t, p.sandbox.specs, 3)
+	feedback := p.sandbox.specs[1].Stdin
+	assert.Contains(t, feedback, "conflicts with main")
+	assert.Contains(t, feedback, "merge, not a rebase")
+	got := p.api.done()[0]
+	assert.True(t, got.succeeded)
+	assert.Equal(t, map[string]int{"conflict": 1}, runner.RetriesOf(got.end))
 }

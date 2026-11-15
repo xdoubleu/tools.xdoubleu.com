@@ -53,7 +53,7 @@ type Config struct {
 	AccountURL string
 	// OfflineDisabled serves a service worker that unregisters itself.
 	OfflineDisabled bool
-	// APIHosts are custom domains the api serves itself (e.g. watchparty).
+	// APIHosts are custom domains the api serves itself (set by an app's GetDomain).
 	APIHosts []string
 	// Logs receives POST /logs after the same-origin, size and rate checks.
 	Logs http.Handler

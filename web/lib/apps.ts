@@ -9,7 +9,6 @@ import {
   GraduationCap,
   BookOpen,
   type LucideIcon,
-  MonitorPlay,
   Podcast,
   Rss,
   Settings,
@@ -163,15 +162,6 @@ export const APPS: AppEntry[] = [
     artwork: true
   },
   {
-    id: 'watchparty',
-    label: 'Watch party',
-    href: '/watchparty',
-    description: 'WebRTC screen sharing',
-    group: 'Tools',
-    icon: MonitorPlay,
-    artwork: true
-  },
-  {
     id: 'settings',
     label: 'Settings',
     href: '/settings',
@@ -206,6 +196,7 @@ export const APPS: AppEntry[] = [
     sections: [
       { label: 'Board', href: '/factory' },
       { label: 'Runner', href: '/factory/runners' },
+      { label: 'Routines', href: '/factory/routines' },
       { label: 'Repos', href: '/factory/repos' }
     ],
     group: 'Admin',

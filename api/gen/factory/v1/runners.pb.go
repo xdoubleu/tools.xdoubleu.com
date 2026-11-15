@@ -608,8 +608,11 @@ type ClaimedJob struct {
 	McpClientSecret string `protobuf:"bytes,12,opt,name=mcp_client_secret,json=mcpClientSecret,proto3" json:"mcp_client_secret,omitempty"`
 	// Set for a Reply's job: the harness session to resume on the existing branch.
 	ResumeSessionId string `protobuf:"bytes,13,opt,name=resume_session_id,json=resumeSessionId,proto3" json:"resume_session_id,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// Set for a routine's job, which has no task (task_id is empty). The runner
+	// runs only a routine it knows by name and builds the prompt itself.
+	Routine       string `protobuf:"bytes,15,opt,name=routine,proto3" json:"routine,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ClaimedJob) Reset() {
@@ -722,6 +725,13 @@ func (x *ClaimedJob) GetMcpClientSecret() string {
 func (x *ClaimedJob) GetResumeSessionId() string {
 	if x != nil {
 		return x.ResumeSessionId
+	}
+	return ""
+}
+
+func (x *ClaimedJob) GetRoutine() string {
+	if x != nil {
+		return x.Routine
 	}
 	return ""
 }
@@ -1298,6 +1308,7 @@ type JobTimings struct {
 	GateRetries    int32                  `protobuf:"varint,6,opt,name=gate_retries,json=gateRetries,proto3" json:"gate_retries,omitempty"`
 	PushRetries    int32                  `protobuf:"varint,7,opt,name=push_retries,json=pushRetries,proto3" json:"push_retries,omitempty"`
 	CiRetries      int32                  `protobuf:"varint,8,opt,name=ci_retries,json=ciRetries,proto3" json:"ci_retries,omitempty"`
+	GatesSeconds   float64                `protobuf:"fixed64,9,opt,name=gates_seconds,json=gatesSeconds,proto3" json:"gates_seconds,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -1384,6 +1395,13 @@ func (x *JobTimings) GetPushRetries() int32 {
 func (x *JobTimings) GetCiRetries() int32 {
 	if x != nil {
 		return x.CiRetries
+	}
+	return 0
+}
+
+func (x *JobTimings) GetGatesSeconds() float64 {
+	if x != nil {
+		return x.GatesSeconds
 	}
 	return 0
 }
@@ -1654,7 +1672,7 @@ const file_factory_v1_runners_proto_rawDesc = "" +
 	"runnerName\",\n" +
 	"\x10HeartbeatRequest\x12\x18\n" +
 	"\aversion\x18\x01 \x01(\tR\aversion\"\x13\n" +
-	"\x11HeartbeatResponse\"\xb5\x03\n" +
+	"\x11HeartbeatResponse\"\xcf\x03\n" +
 	"\n" +
 	"ClaimedJob\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
@@ -1670,7 +1688,8 @@ const file_factory_v1_runners_proto_rawDesc = "" +
 	" \x01(\x05R\x10timeLimitMinutes\x12\"\n" +
 	"\rmcp_client_id\x18\v \x01(\tR\vmcpClientId\x12*\n" +
 	"\x11mcp_client_secret\x18\f \x01(\tR\x0fmcpClientSecret\x12*\n" +
-	"\x11resume_session_id\x18\r \x01(\tR\x0fresumeSessionIdJ\x04\b\x06\x10\aJ\x04\b\x0e\x10\x0fR\aharnessR\x05model\"q\n" +
+	"\x11resume_session_id\x18\r \x01(\tR\x0fresumeSessionId\x12\x18\n" +
+	"\aroutine\x18\x0f \x01(\tR\aroutineJ\x04\b\x06\x10\aJ\x04\b\x0e\x10\x0fR\aharnessR\x05model\"q\n" +
 	"\x0fClaimJobRequest\x12\x19\n" +
 	"\bmax_jobs\x18\x01 \x01(\x05R\amaxJobs\x12-\n" +
 	"\aharness\x18\x02 \x01(\x0e2\x13.factory.v1.HarnessR\aharness\x12\x14\n" +
@@ -1704,7 +1723,7 @@ const file_factory_v1_runners_proto_rawDesc = "" +
 	"\alimited\x18\x06 \x01(\bR\alimited\x12&\n" +
 	"\x0flimit_resets_at\x18\a \x01(\tR\rlimitResetsAt\x12\x18\n" +
 	"\ablocked\x18\b \x01(\tR\ablocked\x120\n" +
-	"\atimings\x18\t \x01(\v2\x16.factory.v1.JobTimingsR\atimings\"\xa8\x02\n" +
+	"\atimings\x18\t \x01(\v2\x16.factory.v1.JobTimingsR\atimings\"\xcd\x02\n" +
 	"\n" +
 	"JobTimings\x12#\n" +
 	"\ragent_seconds\x18\x01 \x01(\x01R\fagentSeconds\x12'\n" +
@@ -1716,7 +1735,8 @@ const file_factory_v1_runners_proto_rawDesc = "" +
 	"\fgate_retries\x18\x06 \x01(\x05R\vgateRetries\x12!\n" +
 	"\fpush_retries\x18\a \x01(\x05R\vpushRetries\x12\x1d\n" +
 	"\n" +
-	"ci_retries\x18\b \x01(\x05R\tciRetries\"\x15\n" +
+	"ci_retries\x18\b \x01(\x05R\tciRetries\x12#\n" +
+	"\rgates_seconds\x18\t \x01(\x01R\fgatesSeconds\"\x15\n" +
 	"\x13CompleteJobResponse\"5\n" +
 	"\x18ListFinishedTasksRequest\x12\x19\n" +
 	"\btask_ids\x18\x01 \x03(\tR\ataskIds\"6\n" +

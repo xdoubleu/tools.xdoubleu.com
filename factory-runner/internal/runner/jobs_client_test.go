@@ -34,7 +34,8 @@ func TestClaimJobReadsAJobOrNone(t *testing.T) {
 	)
 	require.NoError(t, err)
 	assert.Equal(t, &runner.ClaimedJob{
-		ID: "j1", TaskID: "t1", RepoOwner: "o", RepoName: "n", DefaultBranch: "main",
+		Routine: "",
+		ID:      "j1", TaskID: "t1", RepoOwner: "o", RepoName: "n", DefaultBranch: "main",
 		Prompt: "p", Branch: "agent/x",
 		SetupCommands: "make", TimeLimitMinutes: 45,
 		MCPClientID: "agent-1", MCPClientSecret: "s3cret-value",
@@ -130,7 +131,8 @@ func TestCompleteJobSendsThePhaseTimings(t *testing.T) {
 			Succeeded: false, Outcome: "", SessionID: "", PRURL: "", Limited: false,
 			ResetsAt: time.Time{}, Blocked: "", Times: p, Total: 20 * time.Second,
 		}))
-	assert.Contains(t, body, `"timings":{"agentSeconds":2,"publishSeconds":3,`+
+	assert.Contains(t, body, `"timings":{"agentSeconds":2,"gatesSeconds":0,`+
+		`"publishSeconds":3,`+
 		`"ciSeconds":4,"mergeSeconds":5,"totalSeconds":20,"gateRetries":1,`+
 		`"ciRetries":2}`)
 }

@@ -2,6 +2,7 @@ package runner
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 	"time"
@@ -27,10 +28,15 @@ const (
 // download can be trusted.
 var ErrUpdateSigningUnset = selfupdate.ErrSigningUnset
 
+// ErrUpdatePending means a newer release exists but jobs are running; the
+// runner drains (claims nothing new) and updates once they end.
+var ErrUpdatePending = errors.New("newer release waits for running jobs")
+
 // SelfUpdater replaces the running binary with a newer signed release.
 type SelfUpdater interface {
 	// Update installs the latest release if it differs from the running one, and
-	// reports whether it replaced the binary. It re-checks idle right before
+	// reports whether it replaced the binary. A newer release found while jobs
+	// run returns ErrUpdatePending without downloading. It re-checks idle right before
 	// replacing it, so a job that started during a slow download isn't killed.
 	Update(ctx context.Context, idle func() bool) (bool, error)
 }
@@ -78,6 +84,9 @@ func (u *Updater) Update(ctx context.Context, idle func() bool) (bool, error) {
 	}
 	if latest == "" || latest == u.current {
 		return false, nil
+	}
+	if idle != nil && !idle() {
+		return false, ErrUpdatePending
 	}
 	replaced, err := u.inner.Install(ctx, u.origin, idle)
 	if err != nil || !replaced {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -103,6 +104,9 @@ func TestAJobWhoseOutcomeDirectoryCannotBeMadeFails(t *testing.T) {
 	env.runner.Git.Run = func(
 		_ context.Context, _ string, args ...string,
 	) ([]byte, error) {
+		if args[0] == "rev-parse" {
+			return nil, exec.Command("false").Run()
+		}
 		if args[0] == "checkout" {
 			path := filepath.Join(env.dir, "jobs", jobID, "outcome")
 			if err := os.WriteFile(path, nil, 0o600); err != nil {
@@ -256,4 +260,41 @@ func TestCloneRepairsAMirrorWhoseRefPointsAtAMissingObject(t *testing.T) {
 	dest := filepath.Join(t.TempDir(), "d")
 	require.NoError(t, g.Clone(context.Background(), "o", "n", "main", "agent/x", dest))
 	assert.Equal(t, tip, gitIn(t, dest, "rev-parse", "HEAD"))
+}
+
+func TestFetchBaseBringsTheMirrorsBaseIntoTheCloneAsOrigin(t *testing.T) {
+	origin := filepath.Join(t.TempDir(), "origin")
+	require.NoError(t, os.MkdirAll(origin, 0o755))
+	gitIn(t, origin, "init", "-b", "main")
+	gitIn(t, origin, "commit", "--allow-empty", "-m", "one")
+	g := &runner.Git{
+		Dir:        t.TempDir(),
+		RemoteURL:  func(string, string) string { return origin },
+		Run:        nil,
+		RunWithEnv: nil,
+	}
+	dest := filepath.Join(t.TempDir(), "d")
+	require.NoError(t, g.Clone(context.Background(), "o", "n", "main", "agent/x", dest))
+
+	gitIn(t, origin, "commit", "--allow-empty", "-m", "two")
+	tip := gitIn(t, origin, "rev-parse", "HEAD")
+	require.NoError(t, g.FetchBase(context.Background(), "o", "n", "main", dest))
+	assert.Equal(t, tip, gitIn(t, dest, "rev-parse", "origin/main"))
+}
+
+func TestFetchBaseFailsOnANonRepoAndOnAFailedGit(t *testing.T) {
+	g := &runner.Git{
+		Dir:       t.TempDir(),
+		RemoteURL: func(string, string) string { return "https://example.com/o/n.git" },
+		Run: func(context.Context, string, ...string) ([]byte, error) {
+			return nil, errors.New("down")
+		},
+		RunWithEnv: nil,
+	}
+	require.Error(t, g.FetchBase(context.Background(), "o", "n", "main", t.TempDir()))
+
+	clone := t.TempDir()
+	gitIn(t, clone, "init", "-b", "main")
+	require.ErrorContains(t,
+		g.FetchBase(context.Background(), "o", "n", "main", clone), "git")
 }

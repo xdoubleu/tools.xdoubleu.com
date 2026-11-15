@@ -40,9 +40,14 @@ func protoJob(j *models.Job) *factoryv1.Job {
 	if j.LimitResetsAt != nil {
 		limitResetsAt = j.LimitResetsAt.UTC().Format(time.RFC3339)
 	}
+	taskID := ""
+	if !j.IsRoutine() {
+		taskID = models.TaskRef(j.TaskNumber)
+	}
 	return &factoryv1.Job{
 		Id:        j.ID.String(),
-		TaskId:    models.TaskRef(j.TaskNumber),
+		TaskId:    taskID,
+		Routine:   j.Routine,
 		Status:    jobStatusToProto(j.Status),
 		Branch:    j.Branch,
 		CreatedAt: j.CreatedAt.Format(time.RFC3339),
@@ -165,9 +170,14 @@ func (h *taskConnectHandler) ListJobEvents(
 // claimedJobToProto is the job as the runner receives it.
 func claimedJobToProto(c *services.ClaimedJob) *factoryv1.ClaimedJob {
 	timeLimit := int32(c.Repo.TimeLimitMinutes) //nolint:gosec // minutes, far below 2^31
+	taskID := ""
+	if !c.Job.IsRoutine() {
+		taskID = models.TaskRef(c.Job.TaskNumber)
+	}
 	return &factoryv1.ClaimedJob{
 		Id:               c.Job.ID.String(),
-		TaskId:           models.TaskRef(c.Job.TaskNumber),
+		TaskId:           taskID,
+		Routine:          c.Job.Routine,
 		RepoOwner:        c.Repo.Owner,
 		RepoName:         c.Repo.Name,
 		DefaultBranch:    c.Repo.DefaultBranch,
@@ -354,8 +364,9 @@ func (h *runnerHandler) CompleteJob(
 	_ = h.app.services.Jobs.ReportBlocked(ctx, runner.ID, id, req.GetBlocked())
 	if t := req.GetTimings(); t != nil {
 		_ = h.app.services.Jobs.RecordTimings(ctx, runner.ID, id, models.JobTimings{
-			Agent: t.GetAgentSeconds(), Publish: t.GetPublishSeconds(),
-			CI: t.GetCiSeconds(), Merge: t.GetMergeSeconds(), Total: t.GetTotalSeconds(),
+			Agent: t.GetAgentSeconds(), Gates: t.GetGatesSeconds(),
+			Publish: t.GetPublishSeconds(),
+			CI:      t.GetCiSeconds(), Merge: t.GetMergeSeconds(), Total: t.GetTotalSeconds(),
 			GateRetries: int(t.GetGateRetries()), PushRetries: int(t.GetPushRetries()),
 			CIRetries: int(t.GetCiRetries()),
 		}, req.GetSucceeded() && !req.GetLimited())

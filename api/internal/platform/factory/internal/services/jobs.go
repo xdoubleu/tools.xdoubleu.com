@@ -47,6 +47,7 @@ type JobService struct {
 	runners  *repositories.RunnersRepository
 	settings *repositories.SettingsRepository
 	linked   *repositories.LinkedPullRequestsRepository
+	routines *repositories.RoutinesRepository
 	// imageDigest is nil when parked tasks are never resumed.
 	imageDigest DigestSource
 	// alertedOffline is the queued job the offline-runner notice was last sent for,
@@ -151,7 +152,7 @@ func (s *JobService) Run(
 	}
 
 	job, err := s.jobs.Create(ctx, models.Job{
-		ID: uuid.Nil, TaskID: taskID, TaskNumber: 0, RepoID: repo.ID,
+		ID: uuid.Nil, TaskID: taskID, TaskNumber: 0, Routine: "", RepoID: repo.ID,
 		Harness: "", Model: "",
 		Prompt: promptFor(repo, task, text), Status: "", Branch: branchFor(task),
 		SessionID: "", Outcome: "", ParentJobID: nil, PRURL: "", RunnerID: nil,
@@ -212,7 +213,7 @@ func (s *JobService) Reply(
 		return nil, conflict("the last job left no session to resume")
 	}
 	job, err := s.jobs.Create(ctx, models.Job{
-		ID: uuid.Nil, TaskID: taskID, TaskNumber: 0, RepoID: last.RepoID,
+		ID: uuid.Nil, TaskID: taskID, TaskNumber: 0, Routine: "", RepoID: last.RepoID,
 		Harness: "", Model: "",
 		Prompt: text, Status: "", Branch: last.Branch, SessionID: "", Outcome: "",
 		ParentJobID: &last.ID, PRURL: "", RunnerID: nil, PRState: "", PRCI: "",
@@ -335,7 +336,8 @@ func (s *JobService) Claim(
 	}
 	claimed := &ClaimedJob{Job: *job, Repo: *repo, MCPClientID: "", MCPClientSecret: "",
 		ResumeSessionID: resume}
-	if s.accounts != nil {
+	// A routine's job has no task for an account to be confined to.
+	if s.accounts != nil && !job.IsRoutine() {
 		if err = s.issueAccount(ctx, claimed, runnerID); err != nil {
 			return nil, err
 		}
@@ -395,6 +397,10 @@ func (s *JobService) Complete(
 	s.revokeAccount(ctx, job.ID)
 	if outcome == "" {
 		outcome = "(the agent wrote no outcome)"
+	}
+	if job.IsRoutine() {
+		s.endRoutine(ctx, job, succeeded, outcome)
+		return job, nil
 	}
 	body := "Job " + string(status) + " on branch `" + job.Branch + "`"
 	if limited {
@@ -462,7 +468,7 @@ func (s *JobService) requeueLimited(
 		prompt, parent = limitContinuation, &job.ID
 	}
 	_, err = s.jobs.Create(ctx, models.Job{
-		ID: uuid.Nil, TaskID: job.TaskID, TaskNumber: 0, RepoID: job.RepoID,
+		ID: uuid.Nil, TaskID: job.TaskID, TaskNumber: 0, Routine: "", RepoID: job.RepoID,
 		Harness: "", Model: "", Prompt: prompt, Status: "",
 		Branch: job.Branch, SessionID: "", Outcome: "", ParentJobID: parent,
 		PRURL: "", RunnerID: nil, PRState: "", PRCI: "", PRReview: "",
@@ -571,6 +577,11 @@ func (s *JobService) ExpireLost(ctx context.Context) error {
 		return err
 	}
 	for i := range lost {
+		if lost[i].IsRoutine() {
+			s.say.say(ctx, ":x: Routine "+lost[i].Routine+
+				" was lost: the runner stopped checking in.")
+			continue
+		}
 		body := "Job lost: the runner stopped checking in. Its branch `" +
 			lost[i].Branch + "` may hold partial work on the Mac."
 		if err = s.finishTask(
@@ -614,7 +625,7 @@ func (s *JobService) pickUp(ctx context.Context) error {
 		return s.blockPickup(ctx, next.TaskID, err.Error())
 	}
 	_, err = s.jobs.Create(ctx, models.Job{
-		ID: uuid.Nil, TaskID: next.TaskID, TaskNumber: 0, RepoID: repo.ID,
+		ID: uuid.Nil, TaskID: next.TaskID, TaskNumber: 0, Routine: "", RepoID: repo.ID,
 		Harness: "", Model: "", Prompt: promptFor(repo, approved, ""), Status: "",
 		Branch: branchFor(approved), SessionID: "", Outcome: "", ParentJobID: nil,
 		PRURL: "", RunnerID: nil, PRState: "", PRCI: "", PRReview: "",
@@ -709,9 +720,13 @@ func (s *JobService) CheckRunnerOffline(ctx context.Context) error {
 	if !s.setAlerted(job.ID) {
 		return nil
 	}
+	waiting := "routine " + job.Routine
+	if !job.IsRoutine() {
+		waiting = s.taskLink(ctx, job.TaskID)
+	}
 	s.say.say(ctx, fmt.Sprintf(
 		":zzz: No runner is online, and %s has waited %d minutes for one.",
-		s.taskLink(ctx, job.TaskID), int(waited.Minutes())))
+		waiting, int(waited.Minutes())))
 	return nil
 }
 

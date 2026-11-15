@@ -26,8 +26,11 @@ func (s JobStatus) Finished() bool {
 
 // Job is one run of a harness on a task, on the runner's Mac.
 type Job struct {
-	ID     uuid.UUID
+	ID uuid.UUID
+	// TaskID is uuid.Nil for a routine's job, which has no task.
 	TaskID uuid.UUID
+	// Routine names the routine a task-less job runs; empty for a task's job.
+	Routine string
 	// TaskNumber is the task's human-readable number.
 	TaskNumber int64
 	RepoID     uuid.UUID
@@ -62,6 +65,23 @@ type Job struct {
 	FinishedAt  *time.Time
 }
 
+// IsRoutine reports whether the job belongs to a routine, not a task.
+func (j *Job) IsRoutine() bool {
+	return j.Routine != ""
+}
+
+// Routine is a named job the server starts on a schedule, with no task.
+type Routine struct {
+	Name    string
+	RepoID  uuid.UUID
+	Enabled bool
+	// IntervalMinutes is the time between scheduled runs; 0 runs it by hand only.
+	IntervalMinutes int
+	CreatedAt       time.Time
+	// LastJob is the routine's newest job; nil until it has run.
+	LastJob *Job
+}
+
 // JobEvent is one line of a job's log.
 type JobEvent struct {
 	JobID     uuid.UUID
@@ -80,6 +100,6 @@ type JobLine struct {
 // JobTimings is where a job's time went, in seconds, and how many attempts were
 // repeated by the stage that failed.
 type JobTimings struct {
-	Agent, Publish, CI, Merge, Total    float64
-	GateRetries, PushRetries, CIRetries int
+	Agent, Gates, Publish, CI, Merge, Total float64
+	GateRetries, PushRetries, CIRetries     int
 }

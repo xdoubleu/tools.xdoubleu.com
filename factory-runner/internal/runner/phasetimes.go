@@ -7,7 +7,7 @@ import (
 
 // phaseTimes adds up where a job's time goes across its attempts.
 type phaseTimes struct {
-	agent, publish, ci, merge time.Duration
+	agent, gates, publish, ci, merge time.Duration
 	// retries counts the attempts that had to be repeated, by cause: gate, push
 	// or ci.
 	retries map[string]int
@@ -34,6 +34,7 @@ func (p *phaseTimes) addWatch(began, greenAt, ended time.Time) {
 func (p *phaseTimes) summary(total time.Duration) string {
 	round := func(d time.Duration) time.Duration { return d.Round(time.Second) }
 	return fmt.Sprintf(
-		"Phase times: agent %s, push/PR %s, CI %s, merge wait %s (total %s)",
-		round(p.agent), round(p.publish), round(p.ci), round(p.merge), round(total))
+		"Phase times: agent %s, gates %s, push/PR %s, CI %s, merge wait %s (total %s)",
+		round(p.agent), round(p.gates), round(p.publish), round(p.ci),
+		round(p.merge), round(total))
 }

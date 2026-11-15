@@ -73,6 +73,9 @@ type PullStatus struct {
 	CI string
 	// Failed lists the failed checks of a CIFailure.
 	Failed []CheckFailure
+	// Conflict is set when the pull request conflicts with its base. While GitHub
+	// is still computing that, it stays false.
+	Conflict bool
 }
 
 type checkRun struct {
@@ -104,7 +107,10 @@ func (c *GitHubClient) PullRequestStatus(
 	var pull struct {
 		State  string `json:"state"`
 		Merged bool   `json:"merged"`
-		Head   struct {
+		// Mergeable is null while GitHub computes it.
+		Mergeable      *bool  `json:"mergeable"`
+		MergeableState string `json:"mergeable_state"`
+		Head           struct {
 			SHA string `json:"sha"`
 		} `json:"head"`
 	}
@@ -114,6 +120,8 @@ func (c *GitHubClient) PullRequestStatus(
 	}
 	status := PullStatus{
 		State: PullOpen, HeadSHA: pull.Head.SHA, CI: CIPending, Failed: nil,
+		Conflict: (pull.Mergeable != nil && !*pull.Mergeable) ||
+			pull.MergeableState == "dirty",
 	}
 	switch {
 	case pull.Merged:

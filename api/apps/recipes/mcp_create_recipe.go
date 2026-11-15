@@ -31,6 +31,8 @@ const mcpCreateRecipeDescription = "Save one recipe to the user's family " +
 	"- Steps numbered \"1. ...\", one per entry; last entry \"Bron: <url>\" " +
 	"when imported from a URL.\n" +
 	"- group_name only for sub-components (a sauce, a pesto).\n" +
+	"- \"x or y\" ingredients: one entry per option sharing the same " +
+	"alternative_group label; the first is the default.\n" +
 	"- base_servings from the source, else 2."
 
 type mcpIngredientArg struct {
@@ -38,6 +40,8 @@ type mcpIngredientArg struct {
 	Amount    float64 `json:"amount,omitempty"     jsonschema:"quantity"`
 	Unit      string  `json:"unit,omitempty"       jsonschema:"empty if countable"`
 	GroupName string  `json:"group_name,omitempty" jsonschema:"sub-component"`
+
+	AlternativeGroup string `json:"alternative_group,omitempty" jsonschema:"x-or-y label"`
 }
 
 type mcpCreateRecipeArgs struct {
@@ -55,21 +59,23 @@ func (h *recipesConnectHandler) mcpCreateRecipe(
 ) (proto.Message, error) {
 	n := len(args.Ingredients)
 	req := &recipesv1.CreateRecipeRequest{
-		Name:                 args.Name,
-		Steps:                args.Steps,
-		BaseServings:         args.BaseServings,
-		BatchServings:        args.BatchServings,
-		IngredientNames:      make([]string, n),
-		IngredientAmounts:    make([]float64, n),
-		IngredientUnits:      make([]string, n),
-		IngredientGroupNames: make([]string, n),
-		IsDraft:              true,
+		Name:                        args.Name,
+		Steps:                       args.Steps,
+		BaseServings:                args.BaseServings,
+		BatchServings:               args.BatchServings,
+		IngredientNames:             make([]string, n),
+		IngredientAmounts:           make([]float64, n),
+		IngredientUnits:             make([]string, n),
+		IngredientGroupNames:        make([]string, n),
+		IngredientAlternativeGroups: make([]string, n),
+		IsDraft:                     true,
 	}
 	for i, ing := range args.Ingredients {
 		req.IngredientNames[i] = ing.Name
 		req.IngredientAmounts[i] = ing.Amount
 		req.IngredientUnits[i] = ing.Unit
 		req.IngredientGroupNames[i] = ing.GroupName
+		req.IngredientAlternativeGroups[i] = ing.AlternativeGroup
 	}
 	return mcptools.Unwrap(h.CreateRecipe(ctx, req))
 }

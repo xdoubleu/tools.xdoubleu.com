@@ -13,7 +13,6 @@ frontend (a single-page app the api serves). Architecture, commands, and convent
 - **games** — Steam backlog tracker: library sync, achievements, completion progress and distribution, favourites, live updates over WebSocket.
 - **books** — Book library and e-reader companion: metadata sync (UniCat, Hardcover), EPUB/PDF uploads converted to KEPUB and synced to Kobo devices at `/books/kobo/<token>/…` (devices on an older `/reading/kobo/…` or `/backlog/kobo/…` prefix must re-run setup). Setup is driven by **kobo-gateway** (`kobo-gateway/`), a macOS menu-bar app served as `/downloads/kobo-gateway.dmg`; it's built on a macOS runner and bundled into the api image, so its changes rebuild the api.
 - **feeds** — RSS and newsletter reader: a unified unread timeline with filter rules and a per-feed inbound email address for newsletters without RSS.
-- **watchparty** — WebRTC screen sharing with draggable camera overlays.
 - **recipes** — Recipe management with fraction parsing and iCal export, shared with your family.
 - **mealplans** — Weekly meal plans built from recipes, with iCal export and ingredient aggregation into the shopping list. Shared with your family.
 - **shoppinglist** — Shopping list with meal-plan ingredient aggregation, categories, and store-ordered export. Shared with your family; stores stay per-user.

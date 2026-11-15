@@ -123,6 +123,7 @@ export const swrKeys = {
   factoryTasks: '/factory/tasks',
   factoryRepos: '/factory/repos',
   factoryRunners: '/factory/runners',
+  factoryRoutines: '/factory/routines',
   factoryRunnerRelease: '/downloads/factory-runner-release.txt',
   factoryTask: (id: string) => ['/factory/task', id] as const,
   factoryJobEvents: (jobId: string) => ['/factory/job-events', jobId] as const,

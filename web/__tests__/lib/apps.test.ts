@@ -50,8 +50,7 @@ describe('registry', () => {
       'games',
       'recipes',
       'mealplans',
-      'shoppinglist',
-      'watchparty'
+      'shoppinglist'
     ])
     expect(ids(APPS.filter((a) => a.external))).toEqual(['grafana'])
   })
@@ -83,6 +82,7 @@ describe('sections', () => {
       factory: [
         { label: 'Board', href: '/factory' },
         { label: 'Runner', href: '/factory/runners' },
+        { label: 'Routines', href: '/factory/routines' },
         { label: 'Repos', href: '/factory/repos' }
       ],
       monitoring: [

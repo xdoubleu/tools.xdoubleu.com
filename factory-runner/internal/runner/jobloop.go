@@ -45,7 +45,7 @@ type jobLoop struct {
 	r            *JobRunner
 	job          *ClaimedJob
 	dirs         jobDirs
-	// since is where a Reply's host checks start.
+	// since is where host checks start on an existing branch.
 	since   string
 	launch  launch
 	secrets []string
@@ -111,6 +111,25 @@ func (l *jobLoop) sleep(d time.Duration) {
 	sleepCtx(l.ctx, d)
 }
 
+// open starts the job's VM; a failure is the job's result.
+func (l *jobLoop) open() *result {
+	spec := SandboxSpec{
+		CloneDir: l.dirs.clone, OutcomeDir: l.dirs.outcome, SessionDir: l.dirs.session,
+		Env: l.launch.env, SetupCommands: l.job.SetupCommands, Command: nil,
+		Proxy: l.launch.proxy, Stdin: "", Log: nil,
+	}
+	session, err := openSession(l.ctx, l.r.Sandbox, spec)
+	if err != nil {
+		reason := "The sandbox could not run the job: " + err.Error()
+		res := failed(reason)
+		res.session = l.tap.Session()
+		res.blocked = noOutcomeBlock("", reason, l.secrets, "")
+		return &res
+	}
+	l.session = session
+	return nil
+}
+
 // run is the job from its first prompt to its end; its phase times go to the
 // board's log last once a pull request was opened.
 func (l *jobLoop) run() result {
@@ -127,21 +146,10 @@ func (l *jobLoop) run() result {
 }
 
 func (l *jobLoop) loop() result {
-	spec := SandboxSpec{
-		CloneDir: l.dirs.clone, OutcomeDir: l.dirs.outcome, SessionDir: l.dirs.session,
-		Env: l.launch.env, SetupCommands: l.job.SetupCommands, Command: nil,
-		Proxy: l.launch.proxy, Stdin: "", Log: nil,
+	if res := l.open(); res != nil {
+		return *res
 	}
-	session, err := openSession(l.ctx, l.r.Sandbox, spec)
-	if err != nil {
-		reason := "The sandbox could not run the job: " + err.Error()
-		res := failed(reason)
-		res.session = l.tap.Session()
-		res.blocked = noOutcomeBlock("", reason, l.secrets, "")
-		return res
-	}
-	defer session.Close()
-	l.session = session
+	defer l.session.Close()
 	res := l.attempts()
 	l.retro(res)
 	return res
@@ -149,7 +157,15 @@ func (l *jobLoop) loop() result {
 
 func (l *jobLoop) attempts() result {
 	command := l.launch.command
-	prompt := fmt.Sprintf(preamble, l.job.Branch) + "\n\n" + l.job.Prompt
+	prompt := fmt.Sprintf(preamble, l.job.Branch) + "\n\n"
+	if (l.since != "" || l.dirs.taken) && l.job.ResumeSessionID == "" {
+		prompt += fmt.Sprintf(continuePrompt, l.job.DefaultBranch) + "\n\n"
+	}
+	if l.dirs.note != "" {
+		prompt += l.dirs.note + "\n\n"
+		l.note(l.dirs.note)
+	}
+	prompt += l.job.Prompt
 	var last *step
 	for attempt := 1; ; attempt++ {
 		s := l.attempt(command, prompt)
@@ -173,6 +189,30 @@ func (l *jobLoop) attempts() result {
 		l.note(fmt.Sprintf("Attempt %d: %s, retrying", attempt+1, s.why))
 		command, prompt = l.r.harnessFor(l.job).Resume(sid), s.feedback
 	}
+}
+
+// runRoutine is a routine's job: one agent run on the runner's own prompt for it,
+// with nothing to check, push or watch. It succeeds when the agent wrote an
+// outcome and named no blocker.
+func (l *jobLoop) runRoutine(prompt string) result {
+	if res := l.open(); res != nil {
+		return *res
+	}
+	defer l.session.Close()
+
+	text, end := l.agent(l.launch.command, prompt)
+	if end != nil {
+		return end.res
+	}
+	res := l.baseResult()
+	res.outcome = text
+	if b, ok := findLine(text, "Blocked:"); ok && !strings.EqualFold(b, "none") &&
+		!leaks(b, l.secrets) {
+		res.blocked = b
+		return res
+	}
+	res.succeeded = true
+	return res
 }
 
 // stop ends the job on a failed attempt, with the reason ahead of the agent's text.
@@ -209,6 +249,14 @@ func (l *jobLoop) attempt(command []string, prompt string) step {
 	if b, ok := findLine(text, "Blocked:"); ok && !strings.EqualFold(b, "none") &&
 		!leaks(b, l.secrets) {
 		res.blocked = b
+	}
+	if res.blocked == "" {
+		if fb := l.runGates(); fb != "" {
+			ref, _ := os.ReadFile(filepath.Join(l.dirs.clone, ".git", "refs", "heads",
+				l.job.Branch))
+			return again(res, "gate failed: "+short(fb), "gate:"+short(fb),
+				strings.TrimSpace(string(ref)), fb)
+		}
 	}
 	began = l.now()
 	res = l.r.publishable(l.parent, l.job, l.dirs.clone, l.since, text, res, l.secrets)
@@ -397,7 +445,11 @@ func (l *jobLoop) judge(res result, text string, st PullStatus) (step, bool) {
 		return over(res), true
 	case st.State == PullClosed:
 		return l.finish(res, "The pull request was closed without merging.", text), true
-	case st.CI != CIFailure || (res.head != "" && st.HeadSHA != res.head):
+	case res.head != "" && st.HeadSHA != res.head:
+		return over(res), false
+	case st.Conflict:
+		return l.conflict(res, st)
+	case st.CI != CIFailure:
 		return over(res), false
 	}
 	names := make([]string, len(st.Failed))
@@ -414,6 +466,28 @@ func (l *jobLoop) judge(res result, text string, st PullStatus) (step, bool) {
 			"allows, commit on the current branch (the runner pushes it to the same "+
 			"pull request), and write the outcome again. Your work continues until "+
 			"the pull request merges."), true
+}
+
+// conflict hands a pull request that conflicts with its base back to the agent,
+// once the host has fetched the base into the clone. A failed fetch keeps the
+// watch going: the next poll tries again.
+func (l *jobLoop) conflict(res result, st PullStatus) (step, bool) {
+	err := l.r.Git.FetchBase(l.ctx, l.job.RepoOwner, l.job.RepoName,
+		l.job.DefaultBranch, l.dirs.clone)
+	if err != nil {
+		l.r.Log.Warn("could not fetch the base branch", "job", l.job.ID,
+			"error", scrub(err.Error(), l.token))
+		return over(res), false
+	}
+	base := l.job.DefaultBranch
+	res.cause = "conflict"
+	return again(res, "the pull request conflicts with "+base, "conflict:"+st.HeadSHA,
+		st.HeadSHA, "The pull request "+res.prURL+" conflicts with "+base+
+			". The host fetched origin/"+base+" into the clone. Merge origin/"+base+
+			" into the current branch (a merge, not a rebase: the runner pushes a "+
+			"fast-forward), resolve the conflicts (re-run generators and renumber "+
+			"migrations as needed), run the gates, commit, and write the outcome "+
+			"again. Your work continues until the pull request merges."), true
 }
 
 // finish ends the job on a pull request that will not merge, keeping its link.

@@ -20,34 +20,6 @@ import (
 	"tools.xdoubleu.com/internal/platform/oauth2as"
 )
 
-// TestDomainMiddleware_PathRewrite: a watchparty-domain Host rewrites onto a
-// real route; without it the path 404s.
-func TestDomainMiddleware_PathRewrite(t *testing.T) {
-	req := httptest.NewRequest(http.MethodGet, "/api/signaling", nil)
-	req.Host = "watchparty.xdoubleu.com"
-	req.AddCookie(&accessToken)
-	rewritten := httptest.NewRecorder()
-	testApp.Routes().ServeHTTP(rewritten, req)
-
-	noRewrite := doInProcess(t, http.MethodGet, "/api/signaling", "", "", &accessToken)
-
-	assert.Equal(t, http.StatusNotFound, noRewrite.Code)
-	assert.NotEqual(t, http.StatusNotFound, rewritten.Code)
-}
-
-// TestDomainMiddleware_RootRewrite: "/" rewrites to "/<app>/".
-func TestDomainMiddleware_RootRewrite(t *testing.T) {
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	req.Host = "watchparty.xdoubleu.com"
-	req.AddCookie(&accessToken)
-	rewritten := httptest.NewRecorder()
-	testApp.Routes().ServeHTTP(rewritten, req)
-
-	direct := doInProcess(t, http.MethodGet, "/watchparty/", "", "", &accessToken)
-
-	assert.Equal(t, direct.Code, rewritten.Code)
-}
-
 // TestAppAccess_AdminGrantedPath: admins pass without an explicit grant.
 func TestAppAccess_AdminGrantedPath(t *testing.T) {
 	promoteToAdmin(t)

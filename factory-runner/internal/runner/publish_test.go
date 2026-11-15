@@ -57,7 +57,7 @@ func (f *fakeGitHub) PullRequestStatus(
 	}
 	if len(f.statuses) == 0 {
 		return runner.PullStatus{
-			State: runner.PullMerged, HeadSHA: "", CI: "", Failed: nil,
+			State: runner.PullMerged, HeadSHA: "", CI: "", Failed: nil, Conflict: false,
 		}, nil
 	}
 	st := f.statuses[0]
@@ -265,8 +265,13 @@ func TestAServerThatCannotPushLeavesTheWorkOnTheMac(t *testing.T) {
 	}
 }
 
-func TestABranchThatAlreadyHoldsOtherWorkOnGitHubIsNeverOverwritten(t *testing.T) {
-	p := newPublishing(t, writes("Did it."+allPass, 0))
+func TestABranchThatAlreadyHoldsEarlierWorkOnGitHubIsFastForwarded(t *testing.T) {
+	p := newPublishing(t, func(
+		ctx context.Context, spec runner.SandboxSpec,
+	) (int, error) {
+		commitFile(spec.CloneDir, "mine.txt", "y")
+		return writes("Did it."+allPass, 0)(ctx, spec)
+	})
 	// Someone (an earlier job) already put different work on the branch.
 	other := filepath.Join(t.TempDir(), "other")
 	require.NoError(t, os.MkdirAll(other, 0o755))
@@ -286,11 +291,12 @@ func TestABranchThatAlreadyHoldsOtherWorkOnGitHubIsNeverOverwritten(t *testing.T
 	require.NoError(t, err)
 
 	got := p.api.done()[0]
-	assert.True(t, got.succeeded)
-	assert.Empty(t, got.prURL)
-	assert.Contains(t, got.outcome, "never overwritten")
-	assert.Equal(t, before, p.remoteBranch(t), "their work is untouched")
-	assert.Empty(t, p.gh.opened)
+	assert.True(t, got.succeeded, got.outcome)
+	assert.NotEmpty(t, got.prURL)
+	assert.NotEqual(t, before, p.remoteBranch(t))
+	assert.Equal(t, before, gitIn(t, p.remote, "merge-base", before, p.remoteBranch(t)),
+		"the push built on the earlier work")
+	require.Len(t, p.gh.opened, 1)
 }
 
 func TestAPullRequestThatCannotBeOpenedIsSaidSoAndTheTokenStaysOut(t *testing.T) {
@@ -336,7 +342,8 @@ func TestScrubRemovesTheTokenAndItsBasicAuthForm(t *testing.T) {
 
 func TestPullRequestTextTakesTheTitleFromTheFirstLine(t *testing.T) {
 	job := &runner.ClaimedJob{
-		ID: "job-1", TaskID: "task-1", Branch: "agent/x",
+		Routine: "",
+		ID:      "job-1", TaskID: "task-1", Branch: "agent/x",
 		RepoOwner: "", RepoName: "", DefaultBranch: "", Prompt: "",
 		SetupCommands: "", TimeLimitMinutes: 0, MCPClientID: "", MCPClientSecret: "",
 		ResumeSessionID: "",
@@ -704,7 +711,8 @@ func TestAStoppedRunnerDoesNotWaitOutItsRetries(t *testing.T) {
 
 func TestAPullRequestTitleLabelWinsWhereverItIs(t *testing.T) {
 	job := &runner.ClaimedJob{
-		ID: "j", TaskID: "t", Branch: "agent/x", RepoOwner: "", RepoName: "",
+		Routine: "",
+		ID:      "j", TaskID: "t", Branch: "agent/x", RepoOwner: "", RepoName: "",
 		DefaultBranch: "", Prompt: "", SetupCommands: "",
 		TimeLimitMinutes: 0, MCPClientID: "", MCPClientSecret: "",
 		ResumeSessionID: "",
@@ -744,7 +752,8 @@ func TestMentionsAndClosingKeywordsInAgentTextAreDefused(t *testing.T) {
 
 	// And it reaches the pull request's body.
 	job := &runner.ClaimedJob{
-		ID: "j", TaskID: "t", Branch: "agent/x", RepoOwner: "", RepoName: "",
+		Routine: "",
+		ID:      "j", TaskID: "t", Branch: "agent/x", RepoOwner: "", RepoName: "",
 		DefaultBranch: "", Prompt: "", SetupCommands: "",
 		TimeLimitMinutes: 0, MCPClientID: "", MCPClientSecret: "",
 		ResumeSessionID: "",

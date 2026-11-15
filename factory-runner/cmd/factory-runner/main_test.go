@@ -530,3 +530,16 @@ func TestRunFromTheBundleRemovesTheLegacyBinary(t *testing.T) {
 	e.do("run")
 	assert.NoFileExists(t, legacy)
 }
+
+func TestADrainingRunnerHoldsClaims(t *testing.T) {
+	e := newEnv(t)
+	e.app.control = runner.NewControl(filepath.Join(t.TempDir(), "paused"), "v", nil)
+	require.Equal(t, 0, e.do("config", "mode", "claude"))
+	assert.False(t, e.app.holdClaims())
+
+	e.app.control.SetDraining(true)
+	assert.True(t, e.app.holdClaims())
+
+	e.app.control.SetDraining(false)
+	assert.False(t, e.app.holdClaims())
+}
