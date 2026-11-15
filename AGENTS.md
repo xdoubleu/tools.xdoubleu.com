@@ -8,7 +8,6 @@ The repository contract for any coding agent. Harness mechanics live in `CLAUDE.
 - `web/` — Vite 8 / React 19 SPA served by the api.
 - `kobo-gateway/` — separate macOS-only Go module, a downloadable menu-bar helper.
 - `factory-runner/` — separate Go module, the Mac helper that pairs with the factory board and heartbeats.
-- `diff-coverage/` — separate Go module (`github.com/xdoubleu/diff-coverage`), the changed-line coverage gate → [adr-0013](docs/adr-0013-diff-scoped-coverage.md). Staged here until published as its own repo; it replaces `tools/diff_coverage_*.py` and `merge_coverage.py` once tagged.
 
 Apps: games, books, feeds, recipes, mealplans, shoppinglist, dashboard (no schema; owns public dashboards and share tokens, using other apps only through exported methods → [adr-0007](docs/adr-0007-dashboard-app-owns-public-sharing.md)), trains (iRail journeys and live delays), learningpaths (agent-authored curricula, per-user, no family sharing), movies (TMDB-backed movies & series backlog, per-user plus a family-shared list), podcasts (per-user favourite iTunes shows), taste (per-user stats, LLM profile and picks over apps' `ListConsumption`/`Find*`/`Want*`). All are registered in `api/cmd/api/apps.go`; **migrations run in registration order**, so schema dependencies dictate the order.
 
