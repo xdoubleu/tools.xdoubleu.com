@@ -17,3 +17,8 @@ func GatesForTest(text string, changed []string) []string {
 	}
 	return out
 }
+
+// GateExcerptForTest exposes gateExcerpt.
+func GateExcerptForTest(output string, limit int) string {
+	return gateExcerpt(output, limit)
+}

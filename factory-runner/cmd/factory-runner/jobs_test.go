@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -164,4 +165,35 @@ func TestConfigShowDefaultsToTheStandardImageAndDataDirectory(t *testing.T) {
 	assert.Contains(t, out, "gocache: none (jobs get no dependencies")
 	assert.Contains(t, out, "npmcache: none (jobs get no dependencies")
 	assert.Contains(t, out, "data: "+runner.DefaultDataDir(e.app.home)+"\n")
+}
+
+func TestJobsThatFailedToStartComeBackWithoutARestart(t *testing.T) {
+	e := newEnv(t)
+	old := jobRetrySleep
+	jobRetrySleep = func(context.Context, time.Duration) {}
+	t.Cleanup(func() { jobRetrySleep = old })
+	tries := 0
+	started := make(chan struct{})
+	e = withJobs(e, func(context.Context, runner.Config, string) (jobLoop, error) {
+		tries++
+		if tries == 1 {
+			return nil, errors.New("container image pull failed")
+		}
+		return funcLoop(func(ctx context.Context) error {
+			close(started)
+			<-ctx.Done()
+			return nil
+		}), nil
+	})
+	e.app.daemon = func(
+		_ context.Context, _ runner.Heartbeater, _ string, _ runner.Options,
+	) error {
+		<-started
+		return runner.ErrRestart
+	}
+
+	assert.Equal(t, 0, e.do("run"))
+	assert.Equal(t, 2, tries)
+	assert.Contains(t, e.errs.String(), "jobs are off")
+	assert.Contains(t, e.errs.String(), "jobs are on")
 }

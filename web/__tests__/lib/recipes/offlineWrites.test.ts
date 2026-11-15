@@ -34,7 +34,8 @@ const fields = {
   ingredientNames: ['apples', '', 'sugar'],
   ingredientAmounts: [3, 1, 0.5],
   ingredientUnits: ['', 'x', ' cup '],
-  ingredientGroupNames: ['', '', ' Filling ']
+  ingredientGroupNames: ['', '', ' Filling '],
+  ingredientAlternativeGroups: [' base ', '', '']
 }
 
 describe('recipe offline writes', () => {
@@ -58,7 +59,7 @@ describe('recipe offline writes', () => {
           instructions: 'Peel\nBake',
           baseServings: 2,
           ingredients: [
-            { name: 'apples', amount: 3, unit: '', sortOrder: 0 },
+            { name: 'apples', amount: 3, unit: '', sortOrder: 0, alternativeGroup: 'base' },
             { name: 'sugar', amount: 0.5, unit: 'cup', sortOrder: 2, groupName: 'Filling' }
           ]
         },

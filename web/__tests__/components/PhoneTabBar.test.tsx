@@ -40,13 +40,10 @@ describe('PhoneTabBar', () => {
     expect(renderBar('/').container.firstChild).toBeNull()
   })
 
-  it.each(['/books/1/read', '/watchparty/abc/presenter', '/dashboard/games/some-token'])(
-    'renders nothing on %s',
-    (path) => {
-      user('admin', [])
-      expect(renderBar(path).container.firstChild).toBeNull()
-    }
-  )
+  it.each(['/books/1/read', '/dashboard/games/some-token'])('renders nothing on %s', (path) => {
+    user('admin', [])
+    expect(renderBar(path).container.firstChild).toBeNull()
+  })
 
   it('shows Today, the pinned apps and Apps', () => {
     user('user', ['books', 'feeds', 'mealplans', 'trains'])

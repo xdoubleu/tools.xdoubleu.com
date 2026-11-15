@@ -22,9 +22,9 @@ func IsSandboxTask(t *models.Task) bool {
 	})
 }
 
-// ReportSandbox files a sandbox problem: it comments on the repo's open sandbox
-// task with the same title (ignoring case), else creates one in Backlog. created
-// is false for a repeat.
+// ReportSandbox files a sandbox problem: it comments on the open task the title
+// names (T-n), else the repo's open sandbox task with the same or a close title,
+// else creates one (straight into Ready, as a bug). created is false for a repeat.
 func (s *TaskService) ReportSandbox(
 	ctx context.Context,
 	actor models.Actor,
@@ -33,7 +33,7 @@ func (s *TaskService) ReportSandbox(
 ) (*models.Task, bool, error) {
 	in, err := normalise(TaskInput{
 		Title: title, Body: body, Priority: models.PriorityP2,
-		Labels: []string{SandboxLabel},
+		Labels: []string{SandboxLabel, "bug"},
 	})
 	if err != nil {
 		return nil, false, err
@@ -42,12 +42,7 @@ func (s *TaskService) ReportSandbox(
 	if err != nil {
 		return nil, false, err
 	}
-	for i := range all {
-		t := &all[i]
-		if t.RepoID != repoID || t.Status == models.StatusDone || !IsSandboxTask(t) ||
-			!strings.EqualFold(t.Title, in.Title) {
-			continue
-		}
+	if t := findCovering(all, repoID, in.Title); t != nil {
 		comment, cerr := normaliseComment(cmp.Or(in.Body, "Seen again."))
 		if cerr != nil {
 			return nil, false, cerr

@@ -46,10 +46,10 @@ func TestABlockedJobFilesASandboxTaskAndARepeatCommentsOnIt(t *testing.T) {
 	found := sandboxTasks(t, env, title)
 	require.Len(t, found, 1)
 	assert.Equal(t, title, found[0].Title)
-	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_BACKLOG, found[0].Status)
+	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_READY, found[0].Status)
 	got := env.task(t, found[0].Id)
-	require.Len(t, got.Comments, 1)
-	assert.Contains(t, got.Comments[0].Body, problem)
+	require.Len(t, got.Comments, 2)
+	assert.Contains(t, got.Comments[1].Body, problem)
 
 	// A job that is not blocked files nothing.
 	task := env.newTask(t, "more work")
@@ -89,8 +89,10 @@ func TestAJobAccountReportsToTheSandboxBoardOnly(t *testing.T) {
 	assert.Equal(t, id, str(t, again, "task", "id"))
 	found := sandboxTasks(t, env, title)
 	require.Len(t, found, 1)
-	assert.Equal(t, []string{"factory-sandbox"}, found[0].Labels)
-	assert.Len(t, env.task(t, id).Comments, 1)
+	assert.Equal(t, []string{"factory-sandbox", "bug"}, found[0].Labels)
+	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_READY, env.task(t, id).Task.Status)
+	// The Ready move comment plus the repeat.
+	assert.Len(t, env.task(t, id).Comments, 2)
 
 	// It sees and comments on the sandbox task, not on other people's.
 	list, err := callTool(t, session, "factory_list_tasks", map[string]any{})
@@ -107,7 +109,7 @@ func TestAJobAccountReportsToTheSandboxBoardOnly(t *testing.T) {
 	_, err = callTool(t, session, "factory_comment_task",
 		map[string]any{"task_id": id, "body": "More detail."})
 	require.NoError(t, err)
-	assert.Len(t, env.task(t, id).Comments, 2)
+	assert.Len(t, env.task(t, id).Comments, 3)
 	_, err = callTool(t, session, "factory_comment_task",
 		map[string]any{"task_id": other.Id, "body": "Nope."})
 	require.Error(t, err)

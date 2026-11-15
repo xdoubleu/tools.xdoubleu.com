@@ -36,8 +36,6 @@ type RepoInput struct {
 	Owner             string
 	Name              string
 	DefaultBranch     string
-	DefaultHarness    models.Harness
-	DefaultModel      string
 	SetupCommands     string
 	AgentInstructions string
 	TimeLimitMinutes  int
@@ -84,16 +82,7 @@ func normaliseRepo(in RepoInput) (RepoInput, error) {
 	if !validBranch(in.DefaultBranch) {
 		return in, badRequest("invalid default branch")
 	}
-	if in.DefaultHarness == "" {
-		in.DefaultHarness = models.HarnessClaudeCode
-	}
-	in.DefaultModel = strings.TrimSpace(in.DefaultModel)
-	if err := checkModel(in.DefaultHarness, in.DefaultModel); err != nil {
-		return in, err
-	}
 	switch {
-	case !in.DefaultHarness.Valid():
-		return in, badRequest("invalid harness")
 	case utf8.RuneCountInString(in.SetupCommands) > maxSetupLen:
 		return in, badRequest("setup commands are too long")
 	case utf8.RuneCountInString(in.AgentInstructions) > maxInstructionsLen:
@@ -116,8 +105,6 @@ func repoFrom(id uuid.UUID, in RepoInput) models.Repo {
 		Owner:             in.Owner,
 		Name:              in.Name,
 		DefaultBranch:     in.DefaultBranch,
-		DefaultHarness:    in.DefaultHarness,
-		DefaultModel:      in.DefaultModel,
 		SetupCommands:     in.SetupCommands,
 		AgentInstructions: in.AgentInstructions,
 		TimeLimitMinutes:  in.TimeLimitMinutes,
@@ -152,11 +139,8 @@ func (s *RepoService) Update(
 	in RepoInput,
 ) (*models.Repo, error) {
 	if strings.TrimSpace(in.DefaultBranch) == "" ||
-		in.DefaultHarness == "" ||
 		in.TimeLimitMinutes == 0 {
-		return nil, badRequest(
-			"default branch, harness and time limit are required",
-		)
+		return nil, badRequest("default branch and time limit are required")
 	}
 	in, err := normaliseRepo(in)
 	if err != nil {

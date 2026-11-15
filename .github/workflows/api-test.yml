@@ -43,8 +43,11 @@ jobs:
           exit 1
       - run: make test/cov/report
         working-directory: './api'
+      - name: Reads on messy data
+        run: make test/reads
+        working-directory: './api'
       - name: Patch coverage (changed lines >= 80%)
         if: github.event_name == 'pull_request'
         working-directory: './api'
         run: |
-          python3 ../tools/diff_coverage_go.py coverage.out
+          ../scripts/diff_coverage.sh go coverage.out

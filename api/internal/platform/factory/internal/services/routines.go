@@ -116,13 +116,9 @@ func (s *JobService) queueRoutine(
 	if err != nil {
 		return nil, err
 	}
-	harness, model, err := resolveHarness(repo, HarnessPick{Harness: "", Model: ""})
-	if err != nil {
-		return nil, err
-	}
 	job, err := s.jobs.Create(ctx, models.Job{
 		ID: uuid.Nil, TaskID: uuid.Nil, TaskNumber: 0, Routine: routine.Name,
-		RepoID: repo.ID, Harness: harness, Model: model,
+		RepoID: repo.ID, Harness: "", Model: "",
 		Prompt: routinePrompt(repo, routine.Name), Status: "",
 		Branch: routineBranch(routine.Name), SessionID: "", Outcome: "",
 		ParentJobID: nil, PRURL: "", RunnerID: nil, PRState: "", PRCI: "",

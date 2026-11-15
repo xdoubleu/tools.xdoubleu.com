@@ -597,7 +597,6 @@ type ClaimedJob struct {
 	RepoOwner     string                 `protobuf:"bytes,3,opt,name=repo_owner,json=repoOwner,proto3" json:"repo_owner,omitempty"`
 	RepoName      string                 `protobuf:"bytes,4,opt,name=repo_name,json=repoName,proto3" json:"repo_name,omitempty"`
 	DefaultBranch string                 `protobuf:"bytes,5,opt,name=default_branch,json=defaultBranch,proto3" json:"default_branch,omitempty"`
-	Harness       Harness                `protobuf:"varint,6,opt,name=harness,proto3,enum=factory.v1.Harness" json:"harness,omitempty"`
 	Prompt        string                 `protobuf:"bytes,7,opt,name=prompt,proto3" json:"prompt,omitempty"`
 	Branch        string                 `protobuf:"bytes,8,opt,name=branch,proto3" json:"branch,omitempty"`
 	// Free text, run in the sandbox before the agent.
@@ -609,8 +608,6 @@ type ClaimedJob struct {
 	McpClientSecret string `protobuf:"bytes,12,opt,name=mcp_client_secret,json=mcpClientSecret,proto3" json:"mcp_client_secret,omitempty"`
 	// Set for a Reply's job: the harness session to resume on the existing branch.
 	ResumeSessionId string `protobuf:"bytes,13,opt,name=resume_session_id,json=resumeSessionId,proto3" json:"resume_session_id,omitempty"`
-	// The OpenRouter model, "vendor/model", when the harness is OpenCode.
-	Model string `protobuf:"bytes,14,opt,name=model,proto3" json:"model,omitempty"`
 	// Set for a routine's job, which has no task (task_id is empty). The runner
 	// runs only a routine it knows by name and builds the prompt itself.
 	Routine       string `protobuf:"bytes,15,opt,name=routine,proto3" json:"routine,omitempty"`
@@ -683,13 +680,6 @@ func (x *ClaimedJob) GetDefaultBranch() string {
 	return ""
 }
 
-func (x *ClaimedJob) GetHarness() Harness {
-	if x != nil {
-		return x.Harness
-	}
-	return Harness_HARNESS_UNSPECIFIED
-}
-
 func (x *ClaimedJob) GetPrompt() string {
 	if x != nil {
 		return x.Prompt
@@ -739,13 +729,6 @@ func (x *ClaimedJob) GetResumeSessionId() string {
 	return ""
 }
 
-func (x *ClaimedJob) GetModel() string {
-	if x != nil {
-		return x.Model
-	}
-	return ""
-}
-
 func (x *ClaimedJob) GetRoutine() string {
 	if x != nil {
 		return x.Routine
@@ -757,7 +740,11 @@ type ClaimJobRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// How many jobs this runner may run at once; the server hands out a job only
 	// while fewer run. Unset or 0 means 1.
-	MaxJobs       int32 `protobuf:"varint,1,opt,name=max_jobs,json=maxJobs,proto3" json:"max_jobs,omitempty"`
+	MaxJobs int32 `protobuf:"varint,1,opt,name=max_jobs,json=maxJobs,proto3" json:"max_jobs,omitempty"`
+	// What this runner's Mac runs jobs on; recorded on the claimed job. Unspecified
+	// is read as Claude Code. model is "vendor/model" for OpenCode, else empty.
+	Harness       Harness `protobuf:"varint,2,opt,name=harness,proto3,enum=factory.v1.Harness" json:"harness,omitempty"`
+	Model         string  `protobuf:"bytes,3,opt,name=model,proto3" json:"model,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -797,6 +784,20 @@ func (x *ClaimJobRequest) GetMaxJobs() int32 {
 		return x.MaxJobs
 	}
 	return 0
+}
+
+func (x *ClaimJobRequest) GetHarness() Harness {
+	if x != nil {
+		return x.Harness
+	}
+	return Harness_HARNESS_UNSPECIFIED
+}
+
+func (x *ClaimJobRequest) GetModel() string {
+	if x != nil {
+		return x.Model
+	}
+	return ""
 }
 
 type ClaimJobResponse struct {
@@ -1671,7 +1672,7 @@ const file_factory_v1_runners_proto_rawDesc = "" +
 	"runnerName\",\n" +
 	"\x10HeartbeatRequest\x12\x18\n" +
 	"\aversion\x18\x01 \x01(\tR\aversion\"\x13\n" +
-	"\x11HeartbeatResponse\"\xf8\x03\n" +
+	"\x11HeartbeatResponse\"\xcf\x03\n" +
 	"\n" +
 	"ClaimedJob\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
@@ -1679,8 +1680,7 @@ const file_factory_v1_runners_proto_rawDesc = "" +
 	"\n" +
 	"repo_owner\x18\x03 \x01(\tR\trepoOwner\x12\x1b\n" +
 	"\trepo_name\x18\x04 \x01(\tR\brepoName\x12%\n" +
-	"\x0edefault_branch\x18\x05 \x01(\tR\rdefaultBranch\x12-\n" +
-	"\aharness\x18\x06 \x01(\x0e2\x13.factory.v1.HarnessR\aharness\x12\x16\n" +
+	"\x0edefault_branch\x18\x05 \x01(\tR\rdefaultBranch\x12\x16\n" +
 	"\x06prompt\x18\a \x01(\tR\x06prompt\x12\x16\n" +
 	"\x06branch\x18\b \x01(\tR\x06branch\x12%\n" +
 	"\x0esetup_commands\x18\t \x01(\tR\rsetupCommands\x12,\n" +
@@ -1688,11 +1688,12 @@ const file_factory_v1_runners_proto_rawDesc = "" +
 	" \x01(\x05R\x10timeLimitMinutes\x12\"\n" +
 	"\rmcp_client_id\x18\v \x01(\tR\vmcpClientId\x12*\n" +
 	"\x11mcp_client_secret\x18\f \x01(\tR\x0fmcpClientSecret\x12*\n" +
-	"\x11resume_session_id\x18\r \x01(\tR\x0fresumeSessionId\x12\x14\n" +
-	"\x05model\x18\x0e \x01(\tR\x05model\x12\x18\n" +
-	"\aroutine\x18\x0f \x01(\tR\aroutine\",\n" +
+	"\x11resume_session_id\x18\r \x01(\tR\x0fresumeSessionId\x12\x18\n" +
+	"\aroutine\x18\x0f \x01(\tR\aroutineJ\x04\b\x06\x10\aJ\x04\b\x0e\x10\x0fR\aharnessR\x05model\"q\n" +
 	"\x0fClaimJobRequest\x12\x19\n" +
-	"\bmax_jobs\x18\x01 \x01(\x05R\amaxJobs\"<\n" +
+	"\bmax_jobs\x18\x01 \x01(\x05R\amaxJobs\x12-\n" +
+	"\aharness\x18\x02 \x01(\x0e2\x13.factory.v1.HarnessR\aharness\x12\x14\n" +
+	"\x05model\x18\x03 \x01(\tR\x05model\"<\n" +
 	"\x10ClaimJobResponse\x12(\n" +
 	"\x03job\x18\x01 \x01(\v2\x16.factory.v1.ClaimedJobR\x03job\"F\n" +
 	"\x0eCheckInRequest\x12\x15\n" +
@@ -1810,7 +1811,7 @@ var file_factory_v1_runners_proto_depIdxs = []int32{
 	0,  // 0: factory.v1.ListRunnersResponse.runners:type_name -> factory.v1.Runner
 	0,  // 1: factory.v1.CreateRunnerResponse.runner:type_name -> factory.v1.Runner
 	0,  // 2: factory.v1.RevokeRunnerResponse.runner:type_name -> factory.v1.Runner
-	28, // 3: factory.v1.ClaimedJob.harness:type_name -> factory.v1.Harness
+	28, // 3: factory.v1.ClaimJobRequest.harness:type_name -> factory.v1.Harness
 	11, // 4: factory.v1.ClaimJobResponse.job:type_name -> factory.v1.ClaimedJob
 	16, // 5: factory.v1.AppendJobEventsRequest.lines:type_name -> factory.v1.JobLine
 	22, // 6: factory.v1.CompleteJobRequest.timings:type_name -> factory.v1.JobTimings

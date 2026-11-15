@@ -302,12 +302,12 @@ func TestAJobAccountSeesAndActsOnItsOwnTaskOnly(t *testing.T) {
 	require.Error(t, err)
 	assert.Equal(t, "my task", env.task(t, mine.Id).Task.Title)
 
-	// It can file new tasks into Backlog.
+	// It can file new tasks straight into Ready, as a sandbox bug.
 	made, err := callTool(t, session, "factory_create_task", map[string]any{
 		"repo_id": seededRepoID(t), "title": "Follow-up", "body": "Found on the way.",
 	})
 	require.NoError(t, err)
-	assert.Equal(t, "TASK_STATUS_BACKLOG", str(t, made, "task", "status"))
+	assert.Equal(t, "TASK_STATUS_READY", str(t, made, "task", "status"))
 }
 
 func TestAnAgentAccountMadeByAPersonStillSeesTheWholeBoard(t *testing.T) {

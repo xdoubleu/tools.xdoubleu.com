@@ -122,7 +122,6 @@ export const swrKeys = {
 
   factoryTasks: '/factory/tasks',
   factoryRepos: '/factory/repos',
-  factoryOpenRouterModels: '/factory/openrouter-models',
   factoryRunners: '/factory/runners',
   factoryRoutines: '/factory/routines',
   factoryRunnerRelease: '/downloads/factory-runner-release.txt',

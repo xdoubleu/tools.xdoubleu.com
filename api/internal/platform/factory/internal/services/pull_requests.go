@@ -74,7 +74,9 @@ func (s *JobService) mergedLinked(ctx context.Context) (int, error) {
 			continue
 		}
 		for _, p := range pulls {
-			done, moveErr := s.TestingAfterMerge(ctx, p.Body, p.URL, p.MergeSHA)
+			done, moveErr := s.TestingAfterMerge(ctx, PullRequestRef{
+				URL: p.URL, Title: p.Title, Branch: p.Branch, Body: p.Body, MergeSHA: p.MergeSHA,
+			})
 			if moveErr != nil {
 				failures = append(failures, fmt.Errorf("pull request %s: %w", p.URL, moveErr))
 			}
@@ -86,18 +88,118 @@ func (s *JobService) mergedLinked(ctx context.Context) (int, error) {
 	return moved, errors.Join(failures...)
 }
 
-// linkedTasks is every reference (T-<number> or UUID) a pull request body
-// links, each once, in order.
-func linkedTasks(body string) []string {
+// PullRequestRef is what a pull request offers to link tasks from.
+type PullRequestRef struct {
+	URL, Title, Branch, Body, MergeSHA string
+}
+
+// taskID is a task written T-<number> in a title or body.
+var taskID = regexp.MustCompile(`\bT-[0-9]+\b`)
+
+// branchTask is the task a branch is named for, such as agent/t483-fix.
+var branchTask = regexp.MustCompile(`(?i)(?:^|[^a-z0-9])t-?([0-9]+)(?:[^0-9]|$)`)
+
+// linkedTasks is every reference (T-<number> or UUID) a pull request links, each
+// once, in order: a `Task:` line of the body, then T-<number> in its title,
+// branch and body.
+func linkedTasks(pr PullRequestRef) []string {
 	var refs []string
 	seen := map[string]bool{}
-	for _, m := range taskLine.FindAllStringSubmatch(body, -1) {
-		if !seen[m[1]] {
-			seen[m[1]] = true
-			refs = append(refs, m[1])
+	add := func(ref string) {
+		if !seen[ref] {
+			seen[ref] = true
+			refs = append(refs, ref)
 		}
 	}
+	for _, m := range taskLine.FindAllStringSubmatch(pr.Body, -1) {
+		add(m[1])
+	}
+	for _, text := range []string{pr.Title, pr.Body} {
+		for _, m := range taskID.FindAllString(text, -1) {
+			add(m)
+		}
+	}
+	if m := branchTask.FindStringSubmatch(pr.Branch); m != nil {
+		add("T-" + m[1])
+	}
 	return refs
+}
+
+// early reports whether a task is waiting to be worked on or being worked on
+// outside a job: a pull request for it moves it on.
+func early(status models.Status) bool {
+	return status == models.StatusReady || status == models.StatusInProgress ||
+		status == models.StatusNeedsYou
+}
+
+// PullRequestOpened links each task an open pull request names and moves one
+// that is waiting or in progress, with no job of its own, to In review.
+func (s *JobService) PullRequestOpened(ctx context.Context, pr PullRequestRef) error {
+	var failures []error
+	for _, ref := range linkedTasks(pr) {
+		id, err := s.tasks.Resolve(ctx, ref)
+		if err != nil {
+			continue
+		}
+		err = s.linked.Upsert(ctx, models.LinkedPullRequest{
+			URL: pr.URL, TaskID: id, State: githubapp.StateOpen,
+			CI: "", Review: "", Mergeable: "", UnmergeableSince: nil,
+			CheckedAt: time.Time{},
+		})
+		if err == nil {
+			err = s.reviewOpen(ctx, id, pr.URL)
+		}
+		if err != nil {
+			failures = append(failures, err)
+		}
+	}
+	return errors.Join(failures...)
+}
+
+// reviewOpen moves a task with no jobs that is early to In review, for its open
+// pull request.
+func (s *JobService) reviewOpen(ctx context.Context, id uuid.UUID, url string) error {
+	task, err := s.tasks.Get(ctx, id)
+	if err != nil {
+		return nil //nolint:nilerr // a task that is gone is not a failure
+	}
+	if !early(task.Status) {
+		return nil
+	}
+	jobs, err := s.jobs.ByTask(ctx, id)
+	if err != nil || len(jobs) > 0 {
+		return err
+	}
+	if _, err = s.tasks.Move(ctx, id, models.StatusInReview); err != nil {
+		return err
+	}
+	_, err = s.tasks.AddComment(ctx, id, systemAuthor, "A pull request was opened: "+url)
+	return err
+}
+
+// PullRequestClosed notes on each task a pull request names, that has no job of
+// its own, that the pull request closed without merging. The task stays put.
+func (s *JobService) PullRequestClosed(ctx context.Context, pr PullRequestRef) error {
+	var failures []error
+	for _, ref := range linkedTasks(pr) {
+		id, err := s.tasks.Resolve(ctx, ref)
+		if err != nil {
+			continue
+		}
+		jobs, err := s.jobs.ByTask(ctx, id)
+		if err != nil {
+			failures = append(failures, err)
+			continue
+		}
+		if len(jobs) > 0 {
+			continue
+		}
+		body := "The pull request was closed without merging: " + pr.URL
+		if _, err = s.tasks.AddComment(ctx, id, systemAuthor, body); err != nil {
+			failures = append(failures, err)
+		}
+	}
+	return errors.Join(failures...)
 }
 
 // TestingAfterMerge moves to Testing each task a merged pull request links in its
@@ -105,12 +207,12 @@ func linkedTasks(body string) []string {
 // deploy state. It reports whether a task moved.
 func (s *JobService) TestingAfterMerge(
 	ctx context.Context,
-	prBody, prURL, mergeSHA string,
+	pr PullRequestRef,
 ) (bool, error) {
 	var failures []error
 	moved := false
-	for _, ref := range linkedTasks(prBody) {
-		done, err := s.testingAfterMerge(ctx, ref, prURL, mergeSHA)
+	for _, ref := range linkedTasks(pr) {
+		done, err := s.testingAfterMerge(ctx, ref, pr.URL, pr.MergeSHA)
 		if err != nil {
 			failures = append(failures, err)
 		}
@@ -146,7 +248,7 @@ func (s *JobService) testingAfterMerge(
 	if err != nil {
 		return false, err
 	}
-	if task.Status != models.StatusInReview {
+	if task.Status != models.StatusInReview && !early(task.Status) {
 		return false, nil
 	}
 	jobs, err := s.jobs.ByTask(ctx, id)
@@ -246,13 +348,18 @@ func (s *JobService) syncLinked(ctx context.Context) error {
 			continue
 		}
 		for _, p := range pulls {
-			for _, ref := range linkedTasks(p.Body) {
+			pr := PullRequestRef{
+				URL: p.URL, Title: p.Title, Branch: p.Branch, Body: p.Body, MergeSHA: "",
+			}
+			for _, ref := range linkedTasks(pr) {
 				id, resolveErr := s.tasks.Resolve(ctx, ref)
 				if resolveErr != nil {
 					continue
 				}
 				seen[p.URL] = true
 				if err = s.recordLinked(ctx, repos[i], id, p.URL, p.Number); err != nil {
+					failures = append(failures, fmt.Errorf("pull request %s: %w", p.URL, err))
+				} else if err = s.reviewOpen(ctx, id, p.URL); err != nil {
 					failures = append(failures, fmt.Errorf("pull request %s: %w", p.URL, err))
 				}
 			}

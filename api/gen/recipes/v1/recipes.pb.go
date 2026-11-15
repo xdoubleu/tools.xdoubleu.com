@@ -22,16 +22,19 @@ const (
 )
 
 type Ingredient struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	RecipeId      string                 `protobuf:"bytes,2,opt,name=recipe_id,json=recipeId,proto3" json:"recipe_id,omitempty"`
-	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
-	Amount        float64                `protobuf:"fixed64,4,opt,name=amount,proto3" json:"amount,omitempty"`
-	Unit          string                 `protobuf:"bytes,5,opt,name=unit,proto3" json:"unit,omitempty"`
-	SortOrder     int32                  `protobuf:"varint,6,opt,name=sort_order,json=sortOrder,proto3" json:"sort_order,omitempty"`
-	GroupName     *string                `protobuf:"bytes,7,opt,name=group_name,json=groupName,proto3,oneof" json:"group_name,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	Id        string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	RecipeId  string                 `protobuf:"bytes,2,opt,name=recipe_id,json=recipeId,proto3" json:"recipe_id,omitempty"`
+	Name      string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	Amount    float64                `protobuf:"fixed64,4,opt,name=amount,proto3" json:"amount,omitempty"`
+	Unit      string                 `protobuf:"bytes,5,opt,name=unit,proto3" json:"unit,omitempty"`
+	SortOrder int32                  `protobuf:"varint,6,opt,name=sort_order,json=sortOrder,proto3" json:"sort_order,omitempty"`
+	GroupName *string                `protobuf:"bytes,7,opt,name=group_name,json=groupName,proto3,oneof" json:"group_name,omitempty"`
+	// Ingredients of one recipe sharing a label are interchangeable options;
+	// the first by sort_order is the default.
+	AlternativeGroup *string `protobuf:"bytes,8,opt,name=alternative_group,json=alternativeGroup,proto3,oneof" json:"alternative_group,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *Ingredient) Reset() {
@@ -109,6 +112,13 @@ func (x *Ingredient) GetSortOrder() int32 {
 func (x *Ingredient) GetGroupName() string {
 	if x != nil && x.GroupName != nil {
 		return *x.GroupName
+	}
+	return ""
+}
+
+func (x *Ingredient) GetAlternativeGroup() string {
+	if x != nil && x.AlternativeGroup != nil {
+		return *x.AlternativeGroup
 	}
 	return ""
 }
@@ -536,9 +546,10 @@ type CreateRecipeRequest struct {
 	IsDraft              bool                   `protobuf:"varint,9,opt,name=is_draft,json=isDraft,proto3" json:"is_draft,omitempty"`
 	// Optional client-generated UUID: repeating the call with it updates
 	// nothing and returns the existing recipe (offline replay).
-	Id            string `protobuf:"bytes,10,opt,name=id,proto3" json:"id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Id                          string   `protobuf:"bytes,10,opt,name=id,proto3" json:"id,omitempty"`
+	IngredientAlternativeGroups []string `protobuf:"bytes,11,rep,name=ingredient_alternative_groups,json=ingredientAlternativeGroups,proto3" json:"ingredient_alternative_groups,omitempty"`
+	unknownFields               protoimpl.UnknownFields
+	sizeCache                   protoimpl.SizeCache
 }
 
 func (x *CreateRecipeRequest) Reset() {
@@ -641,6 +652,13 @@ func (x *CreateRecipeRequest) GetId() string {
 	return ""
 }
 
+func (x *CreateRecipeRequest) GetIngredientAlternativeGroups() []string {
+	if x != nil {
+		return x.IngredientAlternativeGroups
+	}
+	return nil
+}
+
 type CreateRecipeResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Recipe        *Recipe                `protobuf:"bytes,1,opt,name=recipe,proto3" json:"recipe,omitempty"`
@@ -686,19 +704,20 @@ func (x *CreateRecipeResponse) GetRecipe() *Recipe {
 }
 
 type UpdateRecipeRequest struct {
-	state                protoimpl.MessageState `protogen:"open.v1"`
-	Id                   string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Name                 string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Steps                []string               `protobuf:"bytes,3,rep,name=steps,proto3" json:"steps,omitempty"`
-	BaseServings         int32                  `protobuf:"varint,4,opt,name=base_servings,json=baseServings,proto3" json:"base_servings,omitempty"`
-	IngredientNames      []string               `protobuf:"bytes,5,rep,name=ingredient_names,json=ingredientNames,proto3" json:"ingredient_names,omitempty"`
-	IngredientAmounts    []float64              `protobuf:"fixed64,6,rep,packed,name=ingredient_amounts,json=ingredientAmounts,proto3" json:"ingredient_amounts,omitempty"`
-	IngredientUnits      []string               `protobuf:"bytes,7,rep,name=ingredient_units,json=ingredientUnits,proto3" json:"ingredient_units,omitempty"`
-	BatchServings        *int32                 `protobuf:"varint,8,opt,name=batch_servings,json=batchServings,proto3,oneof" json:"batch_servings,omitempty"`
-	IngredientGroupNames []string               `protobuf:"bytes,9,rep,name=ingredient_group_names,json=ingredientGroupNames,proto3" json:"ingredient_group_names,omitempty"`
-	IsDraft              bool                   `protobuf:"varint,10,opt,name=is_draft,json=isDraft,proto3" json:"is_draft,omitempty"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
+	state                       protoimpl.MessageState `protogen:"open.v1"`
+	Id                          string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name                        string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Steps                       []string               `protobuf:"bytes,3,rep,name=steps,proto3" json:"steps,omitempty"`
+	BaseServings                int32                  `protobuf:"varint,4,opt,name=base_servings,json=baseServings,proto3" json:"base_servings,omitempty"`
+	IngredientNames             []string               `protobuf:"bytes,5,rep,name=ingredient_names,json=ingredientNames,proto3" json:"ingredient_names,omitempty"`
+	IngredientAmounts           []float64              `protobuf:"fixed64,6,rep,packed,name=ingredient_amounts,json=ingredientAmounts,proto3" json:"ingredient_amounts,omitempty"`
+	IngredientUnits             []string               `protobuf:"bytes,7,rep,name=ingredient_units,json=ingredientUnits,proto3" json:"ingredient_units,omitempty"`
+	BatchServings               *int32                 `protobuf:"varint,8,opt,name=batch_servings,json=batchServings,proto3,oneof" json:"batch_servings,omitempty"`
+	IngredientGroupNames        []string               `protobuf:"bytes,9,rep,name=ingredient_group_names,json=ingredientGroupNames,proto3" json:"ingredient_group_names,omitempty"`
+	IsDraft                     bool                   `protobuf:"varint,10,opt,name=is_draft,json=isDraft,proto3" json:"is_draft,omitempty"`
+	IngredientAlternativeGroups []string               `protobuf:"bytes,11,rep,name=ingredient_alternative_groups,json=ingredientAlternativeGroups,proto3" json:"ingredient_alternative_groups,omitempty"`
+	unknownFields               protoimpl.UnknownFields
+	sizeCache                   protoimpl.SizeCache
 }
 
 func (x *UpdateRecipeRequest) Reset() {
@@ -799,6 +818,13 @@ func (x *UpdateRecipeRequest) GetIsDraft() bool {
 		return x.IsDraft
 	}
 	return false
+}
+
+func (x *UpdateRecipeRequest) GetIngredientAlternativeGroups() []string {
+	if x != nil {
+		return x.IngredientAlternativeGroups
+	}
+	return nil
 }
 
 type UpdateRecipeResponse struct {
@@ -922,7 +948,7 @@ var File_recipes_v1_recipes_proto protoreflect.FileDescriptor
 const file_recipes_v1_recipes_proto_rawDesc = "" +
 	"\n" +
 	"\x18recipes/v1/recipes.proto\x12\n" +
-	"recipes.v1\"\xcb\x01\n" +
+	"recipes.v1\"\x93\x02\n" +
 	"\n" +
 	"Ingredient\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1b\n" +
@@ -933,8 +959,10 @@ const file_recipes_v1_recipes_proto_rawDesc = "" +
 	"\n" +
 	"sort_order\x18\x06 \x01(\x05R\tsortOrder\x12\"\n" +
 	"\n" +
-	"group_name\x18\a \x01(\tH\x00R\tgroupName\x88\x01\x01B\r\n" +
-	"\v_group_name\"R\n" +
+	"group_name\x18\a \x01(\tH\x00R\tgroupName\x88\x01\x01\x120\n" +
+	"\x11alternative_group\x18\b \x01(\tH\x01R\x10alternativeGroup\x88\x01\x01B\r\n" +
+	"\v_group_nameB\x14\n" +
+	"\x12_alternative_group\"R\n" +
 	"\x10ScaledIngredient\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x16\n" +
 	"\x06amount\x18\x02 \x01(\tR\x06amount\x12\x12\n" +
@@ -969,7 +997,7 @@ const file_recipes_v1_recipes_proto_rawDesc = "" +
 	"\bservings\x18\x02 \x01(\x05R\bservings\x12\x19\n" +
 	"\bis_owner\x18\x03 \x01(\bR\aisOwner\x12K\n" +
 	"\x12scaled_ingredients\x18\x04 \x03(\v2\x1c.recipes.v1.ScaledIngredientR\x11scaledIngredients\x12\x19\n" +
-	"\bcan_edit\x18\x05 \x01(\bR\acanEdit\"\x89\x03\n" +
+	"\bcan_edit\x18\x05 \x01(\bR\acanEdit\"\xcd\x03\n" +
 	"\x13CreateRecipeRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
 	"\x05steps\x18\x02 \x03(\tR\x05steps\x12#\n" +
@@ -981,10 +1009,11 @@ const file_recipes_v1_recipes_proto_rawDesc = "" +
 	"\x16ingredient_group_names\x18\b \x03(\tR\x14ingredientGroupNames\x12\x19\n" +
 	"\bis_draft\x18\t \x01(\bR\aisDraft\x12\x0e\n" +
 	"\x02id\x18\n" +
-	" \x01(\tR\x02idB\x11\n" +
+	" \x01(\tR\x02id\x12B\n" +
+	"\x1dingredient_alternative_groups\x18\v \x03(\tR\x1bingredientAlternativeGroupsB\x11\n" +
 	"\x0f_batch_servings\"B\n" +
 	"\x14CreateRecipeResponse\x12*\n" +
-	"\x06recipe\x18\x01 \x01(\v2\x12.recipes.v1.RecipeR\x06recipe\"\x89\x03\n" +
+	"\x06recipe\x18\x01 \x01(\v2\x12.recipes.v1.RecipeR\x06recipe\"\xcd\x03\n" +
 	"\x13UpdateRecipeRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +
@@ -996,7 +1025,8 @@ const file_recipes_v1_recipes_proto_rawDesc = "" +
 	"\x0ebatch_servings\x18\b \x01(\x05H\x00R\rbatchServings\x88\x01\x01\x124\n" +
 	"\x16ingredient_group_names\x18\t \x03(\tR\x14ingredientGroupNames\x12\x19\n" +
 	"\bis_draft\x18\n" +
-	" \x01(\bR\aisDraftB\x11\n" +
+	" \x01(\bR\aisDraft\x12B\n" +
+	"\x1dingredient_alternative_groups\x18\v \x03(\tR\x1bingredientAlternativeGroupsB\x11\n" +
 	"\x0f_batch_servings\"\x16\n" +
 	"\x14UpdateRecipeResponse\"%\n" +
 	"\x13DeleteRecipeRequest\x12\x0e\n" +

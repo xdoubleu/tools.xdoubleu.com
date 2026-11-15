@@ -167,12 +167,6 @@ linters:
           deny:
             - pkg: tools.xdoubleu.com/apps/trains/internal
               desc: apps/trains/internal is private to the trains app
-        apps-watchparty-internal:
-          files:
-            - "!**/apps/watchparty/**"
-          deny:
-            - pkg: tools.xdoubleu.com/apps/watchparty/internal
-              desc: apps/watchparty/internal is private to the watchparty app
         services-domain-errors:
           files:
             - "**/internal/services/**"

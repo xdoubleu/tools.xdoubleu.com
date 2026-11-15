@@ -1,17 +1,10 @@
 import { useState, type FormEvent } from 'react'
 import { useFactoryActions, useFactoryAgents, useFactoryTask } from '@/hooks/useFactory'
-import {
-  Harness,
-  TaskStatus,
-  type Job,
-  type PullRequest,
-  type Task
-} from '@/lib/gen/factory/v1/factory_pb'
+import { TaskStatus, type Job, type PullRequest, type Task } from '@/lib/gen/factory/v1/factory_pb'
 import {
   accountsOf,
   actorLabel,
   FIX_CI_REPLY,
-  HARNESSES,
   canFixCi,
   jobActive,
   jobLimitNote,
@@ -39,8 +32,6 @@ import {
   DialogTitle
 } from '@/components/ui/dialog'
 import { Field } from '@/components/ui/field'
-import { FactoryModelPicker } from '@/components/factory/FactoryModelPicker'
-import { Select } from '@/components/ui/select'
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
 import { Textarea } from '@/components/ui/textarea'
 
@@ -170,9 +161,6 @@ function RunSection({
 }) {
   const { run, stop } = useFactoryActions()
   const [text, setText] = useState('')
-  // Harness.UNSPECIFIED is "the repo's default".
-  const [harness, setHarness] = useState<Harness>(Harness.UNSPECIFIED)
-  const [model, setModel] = useState('')
   const [pending, setPending] = useState(false)
   const [stopping, setStopping] = useState(false)
   const [error, setError] = useState('')
@@ -183,8 +171,7 @@ function RunSection({
     setPending(true)
     setError('')
     try {
-      if (harness === Harness.UNSPECIFIED) await run(taskId, text)
-      else await run(taskId, text, { harness, model: model.trim() })
+      await run(taskId, text)
       setText('')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Couldn\u2019t run the task. Try again.')
@@ -223,29 +210,6 @@ function RunSection({
             onChange={(e) => setText(e.target.value)}
           />
         </Field>
-        <Field label="Harness" htmlFor="task-run-harness">
-          <Select
-            id="task-run-harness"
-            value={harness}
-            onChange={(e) => setHarness(Number(e.target.value))}
-          >
-            <option value={Harness.UNSPECIFIED}>Repo default</option>
-            {HARNESSES.map((h) => (
-              <option key={h.harness} value={h.harness}>
-                {h.label}
-              </option>
-            ))}
-          </Select>
-        </Field>
-        {harness === Harness.OPENCODE && (
-          <FactoryModelPicker
-            id="task-run-model"
-            label="Model"
-            hint="An OpenRouter model, such as vendor/model. Pick one or type a custom id; blank uses the repo's default."
-            value={model}
-            onChange={setModel}
-          />
-        )}
         {error && <Alert tone="danger">{error}</Alert>}
         <div className="flex flex-wrap gap-2">
           <Button type="submit" disabled={pending || active}>

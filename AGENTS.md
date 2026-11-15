@@ -9,7 +9,7 @@ The repository contract for any coding agent. Harness mechanics live in `CLAUDE.
 - `kobo-gateway/` — separate macOS-only Go module, a downloadable menu-bar helper.
 - `factory-runner/` — separate Go module, the Mac helper that pairs with the factory board and heartbeats.
 
-Apps: games, books, feeds, watchparty, recipes, mealplans, shoppinglist, dashboard (no schema; owns public dashboards and share tokens, using other apps only through exported methods → [adr-0007](docs/adr-0007-dashboard-app-owns-public-sharing.md)), trains (iRail journeys and live delays), learningpaths (agent-authored curricula, per-user, no family sharing), movies (TMDB-backed movies & series backlog, per-user plus a family-shared list), podcasts (per-user favourite iTunes shows), taste (per-user stats, LLM profile and picks over apps' `ListConsumption`/`Find*`/`Want*`). All are registered in `api/cmd/api/apps.go`; **migrations run in registration order**, so schema dependencies dictate the order.
+Apps: games, books, feeds, recipes, mealplans, shoppinglist, dashboard (no schema; owns public dashboards and share tokens, using other apps only through exported methods → [adr-0007](docs/adr-0007-dashboard-app-owns-public-sharing.md)), trains (iRail journeys and live delays), learningpaths (agent-authored curricula, per-user, no family sharing), movies (TMDB-backed movies & series backlog, per-user plus a family-shared list), podcasts (per-user favourite iTunes shows), taste (per-user stats, LLM profile and picks over apps' `ListConsumption`/`Find*`/`Want*`). All are registered in `api/cmd/api/apps.go`; **migrations run in registration order**, so schema dependencies dictate the order.
 
 **Platform** (`api/internal/platform/`): factory: its migrations run first, fatally.
 
@@ -78,7 +78,7 @@ Fresh branch off up-to-date `main`, board task before the first edit, lint/cover
 
 ## CI
 
-`.github/workflows/main.yml` runs reusable build/lint/test workflows behind a `changes` path filter (`**/*.md` excluded); kobo-gateway and factory-runner jobs run on macOS. **`ci-pass` is the required check.** Pushes to `main` rebuild and deploy but skip lint, except docs budgets. Test jobs gate coverage of changed lines at 80% on PRs (`tools/diff_coverage_{go,ts}.py`) → [adr-0013](docs/adr-0013-diff-scoped-coverage.md).
+`.github/workflows/main.yml` runs reusable build/lint/test workflows behind a `changes` path filter (`**/*.md` excluded); kobo-gateway and factory-runner jobs run on macOS. **`ci-pass` is the required check.** Pushes to `main` rebuild and deploy but skip lint, except docs budgets. Test jobs gate coverage of changed lines at 80% on PRs (`scripts/diff_coverage.sh`) → [adr-0013](docs/adr-0013-diff-scoped-coverage.md).
 
 ## Docs
 

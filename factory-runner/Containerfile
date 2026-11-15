@@ -2,7 +2,7 @@
 # access when a job runs, so everything a job needs is installed here. Base images and
 # CLIs are pinned; the plugin marketplaces are not (they track their default branch),
 # so a rebuild picks up their current skills. Runs as the unprivileged `node` user (uid 1000).
-FROM docker.io/library/golang:1.27@sha256:e519d3b0a5b285e5aa53ab9eef02bc6bbb9cb04608389b743a136a9ce75f0d1e AS go
+FROM docker.io/library/golang:1.27.4@sha256:5e8afd493a7124a8586e134d9b532731161d4b9becf9dee5a5956b107426f93d AS go
 
 FROM docker.io/library/node:26-bookworm-slim@sha256:5df79989ed685e09f0a98019db4cebfb22fb9df1a53c0161664a011f7ff6b0f1
 
@@ -10,13 +10,20 @@ ARG CLAUDE_CODE_VERSION=2.1.285
 # Only @opencode/cli: the `opencode-ai` package ships the same binary name.
 ARG OPENCODE_VERSION=2.2.2
 ARG GOLANGCI_LINT_VERSION=v2.15.0
-# Keep in step with api/Makefile (buf, proto plugins, sqlfluff) and web/package.json
+# Keep in step with api/Makefile (golines, gci, gosec, govulncheck, gremlins,
+# godepgraph, buf, proto plugins, sqlfluff) and web/package.json
 # (@playwright/test).
 ARG BUF_VERSION=v1.75.0
 ARG PROTOC_GEN_GO_VERSION=v1.36.12
 ARG PROTOC_GEN_CONNECT_GO_VERSION=v2.0.2
 ARG SQLFLUFF_VERSION=4.5.0
 ARG PLAYWRIGHT_VERSION=1.65.0
+ARG GOLINES_VERSION=v0.13.0
+ARG GCI_VERSION=v0.14.0
+ARG GOSEC_VERSION=v2.30.0
+ARG GOVULNCHECK_VERSION=v1.9.0
+ARG GREMLINS_VERSION=v0.6.0
+ARG GODEPGRAPH_VERSION=v1.0.0
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
@@ -54,8 +61,18 @@ RUN claude plugin marketplace add xdoubleu/skills \
         skill-lifecycle; do claude plugin install "$p@xdoubleu-skills"; done \
     && claude plugin install claude-md-management@claude-plugins-official \
     && claude plugin install mattpocock-skills@mattpocock
+# Tools go through the module cache the VM uses as its file:// GOPROXY, so the
+# Makefile's own `go install tool@version` resolves offline. GOTOOLCHAIN=local keeps
+# Go at the image's version (api/go.mod's).
+ENV GOMODCACHE=/opt/gomodcache GOTOOLCHAIN=local
 RUN go install \
     "github.com/golangci/golangci-lint/v2/cmd/golangci-lint@${GOLANGCI_LINT_VERSION}" \
+    && go install "github.com/segmentio/golines@${GOLINES_VERSION}" \
+    && go install "github.com/daixiang0/gci@${GCI_VERSION}" \
+    && go install "github.com/securego/gosec/v2/cmd/gosec@${GOSEC_VERSION}" \
+    && go install "golang.org/x/vuln/cmd/govulncheck@${GOVULNCHECK_VERSION}" \
+    && go install "github.com/go-gremlins/gremlins/cmd/gremlins@${GREMLINS_VERSION}" \
+    && go install "github.com/kisielk/godepgraph@${GODEPGRAPH_VERSION}" \
     && go install "github.com/bufbuild/buf/cmd/buf@${BUF_VERSION}" \
     && go install "google.golang.org/protobuf/cmd/protoc-gen-go@${PROTOC_GEN_GO_VERSION}" \
     && go install \
@@ -71,11 +88,12 @@ COPY --chown=node:node factory-runner/go.mod factory-runner/go.sum /deps/factory
 COPY --chown=node:node kobo-gateway/go.mod kobo-gateway/go.sum /deps/kobo-gateway/
 COPY --chown=node:node web/package.json web/package-lock.json /deps/web/
 RUN for m in api factory-runner kobo-gateway selfupdate; do \
-        (cd /deps/$m && GOMODCACHE=/opt/gomodcache go mod download) || exit 1; \
+        (cd /deps/$m && go mod download) || exit 1; \
     done \
     && (cd /deps/web && npm ci --ignore-scripts --no-audit --no-fund \
         --cache /opt/npmcache) \
     && rm -rf /deps/* \
-    && chmod -R a+rX /opt/gomodcache /opt/npmcache
+    && chmod -R a+rX /opt/gomodcache /opt/npmcache \
+    && rm -rf /home/node/.cache/go-build
 
 WORKDIR /work
