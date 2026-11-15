@@ -41,8 +41,7 @@ const APP_NAMES = [
   'podcasts',
   'recipes',
   'shoppinglist',
-  'taste',
-  'watchparty'
+  'taste'
 ]
 
 function useUserActions(user: AppUser) {

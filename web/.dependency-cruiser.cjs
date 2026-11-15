@@ -29,8 +29,7 @@ const DOMAIN_HOOKS = {
   shoppinglist: ['useShoppingList'],
   taste: ['useTaste'],
   trains: ['useTrains', 'useJourneySocket'],
-  'user-management': ['useUserManagement'],
-  watchparty: ['useWatchPartyRTC', 'useWatchPartyRooms']
+  'user-management': ['useUserManagement']
 }
 const SHARED_HOOKS = [
   'navigation',

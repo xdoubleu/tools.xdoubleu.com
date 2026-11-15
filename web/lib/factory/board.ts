@@ -92,7 +92,6 @@ export const PRODUCT_LABELS: string[] = [
   'books',
   'games',
   'feeds',
-  'watchparty',
   'recipes',
   'mealplans',
   'shoppinglist',
