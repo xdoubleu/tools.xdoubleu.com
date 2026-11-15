@@ -29,7 +29,7 @@ const prColumn = `(SELECT ARRAY[u.url, u.state, u.ci, u.review, u.mergeable] FRO
 		SELECT j.pr_url AS url, j.pr_state AS state, j.pr_ci AS ci,
 			j.pr_review AS review, j.created_at AS ts,
 			COALESCE((SELECT m.mergeable FROM factory.linked_pull_requests m
-				WHERE m.url = j.pr_url), '') AS mergeable
+				WHERE m.url = j.pr_url LIMIT 1), '') AS mergeable
 		FROM factory.jobs j WHERE j.task_id = t.id AND j.pr_url <> ''
 		UNION ALL
 		SELECT l.url, l.state, l.ci, l.review, l.checked_at, l.mergeable
