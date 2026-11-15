@@ -83,7 +83,10 @@ const preamble = `You are running unattended in a sandbox with no network ` +
 	`outcome to the file named by $FACTORY_OUTCOME_PATH: its first line is the ` +
 	`pull request title, then what you did and what is left. Before you commit, ` +
 	`run the repository's lint, test and documentation-budget gates (see its ` +
-	`AGENTS.md). End the outcome with one line listing each gate, for example ` +
+	`AGENTS.md). Create new migrations with ` +
+	"`make migration/new app=<app> name=<name>`" + ` (never copy a 000NN ` +
+	`name) and run ` + "`make lint/sql lint/migrations`" + ` before the gate. ` +
+	`End the outcome with one line listing each gate, for example ` +
 	`"Checks: lint=pass, test=pass, docs=pass"; a gate is pass, fail or ` +
 	`not run. A gate its target can run in the sandbox counts as run, even ` +
 	`when your change has no code diff. That Checks: line must be the final ` +

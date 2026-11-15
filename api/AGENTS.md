@@ -86,7 +86,7 @@ First-party: HS256 JWT access tokens, opaque rotating refresh tokens, TOTP 2FA +
 
 ### Database
 
-- Migrations: `apps/<name>/migrations/`; `global` schema in `cmd/api/migrations/`. **New files are UTC-timestamp versioned, via `make migration/new`** (parallel branches never collide); never add `000NN`.
+- Migrations: `apps/<name>/migrations/`; `global` schema in `cmd/api/migrations/`. **New files are UTC-timestamp versioned, via `make migration/new`** (never `000NN`); run `make lint/sql lint/migrations` before the gate.
 - **No wide TEXT column in list queries or `RETURNING`** — select `<col> IS NOT NULL AND <col> <> ''`; only single-row reads fetch it → [`convention-database-queries`](../docs/convention-database-queries.md).
 - Cross-schema SQL: `recipes ← mealplans ← shoppinglist` only → [`adr-0038`](../docs/adr-0038-downstream-cross-schema-reads.md).
 
