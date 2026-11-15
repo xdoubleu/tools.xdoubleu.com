@@ -23,11 +23,10 @@ const DOMAIN_HOOKS = {
   mealplans: ['useMealPlans'],
   monitoring: ['useMonitoring'],
   movies: ['useMovies'],
-  podcasts: ['usePodcasts'],
   factory: ['useFactory'],
   recipes: ['useRecipes'],
   shoppinglist: ['useShoppingList'],
-  taste: ['useTaste'],
+  taste: ['useTaste', 'useTasteShows'],
   trains: ['useTrains', 'useJourneySocket'],
   'user-management': ['useUserManagement'],
   watchparty: ['useWatchPartyRTC', 'useWatchPartyRooms']

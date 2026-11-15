@@ -18,7 +18,6 @@ import (
 	"tools.xdoubleu.com/apps/learningpaths"
 	"tools.xdoubleu.com/apps/mealplans"
 	"tools.xdoubleu.com/apps/movies"
-	"tools.xdoubleu.com/apps/podcasts"
 	"tools.xdoubleu.com/apps/recipes"
 	"tools.xdoubleu.com/apps/shoppinglist"
 	"tools.xdoubleu.com/apps/taste"
@@ -109,10 +108,6 @@ func NewApps(
 	moviesApp := movies.New(ctx, authService, logger, cfg, db, familyRepo)
 	apps.addApp(moviesApp)
 
-	// podcasts has no schema dependencies.
-	podcastsApp := podcasts.New(ctx, authService, logger, cfg, db)
-	apps.addApp(podcastsApp)
-
 	// factory is platform: no schema dependencies, and it imports no app
 	// (depguard).
 	var factoryOpts []factory.Option
@@ -146,21 +141,23 @@ func NewApps(
 	))
 
 	// taste reads every media app through its exported ListConsumption, so it
-	// follows them.
+	// follows them. It also owns the favourite shows, whose migrations keep the
+	// "podcasts" schema.
 	apps.addApp(taste.New(
 		ctx,
 		authService, logger, cfg, db, familyRepo, notifications,
 		taste.Catalogs{
-			Books:    booksApp.FindBook,
-			Movies:   moviesApp.FindTitle,
-			Games:    gamesApp.FindGame,
-			Podcasts: podcastsApp.FindShow,
-			Feeds:    feedsApp.FindSource,
+			Books:  booksApp.FindBook,
+			Movies: moviesApp.FindTitle,
+			Games:  gamesApp.FindGame,
+			Feeds:  feedsApp.FindSource,
+			// Podcasts is taste's own.
+			Podcasts: nil,
 
 			WantBook:  booksApp.WantBook,
 			WantTitle: moviesApp.WantTitle,
 		},
-		booksApp, feedsApp, gamesApp, moviesApp, podcastsApp,
+		booksApp, feedsApp, gamesApp, moviesApp,
 	))
 
 	return &platform, &apps, booksApp, feedsApp

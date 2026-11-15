@@ -1880,6 +1880,514 @@ func (x *AcceptRecommendationResponse) GetRecommendation() *Recommendation {
 	return nil
 }
 
+type SearchResult struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// iTunes collection ID.
+	ItunesId   int64  `protobuf:"varint,1,opt,name=itunes_id,json=itunesId,proto3" json:"itunes_id,omitempty"`
+	Title      string `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
+	Author     string `protobuf:"bytes,3,opt,name=author,proto3" json:"author,omitempty"`
+	ArtworkUrl string `protobuf:"bytes,4,opt,name=artwork_url,json=artworkUrl,proto3" json:"artwork_url,omitempty"`
+	// Already in the caller's favourite shows.
+	Favourite     bool `protobuf:"varint,5,opt,name=favourite,proto3" json:"favourite,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SearchResult) Reset() {
+	*x = SearchResult{}
+	mi := &file_taste_v1_taste_proto_msgTypes[29]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SearchResult) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SearchResult) ProtoMessage() {}
+
+func (x *SearchResult) ProtoReflect() protoreflect.Message {
+	mi := &file_taste_v1_taste_proto_msgTypes[29]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SearchResult.ProtoReflect.Descriptor instead.
+func (*SearchResult) Descriptor() ([]byte, []int) {
+	return file_taste_v1_taste_proto_rawDescGZIP(), []int{29}
+}
+
+func (x *SearchResult) GetItunesId() int64 {
+	if x != nil {
+		return x.ItunesId
+	}
+	return 0
+}
+
+func (x *SearchResult) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *SearchResult) GetAuthor() string {
+	if x != nil {
+		return x.Author
+	}
+	return ""
+}
+
+func (x *SearchResult) GetArtworkUrl() string {
+	if x != nil {
+		return x.ArtworkUrl
+	}
+	return ""
+}
+
+func (x *SearchResult) GetFavourite() bool {
+	if x != nil {
+		return x.Favourite
+	}
+	return false
+}
+
+type FavouriteShow struct {
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	Id         string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	ItunesId   int64                  `protobuf:"varint,2,opt,name=itunes_id,json=itunesId,proto3" json:"itunes_id,omitempty"`
+	Title      string                 `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
+	Author     string                 `protobuf:"bytes,4,opt,name=author,proto3" json:"author,omitempty"`
+	ArtworkUrl string                 `protobuf:"bytes,5,opt,name=artwork_url,json=artworkUrl,proto3" json:"artwork_url,omitempty"`
+	AppleUrl   string                 `protobuf:"bytes,6,opt,name=apple_url,json=appleUrl,proto3" json:"apple_url,omitempty"`
+	// RFC3339.
+	AddedAt       string `protobuf:"bytes,7,opt,name=added_at,json=addedAt,proto3" json:"added_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FavouriteShow) Reset() {
+	*x = FavouriteShow{}
+	mi := &file_taste_v1_taste_proto_msgTypes[30]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FavouriteShow) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FavouriteShow) ProtoMessage() {}
+
+func (x *FavouriteShow) ProtoReflect() protoreflect.Message {
+	mi := &file_taste_v1_taste_proto_msgTypes[30]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FavouriteShow.ProtoReflect.Descriptor instead.
+func (*FavouriteShow) Descriptor() ([]byte, []int) {
+	return file_taste_v1_taste_proto_rawDescGZIP(), []int{30}
+}
+
+func (x *FavouriteShow) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *FavouriteShow) GetItunesId() int64 {
+	if x != nil {
+		return x.ItunesId
+	}
+	return 0
+}
+
+func (x *FavouriteShow) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *FavouriteShow) GetAuthor() string {
+	if x != nil {
+		return x.Author
+	}
+	return ""
+}
+
+func (x *FavouriteShow) GetArtworkUrl() string {
+	if x != nil {
+		return x.ArtworkUrl
+	}
+	return ""
+}
+
+func (x *FavouriteShow) GetAppleUrl() string {
+	if x != nil {
+		return x.AppleUrl
+	}
+	return ""
+}
+
+func (x *FavouriteShow) GetAddedAt() string {
+	if x != nil {
+		return x.AddedAt
+	}
+	return ""
+}
+
+type SearchShowsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Query         string                 `protobuf:"bytes,1,opt,name=query,proto3" json:"query,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SearchShowsRequest) Reset() {
+	*x = SearchShowsRequest{}
+	mi := &file_taste_v1_taste_proto_msgTypes[31]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SearchShowsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SearchShowsRequest) ProtoMessage() {}
+
+func (x *SearchShowsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_taste_v1_taste_proto_msgTypes[31]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SearchShowsRequest.ProtoReflect.Descriptor instead.
+func (*SearchShowsRequest) Descriptor() ([]byte, []int) {
+	return file_taste_v1_taste_proto_rawDescGZIP(), []int{31}
+}
+
+func (x *SearchShowsRequest) GetQuery() string {
+	if x != nil {
+		return x.Query
+	}
+	return ""
+}
+
+type SearchShowsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Results       []*SearchResult        `protobuf:"bytes,1,rep,name=results,proto3" json:"results,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SearchShowsResponse) Reset() {
+	*x = SearchShowsResponse{}
+	mi := &file_taste_v1_taste_proto_msgTypes[32]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SearchShowsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SearchShowsResponse) ProtoMessage() {}
+
+func (x *SearchShowsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_taste_v1_taste_proto_msgTypes[32]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SearchShowsResponse.ProtoReflect.Descriptor instead.
+func (*SearchShowsResponse) Descriptor() ([]byte, []int) {
+	return file_taste_v1_taste_proto_rawDescGZIP(), []int{32}
+}
+
+func (x *SearchShowsResponse) GetResults() []*SearchResult {
+	if x != nil {
+		return x.Results
+	}
+	return nil
+}
+
+type ListFavouriteShowsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListFavouriteShowsRequest) Reset() {
+	*x = ListFavouriteShowsRequest{}
+	mi := &file_taste_v1_taste_proto_msgTypes[33]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListFavouriteShowsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListFavouriteShowsRequest) ProtoMessage() {}
+
+func (x *ListFavouriteShowsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_taste_v1_taste_proto_msgTypes[33]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListFavouriteShowsRequest.ProtoReflect.Descriptor instead.
+func (*ListFavouriteShowsRequest) Descriptor() ([]byte, []int) {
+	return file_taste_v1_taste_proto_rawDescGZIP(), []int{33}
+}
+
+type ListFavouriteShowsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Favourites    []*FavouriteShow       `protobuf:"bytes,1,rep,name=favourites,proto3" json:"favourites,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListFavouriteShowsResponse) Reset() {
+	*x = ListFavouriteShowsResponse{}
+	mi := &file_taste_v1_taste_proto_msgTypes[34]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListFavouriteShowsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListFavouriteShowsResponse) ProtoMessage() {}
+
+func (x *ListFavouriteShowsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_taste_v1_taste_proto_msgTypes[34]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListFavouriteShowsResponse.ProtoReflect.Descriptor instead.
+func (*ListFavouriteShowsResponse) Descriptor() ([]byte, []int) {
+	return file_taste_v1_taste_proto_rawDescGZIP(), []int{34}
+}
+
+func (x *ListFavouriteShowsResponse) GetFavourites() []*FavouriteShow {
+	if x != nil {
+		return x.Favourites
+	}
+	return nil
+}
+
+// Adding an already-favourite show returns the existing favourite.
+type AddFavouriteShowRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ItunesId      int64                  `protobuf:"varint,1,opt,name=itunes_id,json=itunesId,proto3" json:"itunes_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddFavouriteShowRequest) Reset() {
+	*x = AddFavouriteShowRequest{}
+	mi := &file_taste_v1_taste_proto_msgTypes[35]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddFavouriteShowRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddFavouriteShowRequest) ProtoMessage() {}
+
+func (x *AddFavouriteShowRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_taste_v1_taste_proto_msgTypes[35]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddFavouriteShowRequest.ProtoReflect.Descriptor instead.
+func (*AddFavouriteShowRequest) Descriptor() ([]byte, []int) {
+	return file_taste_v1_taste_proto_rawDescGZIP(), []int{35}
+}
+
+func (x *AddFavouriteShowRequest) GetItunesId() int64 {
+	if x != nil {
+		return x.ItunesId
+	}
+	return 0
+}
+
+type AddFavouriteShowResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Favourite     *FavouriteShow         `protobuf:"bytes,1,opt,name=favourite,proto3" json:"favourite,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddFavouriteShowResponse) Reset() {
+	*x = AddFavouriteShowResponse{}
+	mi := &file_taste_v1_taste_proto_msgTypes[36]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddFavouriteShowResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddFavouriteShowResponse) ProtoMessage() {}
+
+func (x *AddFavouriteShowResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_taste_v1_taste_proto_msgTypes[36]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddFavouriteShowResponse.ProtoReflect.Descriptor instead.
+func (*AddFavouriteShowResponse) Descriptor() ([]byte, []int) {
+	return file_taste_v1_taste_proto_rawDescGZIP(), []int{36}
+}
+
+func (x *AddFavouriteShowResponse) GetFavourite() *FavouriteShow {
+	if x != nil {
+		return x.Favourite
+	}
+	return nil
+}
+
+type RemoveFavouriteShowRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RemoveFavouriteShowRequest) Reset() {
+	*x = RemoveFavouriteShowRequest{}
+	mi := &file_taste_v1_taste_proto_msgTypes[37]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RemoveFavouriteShowRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RemoveFavouriteShowRequest) ProtoMessage() {}
+
+func (x *RemoveFavouriteShowRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_taste_v1_taste_proto_msgTypes[37]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RemoveFavouriteShowRequest.ProtoReflect.Descriptor instead.
+func (*RemoveFavouriteShowRequest) Descriptor() ([]byte, []int) {
+	return file_taste_v1_taste_proto_rawDescGZIP(), []int{37}
+}
+
+func (x *RemoveFavouriteShowRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+type RemoveFavouriteShowResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RemoveFavouriteShowResponse) Reset() {
+	*x = RemoveFavouriteShowResponse{}
+	mi := &file_taste_v1_taste_proto_msgTypes[38]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RemoveFavouriteShowResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RemoveFavouriteShowResponse) ProtoMessage() {}
+
+func (x *RemoveFavouriteShowResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_taste_v1_taste_proto_msgTypes[38]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RemoveFavouriteShowResponse.ProtoReflect.Descriptor instead.
+func (*RemoveFavouriteShowResponse) Descriptor() ([]byte, []int) {
+	return file_taste_v1_taste_proto_rawDescGZIP(), []int{38}
+}
+
 var File_taste_v1_taste_proto protoreflect.FileDescriptor
 
 const file_taste_v1_taste_proto_rawDesc = "" +
@@ -2013,7 +2521,39 @@ const file_taste_v1_taste_proto_rawDesc = "" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x16\n" +
 	"\x06shared\x18\x02 \x01(\bR\x06shared\"`\n" +
 	"\x1cAcceptRecommendationResponse\x12@\n" +
-	"\x0erecommendation\x18\x01 \x01(\v2\x18.taste.v1.RecommendationR\x0erecommendation2\xda\x06\n" +
+	"\x0erecommendation\x18\x01 \x01(\v2\x18.taste.v1.RecommendationR\x0erecommendation\"\x98\x01\n" +
+	"\fSearchResult\x12\x1b\n" +
+	"\titunes_id\x18\x01 \x01(\x03R\bitunesId\x12\x14\n" +
+	"\x05title\x18\x02 \x01(\tR\x05title\x12\x16\n" +
+	"\x06author\x18\x03 \x01(\tR\x06author\x12\x1f\n" +
+	"\vartwork_url\x18\x04 \x01(\tR\n" +
+	"artworkUrl\x12\x1c\n" +
+	"\tfavourite\x18\x05 \x01(\bR\tfavourite\"\xc3\x01\n" +
+	"\rFavouriteShow\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1b\n" +
+	"\titunes_id\x18\x02 \x01(\x03R\bitunesId\x12\x14\n" +
+	"\x05title\x18\x03 \x01(\tR\x05title\x12\x16\n" +
+	"\x06author\x18\x04 \x01(\tR\x06author\x12\x1f\n" +
+	"\vartwork_url\x18\x05 \x01(\tR\n" +
+	"artworkUrl\x12\x1b\n" +
+	"\tapple_url\x18\x06 \x01(\tR\bappleUrl\x12\x19\n" +
+	"\badded_at\x18\a \x01(\tR\aaddedAt\"*\n" +
+	"\x12SearchShowsRequest\x12\x14\n" +
+	"\x05query\x18\x01 \x01(\tR\x05query\"G\n" +
+	"\x13SearchShowsResponse\x120\n" +
+	"\aresults\x18\x01 \x03(\v2\x16.taste.v1.SearchResultR\aresults\"\x1b\n" +
+	"\x19ListFavouriteShowsRequest\"U\n" +
+	"\x1aListFavouriteShowsResponse\x127\n" +
+	"\n" +
+	"favourites\x18\x01 \x03(\v2\x17.taste.v1.FavouriteShowR\n" +
+	"favourites\"6\n" +
+	"\x17AddFavouriteShowRequest\x12\x1b\n" +
+	"\titunes_id\x18\x01 \x01(\x03R\bitunesId\"Q\n" +
+	"\x18AddFavouriteShowResponse\x125\n" +
+	"\tfavourite\x18\x01 \x01(\v2\x17.taste.v1.FavouriteShowR\tfavourite\",\n" +
+	"\x1aRemoveFavouriteShowRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"\x1d\n" +
+	"\x1bRemoveFavouriteShowResponse2\xc6\t\n" +
 	"\fTasteService\x12A\n" +
 	"\bGetStats\x12\x19.taste.v1.GetStatsRequest\x1a\x1a.taste.v1.GetStatsResponse\x12G\n" +
 	"\n" +
@@ -2026,7 +2566,11 @@ const file_taste_v1_taste_proto_rawDesc = "" +
 	"\vSetFeedback\x12\x1c.taste.v1.SetFeedbackRequest\x1a\x1d.taste.v1.SetFeedbackResponse\x12A\n" +
 	"\bSetSaved\x12\x19.taste.v1.SetSavedRequest\x1a\x1a.taste.v1.SetSavedResponse\x12e\n" +
 	"\x14AcceptRecommendation\x12%.taste.v1.AcceptRecommendationRequest\x1a&.taste.v1.AcceptRecommendationResponse\x12Y\n" +
-	"\x10SetEmailNewPicks\x12!.taste.v1.SetEmailNewPicksRequest\x1a\".taste.v1.SetEmailNewPicksResponseB)Z'tools.xdoubleu.com/gen/taste/v1;tastev1b\x06proto3"
+	"\x10SetEmailNewPicks\x12!.taste.v1.SetEmailNewPicksRequest\x1a\".taste.v1.SetEmailNewPicksResponse\x12J\n" +
+	"\vSearchShows\x12\x1c.taste.v1.SearchShowsRequest\x1a\x1d.taste.v1.SearchShowsResponse\x12_\n" +
+	"\x12ListFavouriteShows\x12#.taste.v1.ListFavouriteShowsRequest\x1a$.taste.v1.ListFavouriteShowsResponse\x12Y\n" +
+	"\x10AddFavouriteShow\x12!.taste.v1.AddFavouriteShowRequest\x1a\".taste.v1.AddFavouriteShowResponse\x12b\n" +
+	"\x13RemoveFavouriteShow\x12$.taste.v1.RemoveFavouriteShowRequest\x1a%.taste.v1.RemoveFavouriteShowResponseB)Z'tools.xdoubleu.com/gen/taste/v1;tastev1b\x06proto3"
 
 var (
 	file_taste_v1_taste_proto_rawDescOnce sync.Once
@@ -2040,7 +2584,7 @@ func file_taste_v1_taste_proto_rawDescGZIP() []byte {
 	return file_taste_v1_taste_proto_rawDescData
 }
 
-var file_taste_v1_taste_proto_msgTypes = make([]protoimpl.MessageInfo, 29)
+var file_taste_v1_taste_proto_msgTypes = make([]protoimpl.MessageInfo, 39)
 var file_taste_v1_taste_proto_goTypes = []any{
 	(*Event)(nil),                          // 0: taste.v1.Event
 	(*DomainStats)(nil),                    // 1: taste.v1.DomainStats
@@ -2071,6 +2615,16 @@ var file_taste_v1_taste_proto_goTypes = []any{
 	(*SetEmailNewPicksResponse)(nil),       // 26: taste.v1.SetEmailNewPicksResponse
 	(*AcceptRecommendationRequest)(nil),    // 27: taste.v1.AcceptRecommendationRequest
 	(*AcceptRecommendationResponse)(nil),   // 28: taste.v1.AcceptRecommendationResponse
+	(*SearchResult)(nil),                   // 29: taste.v1.SearchResult
+	(*FavouriteShow)(nil),                  // 30: taste.v1.FavouriteShow
+	(*SearchShowsRequest)(nil),             // 31: taste.v1.SearchShowsRequest
+	(*SearchShowsResponse)(nil),            // 32: taste.v1.SearchShowsResponse
+	(*ListFavouriteShowsRequest)(nil),      // 33: taste.v1.ListFavouriteShowsRequest
+	(*ListFavouriteShowsResponse)(nil),     // 34: taste.v1.ListFavouriteShowsResponse
+	(*AddFavouriteShowRequest)(nil),        // 35: taste.v1.AddFavouriteShowRequest
+	(*AddFavouriteShowResponse)(nil),       // 36: taste.v1.AddFavouriteShowResponse
+	(*RemoveFavouriteShowRequest)(nil),     // 37: taste.v1.RemoveFavouriteShowRequest
+	(*RemoveFavouriteShowResponse)(nil),    // 38: taste.v1.RemoveFavouriteShowResponse
 }
 var file_taste_v1_taste_proto_depIdxs = []int32{
 	2,  // 0: taste.v1.MonthCounts.counts:type_name -> taste.v1.DomainCount
@@ -2086,31 +2640,42 @@ var file_taste_v1_taste_proto_depIdxs = []int32{
 	16, // 10: taste.v1.SetFeedbackResponse.recommendation:type_name -> taste.v1.Recommendation
 	16, // 11: taste.v1.SetSavedResponse.recommendation:type_name -> taste.v1.Recommendation
 	16, // 12: taste.v1.AcceptRecommendationResponse.recommendation:type_name -> taste.v1.Recommendation
-	5,  // 13: taste.v1.TasteService.GetStats:input_type -> taste.v1.GetStatsRequest
-	8,  // 14: taste.v1.TasteService.ListEvents:input_type -> taste.v1.ListEventsRequest
-	11, // 15: taste.v1.TasteService.GetProfile:input_type -> taste.v1.GetProfileRequest
-	13, // 16: taste.v1.TasteService.RefreshProfile:input_type -> taste.v1.RefreshProfileRequest
-	17, // 17: taste.v1.TasteService.ListRecommendations:input_type -> taste.v1.ListRecommendationsRequest
-	19, // 18: taste.v1.TasteService.RefreshRecommendations:input_type -> taste.v1.RefreshRecommendationsRequest
-	21, // 19: taste.v1.TasteService.SetFeedback:input_type -> taste.v1.SetFeedbackRequest
-	23, // 20: taste.v1.TasteService.SetSaved:input_type -> taste.v1.SetSavedRequest
-	27, // 21: taste.v1.TasteService.AcceptRecommendation:input_type -> taste.v1.AcceptRecommendationRequest
-	25, // 22: taste.v1.TasteService.SetEmailNewPicks:input_type -> taste.v1.SetEmailNewPicksRequest
-	6,  // 23: taste.v1.TasteService.GetStats:output_type -> taste.v1.GetStatsResponse
-	9,  // 24: taste.v1.TasteService.ListEvents:output_type -> taste.v1.ListEventsResponse
-	12, // 25: taste.v1.TasteService.GetProfile:output_type -> taste.v1.GetProfileResponse
-	14, // 26: taste.v1.TasteService.RefreshProfile:output_type -> taste.v1.RefreshProfileResponse
-	18, // 27: taste.v1.TasteService.ListRecommendations:output_type -> taste.v1.ListRecommendationsResponse
-	20, // 28: taste.v1.TasteService.RefreshRecommendations:output_type -> taste.v1.RefreshRecommendationsResponse
-	22, // 29: taste.v1.TasteService.SetFeedback:output_type -> taste.v1.SetFeedbackResponse
-	24, // 30: taste.v1.TasteService.SetSaved:output_type -> taste.v1.SetSavedResponse
-	28, // 31: taste.v1.TasteService.AcceptRecommendation:output_type -> taste.v1.AcceptRecommendationResponse
-	26, // 32: taste.v1.TasteService.SetEmailNewPicks:output_type -> taste.v1.SetEmailNewPicksResponse
-	23, // [23:33] is the sub-list for method output_type
-	13, // [13:23] is the sub-list for method input_type
-	13, // [13:13] is the sub-list for extension type_name
-	13, // [13:13] is the sub-list for extension extendee
-	0,  // [0:13] is the sub-list for field type_name
+	29, // 13: taste.v1.SearchShowsResponse.results:type_name -> taste.v1.SearchResult
+	30, // 14: taste.v1.ListFavouriteShowsResponse.favourites:type_name -> taste.v1.FavouriteShow
+	30, // 15: taste.v1.AddFavouriteShowResponse.favourite:type_name -> taste.v1.FavouriteShow
+	5,  // 16: taste.v1.TasteService.GetStats:input_type -> taste.v1.GetStatsRequest
+	8,  // 17: taste.v1.TasteService.ListEvents:input_type -> taste.v1.ListEventsRequest
+	11, // 18: taste.v1.TasteService.GetProfile:input_type -> taste.v1.GetProfileRequest
+	13, // 19: taste.v1.TasteService.RefreshProfile:input_type -> taste.v1.RefreshProfileRequest
+	17, // 20: taste.v1.TasteService.ListRecommendations:input_type -> taste.v1.ListRecommendationsRequest
+	19, // 21: taste.v1.TasteService.RefreshRecommendations:input_type -> taste.v1.RefreshRecommendationsRequest
+	21, // 22: taste.v1.TasteService.SetFeedback:input_type -> taste.v1.SetFeedbackRequest
+	23, // 23: taste.v1.TasteService.SetSaved:input_type -> taste.v1.SetSavedRequest
+	27, // 24: taste.v1.TasteService.AcceptRecommendation:input_type -> taste.v1.AcceptRecommendationRequest
+	25, // 25: taste.v1.TasteService.SetEmailNewPicks:input_type -> taste.v1.SetEmailNewPicksRequest
+	31, // 26: taste.v1.TasteService.SearchShows:input_type -> taste.v1.SearchShowsRequest
+	33, // 27: taste.v1.TasteService.ListFavouriteShows:input_type -> taste.v1.ListFavouriteShowsRequest
+	35, // 28: taste.v1.TasteService.AddFavouriteShow:input_type -> taste.v1.AddFavouriteShowRequest
+	37, // 29: taste.v1.TasteService.RemoveFavouriteShow:input_type -> taste.v1.RemoveFavouriteShowRequest
+	6,  // 30: taste.v1.TasteService.GetStats:output_type -> taste.v1.GetStatsResponse
+	9,  // 31: taste.v1.TasteService.ListEvents:output_type -> taste.v1.ListEventsResponse
+	12, // 32: taste.v1.TasteService.GetProfile:output_type -> taste.v1.GetProfileResponse
+	14, // 33: taste.v1.TasteService.RefreshProfile:output_type -> taste.v1.RefreshProfileResponse
+	18, // 34: taste.v1.TasteService.ListRecommendations:output_type -> taste.v1.ListRecommendationsResponse
+	20, // 35: taste.v1.TasteService.RefreshRecommendations:output_type -> taste.v1.RefreshRecommendationsResponse
+	22, // 36: taste.v1.TasteService.SetFeedback:output_type -> taste.v1.SetFeedbackResponse
+	24, // 37: taste.v1.TasteService.SetSaved:output_type -> taste.v1.SetSavedResponse
+	28, // 38: taste.v1.TasteService.AcceptRecommendation:output_type -> taste.v1.AcceptRecommendationResponse
+	26, // 39: taste.v1.TasteService.SetEmailNewPicks:output_type -> taste.v1.SetEmailNewPicksResponse
+	32, // 40: taste.v1.TasteService.SearchShows:output_type -> taste.v1.SearchShowsResponse
+	34, // 41: taste.v1.TasteService.ListFavouriteShows:output_type -> taste.v1.ListFavouriteShowsResponse
+	36, // 42: taste.v1.TasteService.AddFavouriteShow:output_type -> taste.v1.AddFavouriteShowResponse
+	38, // 43: taste.v1.TasteService.RemoveFavouriteShow:output_type -> taste.v1.RemoveFavouriteShowResponse
+	30, // [30:44] is the sub-list for method output_type
+	16, // [16:30] is the sub-list for method input_type
+	16, // [16:16] is the sub-list for extension type_name
+	16, // [16:16] is the sub-list for extension extendee
+	0,  // [0:16] is the sub-list for field type_name
 }
 
 func init() { file_taste_v1_taste_proto_init() }
@@ -2124,7 +2689,7 @@ func file_taste_v1_taste_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_taste_v1_taste_proto_rawDesc), len(file_taste_v1_taste_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   29,
+			NumMessages:   39,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

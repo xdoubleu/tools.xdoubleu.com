@@ -5,7 +5,7 @@ const sampleKeys = [
   '/factory/repos',
   '/factory/runners',
   ['/factory/task', 't-1'],
-  '/podcasts/favourites',
+  '/taste/shows',
   undefined
 ]
 let revalidated: unknown[] = []

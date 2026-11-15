@@ -117,9 +117,6 @@ export const swrKeys = {
   moviesTitle: (id: string, shared = false) => `/movies/title/${id}${shared ? '/shared' : ''}`,
   moviesStats: (shared = false) => `/movies/stats${shared ? '/shared' : ''}`,
 
-  podcastsFavourites: '/podcasts/favourites',
-  podcastsSearch: (query: string) => ['/podcasts/search', query] as const,
-
   factoryTasks: '/factory/tasks',
   factoryRepos: '/factory/repos',
   factoryOpenRouterModels: '/factory/openrouter-models',
@@ -129,6 +126,8 @@ export const swrKeys = {
   factoryTask: (id: string) => ['/factory/task', id] as const,
   factoryJobEvents: (jobId: string) => ['/factory/job-events', jobId] as const,
 
+  tasteShows: '/taste/shows',
+  tasteShowSearch: (query: string) => ['/taste/shows/search', query] as const,
   tasteStats: (shared = false) => `/taste/stats${shared ? '/shared' : ''}`,
   tasteProfile: (shared = false) => `/taste/profile${shared ? '/shared' : ''}`,
   tasteRecommendationsPrefix: tasteRecommendations,

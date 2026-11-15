@@ -38,7 +38,6 @@ const APP_NAMES = [
   'feeds',
   'mealplans',
   'movies',
-  'podcasts',
   'recipes',
   'shoppinglist',
   'taste',

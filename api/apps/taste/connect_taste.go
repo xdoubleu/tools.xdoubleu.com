@@ -42,6 +42,7 @@ func mapError(err error) error {
 		err,
 		connecttools.Code(services.ErrNotConfigured, connect.CodeFailedPrecondition),
 		connecttools.Code(services.ErrNoProfile, connect.CodeFailedPrecondition),
+		connecttools.Code(services.ErrUpstream, connect.CodeUnavailable),
 	)
 }
 

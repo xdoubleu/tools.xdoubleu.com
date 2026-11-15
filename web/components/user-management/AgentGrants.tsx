@@ -10,7 +10,6 @@ export const AGENT_APPS = [
   'learningpaths',
   'mealplans',
   'movies',
-  'podcasts',
   'recipes',
   'shoppinglist',
   'taste',

@@ -33,6 +33,15 @@ type mcpListRecommendationsArgs struct {
 	Shared    bool   `json:"shared,omitempty"     jsonschema:"read the family's shared movies & series taste instead of the user's own"`
 }
 
+type mcpAddFavouriteShowArgs struct {
+	ITunesID int64 `json:"itunes_id" jsonschema:"the show's iTunes collection ID"`
+}
+
+//nolint:lll // struct tags can't wrap
+type mcpRemoveFavouriteShowArgs struct {
+	ID string `json:"id" jsonschema:"the favourite show's id, from taste_list_favourite_shows"`
+}
+
 // RegisterMCPTools exposes the consumption log and its stats, scoped to the
 // caller.
 func (a *Taste) RegisterMCPTools(srv *mcp.Server) {
@@ -60,6 +69,40 @@ func (a *Taste) RegisterMCPTools(srv *mcp.Server) {
 			"the web sources the generator cited, and the user's feedback, "+
 			"saved and accepted state. saved_only lists every saved pick.",
 		h.mcpListRecommendations)
+	// Show search stays out: it proxies a rate-limited external API.
+	mcptools.AddReadTool(srv, mcpAppName, "taste_list_favourite_shows",
+		"The user's favourite podcast shows, newest added first. They are the "+
+			"only signal of the podcasts domain.", h.mcpListFavouriteShows)
+	mcptools.AddWriteTool(srv, mcpAppName, "taste_add_favourite_show",
+		"Favourite a podcast show by its iTunes collection ID.",
+		h.mcpAddFavouriteShow)
+	mcptools.AddWriteTool(srv, mcpAppName, "taste_remove_favourite_show",
+		"Remove a podcast show from the user's favourites.",
+		h.mcpRemoveFavouriteShow)
+}
+
+func (h *tasteConnectHandler) mcpListFavouriteShows(
+	ctx context.Context, _ mcptools.NoArgs,
+) (proto.Message, error) {
+	return mcptools.Unwrap(
+		h.ListFavouriteShows(ctx, &tastev1.ListFavouriteShowsRequest{}),
+	)
+}
+
+func (h *tasteConnectHandler) mcpAddFavouriteShow(
+	ctx context.Context, args mcpAddFavouriteShowArgs,
+) (proto.Message, error) {
+	return mcptools.Unwrap(h.AddFavouriteShow(
+		ctx, &tastev1.AddFavouriteShowRequest{ItunesId: args.ITunesID},
+	))
+}
+
+func (h *tasteConnectHandler) mcpRemoveFavouriteShow(
+	ctx context.Context, args mcpRemoveFavouriteShowArgs,
+) (proto.Message, error) {
+	return mcptools.Unwrap(h.RemoveFavouriteShow(
+		ctx, &tastev1.RemoveFavouriteShowRequest{Id: args.ID},
+	))
 }
 
 func (h *tasteConnectHandler) mcpListRecommendations(
