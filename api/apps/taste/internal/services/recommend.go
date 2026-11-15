@@ -98,6 +98,10 @@ func AppOf(d consumption.Domain) string {
 	if d == consumption.DomainSeries {
 		return string(consumption.DomainMovies)
 	}
+	if d == consumption.DomainPodcasts {
+		// Favourite shows live in taste itself.
+		return "taste"
+	}
 	return string(d)
 }
 

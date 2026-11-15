@@ -2,6 +2,7 @@ import ListSwitch from '@/components/ListSwitch'
 import TasteEvents from '@/components/taste/TasteEvents'
 import TasteProfile from '@/components/taste/TasteProfile'
 import TasteRecommendations from '@/components/taste/TasteRecommendations'
+import TasteShows from '@/components/taste/TasteShows'
 import TasteStats from '@/components/taste/TasteStats'
 import { useSharedList } from '@/hooks/useSharedList'
 import { SectionCard } from '@/components/ui/section-card'
@@ -21,6 +22,7 @@ export default function TasteClient() {
       <TasteProfile />
       <TasteRecommendations />
       <TasteStats />
+      {!shared && <TasteShows />}
       <SectionCard title="Log">
         <TasteEvents />
       </SectionCard>

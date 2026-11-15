@@ -47,7 +47,9 @@ func TestMain(m *testing.M) {
 	testFamily = family.NewFamilyRepository(pool)
 
 	ctx := context.Background()
-	if _, err := testDB.Exec(ctx, "DROP SCHEMA IF EXISTS taste CASCADE"); err != nil {
+	if _, err := testDB.Exec(
+		ctx, "DROP SCHEMA IF EXISTS taste, podcasts CASCADE",
+	); err != nil {
 		panic(err)
 	}
 	// Tests share one database; ensure the family tables exist.
