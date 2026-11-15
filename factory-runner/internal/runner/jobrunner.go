@@ -134,6 +134,12 @@ const preamble = `You are running unattended in a sandbox with no network ` +
 	`"Feature gate: mutation=pass, review=pass". If the sandbox cannot run ` +
 	`it, write "Feature gate: mutation=skipped, review=skipped (<why>)"; CI ` +
 	`then blocks the merge for the owner. ` +
+	`If the problem the task reports no longer reproduces (re-run the ` +
+	`reported check first, whatever the task body says), there is nothing to ` +
+	`commit: comment the evidence with factory_comment_task, move the task to ` +
+	`done with factory_move_task, and end the outcome with one line ` +
+	`"Already-fixed: <evidence>" instead of a Checks: line; no gate runs ` +
+	`and no pull request opens. ` +
 	`Nobody can answer questions while you run.`
 
 // JobRunner claims jobs from the server and runs each one in a sandbox.
