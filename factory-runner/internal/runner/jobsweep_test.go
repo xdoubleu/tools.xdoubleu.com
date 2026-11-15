@@ -57,3 +57,25 @@ func TestAFailedQuestionKeepsJobDirs(t *testing.T) {
 
 	assert.DirExists(t, done)
 }
+
+func TestLoopSweepsJobDirsDaily(t *testing.T) {
+	env := newEnv(t, writes("ok", 0))
+	env.api.finished = []string{doneTask}
+	ctx, cancel := context.WithCancel(context.Background())
+	var dir string
+	calls := 0
+	at := time.Now()
+	require.NoError(t, env.runner.LoopForTest(ctx, func(context.Context, time.Duration) {
+		calls++
+		switch calls {
+		case 1:
+			dir = jobDir(t, env, jobDone, doneTask)
+		case 3:
+			cancel()
+		}
+	}, func() time.Time {
+		at = at.Add(25 * time.Hour)
+		return at
+	}))
+	assert.NoDirExists(t, dir)
+}

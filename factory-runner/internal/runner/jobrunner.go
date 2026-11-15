@@ -563,11 +563,8 @@ func (r *JobRunner) prepareDirs(
 	}
 	if job.Routine == "" {
 		// Lets the sweep ask whether the job's task is done.
-		if err = os.WriteFile(
-			filepath.Join(dir, taskMarker), []byte(job.TaskID), 0o600,
-		); err != nil {
-			return jobDirs{}, "", fmt.Errorf("record the task: %w", err)
-		}
+		// Without it the directory goes after staleJobAge instead.
+		_ = os.WriteFile(filepath.Join(dir, taskMarker), []byte(job.TaskID), 0o600)
 	}
 	named := map[string]string{"outcome": dirs.outcome, "session": dirs.session}
 	for name, d := range named {
