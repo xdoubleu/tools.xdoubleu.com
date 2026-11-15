@@ -19,9 +19,8 @@ const (
 
 // CleanJobs deletes job directories nobody will resume: those of tasks the
 // server reports as finished (Done, gone, or in Testing with a merged pull
-// request), and unmarked ones (from before the marker)
-// older than staleJobAge. A job in flight and a directory of a task that is still
-// open are kept, since a Reply or a usage-limit continuation resumes from them.
+// request) and unmarked ones older than staleJobAge. In-flight jobs and open
+// tasks are kept, since a Reply or usage-limit continuation resumes from them.
 // The server is untrusted, so it can only name directories the runner asked about.
 // A failure is only logged; the next sweep tries again.
 func (r *JobRunner) CleanJobs(ctx context.Context) {
