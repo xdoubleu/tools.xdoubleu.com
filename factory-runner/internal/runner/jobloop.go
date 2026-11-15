@@ -111,6 +111,18 @@ func (l *jobLoop) sleep(d time.Duration) {
 	sleepCtx(l.ctx, d)
 }
 
+func (l *jobLoop) vmStarted() {
+	if l.r.Activity != nil {
+		l.r.Activity.BeginVM()
+	}
+}
+
+func (l *jobLoop) vmEnded() {
+	if l.r.Activity != nil {
+		l.r.Activity.EndVM()
+	}
+}
+
 // open starts the job's VM; a failure is the job's result.
 func (l *jobLoop) open() *result {
 	spec := SandboxSpec{
@@ -149,6 +161,8 @@ func (l *jobLoop) loop() result {
 	if res := l.open(); res != nil {
 		return *res
 	}
+	l.vmStarted()
+	defer l.vmEnded()
 	defer l.session.Close()
 	l.warnLowDisk()
 	res := l.attempts()
@@ -204,6 +218,8 @@ func (l *jobLoop) runRoutine(prompt string) result {
 	if res := l.open(); res != nil {
 		return *res
 	}
+	l.vmStarted()
+	defer l.vmEnded()
 	defer l.session.Close()
 
 	text, end := l.agent(l.launch.command, prompt)

@@ -311,3 +311,27 @@ func options(
 		UpdateEvery: 0, Sleep: nil,
 	}
 }
+
+func TestDaemonUpdatesAfterTheDrainTimeoutWhenNoVMRuns(t *testing.T) {
+	control := runner.NewControl(filepath.Join(t.TempDir(), "paused"), "v", nil)
+	var offset atomic.Int64
+	activity := runner.NewActivity(awakeStub()).WithClock(func() time.Time {
+		return time.Unix(1000, 0).Add(time.Duration(offset.Load()))
+	})
+	require.NoError(t, activity.Begin()) // a count that is never ended
+	sink := &syncBuffer{mu: sync.Mutex{}, buf: bytes.Buffer{}}
+	log := slog.New(slog.NewTextHandler(sink, nil))
+	upd := &busyAwareUpdater{calls: atomic.Int32{}}
+	hb := newScripted(func(int) error {
+		time.Sleep(5 * time.Millisecond) // lets the update goroutine run
+		if control.Draining() {
+			offset.Store(int64(runner.DrainTimeout))
+		}
+		return nil
+	}, nil)
+	err := runner.RunForTest(context.Background(), hb, "frt_x", log,
+		options(upd, activity, control),
+		func(context.Context, time.Duration) {}, ticking())
+	require.ErrorIs(t, err, runner.ErrRestart)
+	assert.Contains(t, sink.String(), "drain timed out")
+}
