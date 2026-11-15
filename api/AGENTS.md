@@ -104,18 +104,17 @@ Apps opt in via `MCPToolProvider` (`cmd/api/apps.go`) in `apps/<name>/mcp.go`; s
 
 - No DB mocking: integration tests hit real Postgres (17, as in production); other mocks: `internal/mocks/`.
 - `make test/cov/diff` (`scripts/diff_coverage.sh`) prints a gate and a conservative number per file; CI runs the same script on PRs → [`adr-0013`](../docs/adr-0013-diff-scoped-coverage.md).
-- **One Postgres container (`api-db-1`) is shared by every worktree.** `docker-compose down` and `make db/reset` hit all sessions; never stop it. `relation ... does not exist` may be leftover state, a teardown (check `docker ps` uptime), or, in CI only, a `global.*` table a test assumed: `cmd/api` creates them and package order isn't fixed; fake the interface or create it (`feeds` does).
+- **One Postgres container (`api-db-1`) is shared by every worktree.** `docker-compose down` and `make db/reset` hit all sessions; never stop it. `relation ... does not exist` may be leftover state, a teardown, or, in CI only, a `global.*` table a test assumed: `cmd/api` creates them and package order isn't fixed; fake the interface or create it (`feeds` does).
 - **`relation "X" already exists` panic** = another worktree's DDL ran without its `goose_db_version` row (in `global`; check via `docker exec api-db-1 psql`). If the schema matches, insert the row.
-- **Concurrent `go test` runs from two worktrees race on shared fixtures** (`-p 1` is per-invocation), e.g. `TestAppsMCPCallAllToolsAsAdmin`. Re-run in isolation first.
-- No Docker? Try `.claude/hooks/session-start.sh`, or in a job sandbox `scripts/sandbox_postgres.sh`.
-- Job sandboxes have no network, but `go build`/`go test` resolve modules through the image's `file://` GOPROXY and the egress proxy (the "downloading" lines are normal). Run them before reporting a missing module cache.
+- **Concurrent `go test` runs from two worktrees race on shared fixtures**, e.g. `TestAppsMCPCallAllToolsAsAdmin`. Re-run alone first.
+- No Docker? Try `.claude/hooks/session-start.sh`, or in a job sandbox `scripts/sandbox_postgres.sh`. Modules resolve offline there; build before reporting a gap.
 - Bug fixes: failing test first. Reproduce production state via the MCP read tools; commit external input's **real bytes** as gzipped `testdata/` from the app's own client (example: `apps/feeds/internal/services/scrape_live_internal_test.go`).
 - A bug closes on a production observation or user confirmation, not a green suite.
 - `git stash` is repo-global: never blind-`pop`.
 - Backfill migrations: test against a row built to predate the migration, not only fresh rows.
-- Kobo firmware can't be verified server-side: say so in the PR; the user's on-device retest is acceptance.
+- Kobo firmware can't be verified server-side: say so in the PR; the user's retest is acceptance.
 
-- `make test/cov/report` failing with `go: no such tool "covdata"` is a sandbox artifact; re-run `.claude/hooks/session-start.sh`.
+- `make test/cov/report` failing with `go: no such tool "covdata"` is a sandbox artifact; rerun `.claude/hooks/session-start.sh`.
 
 `ROLE=workers` runs only `StartWorkers()` jobs; `heapWatchThreshold` stays under the deploy caps.
 
