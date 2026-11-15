@@ -486,7 +486,8 @@ func (l *jobLoop) conflict(res result, st PullStatus) (step, bool) {
 			". The host fetched origin/"+base+" into the clone. Merge origin/"+base+
 			" into the current branch (a merge, not a rebase: the runner pushes a "+
 			"fast-forward), resolve the conflicts (re-run generators), "+
-			"run the gates, commit, and write the outcome again. Your work continues until the pull request merges."), true
+			"run the gates, commit, and write the outcome "+
+			"again. Your work continues until the pull request merges."), true
 }
 
 // finish ends the job on a pull request that will not merge, keeping its link.
