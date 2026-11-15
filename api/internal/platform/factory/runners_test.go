@@ -146,9 +146,10 @@ func TestRunnerPairsHeartbeatsAndIsRevoked(t *testing.T) {
 	assert.Empty(t, runners[0].PairingExpiresAt)
 	assert.True(t, runners[0].Online)
 
-	_, err = env.runner.Heartbeat(bearer(paired.DeviceToken),
+	beat, err := env.runner.Heartbeat(bearer(paired.DeviceToken),
 		&factoryv1.HeartbeatRequest{Version: "1.3.0"})
 	require.NoError(t, err)
+	assert.Zero(t, beat.GetQueuedJobs(), "no job waits")
 	assert.Equal(t, "1.3.0", listRunners(t, env)[0].Version)
 
 	revoked, err := env.admin.RevokeRunner(signedIn(),

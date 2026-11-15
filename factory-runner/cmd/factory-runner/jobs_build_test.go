@@ -38,6 +38,7 @@ func quietLog() *slog.Logger { return slog.New(slog.NewTextHandler(io.Discard, n
 
 func TestTheJobRunnerIsBuiltFromTheConfigOnAMacThatCanRunJobs(t *testing.T) {
 	e := newEnv(t)
+	e.app.control = runner.NewControl(filepath.Join(e.app.home, "paused"), "v", nil)
 	cfg := runner.Config{
 		Server: "https://example.com/api", Repos: []string{"a/b"}, Image: "job:v2",
 		DataDir: filepath.Join(e.app.home, "data"), GoModCache: "/c/go", NPMCache: "/c/npm",
@@ -58,6 +59,8 @@ func TestTheJobRunnerIsBuiltFromTheConfigOnAMacThatCanRunJobs(t *testing.T) {
 	assert.Equal(t, "https://example.com/api", jr.ServerURL)
 	assert.Equal(t, []string{"frt_tok"}, jr.Secrets)
 	assert.Same(t, e.app.activity, jr.Activity)
+	assert.Equal(t, e.app.maxJobs(), e.app.control.ClaimState().Max,
+		"the status reads the loop")
 	box, ok := jr.Sandbox.(*runner.ContainerSandbox)
 	require.True(t, ok)
 	assert.Equal(t, "job:v2", box.Image)

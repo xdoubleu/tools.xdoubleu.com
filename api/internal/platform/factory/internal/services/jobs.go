@@ -54,6 +54,7 @@ type JobService struct {
 	// so one waiting job is announced once.
 	offlineMu      sync.Mutex
 	alertedOffline uuid.UUID
+	alertedStalled uuid.UUID
 }
 
 // ClaimedJob is a job with the repo it runs against.
@@ -699,6 +700,12 @@ func (s *JobService) SetPickupPaused(
 	return s.settings.SetPickupPaused(ctx, paused)
 }
 
+// QueuedCount is how many jobs wait for a runner, which a runner's watchdog
+// compares with its own claims.
+func (s *JobService) QueuedCount(ctx context.Context) (int, error) {
+	return s.jobs.CountQueued(ctx)
+}
+
 // OfflineAfter is how long a job may wait with no runner online before Slack hears
 // of it.
 const OfflineAfter = 10 * time.Minute
@@ -726,7 +733,7 @@ func (s *JobService) CheckRunnerOffline(ctx context.Context) error {
 	}
 	for i := range runners {
 		if runners[i].Online(now) {
-			return nil
+			return s.checkStalled(ctx)
 		}
 	}
 	if !s.setAlerted(job.ID) {
@@ -739,6 +746,66 @@ func (s *JobService) CheckRunnerOffline(ctx context.Context) error {
 	s.say.say(ctx, fmt.Sprintf(
 		":zzz: No runner is online, and %s has waited %d minutes for one.",
 		waiting, int(waited.Minutes())))
+	return nil
+}
+
+// StallAfter is how long a job may be queued with nothing running before the board
+// shows a banner and Slack hears of it.
+const StallAfter = 15 * time.Minute
+
+// Stalled reports whether the oldest queued job has waited StallAfter while no job
+// runs. A Claude usage limit has its own notice, so it is not a stall.
+func (s *JobService) Stalled(ctx context.Context) (bool, error) {
+	job, err := s.stalledJob(ctx)
+	return job != nil, err
+}
+
+func (s *JobService) stalledJob(ctx context.Context) (*models.Job, error) {
+	job, err := s.jobs.OldestQueued(ctx)
+	if errors.Is(err, database.ErrResourceNotFound) {
+		return nil, nil //nolint:nilnil // no stall is an answer, not an error
+	}
+	if err != nil {
+		return nil, err
+	}
+	if s.now().Sub(job.CreatedAt) < StallAfter {
+		return nil, nil //nolint:nilnil // still within the grace period
+	}
+	running, err := s.jobs.AnyRunning(ctx)
+	if err != nil || running {
+		return nil, err
+	}
+	until, err := s.jobs.ActiveLimit(ctx)
+	if err != nil || until != nil {
+		return nil, err
+	}
+	return job, nil
+}
+
+// checkStalled tells Slack once per waiting job that an online runner is running
+// nothing.
+func (s *JobService) checkStalled(ctx context.Context) error {
+	job, err := s.stalledJob(ctx)
+	if err != nil {
+		return err
+	}
+	s.offlineMu.Lock()
+	defer s.offlineMu.Unlock()
+	if job == nil {
+		s.alertedStalled = uuid.Nil
+		return nil
+	}
+	if s.alertedStalled == job.ID {
+		return nil
+	}
+	s.alertedStalled = job.ID
+	waiting := "routine " + job.Routine
+	if !job.IsRoutine() {
+		waiting = s.taskLink(ctx, job.TaskID)
+	}
+	s.say.say(ctx, fmt.Sprintf(
+		":warning: A runner is online but nothing is running, and %s has waited %d minutes.",
+		waiting, int(s.now().Sub(job.CreatedAt).Minutes())))
 	return nil
 }
 

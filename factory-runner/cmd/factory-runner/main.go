@@ -9,8 +9,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"tools.xdoubleu.com/factory-runner/internal/runner"
@@ -31,6 +33,7 @@ const usage = `usage:
   factory-runner pair <code>          pair this Mac with the code shown on the board
   factory-runner run                  heartbeat and run jobs (run by the LaunchAgent)
   factory-runner install              install and load the LaunchAgent
+  factory-runner status               why the runner does or doesn't claim jobs
   factory-runner config show
   factory-runner config server <url>
   factory-runner config repos add|remove <owner/name>
@@ -73,6 +76,8 @@ type app struct {
 	installedRelease func(path string) string
 	// sign seals the app bundle around an installed binary.
 	sign func(ctx context.Context, binary string) error
+	// log is where the watchdog speaks; nil is the default logger.
+	log *slog.Logger
 }
 
 // jobLoop claims and runs jobs until its context ends.
@@ -119,6 +124,8 @@ func (a *app) run(ctx context.Context, args []string) int {
 		err = a.runDaemon(ctx)
 	case "install":
 		err = a.install(ctx)
+	case "status":
+		err = a.status()
 	case "config":
 		err = a.config(args[1:])
 	case "version":
@@ -192,7 +199,10 @@ func (a *app) start(ctx context.Context, token string) error {
 	if err != nil {
 		return err
 	}
-	opts := runner.Options{Updater: upd, Activity: a.activity, Control: a.control}
+	opts := runner.Options{
+		Updater: upd, Activity: a.activity, Control: a.control,
+		UpdateEvery: 0, Sleep: nil,
+	}
 	beat := func(ctx context.Context) error {
 		return a.daemon(ctx, a.newBeat(cfg.Server), token, opts)
 	}
@@ -286,15 +296,26 @@ func (a *app) serve(
 			// The heartbeat and self-update still run: a newer release may be what
 			// fixes this, and the board should show the runner is alive.
 			fmt.Fprintln(a.stderr, "factory-runner: jobs are off:", err)
-			loop = &retryingJobs{
+			a.control.SetJobsOff(err.Error())
+			retry := &retryingJobs{
 				build: func(ctx context.Context) (jobLoop, error) {
 					return a.jobs(ctx, cfg, token)
 				},
-				out:   a.stderr,
-				sleep: jobRetrySleep,
+				out:     a.stderr,
+				sleep:   jobRetrySleep,
+				kick:    nil,
+				control: a.control,
+				mu:      sync.Mutex{},
+				live:    nil,
 			}
+			if a.control != nil {
+				retry.kick = a.control.JobsKicked()
+			}
+			loop = retry
 		}
 	}
+	stopWatch := a.watch(ctx, loop)
+	defer stopWatch()
 	if loop == nil {
 		err = beat(ctx)
 	} else {
@@ -445,4 +466,61 @@ func (a *app) installFromApp(ctx context.Context) int {
 		fmt.Fprintln(a.stderr, "factory-runner: open the runner page:", err)
 	}
 	return 0
+}
+
+// statusEvery is how often the running daemon rewrites the file `status` reads.
+const statusEvery = 5 * time.Second
+
+// watch keeps the status file current and runs the stall watchdog beside the
+// daemon; the returned stop ends them and waits, so nothing writes after serve.
+func (a *app) watch(ctx context.Context, loop jobLoop) func() {
+	if a.control == nil {
+		return func() {}
+	}
+	ctx, cancel := context.WithCancel(ctx)
+	var wg sync.WaitGroup
+	reconcile := func() int {
+		if rec, ok := loop.(interface{ Reconcile() int }); ok {
+			return rec.Reconcile()
+		}
+		return 0
+	}
+	if a.log == nil {
+		a.log = slog.Default()
+	}
+	dog := &runner.Watchdog{
+		State: a.control.ClaimState, Reconcile: reconcile,
+		KickJobs: a.control.KickJobs, Restart: a.control.RequestRestart,
+		Log: a.log, Now: nil,
+	}
+	wg.Go(func() { dog.Run(ctx) })
+	wg.Go(func() {
+		t := time.NewTicker(statusEvery)
+		defer t.Stop()
+		for {
+			if err := runner.WriteStatus(a.home, a.control.Report()); err != nil {
+				a.log.Warn("could not write the status file", "error", err)
+			}
+			select {
+			case <-ctx.Done():
+				return
+			case <-t.C:
+			}
+		}
+	})
+	return func() {
+		cancel()
+		wg.Wait()
+	}
+}
+
+// status prints why this runner does or doesn't claim jobs, from what the
+// running daemon last wrote.
+func (a *app) status() error {
+	report, err := runner.ReadStatus(a.home)
+	if err != nil {
+		return fmt.Errorf("the runner has not written a status (is it running?): %w", err)
+	}
+	fmt.Fprint(a.stdout, report.Render(time.Now()))
+	return nil
 }

@@ -572,8 +572,10 @@ type ListTasksResponse struct {
 	PickupPaused bool `protobuf:"varint,2,opt,name=pickup_paused,json=pickupPaused,proto3" json:"pickup_paused,omitempty"`
 	// While a job's Claude usage limit is still to lift: when (RFC3339); else empty.
 	ClaudeLimitedUntil string `protobuf:"bytes,3,opt,name=claude_limited_until,json=claudeLimitedUntil,proto3" json:"claude_limited_until,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	// Whether a job has been queued for 15 minutes with no job running.
+	QueueStalled  bool `protobuf:"varint,4,opt,name=queue_stalled,json=queueStalled,proto3" json:"queue_stalled,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ListTasksResponse) Reset() {
@@ -625,6 +627,13 @@ func (x *ListTasksResponse) GetClaudeLimitedUntil() string {
 		return x.ClaudeLimitedUntil
 	}
 	return ""
+}
+
+func (x *ListTasksResponse) GetQueueStalled() bool {
+	if x != nil {
+		return x.QueueStalled
+	}
+	return false
 }
 
 // Pauses or resumes auto pickup for the whole board. A human admin in a browser
@@ -2847,11 +2856,12 @@ const file_factory_v1_factory_proto_rawDesc = "" +
 	"\x04body\x18\x03 \x01(\tR\x04body\x12\x1d\n" +
 	"\n" +
 	"created_at\x18\x04 \x01(\tR\tcreatedAt\"\x12\n" +
-	"\x10ListTasksRequest\"\x92\x01\n" +
+	"\x10ListTasksRequest\"\xb7\x01\n" +
 	"\x11ListTasksResponse\x12&\n" +
 	"\x05tasks\x18\x01 \x03(\v2\x10.factory.v1.TaskR\x05tasks\x12#\n" +
 	"\rpickup_paused\x18\x02 \x01(\bR\fpickupPaused\x120\n" +
-	"\x14claude_limited_until\x18\x03 \x01(\tR\x12claudeLimitedUntil\"0\n" +
+	"\x14claude_limited_until\x18\x03 \x01(\tR\x12claudeLimitedUntil\x12#\n" +
+	"\rqueue_stalled\x18\x04 \x01(\bR\fqueueStalled\"0\n" +
 	"\x16SetPickupPausedRequest\x12\x16\n" +
 	"\x06paused\x18\x01 \x01(\bR\x06paused\"1\n" +
 	"\x17SetPickupPausedResponse\x12\x16\n" +

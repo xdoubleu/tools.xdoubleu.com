@@ -91,6 +91,11 @@ func newJobRunner(
 	}
 	// Before a pull, which needs room, and on every retry of a failed one: a
 	// runner whose jobs are off still sweeps.
+	if a.control != nil {
+		a.control.SetClaimSources(runner.ClaimSources{
+			Max: jobs.MaxJobsNow, Jobs: jobs.RunningJobs, LimitUntil: jobs.LimitUntil,
+		})
+	}
 	jobs.MakeRoom(ctx, func(ctx context.Context) { pruneImages(ctx, cfg, exec, log) })
 	if err := ensureImage(ctx, cfg, exec); err != nil {
 		return nil, err

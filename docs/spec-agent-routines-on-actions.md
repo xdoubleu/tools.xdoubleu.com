@@ -1,6 +1,6 @@
 # Spec: agent routines on GitHub Actions
 
-- Status: all four routines run on Actions; the claude.ai routines are retired
+- Status: three routines run on Actions (the ready-issues executor is retired); the claude.ai routines are retired
 - Issues: #1902, #1903, part of #1851. Depends on #1899 (intake hardening),
   #1901 (machine identity). Grafana-fired runs: #1907.
 
@@ -101,7 +101,7 @@ Rules the routines follow: [convention-unattended-agent-trust](convention-unatte
    - `POSTHOG_MCP_URL`: PostHog's remote MCP endpoint for your region, from
      PostHog's MCP docs.
    - `ROUTINE_<NAME>_ENABLED=true` per routine: `RED_PR_REPAIR`, `NIGHTLY_MAINTENANCE_SWEEP`,
-     `READY_ISSUES_EXECUTOR`, `POSTHOG_UX_DISCOVERY`. These must be
+     `POSTHOG_UX_DISCOVERY`. These must be
      repo-level: the callers' `if:` runs outside the `agents` environment.
      `workflow_dispatch` runs regardless.
 
@@ -123,8 +123,7 @@ openssl enc -d -aes-256-cbc -pbkdf2 -pass pass:"$ROUTINE_TRANSCRIPT_PASSPHRASE" 
 - Metric cost is OpenCode's estimate from its model catalog, not the
   OpenRouter bill. Requests count the main session's model calls only.
 - OpenCode subagents share one checkout, so routines work through items in
-  sequence rather than in parallel isolated subagents. The ready-issues
-  executor takes at most 2 issues per run to fit the cap.
+  sequence rather than in parallel isolated subagents.
 - `.opencode/plugins/repo-guard` does nothing under `GITHUB_ACTIONS`, because
   the runner's checkout is throwaway.
 - The agent's shell holds the App, MCP and OpenRouter credentials. The bash

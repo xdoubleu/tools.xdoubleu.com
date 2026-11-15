@@ -553,7 +553,10 @@ func (x *HeartbeatRequest) GetVersion() string {
 }
 
 type HeartbeatResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Jobs queued and unclaimed when the hold ended: work a runner with a free slot
+	// would take, for its stall watchdog.
+	QueuedJobs    int32 `protobuf:"varint,1,opt,name=queued_jobs,json=queuedJobs,proto3" json:"queued_jobs,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -586,6 +589,13 @@ func (x *HeartbeatResponse) ProtoReflect() protoreflect.Message {
 // Deprecated: Use HeartbeatResponse.ProtoReflect.Descriptor instead.
 func (*HeartbeatResponse) Descriptor() ([]byte, []int) {
 	return file_factory_v1_runners_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *HeartbeatResponse) GetQueuedJobs() int32 {
+	if x != nil {
+		return x.QueuedJobs
+	}
+	return 0
 }
 
 // What the runner needs to run one job. The prompt is the frozen task part; the
@@ -1681,8 +1691,10 @@ const file_factory_v1_runners_proto_rawDesc = "" +
 	"\vrunner_name\x18\x02 \x01(\tR\n" +
 	"runnerName\",\n" +
 	"\x10HeartbeatRequest\x12\x18\n" +
-	"\aversion\x18\x01 \x01(\tR\aversion\"\x13\n" +
-	"\x11HeartbeatResponse\"\xcf\x03\n" +
+	"\aversion\x18\x01 \x01(\tR\aversion\"4\n" +
+	"\x11HeartbeatResponse\x12\x1f\n" +
+	"\vqueued_jobs\x18\x01 \x01(\x05R\n" +
+	"queuedJobs\"\xcf\x03\n" +
 	"\n" +
 	"ClaimedJob\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +

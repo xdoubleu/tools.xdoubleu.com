@@ -62,6 +62,7 @@ func main() {
 		jobs:             nil,
 		installedRelease: runner.BinaryRelease,
 		sign:             appbundle.Resign,
+		log:              log,
 	}
 	a.activity = runner.NewActivity(runner.NewCaffeinate())
 	a.control = runner.NewControl(runner.PausePath(home), Release, a.activity)
