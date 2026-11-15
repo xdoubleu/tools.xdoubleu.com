@@ -42,5 +42,5 @@ func Find(repos []Repo, slug string) (Repo, bool) {
 			return r, true
 		}
 	}
-	return Repo{}, false
+	return Repo{Slug: "", SentryProject: "", RedPRLabel: "", RedPRBranchPrefix: ""}, false
 }

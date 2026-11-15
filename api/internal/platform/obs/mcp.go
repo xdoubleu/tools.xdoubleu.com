@@ -26,7 +26,7 @@ type resolveSentryIssueArgs struct {
 // repoArgs is the input for the per-repo tools; Repo empty covers every
 // registered repo.
 type repoArgs struct {
-	Repo string `json:"repo,omitempty" jsonschema:"owner/name of a registered repo; omit for all"`
+	Repo string `json:"repo,omitempty" jsonschema:"owner/name of a repo; omit for all"`
 }
 
 // getSentryIssueEventArgs is the input for get_sentry_issue_event.

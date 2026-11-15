@@ -140,7 +140,8 @@ func TestListFailingPullRequestsIn_EmptyScopeMatchesNothing(t *testing.T) {
 	defer cleanup()
 
 	prs, err := newClient().ListFailingPullRequestsIn(
-		context.Background(), "o/other", github.PRScope{},
+		context.Background(), "o/other",
+		github.PRScope{Label: "", BranchPrefix: ""},
 	)
 	require.NoError(t, err)
 	assert.Empty(t, prs)
