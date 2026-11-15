@@ -22,7 +22,6 @@ import (
 	"tools.xdoubleu.com/apps/shoppinglist"
 	"tools.xdoubleu.com/apps/taste"
 	"tools.xdoubleu.com/apps/trains"
-	"tools.xdoubleu.com/apps/watchparty"
 	"tools.xdoubleu.com/internal/config"
 	"tools.xdoubleu.com/internal/kit/crypto"
 	"tools.xdoubleu.com/internal/kit/database/postgres"
@@ -88,7 +87,6 @@ func NewApps(
 	apps.addApp(feedsApp)
 	gamesApp := games.New(ctx, authService, logger, cfg, db)
 	apps.addApp(gamesApp)
-	apps.addApp(watchparty.New(ctx, authService, logger, cfg))
 	apps.addApp(recipes.New(ctx, authService, logger, cfg, db, familyRepo))
 	mealplansApp := mealplans.New(ctx, authService, logger, cfg, db, familyRepo)
 	apps.addApp(mealplansApp)

@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Issues: #1301, #1364, #1376, #1632, #1868, T-300, T-301
-- Affects: `tools/diff_coverage_ts.py`, `tools/diff_coverage_go.py`, `tools/merge_coverage.py`, `api/Makefile`, `.github/workflows/*-test.yml`, `web/package.json`
+- Affects: `diff-coverage/`, `scripts/diff_coverage.sh`, `api/Makefile`, `.github/workflows/*-test.yml`, `web/package.json`
 
 ## Context
 
@@ -13,26 +13,26 @@ while an untested new function hides in a well-covered file.
 
 Gate on **lines changed vs `origin/main`**, locally and in CI. The test workflows run the scripts on pull requests; there is no third-party coverage service (Codecov was dropped in T-300 after repeated outages blocked `ci-pass`):
 
-- `npm run test:cov:diff` → `tools/diff_coverage_ts.py`; `make test/cov/diff` →
-  `tools/diff_coverage_go.py`; `make test/cov/per-pkg` merges profiles via
-  `tools/merge_coverage.py`.
-- `diff_coverage_ts.py` fails a changed file under 80% line/branch on its
-  changed lines, **or with no coverage data at all** (e.g. a new unimported
-  file). Only files in `vite.config.ts`'s `test.coverage.include` count.
-- `diff_coverage_go.py` reports a conservative block-boundary-only number beside
-  the gate, and reads each module's prefix from its `go.mod`
-  (api, kobo-gateway, factory-runner, selfupdate). `menubar_darwin.go` and
-  `factory-runner/cmd/factory-runner/entry.go` are excluded.
+- `npm run test:cov:diff` runs `diff-coverage lcov`; `make test/cov/diff` runs
+  `diff-coverage go`; `make test/cov/per-pkg` runs `diff-coverage merge`. All go
+  through `scripts/diff_coverage.sh`, which builds `diff-coverage/` and passes
+  this repo's globs.
+- `lcov` fails a changed file under 80% line/branch on its changed lines, **or
+  with no coverage data at all** (e.g. a new unimported file). Only files in
+  `vite.config.ts`'s `test.coverage.include` count.
+- `go` reports a conservative block-boundary-only number beside the gate, and
+  reads the module prefix from `go.mod` (api, kobo-gateway, factory-runner,
+  selfupdate). `menubar_darwin.go` and `factory-runner/cmd/factory-runner/entry.go`
+  are excluded.
 - Mutation testing (`make test/mutation/diff`, `npm run test:mutation:diff`,
   #1632) reuses the same diff scoping via `tools/diff_packages_go.py` /
-  `tools/diff_files_ts.py`.
+  `tools/diff_files_ts.py`; the module doesn't expose the changed-file list.
 
-The gate's logic moves into its own Go module, `xdoubleu/diff-coverage`, so
-other repos (`check-in` first) can drop Codecov too. Each repo pins it with a
-`tool` directive in `go.mod`, so `go tool diff-coverage` is the same version
-locally and in CI. Threshold, base ref and include/exclude globs are flags; the
-behaviour above is kept, and the Python scripts are deleted once this repo
-uses the module.
+The gate's logic lives in its own Go module, `diff-coverage/`, so other repos
+(`check-in` first) can drop Codecov too. Threshold, base ref and include/exclude
+globs are flags. Once the module is published, a `tool` directive in each
+`go.mod` pins it, so `go tool diff-coverage` is the same version locally and in
+CI; until then the wrapper builds the in-repo copy.
 
 ## Alternatives considered
 

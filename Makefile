@@ -1,5 +1,6 @@
 hooks/test:
 	./scripts/test_hooks.sh
+	./scripts/test_lint_skills.sh
 
 # Validate the provisioned Grafana dashboards.
 lint/grafana:

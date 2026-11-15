@@ -43,8 +43,8 @@ func testTask(id uuid.UUID, title, body string) *models.Task {
 
 func testRepo(instructions string) *models.Repo {
 	return &models.Repo{
-		ID: uuid.Nil, Owner: "", Name: "", DefaultBranch: "", DefaultHarness: "",
-		DefaultModel: "", AutoPickup: false, SetupCommands: "",
+		ID: uuid.Nil, Owner: "", Name: "", DefaultBranch: "",
+		AutoPickup: false, SetupCommands: "",
 		AgentInstructions: instructions,
 		TimeLimitMinutes:  0,
 		CreatedAt:         time.Time{}, UpdatedAt: time.Time{},
@@ -120,15 +120,15 @@ func TestKindOfIsTheLinesTypeOrRaw(t *testing.T) {
 func TestLinkedTasksReadsTheNumberOrALegacyUUID(t *testing.T) {
 	uuidRef := "11111111-2222-3333-4444-555555555555"
 	for _, ref := range []string{"T-142", uuidRef} {
-		got := linkedTasks("intro\nTask: Fix it (" + ref + ")\n")
+		got := linkedTasks(bodyRef("intro\nTask: Fix it (" + ref + ")\n"))
 		assert.Equal(t, []string{ref}, got)
 	}
-	assert.Empty(t, linkedTasks("Task: Fix it (142)"))
+	assert.Empty(t, linkedTasks(bodyRef("Task: Fix it (142)")))
 }
 
 func TestLinkedTasksReadsEveryRefOnce(t *testing.T) {
 	body := "Task: One (T-1)\nTask: Two (T-2)\nTask: One again (T-1)\n"
-	assert.Equal(t, []string{"T-1", "T-2"}, linkedTasks(body))
+	assert.Equal(t, []string{"T-1", "T-2"}, linkedTasks(bodyRef(body)))
 }
 
 func TestApprovedTaskKeepsNumberForBranch(t *testing.T) {
@@ -136,4 +136,37 @@ func TestApprovedTaskKeepsNumberForBranch(t *testing.T) {
 		TaskID: uuid.New(), Number: 175, RepoID: uuid.Nil, Title: "Fix it", Body: "",
 	}
 	assert.Equal(t, "agent/t175-fix-it", branchFor(approvedTask(c)))
+}
+
+func TestLinkedTasksReadsTitleBranchAndBody(t *testing.T) {
+	pr := PullRequestRef{
+		URL: "", Title: "Fix it (T-123)", Branch: "agent/t483-board-link",
+		Body: "Follows T-9.", MergeSHA: "",
+	}
+	assert.Equal(t, []string{"T-123", "T-483"}, linkedTasks(pr))
+	assert.Empty(
+		t,
+		linkedTasks(
+			PullRequestRef{URL: "", Title: "AT-1x", Branch: "main", Body: "", MergeSHA: ""},
+		),
+	)
+}
+
+func bodyRef(body string) PullRequestRef {
+	return PullRequestRef{URL: "", Title: "", Branch: "", Body: body, MergeSHA: ""}
+}
+
+func TestLinkedTasksIgnoresMentionsInProse(t *testing.T) {
+	body := "T-315 and T-316 still need moving back to Ready; see T-9."
+	assert.Empty(t, linkedTasks(bodyRef(body)))
+	assert.Empty(t, linkedTasks(PullRequestRef{
+		URL: "", Title: "Follow up T-5", Branch: "main", Body: "", MergeSHA: "",
+	}))
+}
+
+func TestLinkedTasksReadsKeywordAndTasksLists(t *testing.T) {
+	assert.Equal(t, []string{"T-1", "T-2"}, linkedTasks(bodyRef("Closes T-1, T-2")))
+	assert.Equal(t, []string{"T-3"}, linkedTasks(bodyRef("Part of T-3. Also T-4.")))
+	assert.Equal(t, []string{"T-5", "T-6", "T-7"},
+		linkedTasks(bodyRef("x\nTasks: T-5, T-6 and T-7\nmentions T-8")))
 }

@@ -33,11 +33,20 @@ test/cov/report:
 	go test ./... -covermode=set -coverprofile=coverage.out
 	go tool cover -func=coverage.out | tail -1
 
+# The changed-line gate CI runs (>= 80% vs origin/main); `make test` does not.
+test/cov/diff:
+	go test ./... -covermode=set -coverprofile=coverage.out
+	../scripts/diff_coverage.sh go coverage.out
+
 tools/lint:
-	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0
+	../api/scripts/ensure_go_tool.sh golangci-lint github.com/golangci/golangci-lint/v2 github.com/golangci/golangci-lint/v2/cmd/golangci-lint 2.15.0
 
 lint: tools/lint
 	golangci-lint run
+
+# CI lints on macOS; syscall field types differ per OS, so nolint directives can be unused there.
+lint/darwin: tools/lint
+	GOOS=darwin CGO_ENABLED=0 golangci-lint run
 
 lint/fix: tools/lint
 	golangci-lint run --fix

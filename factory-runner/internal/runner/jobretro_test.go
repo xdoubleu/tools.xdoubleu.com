@@ -24,6 +24,8 @@ func TestAJobThatNeededRetriesEndsWithOneBoundedRetroInItsSession(t *testing.T) 
 	assert.Equal(t, runner.ClaudeCode{}.Resume("sess-9"), retro.Command)
 	assert.Contains(t, retro.Stdin, "factory-retro")
 	assert.Contains(t, retro.Stdin, "test fail")
+	assert.Contains(t, retro.Stdin, "label factory-sandbox")
+	assert.Contains(t, retro.Stdin, "never factory-sandbox")
 	assert.Contains(t, retro.Stdin, "Phase times:")
 	got := p.api.done()[0]
 	assert.True(t, got.succeeded)

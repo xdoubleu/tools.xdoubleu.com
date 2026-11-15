@@ -1,6 +1,7 @@
 package factory_test
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
@@ -16,6 +17,7 @@ import (
 	factoryv1 "tools.xdoubleu.com/gen/factory/v1"
 	"tools.xdoubleu.com/internal/kit/testhelper"
 	"tools.xdoubleu.com/internal/platform/factory"
+	"tools.xdoubleu.com/internal/platform/githubapp"
 )
 
 const webhookSecret = "hook-secret"
@@ -161,4 +163,78 @@ func TestAMergeWebhookStillFollowsAPullRequestLinkedByUUID(t *testing.T) {
 	assert.Equal(t, http.StatusNoContent, status)
 	got := env.task(t, task.Id)
 	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_TESTING, got.Task.Status)
+}
+
+func titledEvent(t *testing.T, action, state string, merged bool, title string) string {
+	t.Helper()
+	out, err := json.Marshal(map[string]any{
+		"action": action,
+		"pull_request": map[string]any{
+			"html_url": pullURL(7), "title": title, "body": "no link here",
+			"state": state, "merged": merged, "merge_commit_sha": "hooksha",
+			"head": map[string]any{"ref": "agent/some-branch"},
+		},
+	})
+	require.NoError(t, err)
+	return string(out)
+}
+
+func (e jobEnv) moveTo(t *testing.T, id string, status factoryv1.TaskStatus) {
+	t.Helper()
+	_, err := e.tasks.MoveTask(context.Background(),
+		&factoryv1.MoveTaskRequest{Id: id, Status: status})
+	require.NoError(t, err)
+}
+
+func TestAPullRequestNamingATaskInItsTitleMovesItThroughReviewToTesting(t *testing.T) {
+	env := webhookEnv(t)
+	task := env.newTask(t, "shipped by hand")
+	env.moveTo(t, task.Id, factoryv1.TaskStatus_TASK_STATUS_IN_PROGRESS)
+	title := "Do it (" + task.Id + ")"
+
+	open := titledEvent(t, "opened", "open", false, title)
+	assert.Equal(t, http.StatusNoContent,
+		deliver(t, env, "pull_request", open, sign(webhookSecret, open)))
+	got := env.task(t, task.Id)
+	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_IN_REVIEW, got.Task.Status)
+	assert.Equal(t, pullURL(7), got.Task.PrUrl)
+
+	merged := titledEvent(t, "closed", "closed", true, title)
+	assert.Equal(t, http.StatusNoContent,
+		deliver(t, env, "pull_request", merged, sign(webhookSecret, merged)))
+	got = env.task(t, task.Id)
+	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_TESTING, got.Task.Status)
+	assert.Equal(t, pullURL(7), got.Task.PrUrl)
+}
+
+func TestAClosedUnmergedPullRequestOnlyCommentsOnItsTask(t *testing.T) {
+	env := webhookEnv(t)
+	task := env.newTask(t, "abandoned")
+	env.putInReview(t, task.Id)
+	title := "Do it (" + task.Id + ")"
+
+	closed := titledEvent(t, "closed", "closed", false, title)
+	assert.Equal(t, http.StatusNoContent,
+		deliver(t, env, "pull_request", closed, sign(webhookSecret, closed)))
+
+	got := env.task(t, task.Id)
+	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_IN_REVIEW, got.Task.Status)
+	require.Len(t, got.Comments, 1)
+	assert.Contains(t, got.Comments[0].Body, "closed without merging")
+}
+
+func TestTheSweepMovesAMergedPullRequestNamedInItsBranchToTesting(t *testing.T) {
+	env, gh := githubEnv(t)
+	task := env.newTask(t, "stuck")
+	env.putInReview(t, task.Id)
+	gh.merged = append(gh.merged, githubapp.MergedPullRequest{
+		URL: pullURL(9), Title: "unrelated",
+		Branch: "agent/" + strings.ToLower(strings.ReplaceAll(task.Id, "-", "")) + "-stuck",
+		Body:   "", MergeSHA: "abc",
+	})
+
+	require.NoError(t, env.poll(t))
+
+	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_TESTING,
+		env.task(t, task.Id).Task.Status)
 }

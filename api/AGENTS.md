@@ -9,7 +9,8 @@ make test/cov/per-pkg              # per-package coverage, merged
 make lint/pkg PKG=apps/recipes     # lint one package
 make lint/fix/pkg PKG=apps/recipes # auto-fix one package
 make lint/golines                  # fails if golines would rewrite anything (CI runs it)
-make lint/migrations               # duplicate version (goose silently skips it) or a new one numbered below the dir's max
+make migration/new app=<app> name=<name>  # app=<name>|platform/<name>|global
+make lint/migrations               # duplicate version, or a new migration that isn't timestamp-versioned
 make lint/kamal-secrets            # deploy-secret lists agree; deploy.grafana.yml env names must be GF_-prefixed (Grafana ignores others)
 make lint/cross-schema             # SQL schema direction, adr-0038
 make lint/proto-local-versions     # proto/generate/local plugin versions match buf.gen.yaml's `remote:` pins
@@ -21,12 +22,12 @@ make db/reset                      # recreate the Postgres volume — shared by 
 - `NewApps` (`cmd/api/apps.go`) registration order: `books` before `games` (games' last migration drops `backlog` after books adopted its tables); `dashboard` after apps it reads; `trains`/`learningpaths`/`movies`, then `taste` (reads apps; `showsmigrations` fill `podcasts`).
 - `main.go` wraps the pgx pool in `postgres.NewSpanDB` (tracing); migrations use the raw pool. Platform handlers: `internal/platform/obs`, `internal/platform/account` (each `Deps`/`Register`).
 - `ApplyMigrations` takes a Postgres advisory lock (concurrent replicas never race), runs global migrations (`cmd/api/migrations/`), then each app's.
-- `ApplyMigrationsFromFS` (`internal/app/base.go`) runs goose with `WithAllowMissing()`: stacked PRs can merge migrations out of order; this self-heals.
+- `ApplyMigrationsFromFS` (`internal/app/base.go`) runs goose with `WithAllowMissing()`, so out-of-order merges self-heal.
 
 Per-app layout (`apps/<name>/`):
 
 ```
-app.go         # embeds app.Base; watchparty exports Services; books/games route test seeding through a test-only TestSeeds handle
+app.go         # embeds app.Base; books/games route test seeding through a test-only TestSeeds handle
 routes.go      # ConnectRPC handler wrapped in the app's own AppAccess gate
 connect_*.go   # service implementations
 mcp.go         # optional MCPToolProvider
@@ -70,7 +71,6 @@ First-party: HS256 JWT access tokens, opaque rotating refresh tokens, TOTP 2FA +
 
 - **books** — any byte change to the KEPUB pipeline files (list in `converter_version_check_test.go`), comments included, requires bumping `currentKEPUBConverterVersion`, which re-converts every book. A trigger pins `read` books at 100%.
 - **feeds** — queries exclude `expired_at` items.
-- **watchparty** — no DB, own domain `watchparty.xdoubleu.com`.
 - **mealplans/shoppinglist/recipes** — family-scoped by `family_id`; shoppinglist stores stay per-user.
 - **dashboard** — public services (`apps/dashboard/connect_public.go`) run **without auth middleware**; they resolve an opaque share token (`global.profile_shares`) and **must never read the user-context key**, then delegate to exported methods on the live app structs. Token management is in `DashboardService` behind `Access`, not `dashboard`'s `AppAccess`. `GetToday` (and MCP `dashboard_get_today`) gives a block per usable app → [`adr-0007`](../docs/adr-0007-dashboard-app-owns-public-sharing.md).
 - **trains** → [`adr-0035`](../docs/adr-0035-trains-on-irail.md):
@@ -86,7 +86,7 @@ First-party: HS256 JWT access tokens, opaque rotating refresh tokens, TOTP 2FA +
 
 ### Database
 
-- Migrations: `apps/<name>/migrations/`; `global` schema in `cmd/api/migrations/`.
+- Migrations: `apps/<name>/migrations/`; `global` schema in `cmd/api/migrations/`. **New files are UTC-timestamp versioned, via `make migration/new`** (parallel branches never collide); never add `000NN`.
 - **No wide TEXT column in list queries or `RETURNING`** — select `<col> IS NOT NULL AND <col> <> ''`; only single-row reads fetch it → [`convention-database-queries`](../docs/convention-database-queries.md).
 - Cross-schema SQL: `recipes ← mealplans ← shoppinglist` only → [`adr-0038`](../docs/adr-0038-downstream-cross-schema-reads.md).
 
@@ -103,7 +103,7 @@ Apps opt in via `MCPToolProvider` (`cmd/api/apps.go`) in `apps/<name>/mcp.go`; s
 ## Testing
 
 - No DB mocking: integration tests hit real Postgres (17, as in production); other mocks: `internal/mocks/`.
-- `make test/cov/diff` (`tools/diff_coverage_go.py`) prints a gate and a conservative number per file; CI runs the same script on PRs → [`adr-0013`](../docs/adr-0013-diff-scoped-coverage.md).
+- `make test/cov/diff` (`scripts/diff_coverage.sh`) prints a gate and a conservative number per file; CI runs the same script on PRs → [`adr-0013`](../docs/adr-0013-diff-scoped-coverage.md).
 - **One Postgres container (`api-db-1`) is shared by every worktree.** `docker-compose down` and `make db/reset` hit all sessions; never stop it. `relation ... does not exist` may be leftover state, a teardown (check `docker ps` uptime), or, in CI only, a `global.*` table a test assumed: `cmd/api` creates them and package order isn't fixed; fake the interface or create it (`feeds` does).
 - **`relation "X" already exists` panic** = another worktree's DDL ran without its `goose_db_version` row (in `global`; check via `docker exec api-db-1 psql`). If the schema matches, insert the row.
 - **Concurrent `go test` runs from two worktrees race on shared fixtures** (`-p 1` is per-invocation), e.g. `TestAppsMCPCallAllToolsAsAdmin`. Re-run in isolation first.

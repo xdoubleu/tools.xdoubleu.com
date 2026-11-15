@@ -285,7 +285,7 @@ func (gh *fakeGitHub) mergeAs(url, body, sha string) {
 	gh.mu.Lock()
 	defer gh.mu.Unlock()
 	gh.merged = append(gh.merged, githubapp.MergedPullRequest{
-		URL: url, Body: body, MergeSHA: sha,
+		URL: url, Title: "", Branch: "", Body: body, MergeSHA: sha,
 	})
 }
 
@@ -323,7 +323,9 @@ func (gh *fakeGitHub) openLinked(url string, number int, body string) {
 	gh.mu.Lock()
 	defer gh.mu.Unlock()
 	gh.open = append(gh.open,
-		githubapp.OpenPullRequest{URL: url, Number: number, Body: body})
+		githubapp.OpenPullRequest{
+			URL: url, Number: number, Title: "", Branch: "", Body: body,
+		})
 }
 
 func TestAnOpenPullRequestLinkingATaskIsListedWithItsChecks(t *testing.T) {
@@ -369,6 +371,18 @@ func TestATasksJobAndLinkedPullRequestsAreAllListed(t *testing.T) {
 		urls = append(urls, p.Url)
 	}
 	assert.ElementsMatch(t, []string{pullURL(42), pullURL(43)}, urls)
+}
+
+func TestAJobsPullRequestLinkingSeveralTasksKeepsTheBoardListing(t *testing.T) {
+	env, gh := githubEnv(t)
+	first := inReview(t, env, "first", 42)
+	second := inReview(t, env, "second", 43)
+	gh.openLinked(pullURL(42), 42, "Task: both ("+first.Id+", "+second.Id+")")
+
+	require.NoError(t, env.poll(t))
+
+	_, err := env.tasks.ListTasks(context.Background(), &factoryv1.ListTasksRequest{})
+	require.NoError(t, err)
 }
 
 func TestAMergedTaskShowsWhetherItsMergeCommitIsDeployed(t *testing.T) {

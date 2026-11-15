@@ -40,8 +40,7 @@ const APP_NAMES = [
   'movies',
   'recipes',
   'shoppinglist',
-  'taste',
-  'watchparty'
+  'taste'
 ]
 
 function useUserActions(user: AppUser) {

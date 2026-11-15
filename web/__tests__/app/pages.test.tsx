@@ -15,10 +15,6 @@ vi.mock('@/lib/client', async (importOriginal) => ({
   createKeepaliveClient: () => pending()
 }))
 
-// Live WebRTC rooms: covered by RoomClients.test.tsx.
-vi.mock('@/app/watchparty/[id]/ViewerClient', () => ({ default: () => null }))
-vi.mock('@/app/watchparty/[id]/presenter/PresenterClient', () => ({ default: () => null }))
-
 // Pages that need a live session are covered by their own tests.
 const OWN_TESTS = ['app/oauth/consent/page.tsx']
 

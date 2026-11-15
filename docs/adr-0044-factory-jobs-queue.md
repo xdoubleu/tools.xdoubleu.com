@@ -72,11 +72,11 @@ its own work ([ADR-0041](adr-0041-factory-runner-pairing.md)).
   and the outcome's first line, escaped so a title can't mention the channel. It is
   sent in the background and never fails the work it reports.
 
-- **Harness and model** are frozen on each job. A repo has a default harness and, for
-  OpenCode, a default OpenRouter model (`vendor/model`; Claude Code chooses its own
-  and takes none; the runner runs `opencode run --format json --auto` with the prompt
-  read from stdin by a shell step). A Run can pick a harness and model for that job alone, and a
-  Reply keeps the job it continues, because a session belongs to its harness.
+- **Harness and model** are the Mac's choice (`factory-runner config`), not the board's.
+  A claim reports them (`ClaimJobRequest.harness`/`model`, Claude Code when unset), the job
+  records them, and the board shows them read-only. A queued job holds neither. OpenCode runs
+  `opencode run --format json --auto` on an OpenRouter model (`vendor/model`) with the prompt
+  read from stdin by a shell step. A Reply resumes only a session of the harness the Mac runs.
 
 - **Auto pickup** (`repos.auto_pickup`, off by default) lets a claiming runner take the
   oldest highest-priority Ready task when nothing is queued or running. The Ready

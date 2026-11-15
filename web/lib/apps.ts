@@ -9,7 +9,6 @@ import {
   GraduationCap,
   BookOpen,
   type LucideIcon,
-  MonitorPlay,
   Rss,
   Settings,
   ShieldCheck,
@@ -151,15 +150,6 @@ export const APPS: AppEntry[] = [
     description: 'Generate shopping lists from meal plans',
     group: 'Food',
     icon: ShoppingCart,
-    artwork: true
-  },
-  {
-    id: 'watchparty',
-    label: 'Watch party',
-    href: '/watchparty',
-    description: 'WebRTC screen sharing',
-    group: 'Tools',
-    icon: MonitorPlay,
     artwork: true
   },
   {

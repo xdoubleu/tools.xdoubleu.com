@@ -509,3 +509,40 @@ func (r *Repository) SetDeactivated(ctx context.Context, userID string) error {
 	`, userID)
 	return err
 }
+
+// ListImportCandidates returns active people with a password and no subject.
+// Agent and service users are excluded by role, and a hash that can never match
+// (oidcOnlyHash) has nothing to import.
+func (r *Repository) ListImportCandidates(
+	ctx context.Context,
+) ([]ImportCandidate, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT u.id, u.email, COALESCE(a.display_name, ''), u.password_hash,
+			COALESCE(t.secret, '')
+		FROM auth.users u
+		JOIN global.app_users a ON a.id = u.id::text
+		LEFT JOIN auth.totp_factors t
+			ON t.user_id = u.id AND t.status = 'verified'
+		WHERE u.oidc_subject IS NULL
+			AND u.deactivated_at IS NULL
+			AND u.password_hash <> $1
+			AND a.role IN ('admin', 'user')
+		ORDER BY u.created_at
+	`, oidcOnlyHash)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var out []ImportCandidate
+	for rows.Next() {
+		var c ImportCandidate
+		if err = rows.Scan(
+			&c.UserID, &c.Email, &c.DisplayName, &c.PasswordHash, &c.SealedTOTP,
+		); err != nil {
+			return nil, err
+		}
+		out = append(out, c)
+	}
+	return out, rows.Err()
+}

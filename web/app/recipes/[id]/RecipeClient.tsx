@@ -46,6 +46,15 @@ export default function RecipeClient({ id }: { id: string }) {
     amount: string | number
     unit: string
     groupName?: string
+    /** Non-default option of an or-group. */
+    isAlternative: boolean
+  }
+  const seenAlternativeGroups = new Set<string>()
+  const isAlternative = (ing?: { alternativeGroup?: string }) => {
+    if (!ing?.alternativeGroup) return false
+    const seen = seenAlternativeGroups.has(ing.alternativeGroup)
+    seenAlternativeGroups.add(ing.alternativeGroup)
+    return seen
   }
   const displayIngredients: DisplayIngredient[] =
     scaledIngredients.length > 0
@@ -54,14 +63,16 @@ export default function RecipeClient({ id }: { id: string }) {
           name: scaled.name,
           amount: scaled.amount,
           unit: scaled.unit,
-          groupName: sortedIngredients[idx]?.groupName
+          groupName: sortedIngredients[idx]?.groupName,
+          isAlternative: isAlternative(sortedIngredients[idx])
         }))
       : sortedIngredients.map((ing) => ({
           id: ing.id,
           name: ing.name,
           amount: ing.amount,
           unit: ing.unit,
-          groupName: ing.groupName
+          groupName: ing.groupName,
+          isAlternative: isAlternative(ing)
         }))
 
   type GroupedSection = { groupName: string | undefined; items: DisplayIngredient[] }
@@ -184,6 +195,7 @@ export default function RecipeClient({ id }: { id: string }) {
                           key={'id' in ing ? ing.id : idx}
                           className="flex gap-2 py-1 border-b last:border-0 border-border"
                         >
+                          {ing.isAlternative && <span className="text-subtle">or</span>}
                           <span className="font-medium">
                             {ing.amount} {ing.unit}
                           </span>

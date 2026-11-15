@@ -56,3 +56,21 @@ func TestFinishedTasksRefusesABadOrOversizedQuery(t *testing.T) {
 	_, err = env.finished(t, ids...)
 	require.NoError(t, err, "500 is the most allowed")
 }
+
+func TestFinishedTasksIncludeTestingOnesOnlyWithAPullRequest(t *testing.T) {
+	env := browserJobEnv(t)
+	merged := env.newTask(t, "merged")
+	env.run(t, merged.Id, "")
+	complete(t, env, env.claim(t).Id, true, ownPull)
+	bare := env.newTask(t, "no pr")
+	for _, id := range []string{merged.Id, bare.Id} {
+		_, err := env.tasks.MoveTask(context.Background(), &factoryv1.MoveTaskRequest{
+			Id: id, Status: factoryv1.TaskStatus_TASK_STATUS_TESTING,
+		})
+		require.NoError(t, err)
+	}
+
+	got, err := env.finished(t, merged.Id, bare.Id)
+	require.NoError(t, err)
+	assert.Equal(t, []string{merged.Id}, got.TaskIds)
+}

@@ -17,7 +17,6 @@ type ClaimedJob struct {
 	RepoOwner        string `json:"repoOwner"`
 	RepoName         string `json:"repoName"`
 	DefaultBranch    string `json:"defaultBranch"`
-	Harness          string `json:"harness"`
 	Prompt           string `json:"prompt"`
 	Branch           string `json:"branch"`
 	SetupCommands    string `json:"setupCommands"`
@@ -29,8 +28,6 @@ type ClaimedJob struct {
 	// ResumeSessionID is set for a Reply's job: the harness session to continue
 	// on the task's existing branch.
 	ResumeSessionID string `json:"resumeSessionId"`
-	// Model is the OpenRouter model of an OpenCode job; empty for Claude Code.
-	Model string `json:"model"`
 	// Routine names the routine of a task-less job; TaskID is then empty.
 	Routine string `json:"routine"`
 }
@@ -38,8 +35,11 @@ type ClaimedJob struct {
 // JobAPI is the server side of running jobs.
 type JobAPI interface {
 	// ClaimJob waits for the oldest queued job; nil means none came in the hold.
-	// maxJobs is how many jobs this runner may have running at once.
-	ClaimJob(ctx context.Context, token string, maxJobs int) (*ClaimedJob, error)
+	// maxJobs is how many jobs this runner may have running at once; harness and
+	// model are what this Mac runs them on, recorded on the claimed job.
+	ClaimJob(
+		ctx context.Context, token string, maxJobs int, harness, model string,
+	) (*ClaimedJob, error)
 	// CheckIn reports a running job alive and says whether to stop it.
 	CheckIn(ctx context.Context, token, jobID, sessionID string) (bool, error)
 	// AppendJobEvents sends a batch of the harness's output lines, already redacted.
@@ -182,7 +182,9 @@ func (c *Client) ListFinishedTasks(
 }
 
 type claimJobRequest struct {
-	MaxJobs int `json:"maxJobs"`
+	MaxJobs int    `json:"maxJobs"`
+	Harness string `json:"harness"`
+	Model   string `json:"model"`
 }
 
 // ClaimJob implements JobAPI.
@@ -190,10 +192,11 @@ func (c *Client) ClaimJob(
 	ctx context.Context,
 	token string,
 	maxJobs int,
+	harness, model string,
 ) (*ClaimedJob, error) {
 	var resp claimJobResponse
 	err := c.call(ctx, "ClaimJob", token, claimTimeout,
-		claimJobRequest{MaxJobs: maxJobs}, &resp)
+		claimJobRequest{MaxJobs: maxJobs, Harness: harness, Model: model}, &resp)
 	if err != nil {
 		return nil, err
 	}

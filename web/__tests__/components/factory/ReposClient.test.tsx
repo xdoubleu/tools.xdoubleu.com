@@ -12,7 +12,7 @@ vi.mock('@/components/factory/RepoDialog', () => ({
 
 import ReposClient from '@/components/factory/ReposClient'
 import { useFactoryRepos } from '@/hooks/useFactory'
-import { Harness, ListReposResponseSchema, RepoSchema } from '@/lib/gen/factory/v1/factory_pb'
+import { ListReposResponseSchema, RepoSchema } from '@/lib/gen/factory/v1/factory_pb'
 
 function mockRepos(value: { data?: unknown; error?: Error; isLoading?: boolean }) {
   // @ts-expect-error -- partial SWRResponse
@@ -26,7 +26,6 @@ const list = create(ListReposResponseSchema, {
       owner: 'octo',
       name: 'cat',
       defaultBranch: 'main',
-      defaultHarness: Harness.CLAUDE_CODE,
       timeLimitMinutes: 60
     }),
     create(RepoSchema, {
@@ -34,7 +33,6 @@ const list = create(ListReposResponseSchema, {
       owner: 'octo',
       name: 'dog',
       defaultBranch: 'dev',
-      defaultHarness: Harness.OPENCODE,
       timeLimitMinutes: 15
     })
   ]
@@ -43,13 +41,13 @@ const list = create(ListReposResponseSchema, {
 beforeEach(() => vi.clearAllMocks())
 
 describe('ReposClient', () => {
-  it('lists each repo with its branch, harness and time limit', () => {
+  it('lists each repo with its branch and time limit', () => {
     mockRepos({ data: list })
     render(<ReposClient />)
     expect(screen.getByText('octo/cat')).toBeInTheDocument()
-    expect(screen.getByText('main · Claude Code · 60 min')).toBeInTheDocument()
+    expect(screen.getByText('main · 60 min')).toBeInTheDocument()
     expect(screen.getByText('octo/dog')).toBeInTheDocument()
-    expect(screen.getByText('dev · OpenCode · 15 min')).toBeInTheDocument()
+    expect(screen.getByText('dev · 15 min')).toBeInTheDocument()
     expect(screen.getByRole('tablist', { name: 'Factory sections' })).toBeInTheDocument()
   })
 

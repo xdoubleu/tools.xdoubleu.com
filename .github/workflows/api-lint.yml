@@ -84,3 +84,12 @@ jobs:
       - name: Check cross-schema SQL direction
         run: make lint/cross-schema
         working-directory: './api'
+
+  lint-scalar-subqueries:
+    name: API Scalar Subquery Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Check scalar subqueries are unique by constraint
+        run: make lint/scalar-subqueries
+        working-directory: './api'

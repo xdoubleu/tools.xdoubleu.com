@@ -58,7 +58,6 @@ func TestReplyResumesTheLastJobsSessionOnItsBranch(t *testing.T) {
 	assert.Equal(t, job.Id, second.Id)
 	assert.Equal(t, "CI is red, fix it", second.Prompt)
 	assert.Equal(t, first.Branch, second.Branch)
-	assert.Equal(t, first.Harness, second.Harness)
 	assert.Equal(t, "sess-1", second.ResumeSessionId)
 }
 

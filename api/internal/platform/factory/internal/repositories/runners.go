@@ -101,6 +101,17 @@ func (r *RunnersRepository) Touch(
 	return nil
 }
 
+// SetMaxJobs records how many jobs the runner runs at once.
+func (r *RunnersRepository) SetMaxJobs(
+	ctx context.Context,
+	id uuid.UUID,
+	maxJobs int,
+) error {
+	_, err := r.db.Exec(ctx,
+		`UPDATE factory.runners SET max_jobs = $2 WHERE id = $1`, id, maxJobs)
+	return err
+}
+
 // List returns every runner, newest first, revoked ones included.
 func (r *RunnersRepository) List(ctx context.Context) ([]models.Runner, error) {
 	rows, err := r.db.Query(ctx, `

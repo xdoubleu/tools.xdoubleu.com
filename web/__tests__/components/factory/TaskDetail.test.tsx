@@ -7,11 +7,9 @@ const mockRun = vi.fn()
 const mockStop = vi.fn()
 const mockReply = vi.fn()
 const mockAgents = vi.fn()
-const mockModels = vi.fn()
 vi.mock('@/hooks/useFactory', () => ({
   useFactoryTask: vi.fn(),
   useFactoryAgents: () => mockAgents(),
-  useFactoryModels: () => mockModels(),
   useFactoryActions: vi.fn(() => ({
     comment: mockComment,
     move: vi.fn(),
@@ -71,7 +69,6 @@ const detail = create(GetTaskResponseSchema, {
 beforeEach(() => {
   vi.clearAllMocks()
   mockAgents.mockReturnValue({ data: undefined })
-  mockModels.mockReturnValue({ data: undefined })
   mockComment.mockResolvedValue(undefined)
   mockRun.mockResolvedValue(undefined)
   mockStop.mockResolvedValue(undefined)
@@ -308,54 +305,11 @@ describe('TaskDetail', () => {
         jobs: [create(JobSchema, { id: 'j-1', status, branch: 'agent/t-1-fix-login' })]
       })
 
-    it('runs on a picked harness and model, and only then asks for a model', async () => {
+    it('asks for no harness or model', () => {
       mockTask({ data: detail })
       render(<TaskDetail id="t-1" onClose={vi.fn()} />)
-      const harness = screen.getByLabelText('Harness')
-      expect(harness).toHaveValue(String(Harness.UNSPECIFIED))
+      expect(screen.queryByLabelText('Harness')).not.toBeInTheDocument()
       expect(screen.queryByLabelText('Model')).not.toBeInTheDocument()
-
-      fireEvent.change(harness, { target: { value: String(Harness.OPENCODE) } })
-      fireEvent.change(screen.getByLabelText('Model'), { target: { value: ' vendor/m ' } })
-      fireEvent.click(screen.getByRole('button', { name: 'Run' }))
-
-      await waitFor(() =>
-        expect(mockRun).toHaveBeenCalledWith('t-1', '', {
-          harness: Harness.OPENCODE,
-          model: 'vendor/m'
-        })
-      )
-    })
-
-    it('offers the OpenRouter models as run suggestions', async () => {
-      mockModels.mockReturnValue({ data: ['vendor/alpha', 'vendor/zeta'] })
-      mockTask({ data: detail })
-      render(<TaskDetail id="t-1" onClose={vi.fn()} />)
-      fireEvent.change(screen.getByLabelText('Harness'), {
-        target: { value: String(Harness.OPENCODE) }
-      })
-      const model = screen.getByLabelText('Model')
-      fireEvent.change(model, { target: { value: 'vendor' } })
-      expect(screen.getByText('vendor/alpha')).toBeInTheDocument()
-      fireEvent.keyDown(model, { key: 'ArrowDown' })
-      fireEvent.keyDown(model, { key: 'Enter' })
-      expect(screen.getByLabelText('Model')).toHaveValue('vendor/alpha')
-    })
-
-    it('runs on Claude Code without a model', async () => {
-      mockTask({ data: detail })
-      render(<TaskDetail id="t-1" onClose={vi.fn()} />)
-      fireEvent.change(screen.getByLabelText('Harness'), {
-        target: { value: String(Harness.CLAUDE_CODE) }
-      })
-      expect(screen.queryByLabelText('Model')).not.toBeInTheDocument()
-      fireEvent.click(screen.getByRole('button', { name: 'Run' }))
-      await waitFor(() =>
-        expect(mockRun).toHaveBeenCalledWith('t-1', '', {
-          harness: Harness.CLAUDE_CODE,
-          model: ''
-        })
-      )
     })
 
     it('queues a job with the optional instructions and clears the box', async () => {

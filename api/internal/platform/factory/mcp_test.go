@@ -137,20 +137,20 @@ func TestAgentUpdatesATaskKeepingWhatItLeavesOut(t *testing.T) {
 	session := mcpSessionAs(t, asUser(models.RoleAgent))
 	created, err := callTool(t, session, "factory_create_task", map[string]any{
 		"repo_id": seededRepoID(t), "title": "Old title", "body": "old body",
-		"priority": "p1", "labels": []string{"bug", "Platform"},
+		"priority": "p1", "labels": []string{"docs", "Platform"},
 	})
 	require.NoError(t, err)
 	id := str(t, created, "task", "id")
 
 	updated, err := callTool(t, session, "factory_update_task", map[string]any{
 		"id": id, "title": "New title",
-		"add_labels": []string{"epic:x", "BUG"}, "remove_labels": []string{"platform"},
+		"add_labels": []string{"epic:x", "DOCS"}, "remove_labels": []string{"platform"},
 	})
 	require.NoError(t, err)
 	assert.Equal(t, "New title", str(t, updated, "task", "title"))
 	assert.Equal(t, "old body", str(t, updated, "task", "body"))
 	assert.Equal(t, "TASK_PRIORITY_P1", str(t, updated, "task", "priority"))
-	assert.Equal(t, []any{"bug", "epic:x"}, at(t, updated, "task", "labels"))
+	assert.Equal(t, []any{"docs", "epic:x"}, at(t, updated, "task", "labels"))
 	assert.Equal(t, "TASK_STATUS_BACKLOG", str(t, updated, "task", "status"))
 
 	rewritten, err := callTool(t, session, "factory_update_task",
@@ -252,12 +252,12 @@ func TestAgentFilesCommentsAndMovesATask(t *testing.T) {
 
 	created, err := callTool(t, session, "factory_create_task", map[string]any{
 		"repo_id": repoID, "title": "  Fix flaky test ", "body": "details",
-		"priority": "p1", "labels": []string{"bug"},
+		"priority": "p1", "labels": []string{"bug", "other"},
 	})
 	require.NoError(t, err)
 	id := str(t, created, "task", "id")
 	assert.Equal(t, "Fix flaky test", str(t, created, "task", "title"))
-	assert.Equal(t, "TASK_STATUS_BACKLOG", str(t, created, "task", "status"))
+	assert.Equal(t, "TASK_STATUS_READY", str(t, created, "task", "status"))
 	assert.Equal(t, "TASK_PRIORITY_P1", str(t, created, "task", "priority"))
 	assert.Equal(t, "agent:"+agentUserID, str(t, created, "task", "createdBy"))
 	assert.Equal(t, repoID, str(t, created, "task", "repoId"))
@@ -274,9 +274,9 @@ func TestAgentFilesCommentsAndMovesATask(t *testing.T) {
 	got, err := callTool(t, session, "factory_get_task", map[string]any{"id": id})
 	require.NoError(t, err)
 	assert.Equal(t, "details", str(t, got, "task", "body"))
-	assert.Len(t, at(t, got, "comments"), 1)
-	assert.Equal(t, "agent:"+agentUserID, str(t, got, "comments", 0, "author"))
-	assert.Equal(t, "On it", str(t, got, "comments", 0, "body"))
+	assert.Len(t, at(t, got, "comments"), 2)
+	assert.Equal(t, "agent:"+agentUserID, str(t, got, "comments", 1, "author"))
+	assert.Equal(t, "On it", str(t, got, "comments", 1, "body"))
 	assert.Regexp(t, `^T-[0-9]+$`, id)
 
 	for _, ref := range []string{strings.TrimPrefix(id, "T-"), taskKey(t, id).String()} {

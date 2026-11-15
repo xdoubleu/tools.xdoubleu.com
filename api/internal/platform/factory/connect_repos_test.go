@@ -13,7 +13,6 @@ import (
 	factoryv1 "tools.xdoubleu.com/gen/factory/v1"
 	"tools.xdoubleu.com/gen/factory/v1/factoryv1connect"
 	"tools.xdoubleu.com/internal/kit/constants"
-	"tools.xdoubleu.com/internal/platform/factory"
 )
 
 func repoClient(t *testing.T) factoryv1connect.RepoServiceClient {
@@ -27,8 +26,6 @@ func validRepo(name string) *factoryv1.Repo {
 		Owner:             "octo",
 		Name:              name,
 		DefaultBranch:     "trunk",
-		DefaultHarness:    factoryv1.Harness_HARNESS_OPENCODE,
-		DefaultModel:      "vendor/model",
 		AutoPickup:        true,
 		SetupCommands:     "npm ci",
 		AgentInstructions: "Be careful.",
@@ -74,7 +71,6 @@ func TestListReposIncludesTheSeededRepo(t *testing.T) {
 	}
 	require.NotNil(t, seeded)
 	assert.Equal(t, "main", seeded.DefaultBranch)
-	assert.Equal(t, factoryv1.Harness_HARNESS_CLAUDE_CODE, seeded.DefaultHarness)
 	assert.Equal(t, "Follow AGENTS.md.", seeded.AgentInstructions)
 	assert.EqualValues(t, 60, seeded.TimeLimitMinutes)
 }
@@ -89,8 +85,6 @@ func TestCreateRepoStoresEverySetting(t *testing.T) {
 	assert.Equal(t, "octo", got.Owner)
 	assert.Equal(t, "alpha", got.Name)
 	assert.Equal(t, "trunk", got.DefaultBranch)
-	assert.Equal(t, factoryv1.Harness_HARNESS_OPENCODE, got.DefaultHarness)
-	assert.Equal(t, "vendor/model", got.DefaultModel)
 	assert.True(t, got.AutoPickup)
 	assert.Equal(t, "npm ci", got.SetupCommands)
 	assert.Equal(t, "Be careful.", got.AgentInstructions)
@@ -106,7 +100,6 @@ func TestCreateRepoDefaults(t *testing.T) {
 	assert.Equal(t, "octo", got.Owner)
 	assert.Equal(t, "beta", got.Name)
 	assert.Equal(t, "main", got.DefaultBranch)
-	assert.Equal(t, factoryv1.Harness_HARNESS_CLAUDE_CODE, got.DefaultHarness)
 	assert.EqualValues(t, 60, got.TimeLimitMinutes)
 	assert.False(t, got.AutoPickup, "off unless asked for")
 }
@@ -141,24 +134,6 @@ func TestCreateRepoValidation(t *testing.T) {
 		}),
 		"branch slash": with(func(r *factoryv1.Repo) {
 			r.DefaultBranch = "/a"
-		}),
-		"bad harness": with(func(r *factoryv1.Repo) {
-			r.DefaultHarness = 99
-		}),
-		"opencode without a model": with(func(r *factoryv1.Repo) {
-			r.DefaultModel = ""
-		}),
-		"model without a vendor": with(func(r *factoryv1.Repo) {
-			r.DefaultModel = "model"
-		}),
-		"model as an option": with(func(r *factoryv1.Repo) {
-			r.DefaultModel = "-x/model"
-		}),
-		"model with a space": with(func(r *factoryv1.Repo) {
-			r.DefaultModel = "a/b c"
-		}),
-		"claude code with a model": with(func(r *factoryv1.Repo) {
-			r.DefaultHarness = factoryv1.Harness_HARNESS_CLAUDE_CODE
 		}),
 		"long setup": with(func(r *factoryv1.Repo) {
 			r.SetupCommands = strings.Repeat("a", 10001)
@@ -195,8 +170,6 @@ func TestUpdateRepoReplacesEverySetting(t *testing.T) {
 	repo := createRepo(t, c, validRepo("epsilon"))
 
 	repo.DefaultBranch = "develop"
-	repo.DefaultHarness = factoryv1.Harness_HARNESS_CLAUDE_CODE
-	repo.DefaultModel = ""
 	repo.AutoPickup = false
 	repo.SetupCommands = "make deps"
 	repo.AgentInstructions = "Follow AGENTS.md."
@@ -209,7 +182,6 @@ func TestUpdateRepoReplacesEverySetting(t *testing.T) {
 	got := resp.Repo
 	assert.Equal(t, repo.Id, got.Id)
 	assert.Equal(t, "develop", got.DefaultBranch)
-	assert.Equal(t, factoryv1.Harness_HARNESS_CLAUDE_CODE, got.DefaultHarness)
 	assert.Equal(t, "make deps", got.SetupCommands)
 	assert.Equal(t, "Follow AGENTS.md.", got.AgentInstructions)
 	assert.EqualValues(t, 90, got.TimeLimitMinutes)
@@ -258,7 +230,7 @@ func TestUpdateRepoDoesNotResetUnsetSettings(t *testing.T) {
 	c := repoClient(t)
 	repo := createRepo(t, c, validRepo("kept"))
 
-	repo.DefaultHarness = factoryv1.Harness_HARNESS_UNSPECIFIED
+	repo.DefaultBranch = ""
 	_, err := c.UpdateRepo(
 		context.Background(), &factoryv1.UpdateRepoRequest{Repo: repo},
 	)
@@ -295,41 +267,6 @@ func TestNonAdminDeniedRepos(t *testing.T) {
 	assert.Equal(t, connect.CodePermissionDenied, code(err))
 	_, err = c.UpdateRepo(ctx, &factoryv1.UpdateRepoRequest{Repo: validRepo("x")})
 	assert.Equal(t, connect.CodePermissionDenied, code(err))
-}
-
-// modelLister serves fixed ids for the model picker test.
-type modelLister struct{ ids []string }
-
-func (m modelLister) ListModels(context.Context) ([]string, error) { return m.ids, nil }
-
-func newModelsRepoClient(
-	t *testing.T, ids []string,
-) factoryv1connect.RepoServiceClient {
-	t.Helper()
-	app := newAppWith(
-		true, constants.ChannelBrowser, factory.WithModels(modelLister{ids: ids}),
-	)
-	return factoryv1connect.NewRepoServiceClient(
-		connect.NewClient(newTransport(t, app)),
-	)
-}
-
-func TestListOpenRouterModelsSorted(t *testing.T) {
-	c := newModelsRepoClient(t, []string{"vendor/zeta", "vendor/alpha"})
-	resp, err := c.ListOpenRouterModels(
-		context.Background(), &factoryv1.ListOpenRouterModelsRequest{},
-	)
-	require.NoError(t, err)
-	assert.Equal(t, []string{"vendor/alpha", "vendor/zeta"}, resp.ModelIds)
-}
-
-func TestListOpenRouterModelsEmptyWithoutALister(t *testing.T) {
-	c := repoClient(t)
-	resp, err := c.ListOpenRouterModels(
-		context.Background(), &factoryv1.ListOpenRouterModelsRequest{},
-	)
-	require.NoError(t, err)
-	assert.Empty(t, resp.ModelIds)
 }
 
 // upSection returns a goose migration's Up statements without its markers.

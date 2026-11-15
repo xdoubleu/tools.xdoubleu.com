@@ -28,4 +28,4 @@ jobs:
         if: github.event_name == 'pull_request'
         working-directory: './web'
         run: |
-          python3 ../tools/diff_coverage_ts.py coverage/lcov.info
+          ../scripts/diff_coverage.sh lcov coverage/lcov.info

@@ -103,7 +103,9 @@ func newFakeAPI(jobs ...*runner.ClaimedJob) *fakeAPI {
 	}
 }
 
-func (f *fakeAPI) ClaimJob(context.Context, string, int) (*runner.ClaimedJob, error) {
+func (f *fakeAPI) ClaimJob(
+	context.Context, string, int, string, string,
+) (*runner.ClaimedJob, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	if f.claimErr != nil {
@@ -219,9 +221,27 @@ type fakeSandbox struct {
 	run   func(ctx context.Context, spec runner.SandboxSpec) (int, error)
 	mu    sync.Mutex
 	specs []runner.SandboxSpec
+	// realSync runs the host's base-sync script for real instead of skipping it.
+	// Either way it is not recorded in specs.
+	realSync bool
 }
 
 func (f *fakeSandbox) Run(ctx context.Context, spec runner.SandboxSpec) (int, error) {
+	if len(spec.Command) == 5 && spec.Command[3] == "sync" {
+		if !f.realSync {
+			return 0, nil
+		}
+		cmd := exec.CommandContext(ctx, spec.Command[0], spec.Command[1:]...)
+		cmd.Dir = spec.CloneDir
+		if err := cmd.Run(); err != nil {
+			var ee *exec.ExitError
+			if errors.As(err, &ee) {
+				return ee.ExitCode(), nil
+			}
+			return 1, err
+		}
+		return 0, nil
+	}
 	f.mu.Lock()
 	f.specs = append(f.specs, spec)
 	f.mu.Unlock()
@@ -266,9 +286,9 @@ func newJob() *runner.ClaimedJob {
 	return &runner.ClaimedJob{
 		Routine: "",
 		ID:      jobID, TaskID: taskID, RepoOwner: "xdoubleu", RepoName: "tools.xdoubleu.com",
-		DefaultBranch: "main", Harness: runner.HarnessClaudeCode, Prompt: "# Task: Fix it",
+		DefaultBranch: "main", Prompt: "# Task: Fix it",
 		Branch: branch, SetupCommands: "make setup", TimeLimitMinutes: 1,
-		MCPClientID: "", MCPClientSecret: "", ResumeSessionID: "", Model: "",
+		MCPClientID: "", MCPClientSecret: "", ResumeSessionID: "",
 	}
 }
 
@@ -289,7 +309,7 @@ func newEnv(
 	remote := newRemote(t)
 	dir := t.TempDir()
 	api := newFakeAPI(jobs...)
-	sb := &fakeSandbox{run: sandbox, mu: sync.Mutex{}, specs: nil}
+	sb := &fakeSandbox{run: sandbox, mu: sync.Mutex{}, specs: nil, realSync: false}
 	return &jobEnv{
 		api: api, sandbox: sb, dir: dir, remote: remote,
 		runner: &runner.JobRunner{
@@ -302,7 +322,7 @@ func newEnv(
 				RunWithEnv: nil,
 			},
 			Sandbox: sb, Harness: runner.ClaudeCode{}, ClaudeToken: nil, AuthorEmail: "",
-			Proxy: nil, Activity: nil, DataDir: dir, Secrets: nil,
+			Proxy: nil, Activity: nil, DataDir: dir, DiskFree: nil, Secrets: nil,
 			GitHub: nil, ServerURL: "", PublishRetry: 0,
 			CheckInEvery: 10 * time.Millisecond, Minute: time.Second, EventsEvery: 0,
 			PollEvery: time.Millisecond, RunningPollEvery: 0, MaxWatch: 5 * time.Second,
@@ -673,7 +693,7 @@ func TestTheServerCannotStretchTheTimeLimit(t *testing.T) {
 	assert.WithinDuration(t, start.Add(24*time.Hour), deadline, time.Minute)
 }
 
-func TestAJobClaimedAgainStartsFromACleanDirectory(t *testing.T) {
+func TestAJobClaimedAgainKeepsItsUnpushedCloneAndClearsTheRest(t *testing.T) {
 	env := newEnv(t, writes("ok", 0), newJob(), newJob())
 	_, err := env.runner.Next(context.Background())
 	require.NoError(t, err)
@@ -687,7 +707,8 @@ func TestAJobClaimedAgainStartsFromACleanDirectory(t *testing.T) {
 		env.api.done()[1].succeeded,
 		"the second clone did not collide with the first",
 	)
-	assert.NoFileExists(t, stale)
+	assert.FileExists(t, stale, "work that was never pushed is not wiped")
+	assert.NoDirExists(t, filepath.Join(env.dir, "jobs", ".kept-"+jobID))
 }
 
 func TestABrokenMirrorIsReplaced(t *testing.T) {
@@ -847,21 +868,8 @@ func TestAReplyThatRewritesTheBranchIsRefused(t *testing.T) {
 	assert.Contains(t, got.outcome, "no longer builds on where the job began")
 }
 
-func TestAReplyNeedsTheEarlierWorkOnGitHub(t *testing.T) {
-	env := newEnv(t, writes("ok", 0), replyJob())
-	_, err := env.runner.Next(context.Background())
-	require.NoError(t, err)
-
-	got := env.api.done()[0]
-	assert.False(t, got.succeeded)
-	assert.Contains(t, got.outcome, "Could not prepare the clone")
-	assert.Contains(t, got.outcome, "pushed to GitHub")
-	assert.Empty(t, env.sandbox.specs, "the agent never ran")
-}
-
 func openCodeJob() *runner.ClaimedJob {
 	job := newJob()
-	job.Harness, job.Model = runner.HarnessOpenCode, "vendor/model"
 	return job
 }
 
@@ -917,7 +925,6 @@ func TestAnOpenCodeReplyResumesItsSession(t *testing.T) {
 	ranFirstJob(t, env)
 
 	reply := replyJob()
-	reply.Harness, reply.Model = runner.HarnessOpenCode, "vendor/model"
 	reply.ResumeSessionID = "ses_42"
 	env.api.jobs = append(env.api.jobs, reply)
 	_, err := env.runner.Next(context.Background())

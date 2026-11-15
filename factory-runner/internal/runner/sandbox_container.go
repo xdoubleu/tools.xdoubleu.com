@@ -38,6 +38,9 @@ const (
 	// jobNPMCache is the writable copy npm uses: npm writes to its cache, and both
 	// sources are read-only.
 	jobNPMCache = "/tmp/npmcache"
+	// jobGoBuildCache is the Go build cache on the session disk: on the 4 GB tmpfs
+	// `make lint test` in api fills it.
+	jobGoBuildCache = SandboxSessionDir + "/go-build"
 
 	// imageGoDownloadCache and imageNPMCache are baked into the job image
 	// (Containerfile); the root is read-only, so GOMODCACHE lives on the tmpfs.
@@ -408,7 +411,8 @@ func execArgv(name, envFile, npmCache string, first bool, spec SandboxSpec) []st
 // fatal.
 const postgresScript = `pgbin=$(ls -d /usr/lib/postgresql/*/bin 2>/dev/null | tail -n 1)
 if [ -n "$pgbin" ] && [ ! -d /tmp/pgdata ]; then
-  { "$pgbin/initdb" -D /tmp/pgdata -U postgres --auth=trust >/dev/null &&
+  { "$pgbin/initdb" -D /tmp/pgdata -U postgres --auth=trust \
+    -E UTF8 --locale=C.UTF-8 >/dev/null &&
     "$pgbin/pg_ctl" -D /tmp/pgdata -l /tmp/pgdata.log -w \
       -o "-k /tmp -c listen_addresses=localhost" start >/dev/null; } ||
     echo "factory: postgres did not start, see /tmp/pgdata.log" >&2
@@ -442,8 +446,17 @@ func (s *ContainerSandbox) npmCacheSource() string {
 // what changed since. Without a proxy the VM stays offline.
 func (s *ContainerSandbox) registryEnv(proxyURL string) map[string]string {
 	env := map[string]string{
-		"GOMODCACHE":       "/tmp/gomodcache",
-		"GOPROXY":          "file://" + imageGoDownloadCache,
+		"GOMODCACHE": "/tmp/gomodcache",
+		"GOCACHE":    jobGoBuildCache,
+		"GOPROXY":    "file://" + imageGoDownloadCache,
+		// Tools the Makefile installs by version have no sumdb route offline; the
+		// image's cache was verified when it was built.
+		"GOSUMDB":     "off",
+		"GOTOOLCHAIN": "local",
+		// The VM has no DNS, so lookups (tests fetching example.com) must fail
+		// fast instead of waiting out the resolver's default retries.
+		"GODEBUG":          "netdns=go",
+		"RES_OPTIONS":      "timeout:1 attempts:1",
 		"npm_config_cache": jobNPMCache,
 	}
 	if s.GoModCache != "" {
