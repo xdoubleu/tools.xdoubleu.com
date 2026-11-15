@@ -41,9 +41,12 @@ const (
 	// jobGoBuildCache is the Go build cache on the session disk: on the 4 GB tmpfs
 	// `make lint test` in api fills it.
 	jobGoBuildCache = SandboxSessionDir + "/go-build"
+	// jobGoModCache is the writable module cache, on the session disk for the same
+	// reason (about 1.5 GB).
+	jobGoModCache = SandboxSessionDir + "/gomodcache"
 
 	// imageGoDownloadCache and imageNPMCache are baked into the job image
-	// (Containerfile); the root is read-only, so GOMODCACHE lives on the tmpfs.
+	// (Containerfile); the root is read-only, so GOMODCACHE lives on the session disk.
 	imageGoDownloadCache = "/opt/gomodcache/cache/download"
 	imageNPMCache        = "/opt/npmcache"
 
@@ -446,7 +449,7 @@ func (s *ContainerSandbox) npmCacheSource() string {
 // what changed since. Without a proxy the VM stays offline.
 func (s *ContainerSandbox) registryEnv(proxyURL string) map[string]string {
 	env := map[string]string{
-		"GOMODCACHE": "/tmp/gomodcache",
+		"GOMODCACHE": jobGoModCache,
 		"GOCACHE":    jobGoBuildCache,
 		"GOPROXY":    "file://" + imageGoDownloadCache,
 		// Tools the Makefile installs by version have no sumdb route offline; the
