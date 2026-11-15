@@ -158,8 +158,12 @@ func (l *jobLoop) loop() result {
 func (l *jobLoop) attempts() result {
 	command := l.launch.command
 	prompt := fmt.Sprintf(preamble, l.job.Branch) + "\n\n"
-	if l.since != "" && l.job.ResumeSessionID == "" {
+	if (l.since != "" || l.dirs.taken) && l.job.ResumeSessionID == "" {
 		prompt += fmt.Sprintf(continuePrompt, l.job.DefaultBranch) + "\n\n"
+	}
+	if l.dirs.note != "" {
+		prompt += l.dirs.note + "\n\n"
+		l.note(l.dirs.note)
 	}
 	prompt += l.job.Prompt
 	var last *step
