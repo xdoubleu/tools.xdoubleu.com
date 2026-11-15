@@ -90,6 +90,7 @@ func newEnv(t *testing.T) env {
 				return nil
 			},
 			control:          nil,
+			log:              nil,
 			menu:             nil,
 			jobs:             nil,
 			installedRelease: func(string) string { return Release },

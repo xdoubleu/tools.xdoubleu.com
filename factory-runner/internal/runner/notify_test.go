@@ -63,7 +63,7 @@ func runChecks(
 		return nil
 	}, cancel)
 	_ = runner.RunForTest(ctx, hb, "frt_x", newQuiet(),
-		runner.Options{Updater: upd, Activity: nil, Control: control},
+		options(upd, nil, control),
 		func(context.Context, time.Duration) { time.Sleep(time.Millisecond) },
 		func() time.Time { return now })
 }
@@ -112,7 +112,7 @@ func TestARefusedCheckSaysWhy(t *testing.T) {
 	now := time.Date(2026, 11, 1, 12, 0, 0, 0, time.UTC)
 	// A stopped idle runner never heartbeats, so the loop's sleep ends the test.
 	_ = runner.RunForTest(ctx, newScripted(nil, cancel), "frt_x", newQuiet(),
-		runner.Options{Updater: newFakeUpdater(false, nil), Activity: nil, Control: control},
+		options(newFakeUpdater(false, nil), nil, control),
 		func(context.Context, time.Duration) { cancel() },
 		func() time.Time { return now })
 	assert.Equal(t, []string{
@@ -134,10 +134,7 @@ func TestACheckDuringAJobSaysItUpdatesAfterwards(t *testing.T) {
 		return nil
 	}, cancel)
 	_ = runner.RunForTest(ctx, hb, "frt_x", newQuiet(),
-		runner.Options{
-			Updater:  &busyAwareUpdater{calls: atomic.Int32{}},
-			Activity: activity, Control: control,
-		},
+		options(&busyAwareUpdater{calls: atomic.Int32{}}, activity, control),
 		func(context.Context, time.Duration) { time.Sleep(time.Millisecond) },
 		func() time.Time { return now })
 	assert.Equal(t, []string{

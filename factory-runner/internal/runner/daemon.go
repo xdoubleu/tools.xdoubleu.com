@@ -37,6 +37,10 @@ type Options struct {
 	// Control, when set, pauses the heartbeat and update checks and records what
 	// the menu bar shows.
 	Control *Control
+	// UpdateEvery is how often to look for a newer release; zero means UpdateEvery.
+	UpdateEvery time.Duration
+	// Sleep is how the loop waits; nil sleeps for real. Tests shorten it.
+	Sleep func(context.Context, time.Duration)
 }
 
 // clock is what the loop waits and reads time with, swapped in tests.
@@ -57,7 +61,11 @@ func Run(
 	log *slog.Logger,
 	opts Options,
 ) error {
-	return run(ctx, hb, token, log, opts, clock{sleep: sleepCtx, now: time.Now})
+	sleep := opts.Sleep
+	if sleep == nil {
+		sleep = sleepCtx
+	}
+	return run(ctx, hb, token, log, opts, clock{sleep: sleep, now: time.Now})
 }
 
 func run(
@@ -75,13 +83,8 @@ func run(
 	updated := make(chan bool, 1)
 	updating := false
 	for ctx.Err() == nil {
-		select {
-		case replaced := <-updated:
-			updating = false
-			if replaced {
-				return ErrRestart
-			}
-		default:
+		if mustRestart(opts, updated, &updating) {
+			return ErrRestart
 		}
 		if !updating {
 			if check, requested := due(opts, clk.now(), lastCheck); check {
@@ -105,6 +108,7 @@ func run(
 		case err == nil:
 			backoff = minLoop
 			opts.Control.RecordBeat()
+			recordQueued(hb, opts.Control)
 			if wait := minLoop - clk.now().Sub(started); wait > 0 {
 				clk.sleep(ctx, wait)
 			}
@@ -119,6 +123,31 @@ func run(
 		}
 	}
 	return nil
+}
+
+// mustRestart reports whether the watchdog asked for a restart or a finished
+// update replaced the binary; a finished update clears updating either way.
+func mustRestart(opts Options, updated <-chan bool, updating *bool) bool {
+	select {
+	case <-opts.Control.restartRequests():
+		return true
+	default:
+	}
+	select {
+	case replaced := <-updated:
+		*updating = false
+		return replaced
+	default:
+		return false
+	}
+}
+
+// recordQueued hands the server's waiting-jobs count, when the heartbeater
+// keeps one, to the control.
+func recordQueued(hb Heartbeater, c *Control) {
+	if q, ok := hb.(interface{ Queued() int }); ok {
+		c.RecordQueued(q.Queued())
+	}
 }
 
 // beatOnce makes one heartbeat call, cut short when the owner asks for an update
@@ -164,7 +193,11 @@ func due(opts Options, now, lastCheck time.Time) (bool, bool) {
 	}
 	// A requested check is only consumed once it can run.
 	requested := opts.Control != nil && opts.Control.takeCheck()
-	return requested || now.Sub(lastCheck) >= UpdateEvery, requested
+	every := opts.UpdateEvery
+	if every <= 0 {
+		every = UpdateEvery
+	}
+	return requested || now.Sub(lastCheck) >= every, requested
 }
 
 func tryUpdate(

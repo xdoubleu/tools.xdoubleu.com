@@ -30,6 +30,8 @@ type Status struct {
 	Draining bool
 	// Unpaired is true until this Mac has a device token.
 	Unpaired bool
+	// Claim is why this runner does or doesn't claim; the menu shows it when set.
+	Claim ClaimState
 }
 
 // Control is the runner's local state shared by the daemon, the claim loop and
@@ -57,6 +59,14 @@ type Control struct {
 	paired chan struct{}
 	// wake nudges the daemon loop out of a held heartbeat when a check is asked for.
 	wake chan struct{}
+	// restart and kick carry the watchdog's repairs to the daemon and the retry
+	// of the job loop.
+	restart chan struct{}
+	kick    chan struct{}
+	sources ClaimSources
+	jobsOff string
+	// queued is the server's latest count of waiting jobs.
+	queued int
 }
 
 // NewControl reads the pause flag from pausePath.
@@ -79,6 +89,11 @@ func NewControl(pausePath, version string, activity *Activity) *Control {
 		unpaired:   false,
 		paired:     make(chan struct{}, 1),
 		wake:       make(chan struct{}, 1),
+		restart:    make(chan struct{}, 1),
+		kick:       make(chan struct{}, 1),
+		sources:    ClaimSources{Max: nil, Jobs: nil, LimitUntil: nil},
+		jobsOff:    "",
+		queued:     QueuedUnknown,
 	}
 }
 
@@ -180,6 +195,7 @@ func (c *Control) RecordUpdate(outcome string) {
 func (c *Control) Snapshot() Status {
 	c.mu.Lock()
 	mode := c.mode
+	sourced := c.sources.Max != nil
 	s := Status{
 		Version:       c.version,
 		Paused:        c.paused,
@@ -189,11 +205,15 @@ func (c *Control) Snapshot() Status {
 		Mode:          "",
 		Draining:      c.draining,
 		Unpaired:      c.unpaired,
+		Claim:         noClaim,
 	}
 	c.mu.Unlock()
 	// Read outside the lock: the source may itself ask whether the runner is paused.
 	if mode != nil {
 		s.Mode = mode()
+	}
+	if sourced {
+		s.Claim = c.ClaimState()
 	}
 	return s
 }
@@ -307,9 +327,13 @@ func (s Status) MenuLines(release string, now time.Time) MenuLines {
 	if s.Update != "" {
 		update = "Update: " + s.Update
 	}
+	status := s.Line()
+	if s.Claim.Max > 0 && !s.Paused && !s.Unpaired {
+		status = s.Claim.Line()
+	}
 	return MenuLines{
 		Header:    "Factory Runner " + version,
-		Status:    s.Line(),
+		Status:    status,
 		Heartbeat: beat,
 		Update:    update,
 	}

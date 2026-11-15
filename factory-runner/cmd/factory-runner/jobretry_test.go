@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"sync"
 	"testing"
 	"time"
 
@@ -17,6 +18,7 @@ func TestFailedJobsAreBuiltAgainWithGrowingPausesUntilTheyRun(t *testing.T) {
 	tries := 0
 	ran := false
 	loop := &retryingJobs{
+		kick: nil, control: nil, mu: sync.Mutex{}, live: nil,
 		build: func(context.Context) (jobLoop, error) {
 			tries++
 			if tries < 4 {
@@ -42,6 +44,7 @@ func TestTheRetryPauseIsCappedAndStopsWithTheContext(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	var pauses []time.Duration
 	loop := &retryingJobs{
+		kick: nil, control: nil, mu: sync.Mutex{}, live: nil,
 		build: func(context.Context) (jobLoop, error) { return nil, errors.New("no") },
 		out:   &bytes.Buffer{},
 		sleep: func(_ context.Context, d time.Duration) {

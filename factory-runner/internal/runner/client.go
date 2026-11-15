@@ -7,8 +7,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"strings"
+	"sync/atomic"
 	"time"
 )
 
@@ -42,6 +44,8 @@ type Client struct {
 	BaseURL string
 	HTTP    *http.Client
 	Version string
+
+	queued atomic.Int32
 }
 
 // NewClient returns a client for the API root server.
@@ -50,6 +54,7 @@ func NewClient(server, version string) *Client {
 		BaseURL: strings.TrimRight(server, "/"),
 		HTTP:    http.DefaultClient,
 		Version: version,
+		queued:  atomic.Int32{},
 	}
 }
 
@@ -61,6 +66,10 @@ type pairRequest struct {
 type pairResponse struct {
 	DeviceToken string `json:"deviceToken"`
 	RunnerName  string `json:"runnerName"`
+}
+
+type heartbeatResponse struct {
+	QueuedJobs int `json:"queuedJobs"`
 }
 
 type heartbeatRequest struct {
@@ -90,8 +99,19 @@ func (c *Client) Pair(ctx context.Context, code string) (string, string, error) 
 // Heartbeat reports the runner alive. The server holds the call open for about
 // 20 seconds before answering.
 func (c *Client) Heartbeat(ctx context.Context, token string) error {
-	return c.call(ctx, "Heartbeat", token, heartbeatTimeout,
-		heartbeatRequest{Version: c.Version}, &struct{}{})
+	var resp heartbeatResponse
+	err := c.call(ctx, "Heartbeat", token, heartbeatTimeout,
+		heartbeatRequest{Version: c.Version}, &resp)
+	if err == nil {
+		n := min(max(resp.QueuedJobs, 0), math.MaxInt32)
+		c.queued.Store(int32(n))
+	}
+	return err
+}
+
+// Queued is the count of waiting jobs the latest heartbeat reported.
+func (c *Client) Queued() int {
+	return int(c.queued.Load())
 }
 
 func (c *Client) call(

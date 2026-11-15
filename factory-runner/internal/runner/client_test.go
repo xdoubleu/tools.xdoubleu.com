@@ -94,3 +94,11 @@ func TestUnauthenticatedIgnoresOtherErrors(t *testing.T) {
 	assert.False(t, runner.Unauthenticated(nil))
 	assert.False(t, runner.Unauthenticated(context.Canceled))
 }
+
+func TestHeartbeatKeepsTheQueuedCountTheServerReports(t *testing.T) {
+	c := serve(t, func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(`{"queuedJobs": 3}`))
+	})
+	require.NoError(t, c.Heartbeat(context.Background(), "frt_x"))
+	assert.Equal(t, 3, c.Queued())
+}

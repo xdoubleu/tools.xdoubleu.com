@@ -73,7 +73,7 @@ func TestARequestedCheckSkipsTheHourlyWait(t *testing.T) {
 		return nil
 	}, cancel)
 	require.NoError(t, runner.RunForTest(ctx, hb, "frt_x", newQuiet(),
-		runner.Options{Updater: upd, Activity: nil, Control: control},
+		options(upd, nil, control),
 		func(context.Context, time.Duration) { time.Sleep(5 * time.Millisecond) },
 		func() time.Time { return now }))
 	assert.Equal(t, 2, int(upd.calls.Load()))
@@ -104,11 +104,7 @@ func TestMenuLines(t *testing.T) {
 
 // status builds a zero Status and lets set fill in what a case needs.
 func status(set func(*runner.Status)) runner.Status {
-	s := runner.Status{
-		Version: "", Paused: false, Busy: false, LastHeartbeat: time.Time{}, Update: "",
-		Mode:     "",
-		Draining: false, Unpaired: false,
-	}
+	var s runner.Status
 	set(&s)
 	return s
 }
@@ -132,7 +128,7 @@ func TestARequestedCheckWaitsForAJobToEnd(t *testing.T) {
 		return nil
 	}, cancel)
 	require.NoError(t, runner.RunForTest(ctx, hb, "frt_x", newQuiet(),
-		runner.Options{Updater: upd, Activity: activity, Control: control},
+		options(upd, activity, control),
 		func(context.Context, time.Duration) { time.Sleep(time.Millisecond) },
 		func() time.Time { return now }))
 	assert.GreaterOrEqual(t, int(upd.calls.Load()), 1)
@@ -148,7 +144,7 @@ func TestARequestedCheckIsRefusedWhileStopped(t *testing.T) {
 	// A stopped idle runner never heartbeats, so the loop's sleep ends the test.
 	hb := newScripted(nil, cancel)
 	require.NoError(t, runner.RunForTest(ctx, hb, "frt_x", newQuiet(),
-		runner.Options{Updater: upd, Activity: nil, Control: control},
+		options(upd, nil, control),
 		func(context.Context, time.Duration) { cancel() },
 		func() time.Time { return now }))
 	assert.Zero(t, upd.calls.Load())
@@ -170,7 +166,7 @@ func TestARequestedCheckCutsAHeldHeartbeatShort(t *testing.T) {
 	done := make(chan error, 1)
 	go func() {
 		done <- runner.RunForTest(ctx, hb, "frt_x", newQuiet(),
-			runner.Options{Updater: upd, Activity: nil, Control: control},
+			options(upd, nil, control),
 			func(context.Context, time.Duration) { time.Sleep(time.Millisecond) },
 			func() time.Time { return now })
 	}()

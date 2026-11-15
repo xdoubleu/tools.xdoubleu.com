@@ -128,3 +128,6 @@ func NewPhaseTimings(
 		retries: retries,
 	}
 }
+
+// LeakSlotForTest counts a job slot no job holds.
+func (r *JobRunner) LeakSlotForTest() { r.slots.Add(1) }

@@ -110,6 +110,23 @@ func (a *Activity) Idle() bool {
 	return a.n == 0
 }
 
+// Reconcile lowers the count to n when it is higher, which a job that never
+// called End would leave stuck, and reports how many it dropped.
+func (a *Activity) Reconcile(n int) int {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if a.n <= n {
+		return 0
+	}
+	dropped := a.n - n
+	a.n = n
+	if a.n == 0 && a.stop != nil {
+		a.stop()
+		a.stop = nil
+	}
+	return dropped
+}
+
 // BeginVM records a job's VM starting; the caller must call EndVM.
 func (a *Activity) BeginVM() {
 	a.mu.Lock()

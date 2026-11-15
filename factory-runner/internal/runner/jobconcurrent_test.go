@@ -128,3 +128,38 @@ func TestAUsageLimitStopsEveryClaimUntilItLifts(t *testing.T) {
 	time.Sleep(2500 * time.Millisecond)
 	assert.Equal(t, 1, env.api.queued(), "no job is claimed while the limit holds")
 }
+
+func TestReconcileFreesSlotsAndBusyCountsNoJobBacks(t *testing.T) {
+	env := newEnv(t, writes("Did it.", 0))
+	activity := runner.NewActivity(awakeStub())
+	env.runner.Activity = activity
+	require.NoError(t, activity.Begin())
+	env.runner.MaxJobs = func() int { return 2 }
+
+	assert.Equal(t, 1, env.runner.Reconcile(), "the busy count had no job behind it")
+	assert.True(t, activity.Idle())
+	assert.Equal(t, 0, env.runner.Reconcile())
+	assert.Empty(t, env.runner.RunningJobs())
+	assert.Equal(t, 2, env.runner.MaxJobsNow())
+	assert.True(t, env.runner.LimitUntil().IsZero())
+}
+
+func TestAUsageLimitShowsWhenItLifts(t *testing.T) {
+	reset := time.Now().Add(2 * time.Hour).Unix()
+	env := newEnv(t, limitSandbox([]string{rejectedAt(reset)}, "", 1), jobNo(1))
+	startLoop(t, env.runner)
+	waitCompleted(t, env, 1)
+	assert.Equal(t, reset, env.runner.LimitUntil().Unix())
+}
+
+func TestReconcileFreesALeakedSlotSoTheLoopClaimsAgain(t *testing.T) {
+	env := newEnv(t, writes("Did it.", 0), jobNo(1))
+	env.runner.LeakSlotForTest()
+
+	startLoop(t, env.runner)
+	time.Sleep(1500 * time.Millisecond)
+	assert.Equal(t, 1, env.api.queued(), "the leaked slot keeps the loop from claiming")
+
+	assert.Equal(t, 1, env.runner.Reconcile())
+	waitCompleted(t, env, 1)
+}
