@@ -285,7 +285,7 @@ func (gh *fakeGitHub) mergeAs(url, body, sha string) {
 	gh.mu.Lock()
 	defer gh.mu.Unlock()
 	gh.merged = append(gh.merged, githubapp.MergedPullRequest{
-		URL: url, Body: body, MergeSHA: sha,
+		URL: url, Title: "", Branch: "", Body: body, MergeSHA: sha,
 	})
 }
 
@@ -323,7 +323,9 @@ func (gh *fakeGitHub) openLinked(url string, number int, body string) {
 	gh.mu.Lock()
 	defer gh.mu.Unlock()
 	gh.open = append(gh.open,
-		githubapp.OpenPullRequest{URL: url, Number: number, Body: body})
+		githubapp.OpenPullRequest{
+			URL: url, Number: number, Title: "", Branch: "", Body: body,
+		})
 }
 
 func TestAnOpenPullRequestLinkingATaskIsListedWithItsChecks(t *testing.T) {
