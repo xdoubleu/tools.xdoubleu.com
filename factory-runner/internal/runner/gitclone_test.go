@@ -298,3 +298,32 @@ func TestFetchBaseFailsOnANonRepoAndOnAFailedGit(t *testing.T) {
 	require.ErrorContains(t,
 		g.FetchBase(context.Background(), "o", "n", "main", clone), "git")
 }
+
+func TestCommitTrackedCommitsEditsAndKeepsUntrackedFiles(t *testing.T) {
+	dir := t.TempDir()
+	run := func(args ...string) string {
+		cmd := exec.Command("git", args...)
+		cmd.Dir = dir
+		cmd.Env = append(os.Environ(), "GIT_AUTHOR_NAME=a", "GIT_AUTHOR_EMAIL=a@x",
+			"GIT_COMMITTER_NAME=a", "GIT_COMMITTER_EMAIL=a@x")
+		out, err := cmd.CombinedOutput()
+		require.NoError(t, err, string(out))
+		return strings.TrimSpace(string(out))
+	}
+	run("init", "-q")
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "Makefile"), []byte("a\n"), 0o600))
+	run("add", ".")
+	run("commit", "-q", "-m", "init")
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "Makefile"), []byte("b\n"), 0o600))
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "new.txt"), []byte("n\n"), 0o600))
+
+	g := &runner.Git{Dir: t.TempDir(), RemoteURL: nil, Run: nil, RunWithEnv: nil}
+	require.NoError(t, g.CommitTracked(context.Background(), dir))
+
+	assert.Empty(t, run("diff", "HEAD", "--", "Makefile"))
+	assert.Equal(t, "2", run("rev-list", "--count", "HEAD"))
+	assert.Contains(t, run("status", "--porcelain"), "?? new.txt")
+
+	require.NoError(t, g.CommitTracked(context.Background(), dir))
+	assert.Equal(t, "2", run("rev-list", "--count", "HEAD"))
+}

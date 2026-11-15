@@ -694,6 +694,7 @@ func (r *JobRunner) prepareClone(
 ) (string, error) {
 	cloneDir := dirs.clone
 	if r.takeClone(job, cloneDir) {
+		r.commitTaken(ctx, job, cloneDir)
 		return "", nil
 	}
 	tip, found, err := r.Git.RestoreIfPushed(
@@ -706,6 +707,7 @@ func (r *JobRunner) prepareClone(
 	}
 	if r.takeStranded(job, cloneDir, kept) == nil {
 		dirs.note, dirs.taken = noteFromMac, true
+		r.commitTaken(ctx, job, cloneDir)
 		return "", nil
 	}
 	if job.ResumeSessionID != "" {
@@ -713,6 +715,15 @@ func (r *JobRunner) prepareClone(
 	}
 	return "", r.Git.Clone(ctx, job.RepoOwner, job.RepoName, job.DefaultBranch,
 		job.Branch, cloneDir)
+}
+
+// commitTaken commits a taken-over clone's uncommitted tracked edits; a failure
+// is logged and the clone used as it is.
+func (r *JobRunner) commitTaken(ctx context.Context, job *ClaimedJob, cloneDir string) {
+	if err := r.Git.CommitTracked(ctx, cloneDir); err != nil {
+		r.Log.Warn("could not commit a taken-over clone's edits", "job", job.ID,
+			"error", err.Error())
+	}
 }
 
 // limitMarker names the file recording which job's clone a limited task left behind.
