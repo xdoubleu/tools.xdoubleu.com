@@ -141,9 +141,9 @@ func TestApprovedTaskKeepsNumberForBranch(t *testing.T) {
 func TestLinkedTasksReadsTitleBranchAndBody(t *testing.T) {
 	pr := PullRequestRef{
 		URL: "", Title: "Fix it (T-123)", Branch: "agent/t483-board-link",
-		Body: "Follows T-123 and T-9.", MergeSHA: "",
+		Body: "Follows T-9.", MergeSHA: "",
 	}
-	assert.Equal(t, []string{"T-123", "T-9", "T-483"}, linkedTasks(pr))
+	assert.Equal(t, []string{"T-123", "T-483"}, linkedTasks(pr))
 	assert.Empty(
 		t,
 		linkedTasks(
@@ -154,4 +154,19 @@ func TestLinkedTasksReadsTitleBranchAndBody(t *testing.T) {
 
 func bodyRef(body string) PullRequestRef {
 	return PullRequestRef{URL: "", Title: "", Branch: "", Body: body, MergeSHA: ""}
+}
+
+func TestLinkedTasksIgnoresMentionsInProse(t *testing.T) {
+	body := "T-315 and T-316 still need moving back to Ready; see T-9."
+	assert.Empty(t, linkedTasks(bodyRef(body)))
+	assert.Empty(t, linkedTasks(PullRequestRef{
+		URL: "", Title: "Follow up T-5", Branch: "main", Body: "", MergeSHA: "",
+	}))
+}
+
+func TestLinkedTasksReadsKeywordAndTasksLists(t *testing.T) {
+	assert.Equal(t, []string{"T-1", "T-2"}, linkedTasks(bodyRef("Closes T-1, T-2")))
+	assert.Equal(t, []string{"T-3"}, linkedTasks(bodyRef("Part of T-3. Also T-4.")))
+	assert.Equal(t, []string{"T-5", "T-6", "T-7"},
+		linkedTasks(bodyRef("x\nTasks: T-5, T-6 and T-7\nmentions T-8")))
 }
