@@ -373,6 +373,18 @@ func TestATasksJobAndLinkedPullRequestsAreAllListed(t *testing.T) {
 	assert.ElementsMatch(t, []string{pullURL(42), pullURL(43)}, urls)
 }
 
+func TestAJobsPullRequestLinkingSeveralTasksKeepsTheBoardListing(t *testing.T) {
+	env, gh := githubEnv(t)
+	first := inReview(t, env, "first", 42)
+	second := inReview(t, env, "second", 43)
+	gh.openLinked(pullURL(42), 42, "Task: both ("+first.Id+", "+second.Id+")")
+
+	require.NoError(t, env.poll(t))
+
+	_, err := env.tasks.ListTasks(context.Background(), &factoryv1.ListTasksRequest{})
+	require.NoError(t, err)
+}
+
 func TestAMergedTaskShowsWhetherItsMergeCommitIsDeployed(t *testing.T) {
 	env, gh := githubEnv(t)
 	live := env.newTask(t, "shipped")
