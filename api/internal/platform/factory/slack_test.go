@@ -146,13 +146,14 @@ func TestAWebhookAddressIsAcceptedOnlyOverHTTPS(t *testing.T) {
 	}
 }
 
-// waiting queues a job for a task and ages it by minutes.
+// waiting queues a job for a task and ages it by minutes plus half a minute,
+// so the whole minutes reported stay stable while the test runs.
 func (e jobEnv) waiting(t *testing.T, title string, minutes int) string {
 	t.Helper()
 	task := e.newTask(t, title)
 	job := e.run(t, task.Id, "")
 	_, err := testDB.Exec(context.Background(),
-		`UPDATE factory.jobs SET created_at = now() - make_interval(mins => $2)
+		`UPDATE factory.jobs SET created_at = now() - make_interval(mins => $2, secs => 30)
 		 WHERE id = $1`, job.Id, minutes)
 	require.NoError(t, err)
 	return task.Id
