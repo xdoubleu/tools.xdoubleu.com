@@ -165,17 +165,14 @@ func (s *TaskService) Create(
 	return s.Move(ctx, actor, task.ID, models.StatusReady)
 }
 
-// readyLabels are the labels whose tasks an agent files straight into Ready.
-var readyLabels = []string{"bug", "factory-retro"}
-
 // startsReady reports whether an agent's new task skips Backlog: it carries a
-// bug or retro label and its text is renderable (else it waits in Backlog).
+// defect or retro label and its text is renderable (else it waits in Backlog).
 func startsReady(actor models.Actor, in TaskInput) bool {
 	if actor.Kind != models.ActorAgent {
 		return false
 	}
 	has := slices.ContainsFunc(in.Labels, func(l string) bool {
-		return slices.Contains(readyLabels, strings.ToLower(l))
+		return strings.EqualFold(l, "bug") || strings.EqualFold(l, "factory-retro")
 	})
 	return has && checkRenderable(in.Title, in.Body) == nil
 }
