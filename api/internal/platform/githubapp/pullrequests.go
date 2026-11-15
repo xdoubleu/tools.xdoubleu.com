@@ -264,11 +264,13 @@ func (c *Client) reviews(
 	return "", nil
 }
 
-// MergedPullRequest is a merged pull request, with the body its task is linked
-// from.
+// MergedPullRequest is a merged pull request, with the title, branch and body its
+// tasks are linked from.
 type MergedPullRequest struct {
-	URL  string
-	Body string
+	URL    string
+	Title  string
+	Branch string
+	Body   string
 	// MergeSHA is the commit the merge produced on the base branch.
 	MergeSHA string
 }
@@ -286,9 +288,13 @@ func (c *Client) MergedPullRequests(
 	}
 	var pulls []struct {
 		URL      string  `json:"html_url"`
+		Title    string  `json:"title"`
 		Body     *string `json:"body"`
 		MergedAt *string `json:"merged_at"`
 		MergeSHA string  `json:"merge_commit_sha"`
+		Head     struct {
+			Ref string `json:"ref"`
+		} `json:"head"`
 	}
 	_, err = c.do(ctx, http.MethodGet,
 		"/repos/"+owner+"/"+repo+
@@ -307,15 +313,21 @@ func (c *Client) MergedPullRequests(
 		if p.Body != nil {
 			body = *p.Body
 		}
-		out = append(out, MergedPullRequest{URL: p.URL, Body: body, MergeSHA: p.MergeSHA})
+		out = append(out, MergedPullRequest{
+			URL: p.URL, Title: p.Title, Branch: p.Head.Ref, Body: body,
+			MergeSHA: p.MergeSHA,
+		})
 	}
 	return out, nil
 }
 
-// OpenPullRequest is an open pull request, with the body its task is linked from.
+// OpenPullRequest is an open pull request, with the title, branch and body its
+// tasks are linked from.
 type OpenPullRequest struct {
 	URL    string
 	Number int
+	Title  string
+	Branch string
 	Body   string
 }
 
@@ -332,7 +344,11 @@ func (c *Client) OpenPullRequests(
 	var pulls []struct {
 		URL    string  `json:"html_url"`
 		Number int     `json:"number"`
+		Title  string  `json:"title"`
 		Body   *string `json:"body"`
+		Head   struct {
+			Ref string `json:"ref"`
+		} `json:"head"`
 	}
 	_, err = c.do(ctx, http.MethodGet,
 		"/repos/"+owner+"/"+repo+"/pulls?state=open&per_page="+strconv.Itoa(pageSize),
@@ -346,7 +362,9 @@ func (c *Client) OpenPullRequests(
 		if p.Body != nil {
 			body = *p.Body
 		}
-		out = append(out, OpenPullRequest{URL: p.URL, Number: p.Number, Body: body})
+		out = append(out, OpenPullRequest{
+			URL: p.URL, Number: p.Number, Title: p.Title, Branch: p.Head.Ref, Body: body,
+		})
 	}
 	return out, nil
 }

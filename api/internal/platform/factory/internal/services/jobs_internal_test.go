@@ -120,15 +120,15 @@ func TestKindOfIsTheLinesTypeOrRaw(t *testing.T) {
 func TestLinkedTasksReadsTheNumberOrALegacyUUID(t *testing.T) {
 	uuidRef := "11111111-2222-3333-4444-555555555555"
 	for _, ref := range []string{"T-142", uuidRef} {
-		got := linkedTasks("intro\nTask: Fix it (" + ref + ")\n")
+		got := linkedTasks(bodyRef("intro\nTask: Fix it (" + ref + ")\n"))
 		assert.Equal(t, []string{ref}, got)
 	}
-	assert.Empty(t, linkedTasks("Task: Fix it (142)"))
+	assert.Empty(t, linkedTasks(bodyRef("Task: Fix it (142)")))
 }
 
 func TestLinkedTasksReadsEveryRefOnce(t *testing.T) {
 	body := "Task: One (T-1)\nTask: Two (T-2)\nTask: One again (T-1)\n"
-	assert.Equal(t, []string{"T-1", "T-2"}, linkedTasks(body))
+	assert.Equal(t, []string{"T-1", "T-2"}, linkedTasks(bodyRef(body)))
 }
 
 func TestApprovedTaskKeepsNumberForBranch(t *testing.T) {
@@ -136,4 +136,22 @@ func TestApprovedTaskKeepsNumberForBranch(t *testing.T) {
 		TaskID: uuid.New(), Number: 175, RepoID: uuid.Nil, Title: "Fix it", Body: "",
 	}
 	assert.Equal(t, "agent/t175-fix-it", branchFor(approvedTask(c)))
+}
+
+func TestLinkedTasksReadsTitleBranchAndBody(t *testing.T) {
+	pr := PullRequestRef{
+		URL: "", Title: "Fix it (T-123)", Branch: "agent/t483-board-link",
+		Body: "Follows T-123 and T-9.", MergeSHA: "",
+	}
+	assert.Equal(t, []string{"T-123", "T-9", "T-483"}, linkedTasks(pr))
+	assert.Empty(
+		t,
+		linkedTasks(
+			PullRequestRef{URL: "", Title: "AT-1x", Branch: "main", Body: "", MergeSHA: ""},
+		),
+	)
+}
+
+func bodyRef(body string) PullRequestRef {
+	return PullRequestRef{URL: "", Title: "", Branch: "", Body: body, MergeSHA: ""}
 }
