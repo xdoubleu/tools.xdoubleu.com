@@ -88,7 +88,9 @@ const preamble = `You are running unattended in a sandbox with no network ` +
 	`name) and run ` + "`make lint/sql lint/migrations`" + ` before the gate. ` +
 	`End the outcome with one line listing each gate, for example ` +
 	`"Checks: lint=pass, test=pass, docs=pass"; a gate is pass, fail or ` +
-	`not run. A gate its target can run in the sandbox counts as run, even ` +
+	`not run. Mark a gate not run only when its target fails to run here, ` +
+	`never because you judged it unnecessary or slow. A gate its target can ` +
+	`run in the sandbox counts as run, even ` +
 	`when your change has no code diff. That Checks: line must be the final ` +
 	`line of the file and start ` +
 	`with "Checks:": put no text after it and no prefix before it, and when ` +
