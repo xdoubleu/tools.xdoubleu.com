@@ -86,7 +86,8 @@ const preamble = `You are running unattended in a sandbox with no network ` +
 	`AGENTS.md). End the outcome with one line listing each gate, for example ` +
 	`"Checks: lint=pass, test=pass, docs=pass"; a gate is pass, fail or ` +
 	`not run. A gate its target can run in the sandbox counts as run, even ` +
-	`when your change has no code diff. That Checks: line must be the final line of the file and start ` +
+	`when your change has no code diff. That Checks: line must be the final ` +
+	`line of the file and start ` +
 	`with "Checks:": put no text after it and no prefix before it, and when ` +
 	`you rewrite the outcome keep exactly one. Where the repository gates the ` +
 	`coverage of changed lines (see its AGENTS.md), run that check locally ` +
