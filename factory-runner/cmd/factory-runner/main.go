@@ -286,7 +286,13 @@ func (a *app) serve(
 			// The heartbeat and self-update still run: a newer release may be what
 			// fixes this, and the board should show the runner is alive.
 			fmt.Fprintln(a.stderr, "factory-runner: jobs are off:", err)
-			loop = nil
+			loop = &retryingJobs{
+				build: func(ctx context.Context) (jobLoop, error) {
+					return a.jobs(ctx, cfg, token)
+				},
+				out:   a.stderr,
+				sleep: sleepFor,
+			}
 		}
 	}
 	if loop == nil {

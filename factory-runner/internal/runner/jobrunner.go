@@ -148,6 +148,9 @@ type JobRunner struct {
 	Activity *Activity
 	// DataDir holds <DataDir>/jobs/<job id>/{clone,outcome}.
 	DataDir string
+	// DiskFree reads the free bytes of the data directory's volume; nil skips the
+	// low-disk checks.
+	DiskFree func() (uint64, error)
 	// Secrets are values that must never reach a commit, a commit message or the
 	// outcome; the device token is always one.
 	Secrets []string

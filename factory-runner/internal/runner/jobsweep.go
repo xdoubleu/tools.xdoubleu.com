@@ -12,13 +12,14 @@ const (
 	// taskMarker names the file in a job directory that holds its task id.
 	taskMarker = "task"
 	// sweepEvery is how often the loop sweeps the data directory.
-	sweepEvery = 24 * time.Hour
+	sweepEvery = time.Hour
 	// staleJobAge is how old a job directory with no task marker must be to go.
 	staleJobAge = 14 * 24 * time.Hour
 )
 
 // CleanJobs deletes job directories nobody will resume: those of tasks the
-// server reports as Done or gone, and unmarked ones (from before the marker)
+// server reports as finished (Done, gone, or in Testing with a merged pull
+// request), and unmarked ones (from before the marker)
 // older than staleJobAge. A job in flight and a directory of a task that is still
 // open are kept, since a Reply or a usage-limit continuation resumes from them.
 // The server is untrusted, so it can only name directories the runner asked about.
