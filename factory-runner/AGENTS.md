@@ -11,15 +11,15 @@ internal/runner/
   client.go, jobs_client.go   the server calls
   daemon.go, control.go       heartbeat loop; pause flag, status
   jobrunner.go                claim loop, `max_jobs`; prompt; Checks:/Blocked:
-  sessions.go, jobsweep.go    hourly sweep of merged/Done dirs
+  sessions.go, jobsweep.go    hourly dir sweep
   jobloop.go, pullstatus.go, gates.go, routines.go  attempts until merge; CI verdict; routines
-  gitclone.go, hostcheck.go   mirror, clone; host checks
+  gitclone.go, hostcheck.go   clone; host checks
   events.go, publish.go       board log lines; push, open the PR
   harness.go, sandbox.go      Claude Code/OpenCode commands; Sandbox
   sandbox_container.go        one Apple `container` VM per job
   egress_proxy.go, mcp_token.go  the VM's way out; board token
   validate.go, config.go      job validator; server URL, repo allowlist
-  token.go, launchagent.go, update.go, activity.go  keychain; plist; update; caffeinate
+  token.go, launchagent.go, update.go  keychain; plist; update
 ```
 
 ## Trust
@@ -38,8 +38,8 @@ The server is untrusted; each job needs UUID ids, an allowlisted repo, an `agent
 
 `build-factory-runner.yml` signs on `main`; `build-api.yml` stages the release files into `/downloads/`. `-X main.UpdatePublicKey` is the trusted key.
 
-Settings live in the menu bar; `config …` scripts them. A fresh pairing is `off`; an older config without a mode becomes `claude`. Log: `~/Library/Logs/factory-runner.log` → [`adr-0049`](../docs/adr-0049-factory-runner-menu-bar.md).
+Settings live in the menu bar; `config …` scripts them. Log: `~/Library/Logs/factory-runner.log` → [`adr-0049`](../docs/adr-0049-factory-runner-menu-bar.md).
 
 ## Building
 
-`make build | dist | test | test/cov/diff (CI's diff gate) | test/mutation/diff | lint | lint/fix | image`. Tests need no keychain, network, VM or launchd; `-tags container` runs VMs.
+`make build | dist | test | test/cov/diff (CI's diff gate) | test/mutation/diff | lint | lint/darwin | lint/fix | image`. CI lints on macOS: run `lint/darwin` too; per-OS `syscall` types need `//nolint:gosec,nolintlint`. Tests need no keychain, network, VM or launchd.
