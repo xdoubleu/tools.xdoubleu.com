@@ -19,7 +19,7 @@ func FreeBytes(dir string) (uint64, error) {
 	if err := syscall.Statfs(dir, &st); err != nil {
 		return 0, fmt.Errorf("free space of %s: %w", dir, err)
 	}
-	return st.Bavail * uint64(st.Bsize), nil //nolint:gosec // both are positive
+	return st.Bavail * uint64(st.Bsize), nil
 }
 
 // lowDisk says whether the data directory's volume is short of space; an unset
