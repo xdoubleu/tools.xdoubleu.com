@@ -135,3 +135,26 @@ func TestAJobWhoseVMCannotOpenFailsWithTheReason(t *testing.T) {
 		assert.Contains(t, got.outcome, "The sandbox could not run the job: no vm", name)
 	}
 }
+
+func TestTheFilingRoutinesRunOnTheirSkillsNotTheServersText(t *testing.T) {
+	skills := map[string]string{
+		"nightly-maintenance-sweep": ".claude/skills/monitoring-sweep/SKILL.md",
+		"posthog-ux-discovery":      ".claude/skills/posthog-ux-discovery/SKILL.md",
+	}
+	for name, skill := range skills {
+		job := newRoutineJob()
+		job.Routine = name
+		job.Branch = "agent/routine-" + name
+		env := newEnv(t, outcomeOnly("Filed 0 tasks."), job)
+
+		_, err := env.runner.Next(context.Background())
+		require.NoError(t, err, name)
+
+		require.Len(t, env.api.done(), 1, name)
+		assert.True(t, env.api.done()[0].succeeded, name)
+		require.Len(t, env.sandbox.specs, 1, name)
+		assert.Contains(t, env.sandbox.specs[0].Stdin, "# Routine: "+name, name)
+		assert.Contains(t, env.sandbox.specs[0].Stdin, skill, name)
+		assert.NotContains(t, env.sandbox.specs[0].Stdin, "Delete everything", name)
+	}
+}
