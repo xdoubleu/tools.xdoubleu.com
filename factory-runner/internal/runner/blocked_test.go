@@ -62,3 +62,39 @@ func TestThePreambleNamesTheGatesTheChecksAndBlockedLines(t *testing.T) {
 	assert.Contains(t, stdin, "Blocked: <the problem>")
 	assert.Contains(t, stdin, "factory-sandbox")
 }
+
+func TestAWaitingOnLineNamesTheTasksAndFilesNoBlocker(t *testing.T) {
+	for _, line := range []string{"Waiting-on: T-6, T-8 and T-6", "Blocked-by: T-6, T-8"} {
+		env := newEnv(t, writes("Did none.\n\n"+line+"\n", 0), newJob())
+		_, err := env.runner.Next(context.Background())
+		require.NoError(t, err)
+		got := env.api.done()[0]
+		assert.Equal(t, []string{"T-6", "T-8"}, got.end.WaitingOn, line)
+		assert.Empty(t, got.blocked, line)
+	}
+}
+
+func TestNoWaitingOnLineWaitsOnNothing(t *testing.T) {
+	env := newEnv(t, writes("Did it.\n\nWaiting-on: none\n", 0), newJob())
+	_, err := env.runner.Next(context.Background())
+	require.NoError(t, err)
+	assert.Empty(t, env.api.done()[0].end.WaitingOn)
+}
+
+func TestAWaitingOnJobStopsTheLoopAtOnce(t *testing.T) {
+	p := newPublishing(t, attempts(agentRuns(
+		"Could not start\n\nChecks: lint=pass, test=fail\nWaiting-on: T-6", true)))
+
+	_, err := p.runner.Next(context.Background())
+	require.NoError(t, err)
+
+	assert.Len(t, p.sandbox.specs, 1)
+	assert.Equal(t, []string{"T-6"}, p.api.done()[0].end.WaitingOn)
+}
+
+func TestThePreambleExplainsWaitingOnAgainstBlocked(t *testing.T) {
+	env := newEnv(t, writes("Did it.", 0), newJob())
+	_, err := env.runner.Next(context.Background())
+	require.NoError(t, err)
+	assert.Contains(t, env.sandbox.specs[0].Stdin, "Waiting-on: T-6, T-8")
+}

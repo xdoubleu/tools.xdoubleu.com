@@ -90,20 +90,24 @@ type JobEnd struct {
 	// Blocked is what stopped the job doing or checking its work in the sandbox;
 	// the server files it as a factory-sandbox task. Empty when nothing did.
 	Blocked string
+	// WaitingOn is the tasks (T-n) the job's task depends on; the server moves it to
+	// Backlog naming them and files nothing.
+	WaitingOn []string
 	// Times and Total are where the job's time went; nil when it never ran.
 	Times *phaseTimes
 	Total time.Duration
 }
 
 type completeJobRequest struct {
-	JobID         string `json:"jobId"`
-	Succeeded     bool   `json:"succeeded"`
-	Outcome       string `json:"outcome"`
-	SessionID     string `json:"sessionId"`
-	PRURL         string `json:"prUrl"`
-	Limited       bool   `json:"limited,omitempty"`
-	LimitResetsAt string `json:"limitResetsAt,omitempty"`
-	Blocked       string `json:"blocked,omitempty"`
+	JobID         string   `json:"jobId"`
+	Succeeded     bool     `json:"succeeded"`
+	Outcome       string   `json:"outcome"`
+	SessionID     string   `json:"sessionId"`
+	PRURL         string   `json:"prUrl"`
+	Limited       bool     `json:"limited,omitempty"`
+	LimitResetsAt string   `json:"limitResetsAt,omitempty"`
+	Blocked       string   `json:"blocked,omitempty"`
+	WaitingOn     []string `json:"waitingOn,omitempty"`
 
 	Timings *timingsJSON `json:"timings,omitempty"`
 }
@@ -247,7 +251,8 @@ func (c *Client) CompleteJob(
 	req := completeJobRequest{
 		JobID: jobID, Succeeded: end.Succeeded, Outcome: end.Outcome,
 		SessionID: end.SessionID, PRURL: end.PRURL, Limited: end.Limited,
-		LimitResetsAt: "", Blocked: end.Blocked, Timings: end.Times.json(end.Total),
+		LimitResetsAt: "", Blocked: end.Blocked, WaitingOn: end.WaitingOn,
+		Timings: end.Times.json(end.Total),
 	}
 	if !end.ResetsAt.IsZero() {
 		req.LimitResetsAt = end.ResetsAt.UTC().Format(time.RFC3339)

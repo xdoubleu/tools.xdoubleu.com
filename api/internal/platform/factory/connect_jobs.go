@@ -361,7 +361,8 @@ func (h *runnerHandler) CompleteJob(
 		return nil, mapError(err)
 	}
 	// The job is already over, so a report that fails must not fail the call.
-	_ = h.app.services.Jobs.ReportBlocked(ctx, runner.ID, id, req.GetBlocked())
+	_ = h.app.services.Jobs.ReportBlocked(
+		ctx, runner.ID, id, req.GetBlocked(), req.GetWaitingOn())
 	if t := req.GetTimings(); t != nil {
 		_ = h.app.services.Jobs.RecordTimings(ctx, runner.ID, id, models.JobTimings{
 			Agent: t.GetAgentSeconds(), Gates: t.GetGatesSeconds(),

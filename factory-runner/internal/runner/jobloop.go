@@ -272,7 +272,8 @@ func (l *jobLoop) attempt(command []string, prompt string) step {
 		!leaks(b, l.secrets) {
 		res.blocked = b
 	}
-	if res.blocked == "" {
+	res.waitingOn = waitingOn(text)
+	if res.blocked == "" && len(res.waitingOn) == 0 {
 		if fb := l.runGates(); fb != "" {
 			ref, _ := os.ReadFile(filepath.Join(l.dirs.clone, ".git", "refs", "heads",
 				l.job.Branch))
@@ -307,7 +308,7 @@ func (l *jobLoop) attempt(command []string, prompt string) step {
 		st := l.watch(res, text)
 		l.times.addWatch(began, l.greenAt, l.now())
 		return st
-	case res.blocked != "":
+	case res.blocked != "" || len(res.waitingOn) > 0:
 		return over(res)
 	case res.retry:
 		return again(res, "not published: "+short(res.failure),
