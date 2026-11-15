@@ -99,7 +99,10 @@ func (c *Client) create(ctx context.Context, body map[string]any) (string, error
 	return out.UserID, nil
 }
 
-func (c *Client) findByLoginName(ctx context.Context, loginName string) (string, error) {
+func (c *Client) findByLoginName(
+	ctx context.Context,
+	loginName string,
+) (string, error) {
 	body := map[string]any{"queries": []any{map[string]any{
 		"loginNameQuery": map[string]string{
 			"loginName": loginName, "method": "TEXT_QUERY_METHOD_EQUALS",
