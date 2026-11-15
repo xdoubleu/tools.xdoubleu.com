@@ -338,6 +338,7 @@ func (s *JobService) Claim(
 	}
 	// Best effort: a failure here leaves the queue as it was, and the next claim
 	// looks again.
+	_ = s.runners.SetMaxJobs(ctx, runnerID, max(maxJobs, 1))
 	_ = s.pickUp(ctx)
 	// A Claude job claimed in a limit would only fail the same way.
 	until, limitErr := s.jobs.ActiveLimit(ctx)
@@ -352,6 +353,8 @@ func (s *JobService) Claim(
 	if err != nil {
 		return nil, err
 	}
+	// The claim may leave a slot free for the next Ready task.
+	_ = s.pickUp(ctx)
 	repo, err := s.repos.Get(ctx, job.RepoID)
 	if err != nil {
 		return nil, err
@@ -629,7 +632,8 @@ func (s *JobService) ExpireLost(ctx context.Context) error {
 const autoPickupAuthor = "system:auto-pickup"
 
 // pickUp queues a job for the oldest highest-priority Ready task of a repo with auto
-// pickup on, when nothing is queued or running and the board isn't paused. The
+// pickup on, when nothing is queued, an online runner has a free slot and the
+// board isn't paused. The
 // Ready move was the approval, so the prompt is built from the text as it stood
 // then, not the task's current text. The runner calling Claim is the online runner
 // the job is for.
