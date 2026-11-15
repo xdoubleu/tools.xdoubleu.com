@@ -98,6 +98,54 @@ describe('RecipeClient', () => {
     expect(screen.queryByRole('paragraph')).not.toBeInTheDocument()
   })
 
+  it('marks non-default options of an or-group, scaled or not', () => {
+    const recipe = create(RecipeSchema, {
+      id: 'r1',
+      name: 'Bowl',
+      baseServings: 2,
+      ingredients: [
+        create(IngredientSchema, {
+          id: 'i1',
+          name: 'Rice',
+          amount: 200,
+          unit: 'g',
+          sortOrder: 1,
+          alternativeGroup: 'base'
+        }),
+        create(IngredientSchema, {
+          id: 'i2',
+          name: 'Pasta',
+          amount: 250,
+          unit: 'g',
+          sortOrder: 2,
+          alternativeGroup: 'base'
+        })
+      ]
+    })
+    const scaledIngredients = [
+      create(ScaledIngredientSchema, { name: 'Rice', amount: '400', unit: 'g' }),
+      create(ScaledIngredientSchema, { name: 'Pasta', amount: '500', unit: 'g' })
+    ]
+    for (const scaled of [[], scaledIngredients]) {
+      vi.mocked(useRecipe).mockReturnValue({
+        data: create(GetRecipeResponseSchema, {
+          recipe,
+          isOwner: false,
+          scaledIngredients: scaled
+        }),
+        isLoading: false,
+        isValidating: false,
+        error: undefined,
+        mutate: vi.fn()
+      })
+      const { unmount } = render(<RecipeClient id="r1" />)
+      expect(screen.getAllByText('or')).toHaveLength(1)
+      expect(screen.getByText('Pasta').closest('li')).toHaveTextContent('or')
+      expect(screen.getByText('Rice').closest('li')).not.toHaveTextContent('or')
+      unmount()
+    }
+  })
+
   it('renders group headers when ingredients have group names', () => {
     const recipe = create(RecipeSchema, {
       id: 'r1',
