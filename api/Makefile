@@ -56,6 +56,19 @@ tools/proto/local: tools/proto
 lint/proto: tools/proto
 	cd ../proto && buf lint
 
+# New migration with a UTC timestamp version, so parallel branches never collide.
+# app=<name> (apps/<name>) | platform/<name> (internal/platform/<name>) | global
+migration/new:
+	@test -n "$(app)" -a -n "$(name)" || { echo "usage: make migration/new app=<app> name=<name>"; exit 1; }
+	@case "$(app)" in \
+		global) dir=cmd/api/migrations ;; \
+		platform/*) dir=internal/$(app)/migrations ;; \
+		*) dir=apps/$(app)/migrations ;; \
+	esac; \
+	test -d "$$dir" || { echo "no migrations dir $$dir"; exit 1; }; \
+	f="$$dir/$$(date -u +%Y%m%d%H%M%S)_$(name).sql"; \
+	printf -- '-- +goose Up\n\n-- +goose Down\n' > "$$f"; echo "$$f"
+
 lint/migrations:
 	./scripts/check_migration_versions.sh
 	sqlfluff lint --dialect postgres apps/*/migrations internal/platform/*/migrations
