@@ -260,7 +260,7 @@ func (r *JobRunner) claimsHeld(now time.Time) bool {
 
 // Next claims one job and runs it to the end, reporting whether there was one.
 func (r *JobRunner) Next(ctx context.Context) (bool, error) {
-	job, err := r.API.ClaimJob(ctx, r.Token, r.maxJobs())
+	job, err := r.claimJob(ctx, r.maxJobs())
 	if err != nil || job == nil {
 		return false, err
 	}
@@ -309,7 +309,7 @@ func (r *JobRunner) loop(ctx context.Context, clk clock) error {
 			continue
 		}
 		started := clk.now()
-		job, err := r.API.ClaimJob(ctx, r.Token, limit)
+		job, err := r.claimJob(ctx, limit)
 		switch {
 		case err == nil:
 			backoff = minLoop
@@ -452,6 +452,14 @@ func (r *JobRunner) checkHarness(job *ClaimedJob) error {
 			ErrRefused, session, mine)
 	}
 	return nil
+}
+
+// claimJob claims a job, reporting the harness and model this Mac runs.
+func (r *JobRunner) claimJob(ctx context.Context, limit int) (*ClaimedJob, error) {
+	if oc, ok := r.Harness.(OpenCode); ok {
+		return r.API.ClaimJob(ctx, r.Token, limit, HarnessOpenCode, oc.Model)
+	}
+	return r.API.ClaimJob(ctx, r.Token, limit, HarnessClaudeCode, "")
 }
 
 // harnessFor is the harness a job runs on: this Mac's, not the job's.

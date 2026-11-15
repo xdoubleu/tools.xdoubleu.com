@@ -110,7 +110,6 @@ func TestAWarningOrAnOrdinaryFailureIsNotALimit(t *testing.T) {
 
 func TestAnOpenCodeJobIsNeverReportedAsClaudeLimited(t *testing.T) {
 	job := newJob()
-	job.Harness, job.Model = runner.HarnessOpenCode, "vendor/model"
 	env := newEnv(t, limitSandbox([]string{rejectedAt(time.Now().Add(time.Hour).Unix())},
 		"", 1), job)
 

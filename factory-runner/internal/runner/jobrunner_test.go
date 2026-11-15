@@ -103,7 +103,9 @@ func newFakeAPI(jobs ...*runner.ClaimedJob) *fakeAPI {
 	}
 }
 
-func (f *fakeAPI) ClaimJob(context.Context, string, int) (*runner.ClaimedJob, error) {
+func (f *fakeAPI) ClaimJob(
+	context.Context, string, int, string, string,
+) (*runner.ClaimedJob, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	if f.claimErr != nil {
@@ -266,9 +268,9 @@ func newJob() *runner.ClaimedJob {
 	return &runner.ClaimedJob{
 		Routine: "",
 		ID:      jobID, TaskID: taskID, RepoOwner: "xdoubleu", RepoName: "tools.xdoubleu.com",
-		DefaultBranch: "main", Harness: runner.HarnessClaudeCode, Prompt: "# Task: Fix it",
+		DefaultBranch: "main", Prompt: "# Task: Fix it",
 		Branch: branch, SetupCommands: "make setup", TimeLimitMinutes: 1,
-		MCPClientID: "", MCPClientSecret: "", ResumeSessionID: "", Model: "",
+		MCPClientID: "", MCPClientSecret: "", ResumeSessionID: "",
 	}
 }
 
@@ -850,7 +852,6 @@ func TestAReplyThatRewritesTheBranchIsRefused(t *testing.T) {
 
 func openCodeJob() *runner.ClaimedJob {
 	job := newJob()
-	job.Harness, job.Model = runner.HarnessOpenCode, "vendor/model"
 	return job
 }
 
@@ -906,7 +907,6 @@ func TestAnOpenCodeReplyResumesItsSession(t *testing.T) {
 	ranFirstJob(t, env)
 
 	reply := replyJob()
-	reply.Harness, reply.Model = runner.HarnessOpenCode, "vendor/model"
 	reply.ResumeSessionID = "ses_42"
 	env.api.jobs = append(env.api.jobs, reply)
 	_, err := env.runner.Next(context.Background())

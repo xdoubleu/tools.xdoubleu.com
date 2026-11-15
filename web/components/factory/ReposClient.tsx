@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { Repo } from '@/lib/gen/factory/v1/factory_pb'
-import { harnessLabel, repoLabel } from '@/lib/factory/board'
+import { repoLabel } from '@/lib/factory/board'
 import { useFactoryRepos } from '@/hooks/useFactory'
 import RepoDialog from '@/components/factory/RepoDialog'
 import { Button } from '@/components/ui/button'
@@ -33,8 +33,7 @@ export default function ReposClient() {
               <div className="min-w-0 flex-1">
                 <p className="break-words font-medium">{repoLabel(repo)}</p>
                 <p className="text-xs text-muted">
-                  {repo.defaultBranch} · {harnessLabel(repo.defaultHarness)} ·{' '}
-                  {repo.timeLimitMinutes} min
+                  {repo.defaultBranch} · {repo.timeLimitMinutes} min
                 </p>
               </div>
               <Button variant="secondary" onClick={() => setEditing(repo)}>

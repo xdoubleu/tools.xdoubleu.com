@@ -43,8 +43,8 @@ func testTask(id uuid.UUID, title, body string) *models.Task {
 
 func testRepo(instructions string) *models.Repo {
 	return &models.Repo{
-		ID: uuid.Nil, Owner: "", Name: "", DefaultBranch: "", DefaultHarness: "",
-		DefaultModel: "", AutoPickup: false, SetupCommands: "",
+		ID: uuid.Nil, Owner: "", Name: "", DefaultBranch: "",
+		AutoPickup: false, SetupCommands: "",
 		AgentInstructions: instructions,
 		TimeLimitMinutes:  0,
 		CreatedAt:         time.Time{}, UpdatedAt: time.Time{},
