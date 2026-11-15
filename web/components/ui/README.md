@@ -361,6 +361,8 @@ One entry of a collection: artwork, title, one meta line and an optional status.
 | `meta` | `ReactNode` |  | One muted line under the title. |
 | `status` | `ReactNode` |  | A `Badge` or similar, under the meta line. |
 | `actions` | `ReactNode` |  | Controls in a footer that never navigates. |
+| `details` | `ReactNode` |  | A full-width, stacked region in the footer for richer controls (e.g. ratings, progress). |
+| `'aria-label'` | `string` |  | Accessible name for the link when the body has more than the title. |
 
 ### `label.tsx`
 

@@ -11,7 +11,7 @@ import OfflineBookBadge from '@/components/books/OfflineBookBadge'
 import ReadSuggestionBadge from '@/components/books/ReadSuggestionBadge'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { LinkCard } from '@/components/ui/link-card'
+import { ItemCard } from '@/components/ui/item-card'
 import { displayTags } from '@/lib/books/bookShelves'
 import { readerFormats } from '@/lib/books/readerSettings'
 
@@ -45,12 +45,31 @@ export default function BookCard({
   const canRead = readerFormats(userBook.formats).length > 0
 
   return (
-    <LinkCard
+    <ItemCard
       href={href}
       aria-label={book.title}
-      linkClassName="flex items-start gap-3"
-      actions={
-        <div className="w-full min-w-0 space-y-2">
+      title={book.title}
+      artwork={
+        <div className="shrink-0">
+          <Artwork src={book.coverUrl} title={book.title} alt={book.title} initials={2} size="sm" />
+        </div>
+      }
+      meta={book.authors.join(', ')}
+      status={
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="secondary" className="capitalize">
+            {userBook.status.replace(/-/g, ' ')}
+          </Badge>
+          {userBook.tags.includes('own-bol') && <Badge variant="secondary">Kobo store</Badge>}
+          <OfflineBookBadge bookId={userBook.bookId} />
+          <ReadSuggestionBadge userBook={userBook} />
+          {tags.length > 0 && (
+            <span className="min-w-0 truncate text-xs text-muted">{tags.join(', ')}</span>
+          )}
+        </div>
+      }
+      details={
+        <>
           {canRead && (
             <Button asChild variant="default" className="w-full" size="sm">
               <Link href={`/books/${userBook.id}/read`}>
@@ -84,27 +103,8 @@ export default function BookCard({
               )}
             </>
           )}
-        </div>
+        </>
       }
-    >
-      <div className="shrink-0">
-        <Artwork src={book.coverUrl} title={book.title} alt={book.title} initials={2} size="sm" />
-      </div>
-      <div className="min-w-0 flex-1">
-        <h3 className="truncate text-sm font-semibold leading-snug">{book.title}</h3>
-        <p className="truncate text-xs text-muted">{book.authors.join(', ')}</p>
-        <div className="mt-1 flex flex-wrap items-center gap-2">
-          <Badge variant="secondary" className="capitalize">
-            {userBook.status.replace(/-/g, ' ')}
-          </Badge>
-          {userBook.tags.includes('own-bol') && <Badge variant="secondary">Kobo store</Badge>}
-          <OfflineBookBadge bookId={userBook.bookId} />
-          <ReadSuggestionBadge userBook={userBook} />
-          {tags.length > 0 && (
-            <span className="min-w-0 truncate text-xs text-muted">{tags.join(', ')}</span>
-          )}
-        </div>
-      </div>
-    </LinkCard>
+    />
   )
 }

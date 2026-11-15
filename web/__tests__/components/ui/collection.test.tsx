@@ -31,6 +31,29 @@ describe('ItemCard', () => {
   })
 })
 
+describe('ItemCard details', () => {
+  it('renders details and actions in the footer, outside the link', () => {
+    render(
+      <ItemCard
+        href="/x"
+        title="Book"
+        aria-label="Book label"
+        details={<p>Progress</p>}
+        actions={<button type="button">Go</button>}
+      />
+    )
+    const link = screen.getByRole('link', { name: 'Book label' })
+    expect(link).not.toHaveTextContent('Progress')
+    expect(screen.getByText('Progress')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Go' })).toBeInTheDocument()
+  })
+
+  it('renders details on a static card', () => {
+    render(<ItemCard title="Game" details={<p>Rating</p>} />)
+    expect(screen.getByText('Rating')).toBeInTheDocument()
+  })
+})
+
 describe('ItemCard without a link', () => {
   it('renders a static card with its actions', () => {
     render(<ItemCard title="Show" meta="Host" actions={<button type="button">Remove</button>} />)
