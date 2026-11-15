@@ -101,6 +101,7 @@ func (h *recipesConnectHandler) CreateRecipe(
 		req.IngredientAmounts,
 		req.IngredientUnits,
 		req.IngredientGroupNames,
+		req.IngredientAlternativeGroups,
 	)
 	recipe.Ingredients = ingredients
 	recipe.IsDraft = req.IsDraft
@@ -152,6 +153,7 @@ func (h *recipesConnectHandler) UpdateRecipe(
 		req.IngredientAmounts,
 		req.IngredientUnits,
 		req.IngredientGroupNames,
+		req.IngredientAlternativeGroups,
 	)
 	recipe.ID = id
 	recipe.Ingredients = ingredients

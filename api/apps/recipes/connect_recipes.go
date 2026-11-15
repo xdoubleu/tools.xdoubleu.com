@@ -90,13 +90,14 @@ func protoIngredient(ing *models.Ingredient) *recipesv1.Ingredient {
 		return nil
 	}
 	return &recipesv1.Ingredient{
-		Id:        ing.ID.String(),
-		RecipeId:  ing.RecipeID.String(),
-		Name:      ing.Name,
-		Amount:    ing.Amount,
-		Unit:      ing.Unit,
-		SortOrder: int32(ing.SortOrder), //nolint:gosec // int32 safe for domain values
-		GroupName: ing.GroupName,
+		Id:               ing.ID.String(),
+		RecipeId:         ing.RecipeID.String(),
+		Name:             ing.Name,
+		Amount:           ing.Amount,
+		Unit:             ing.Unit,
+		SortOrder:        int32(ing.SortOrder), //nolint:gosec // int32 safe for domain values
+		GroupName:        ing.GroupName,
+		AlternativeGroup: ing.AlternativeGroup,
 	}
 }
 
@@ -121,6 +122,7 @@ func dtoToRecipe(
 	ingredientAmounts []float64,
 	ingredientUnits []string,
 	ingredientGroupNames []string,
+	ingredientAlternativeGroups []string,
 ) (models.Recipe, []models.Ingredient) {
 	var nonEmpty []string
 	for _, s := range steps {
@@ -162,13 +164,20 @@ func dtoToRecipe(
 				groupName = &g
 			}
 		}
+		var alternativeGroup *string
+		if i < len(ingredientAlternativeGroups) {
+			if g := strings.TrimSpace(ingredientAlternativeGroups[i]); g != "" {
+				alternativeGroup = &g
+			}
+		}
 		//nolint:exhaustruct // other fields optional
 		ingredients = append(ingredients, models.Ingredient{
-			Name:      ingredientName,
-			Amount:    amount,
-			Unit:      unit,
-			SortOrder: i,
-			GroupName: groupName,
+			Name:             ingredientName,
+			Amount:           amount,
+			Unit:             unit,
+			SortOrder:        i,
+			GroupName:        groupName,
+			AlternativeGroup: alternativeGroup,
 		})
 	}
 	return recipe, ingredients
