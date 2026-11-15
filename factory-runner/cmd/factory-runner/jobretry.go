@@ -16,6 +16,9 @@ const (
 // retryingJobs is the job loop of a runner whose jobs failed to start (a failed
 // image pull, say): it builds them again with a growing pause until it can, then
 // runs them, so jobs come back without a restart.
+// jobRetrySleep is the pause between retries; tests replace it.
+var jobRetrySleep = sleepFor //nolint:gochecknoglobals // tests replace it
+
 type retryingJobs struct {
 	build func(context.Context) (jobLoop, error)
 	out   io.Writer

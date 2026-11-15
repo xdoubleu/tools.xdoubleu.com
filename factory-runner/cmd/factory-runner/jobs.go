@@ -11,6 +11,9 @@ import (
 	"tools.xdoubleu.com/selfupdate/updatesig"
 )
 
+// diskFree reads a volume's free bytes; tests replace it.
+var diskFree = runner.FreeBytes //nolint:gochecknoglobals // tests replace it
+
 // dataDirPerm keeps job data to this user.
 const dataDirPerm = 0o700
 
@@ -71,7 +74,7 @@ func newJobRunner(
 		},
 		Activity:         a.activity,
 		DataDir:          dataDir,
-		DiskFree:         func() (uint64, error) { return runner.FreeBytes(dataDir) },
+		DiskFree:         func() (uint64, error) { return diskFree(dataDir) },
 		Secrets:          []string{token},
 		GitHub:           runner.NewGitHubClient(),
 		ServerURL:        cfg.Server,

@@ -291,7 +291,7 @@ func (a *app) serve(
 					return a.jobs(ctx, cfg, token)
 				},
 				out:   a.stderr,
-				sleep: sleepFor,
+				sleep: jobRetrySleep,
 			}
 		}
 	}
