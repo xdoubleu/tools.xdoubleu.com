@@ -3,6 +3,8 @@ package books_test
 import (
 	"context"
 	"crypto/sha256"
+	"errors"
+	"net"
 	"net/http"
 	"os"
 	"testing"
@@ -80,6 +82,15 @@ func TestMain(m *testing.M) {
 	}
 
 	ensureGlobalJobRuns(postgresDB)
+
+	// Best-effort cover fetches must fail at once, not wait on a real resolver.
+	net.DefaultResolver = &net.Resolver{
+		PreferGo:     true,
+		StrictErrors: false,
+		Dial: func(context.Context, string, string) (net.Conn, error) {
+			return nil, errors.New("tests do not resolve names")
+		},
+	}
 
 	os.Exit(m.Run())
 }

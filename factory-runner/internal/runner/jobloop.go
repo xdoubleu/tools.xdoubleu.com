@@ -158,8 +158,12 @@ func (l *jobLoop) loop() result {
 func (l *jobLoop) attempts() result {
 	command := l.launch.command
 	prompt := fmt.Sprintf(preamble, l.job.Branch) + "\n\n"
-	if l.since != "" && l.job.ResumeSessionID == "" {
+	if (l.since != "" || l.dirs.taken) && l.job.ResumeSessionID == "" {
 		prompt += fmt.Sprintf(continuePrompt, l.job.DefaultBranch) + "\n\n"
+	}
+	if l.dirs.note != "" {
+		prompt += l.dirs.note + "\n\n"
+		l.note(l.dirs.note)
 	}
 	prompt += l.job.Prompt
 	var last *step
@@ -481,8 +485,8 @@ func (l *jobLoop) conflict(res result, st PullStatus) (step, bool) {
 		st.HeadSHA, "The pull request "+res.prURL+" conflicts with "+base+
 			". The host fetched origin/"+base+" into the clone. Merge origin/"+base+
 			" into the current branch (a merge, not a rebase: the runner pushes a "+
-			"fast-forward), resolve the conflicts (re-run generators and renumber "+
-			"migrations as needed), run the gates, commit, and write the outcome "+
+			"fast-forward), resolve the conflicts (re-run generators), "+
+			"run the gates, commit, and write the outcome "+
 			"again. Your work continues until the pull request merges."), true
 }
 

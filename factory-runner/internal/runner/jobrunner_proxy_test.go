@@ -57,7 +57,6 @@ func TestACommitAuthorFallsBackWhenTheJobHasNoAccountOrEmailIsUnset(t *testing.T
 
 func TestAnOpenCodeJobDoesNotGetTheClaudeToken(t *testing.T) {
 	job := newJob()
-	job.Harness, job.Model = runner.HarnessOpenCode, "vendor/model"
 	env := newEnv(t, writesOpenCode("Done."), job)
 	env.runner.ClaudeToken = func() (string, error) { return claudeToken, nil }
 	env.runner.Harness = runner.OpenCode{Model: "vendor/model"}

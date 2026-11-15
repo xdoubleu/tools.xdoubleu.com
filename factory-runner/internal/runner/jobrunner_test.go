@@ -103,7 +103,9 @@ func newFakeAPI(jobs ...*runner.ClaimedJob) *fakeAPI {
 	}
 }
 
-func (f *fakeAPI) ClaimJob(context.Context, string, int) (*runner.ClaimedJob, error) {
+func (f *fakeAPI) ClaimJob(
+	context.Context, string, int, string, string,
+) (*runner.ClaimedJob, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	if f.claimErr != nil {
@@ -266,9 +268,9 @@ func newJob() *runner.ClaimedJob {
 	return &runner.ClaimedJob{
 		Routine: "",
 		ID:      jobID, TaskID: taskID, RepoOwner: "xdoubleu", RepoName: "tools.xdoubleu.com",
-		DefaultBranch: "main", Harness: runner.HarnessClaudeCode, Prompt: "# Task: Fix it",
+		DefaultBranch: "main", Prompt: "# Task: Fix it",
 		Branch: branch, SetupCommands: "make setup", TimeLimitMinutes: 1,
-		MCPClientID: "", MCPClientSecret: "", ResumeSessionID: "", Model: "",
+		MCPClientID: "", MCPClientSecret: "", ResumeSessionID: "",
 	}
 }
 
@@ -673,7 +675,7 @@ func TestTheServerCannotStretchTheTimeLimit(t *testing.T) {
 	assert.WithinDuration(t, start.Add(24*time.Hour), deadline, time.Minute)
 }
 
-func TestAJobClaimedAgainStartsFromACleanDirectory(t *testing.T) {
+func TestAJobClaimedAgainKeepsItsUnpushedCloneAndClearsTheRest(t *testing.T) {
 	env := newEnv(t, writes("ok", 0), newJob(), newJob())
 	_, err := env.runner.Next(context.Background())
 	require.NoError(t, err)
@@ -687,7 +689,8 @@ func TestAJobClaimedAgainStartsFromACleanDirectory(t *testing.T) {
 		env.api.done()[1].succeeded,
 		"the second clone did not collide with the first",
 	)
-	assert.NoFileExists(t, stale)
+	assert.FileExists(t, stale, "work that was never pushed is not wiped")
+	assert.NoDirExists(t, filepath.Join(env.dir, "jobs", ".kept-"+jobID))
 }
 
 func TestABrokenMirrorIsReplaced(t *testing.T) {
@@ -847,21 +850,8 @@ func TestAReplyThatRewritesTheBranchIsRefused(t *testing.T) {
 	assert.Contains(t, got.outcome, "no longer builds on where the job began")
 }
 
-func TestAReplyNeedsTheEarlierWorkOnGitHub(t *testing.T) {
-	env := newEnv(t, writes("ok", 0), replyJob())
-	_, err := env.runner.Next(context.Background())
-	require.NoError(t, err)
-
-	got := env.api.done()[0]
-	assert.False(t, got.succeeded)
-	assert.Contains(t, got.outcome, "Could not prepare the clone")
-	assert.Contains(t, got.outcome, "pushed to GitHub")
-	assert.Empty(t, env.sandbox.specs, "the agent never ran")
-}
-
 func openCodeJob() *runner.ClaimedJob {
 	job := newJob()
-	job.Harness, job.Model = runner.HarnessOpenCode, "vendor/model"
 	return job
 }
 
@@ -917,7 +907,6 @@ func TestAnOpenCodeReplyResumesItsSession(t *testing.T) {
 	ranFirstJob(t, env)
 
 	reply := replyJob()
-	reply.Harness, reply.Model = runner.HarnessOpenCode, "vendor/model"
 	reply.ResumeSessionID = "ses_42"
 	env.api.jobs = append(env.api.jobs, reply)
 	_, err := env.runner.Next(context.Background())

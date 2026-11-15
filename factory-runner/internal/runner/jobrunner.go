@@ -104,7 +104,9 @@ const preamble = `You are running unattended in a sandbox with no network ` +
 	`titled "Sandbox: <short problem>". Then carry on as far as you can, and ` +
 	`add one line "Blocked: <the problem>" to the outcome. ` +
 	`If the gap is a missing tool, also fix it: on a separate local branch ` +
-	`agent/sandbox-<slug> off the repository's default branch, commit a change ` +
+	`agent/sandbox-<slug> created with "git switch -c agent/sandbox-<slug> ` +
+	`origin/<the repository's default branch>" (never off your job branch, which ` +
+	`would carry its files), commit a change ` +
 	`to factory-runner/Containerfile only, pinning every install to an ` +
 	`explicit version (apt pkg=ver, npm name@x.y.z, pip name==x.y.z, or a ` +
 	`versioned download URL), switch back to your job branch, and add the ` +
@@ -258,7 +260,7 @@ func (r *JobRunner) claimsHeld(now time.Time) bool {
 
 // Next claims one job and runs it to the end, reporting whether there was one.
 func (r *JobRunner) Next(ctx context.Context) (bool, error) {
-	job, err := r.API.ClaimJob(ctx, r.Token, r.maxJobs())
+	job, err := r.claimJob(ctx, r.maxJobs())
 	if err != nil || job == nil {
 		return false, err
 	}
@@ -307,7 +309,7 @@ func (r *JobRunner) loop(ctx context.Context, clk clock) error {
 			continue
 		}
 		started := clk.now()
-		job, err := r.API.ClaimJob(ctx, r.Token, limit)
+		job, err := r.claimJob(ctx, limit)
 		switch {
 		case err == nil:
 			backoff = minLoop
@@ -452,6 +454,14 @@ func (r *JobRunner) checkHarness(job *ClaimedJob) error {
 	return nil
 }
 
+// claimJob claims a job, reporting the harness and model this Mac runs.
+func (r *JobRunner) claimJob(ctx context.Context, limit int) (*ClaimedJob, error) {
+	if oc, ok := r.Harness.(OpenCode); ok {
+		return r.API.ClaimJob(ctx, r.Token, limit, HarnessOpenCode, oc.Model)
+	}
+	return r.API.ClaimJob(ctx, r.Token, limit, HarnessClaudeCode, "")
+}
+
 // harnessFor is the harness a job runs on: this Mac's, not the job's.
 func (r *JobRunner) harnessFor(*ClaimedJob) Harness {
 	return r.Harness
@@ -518,6 +528,11 @@ func (r *JobRunner) execute(ctx context.Context, job *ClaimedJob) result {
 	}
 	cancel()
 	wait()
+	if res.prURL == "" && !res.limited && res.cause != causePush {
+		if line := r.pushStranded(ctx, job, dirs.clone, since, secrets); line != "" {
+			res.outcome = strings.TrimSpace(res.outcome + "\n\n" + line)
+		}
+	}
 	// What the agent said last is what you most want to read.
 	r.flush(ctx, job.ID, events)
 	return res
@@ -533,7 +548,13 @@ func noOutcomeBlock(text, reason string, secrets []string, have string) string {
 }
 
 // jobDirs are a job's directories on the host.
-type jobDirs struct{ clone, outcome, session string }
+type jobDirs struct {
+	clone, outcome, session string
+	// note says where the clone's work came from when that was not the usual way.
+	note string
+	// taken is set when the clone is earlier work taken over from this Mac.
+	taken bool
+}
 
 // prepareDirs clears the job's directory, makes its clone and the outcome and
 // session directories, and returns where a Reply's host checks start. An error says
@@ -548,16 +569,22 @@ func (r *JobRunner) prepareDirs(
 		outcome: filepath.Join(dir, "outcome"),
 		// The session state belongs to the task, not the job: a Reply resumes it.
 		session: filepath.Join(r.DataDir, "sessions", job.TaskID),
+		note:    "", taken: false,
 	}
 	if job.Routine != "" {
 		// A routine has no task, and nothing to resume.
 		dirs.session = filepath.Join(dir, "session")
 	}
-	// A job claimed again (after a restart) starts from a clean directory.
+	// A job claimed again (after a restart) starts from a clean directory, except
+	// for a clone holding work that was never pushed.
+	kept := r.setAsideClone(job, dirs.clone)
 	if err := os.RemoveAll(dir); err != nil {
 		return jobDirs{}, "", fmt.Errorf("clear the job directory: %w", err)
 	}
-	since, err := r.prepareClone(ctx, job, dirs.clone)
+	since, err := r.prepareClone(ctx, job, &dirs, kept)
+	if kept != "" {
+		_ = os.RemoveAll(kept)
+	}
 	if err != nil {
 		return jobDirs{}, "", fmt.Errorf("prepare the clone: %w", err)
 	}
@@ -636,36 +663,37 @@ func (r *JobRunner) invocation(
 	return command, env, nil
 }
 
-// prepareClone makes the job's clone: the task's existing branch for a Reply's job
-// or a re-run whose branch was already pushed, else a new branch off the base. It
-// also returns the commit an existing branch began at ("" for a new one), where the
-// host's checks start.
+// prepareClone makes the job's clone: the task's existing branch when it was
+// pushed, else the work an earlier job left in a clone on this Mac, else a new
+// branch off the base. It also returns the commit an existing branch began at ("" for
+// a new one or a taken-over clone), where the host's checks start.
 func (r *JobRunner) prepareClone(
 	ctx context.Context,
 	job *ClaimedJob,
-	cloneDir string,
+	dirs *jobDirs,
+	kept string,
 ) (string, error) {
+	cloneDir := dirs.clone
 	if r.takeClone(job, cloneDir) {
 		return "", nil
 	}
-	if job.ResumeSessionID == "" {
-		tip, found, err := r.Git.RestoreIfPushed(
-			ctx, job.RepoOwner, job.RepoName, job.Branch, cloneDir)
-		if err != nil {
-			return "", fmt.Errorf("restore the branch %s: %w", job.Branch, err)
-		}
-		if found {
-			return tip, nil
-		}
-		return "", r.Git.Clone(ctx, job.RepoOwner, job.RepoName, job.DefaultBranch,
-			job.Branch, cloneDir)
-	}
-	tip, err := r.Git.Restore(ctx, job.RepoOwner, job.RepoName, job.Branch, cloneDir)
+	tip, found, err := r.Git.RestoreIfPushed(
+		ctx, job.RepoOwner, job.RepoName, job.Branch, cloneDir)
 	if err != nil {
-		return "", fmt.Errorf("restore the branch %s (a Reply needs the earlier work "+
-			"pushed to GitHub): %w", job.Branch, err)
+		return "", fmt.Errorf("restore the branch %s: %w", job.Branch, err)
 	}
-	return tip, nil
+	if found {
+		return tip, nil
+	}
+	if r.takeStranded(job, cloneDir, kept) == nil {
+		dirs.note, dirs.taken = noteFromMac, true
+		return "", nil
+	}
+	if job.ResumeSessionID != "" {
+		dirs.note = noteFresh
+	}
+	return "", r.Git.Clone(ctx, job.RepoOwner, job.RepoName, job.DefaultBranch,
+		job.Branch, cloneDir)
 }
 
 // limitMarker names the file recording which job's clone a limited task left behind.
@@ -751,7 +779,7 @@ func (r *JobRunner) publishable(
 		// The agent's work is fine, so the job still succeeded; the task just goes
 		// to Needs you with the branch on the Mac, and the reason ahead of the text.
 		res.outcome = "Not published: " + why + "\n\n" + text
-		res.failure, res.retry, res.cause = why, !final, "push"
+		res.failure, res.retry, res.cause = why, !final, causePush
 		return res
 	}
 	res.prURL = prURL
