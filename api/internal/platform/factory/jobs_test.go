@@ -287,7 +287,7 @@ func TestAJobThatStopsCheckingInIsLost(t *testing.T) {
 	require.NoError(t, err)
 
 	got := env.task(t, task.Id)
-	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_NEEDS_YOU, got.Task.Status)
+	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_IN_PROGRESS, got.Task.Status)
 	require.Len(t, got.Comments, 1)
 	assert.Equal(t, "system:factory", got.Comments[0].Author)
 	assert.Contains(t, got.Comments[0].Body, "Job lost")
@@ -423,9 +423,10 @@ func TestReadingATaskNoticesALostJob(t *testing.T) {
 	require.NoError(t, err)
 
 	got := env.task(t, task.Id)
-	require.Len(t, got.Jobs, 1)
-	assert.Equal(t, factoryv1.JobStatus_JOB_STATUS_LOST, got.Jobs[0].Status)
-	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_NEEDS_YOU, got.Task.Status)
+	require.Len(t, got.Jobs, 2)
+	assert.Equal(t, factoryv1.JobStatus_JOB_STATUS_LOST, got.Jobs[1].Status)
+	assert.Equal(t, factoryv1.JobStatus_JOB_STATUS_QUEUED, got.Jobs[0].Status)
+	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_IN_PROGRESS, got.Task.Status)
 }
 
 func (e jobEnv) stop(t *testing.T, taskID string) (*factoryv1.StopJobResponse, error) {

@@ -170,6 +170,7 @@ func (a *Factory) Start() error {
 		a.jobQueue.AddJob(a.signalsJob(), noop),
 		a.jobQueue.AddJob(a.routinesJob(), noop),
 		a.jobQueue.AddJob(a.resumeParkedJob(), noop),
+		a.jobQueue.AddJob(a.reconcileBoardJob(), noop),
 	)
 }
 
@@ -181,6 +182,16 @@ func (a *Factory) resumeParkedJob() threading.Job {
 // ResumeParkedNow resumes parked tasks once, outside the schedule.
 func (a *Factory) ResumeParkedNow(ctx context.Context) error {
 	return a.resumeParkedJob().Run(ctx, a.Logger)
+}
+
+func (a *Factory) reconcileBoardJob() threading.Job {
+	reconcile := jobs.NewReconcileBoardJob(a.services.Jobs)
+	return observability.NewTrackedJob(reconcile, a.db)
+}
+
+// ReconcileBoardNow reconciles the board once, outside the schedule.
+func (a *Factory) ReconcileBoardNow(ctx context.Context) error {
+	return a.reconcileBoardJob().Run(ctx, a.Logger)
 }
 
 func (a *Factory) pollJob() threading.Job {

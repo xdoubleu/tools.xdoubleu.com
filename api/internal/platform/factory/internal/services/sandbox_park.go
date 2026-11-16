@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	// ParkedLabel marks an In progress task waiting for a new job image.
+	// ParkedLabel marks a Backlog task waiting for a new job image.
 	ParkedLabel = "waiting-on-sandbox"
 	// imageResumeAuthor creates the jobs that resume parked tasks.
 	imageResumeAuthor = "system:job-image"
@@ -71,7 +71,7 @@ func ManifestDigest(webURL string, client *http.Client) DigestSource {
 // SetImageDigestSource turns on resuming parked tasks when the digest changes.
 func (s *JobService) SetImageDigestSource(src DigestSource) { s.imageDigest = src }
 
-// park keeps a blocked job's task In progress, labelled, instead of Needs you, when
+// park moves a blocked job's task to Backlog, labelled, instead of Needs you, when
 // a new image can resume its session. It leaves the task in Needs you when the job
 // has no session or pull request to worry about, or the task was resumed too often.
 func (s *JobService) park(
@@ -115,7 +115,7 @@ func (s *JobService) park(
 			strconv.FormatInt(sandbox.Number, 10) + "."
 	}
 	if err = s.finishTask(
-		ctx, task.ID, systemAuthor, body, models.StatusInProgress); err != nil {
+		ctx, task.ID, systemAuthor, body, models.StatusBacklog); err != nil {
 		return err
 	}
 	s.recordFirstDigest(ctx)
@@ -169,7 +169,8 @@ func (s *JobService) resumeAll(ctx context.Context) (int, error) {
 	var errs []error
 	for i := range all {
 		t := &all[i]
-		if t.Status != models.StatusInProgress || !slices.Contains(t.Labels, ParkedLabel) {
+		if (t.Status != models.StatusBacklog && t.Status != models.StatusInProgress) ||
+			!slices.Contains(t.Labels, ParkedLabel) {
 			continue
 		}
 		if err = s.resume(ctx, t); err != nil {
@@ -189,9 +190,7 @@ func (s *JobService) resume(ctx context.Context, t *models.Task) error {
 	unparked := slices.DeleteFunc(slices.Clone(t.Labels), func(l string) bool {
 		return l == ParkedLabel
 	})
-	if slices.ContainsFunc(jobs, func(j models.Job) bool {
-		return !j.Status.Finished()
-	}) {
+	if hasActive(jobs) {
 		return s.tasks.SetLabels(ctx, t.ID, unparked)
 	}
 	// Jobs are newest first: resume the newest session there is.
@@ -220,7 +219,7 @@ func (s *JobService) resume(ctx context.Context, t *models.Task) error {
 	if err = s.tasks.SetLabels(ctx, t.ID, unparked); err != nil {
 		return err
 	}
-	_, err = s.tasks.AddComment(ctx, t.ID, systemAuthor,
-		"A new job image is published; the task resumes on its branch.")
-	return err
+	return s.finishTask(ctx, t.ID, systemAuthor,
+		"A new job image is published; the task resumes on its branch.",
+		models.StatusInProgress)
 }
