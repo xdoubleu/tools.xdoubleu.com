@@ -576,15 +576,17 @@ func (service *LocalService) UpdatePassword(
 // every OAuth grant.
 // DeactivateUser blocks the person's sign-in and signs them out everywhere.
 func (service *LocalService) DeactivateUser(ctx context.Context, userID string) error {
-	if _, err := service.usersStore.GetUserByID(ctx, userID); errors.Is(err, errNotFound) {
+	_, err := service.usersStore.GetUserByID(ctx, userID)
+	if errors.Is(err, errNotFound) {
 		return ErrUserNotFound
-	} else if err != nil {
-		return err
 	}
-	if err := service.usersStore.SetDeactivated(ctx, userID); err != nil {
-		return err
+	if err == nil {
+		err = service.usersStore.SetDeactivated(ctx, userID)
 	}
-	return service.revokeAllSessions(ctx, userID)
+	if err == nil {
+		err = service.revokeAllSessions(ctx, userID)
+	}
+	return err
 }
 
 func (service *LocalService) revokeAllSessions(
