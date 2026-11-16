@@ -5,10 +5,10 @@ import (
 	"net/url"
 	"time"
 
+	"authelia.com/provider/jose"
 	fosite "authelia.com/provider/oauth2"
 	"authelia.com/provider/oauth2/compose"
 	hoauth2 "authelia.com/provider/oauth2/handler/oauth2"
-	"authelia.com/provider/oauth2/token/jose"
 	"authelia.com/provider/oauth2/token/jwt"
 
 	"tools.xdoubleu.com/internal/config"
@@ -41,7 +41,7 @@ func NewProvider(
 		RefreshTokenLifespan:           refreshTokenLifespan,
 		AuthorizeCodeLifespan:          authorizeCodeLifespan,
 		IDTokenLifespan:                idTokenLifespan,
-		IDTokenIssuer:                  cfg.AuthIssuer,
+		Issuer:                         cfg.AuthIssuer,
 		EnforcePKCE:                    true,
 		EnablePKCEPlainChallengeMethod: false,
 		ResourceStrategy:               ownResourceStrategy(cfg.APIURL),

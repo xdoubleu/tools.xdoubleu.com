@@ -4,6 +4,8 @@ package oauth2as
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"net/url"
@@ -281,14 +283,57 @@ func (s *Store) DeleteRefreshTokenSession(ctx context.Context, signature string)
 	return s.deleteRequest(ctx, "oauth2_refresh_tokens", signature)
 }
 
+// UpdateRefreshTokenSession replaces the stored request, keeping the token's
+// active state.
+func (s *Store) UpdateRefreshTokenSession(
+	ctx context.Context, signature string, request fosite.Requester,
+) error {
+	pr, err := toPersisted(request)
+	if err != nil {
+		return err
+	}
+	raw, err := json.Marshal(pr)
+	if err != nil {
+		return err
+	}
+	tag, err := s.db.Exec(ctx, `
+		UPDATE auth.oauth2_refresh_tokens SET request = $2 WHERE signature = $1
+	`, signature, raw)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return fosite.ErrNotFound
+	}
+	return nil
+}
+
+// RotateRefreshToken deactivates the token. A replay inside the reuse grace
+// period succeeds; later ones are ErrInactiveToken, which fosite treats as
+// theft.
 func (s *Store) RotateRefreshToken(
 	ctx context.Context, requestID string, refreshTokenSignature string,
 ) error {
-	_, err := s.db.Exec(ctx, `
-		UPDATE auth.oauth2_refresh_tokens SET active = false, rotated_at = now()
-		WHERE signature = $1 AND request->>'id' = $2
-	`, refreshTokenSignature, requestID)
-	return err
+	var wasActive bool
+	var rotatedAt *time.Time
+	err := s.db.QueryRow(ctx, `
+		UPDATE auth.oauth2_refresh_tokens AS t SET active = false,
+			rotated_at = CASE WHEN o.active THEN now() ELSE t.rotated_at END
+		FROM auth.oauth2_refresh_tokens AS o
+		WHERE t.signature = $1 AND t.request->>'id' = $2 AND o.signature = t.signature
+		RETURNING o.active, o.rotated_at
+	`, refreshTokenSignature, requestID).Scan(&wasActive, &rotatedAt)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return fosite.ErrNotFound
+		}
+		return err
+	}
+	if wasActive ||
+		(rotatedAt != nil && time.Since(*rotatedAt) < refreshTokenReuseGracePeriod) {
+		return nil
+	}
+	return fosite.ErrInactiveToken
 }
 
 // --- TokenRevocationStorage ---
@@ -355,7 +400,55 @@ func (s *Store) DeletePKCERequestSession(ctx context.Context, signature string) 
 	return err
 }
 
+// markUsed atomically records a digest of value for the client until
+// expiresAt, returning errReused when an unexpired record already exists.
+func (s *Store) markUsed(
+	ctx context.Context, kind, clientID, value string, expiresAt time.Time,
+) error {
+	sum := sha256.Sum256([]byte(value))
+	tag, err := s.db.Exec(ctx, `
+		INSERT INTO auth.oauth2_used_values (kind, client_id, digest, expires_at)
+		VALUES ($1, $2, $3, $4)
+		ON CONFLICT (kind, client_id, digest) DO UPDATE
+			SET expires_at = EXCLUDED.expires_at
+			WHERE auth.oauth2_used_values.expires_at <= now()
+	`, kind, clientID, hex.EncodeToString(sum[:]), expiresAt)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return errReused
+	}
+	return nil
+}
+
+var errReused = errors.New("oauth2as: value already used")
+
+func (s *Store) SetPKCEChallengeUsed(
+	ctx context.Context, clientID, challenge string, expiresAt time.Time,
+) error {
+	if err := s.markUsed(ctx, "pkce", clientID, challenge, expiresAt); err != nil {
+		if errors.Is(err, errReused) {
+			return fosite.ErrPKCEChallengeReused
+		}
+		return err
+	}
+	return nil
+}
+
 // --- OpenIDConnectRequestStorage ---
+
+func (s *Store) SetOpenIDConnectNonceUsed(
+	ctx context.Context, clientID, nonce string, expiresAt time.Time,
+) error {
+	if err := s.markUsed(ctx, "nonce", clientID, nonce, expiresAt); err != nil {
+		if errors.Is(err, errReused) {
+			return fosite.ErrOpenIDConnectNonceReused
+		}
+		return err
+	}
+	return nil
+}
 
 // CreateOpenIDConnectSession stores the authorize request with its ID-token
 // claims, keyed by code; only reached when openid was granted.
@@ -471,11 +564,13 @@ func (s *Store) GetClientName(ctx context.Context, id string) (string, error) {
 
 // ClientAssertionJWTValid/SetClientAssertionJWT are unused private_key_jwt
 // stubs that satisfy ClientManager.
-func (s *Store) ClientAssertionJWTValid(_ context.Context, _ string) error {
+func (s *Store) ClientAssertionJWTValid(_ context.Context, _, _ string) error {
 	return nil
 }
 
-func (s *Store) SetClientAssertionJWT(_ context.Context, _ string, _ time.Time) error {
+func (s *Store) SetClientAssertionJWT(
+	_ context.Context, _, _ string, _ time.Time,
+) error {
 	return nil
 }
 
