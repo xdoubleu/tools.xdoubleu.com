@@ -150,7 +150,11 @@ func TestFamilyRepository_DisplayName(t *testing.T) {
 	assert.Equal(t, "", names[ownerID])
 	assert.Equal(t, "", names[inviteeID])
 
-	require.NoError(t, repo.SetDisplayName(t.Context(), inviteeID, "Robin"))
+	_, err = testDB.Exec(t.Context(), `
+		INSERT INTO global.app_users (id, email, display_name)
+		VALUES ($1, $1 || '@example.com', 'Robin')
+		ON CONFLICT (id) DO UPDATE SET display_name = 'Robin'`, inviteeID)
+	require.NoError(t, err)
 
 	names, err = repo.MemberDisplayNames(t.Context(), familyID)
 	require.NoError(t, err)

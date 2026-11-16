@@ -100,11 +100,8 @@ func TestMain(m *testing.M) {
 		`CREATE TABLE IF NOT EXISTS global.family_members (
 			user_id TEXT PRIMARY KEY,
 			family_id UUID NOT NULL REFERENCES global.families (id) ON DELETE CASCADE,
-			joined_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-			display_name TEXT NOT NULL DEFAULT ''
+			joined_at TIMESTAMPTZ NOT NULL DEFAULT now()
 		)`,
-		`ALTER TABLE global.family_members
-			ADD COLUMN IF NOT EXISTS display_name TEXT NOT NULL DEFAULT ''`,
 		`CREATE TABLE IF NOT EXISTS global.family_invites (
 			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 			family_id UUID NOT NULL REFERENCES global.families (id) ON DELETE CASCADE,

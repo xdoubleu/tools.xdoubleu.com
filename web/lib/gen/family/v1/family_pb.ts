@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file family/v1/family.proto.
  */
 export const file_family_v1_family: GenFile = /*@__PURE__*/
-  fileDesc("ChZmYW1pbHkvdjEvZmFtaWx5LnByb3RvEglmYW1pbHkudjEiRAoMRmFtaWx5TWVtYmVyEg8KB3VzZXJfaWQYASABKAkSDQoFZW1haWwYAiABKAkSFAoMZGlzcGxheV9uYW1lGAMgASgJIlgKDEZhbWlseUludml0ZRIKCgJpZBgBIAEoCRIUCgxmcm9tX3VzZXJfaWQYAiABKAkSEgoKZnJvbV9lbWFpbBgDIAEoCRISCgpjcmVhdGVkX2F0GAQgASgJIhIKEEdldEZhbWlseVJlcXVlc3QiigEKEUdldEZhbWlseVJlc3BvbnNlEigKB21lbWJlcnMYASADKAsyFy5mYW1pbHkudjEuRmFtaWx5TWVtYmVyEjAKD2luY29taW5nX2ludml0ZRgCIAEoCzIXLmZhbWlseS52MS5GYW1pbHlJbnZpdGUSGQoRc2VsZl9kaXNwbGF5X25hbWUYAyABKAkiJgoVSW52aXRlVG9GYW1pbHlSZXF1ZXN0Eg0KBWVtYWlsGAEgASgJIhgKFkludml0ZVRvRmFtaWx5UmVzcG9uc2UiLgoZQWNjZXB0RmFtaWx5SW52aXRlUmVxdWVzdBIRCglpbnZpdGVfaWQYASABKAkiHAoaQWNjZXB0RmFtaWx5SW52aXRlUmVzcG9uc2UiHAoaRGVjbGluZUZhbWlseUludml0ZVJlcXVlc3QiHQobRGVjbGluZUZhbWlseUludml0ZVJlc3BvbnNlIjMKG1NldEZhbWlseURpc3BsYXlOYW1lUmVxdWVzdBIUCgxkaXNwbGF5X25hbWUYASABKAkiHgocU2V0RmFtaWx5RGlzcGxheU5hbWVSZXNwb25zZSIUChJMZWF2ZUZhbWlseVJlcXVlc3QiFQoTTGVhdmVGYW1pbHlSZXNwb25zZTKuBAoNRmFtaWx5U2VydmljZRJGCglHZXRGYW1pbHkSGy5mYW1pbHkudjEuR2V0RmFtaWx5UmVxdWVzdBocLmZhbWlseS52MS5HZXRGYW1pbHlSZXNwb25zZRJVCg5JbnZpdGVUb0ZhbWlseRIgLmZhbWlseS52MS5JbnZpdGVUb0ZhbWlseVJlcXVlc3QaIS5mYW1pbHkudjEuSW52aXRlVG9GYW1pbHlSZXNwb25zZRJhChJBY2NlcHRGYW1pbHlJbnZpdGUSJC5mYW1pbHkudjEuQWNjZXB0RmFtaWx5SW52aXRlUmVxdWVzdBolLmZhbWlseS52MS5BY2NlcHRGYW1pbHlJbnZpdGVSZXNwb25zZRJkChNEZWNsaW5lRmFtaWx5SW52aXRlEiUuZmFtaWx5LnYxLkRlY2xpbmVGYW1pbHlJbnZpdGVSZXF1ZXN0GiYuZmFtaWx5LnYxLkRlY2xpbmVGYW1pbHlJbnZpdGVSZXNwb25zZRJnChRTZXRGYW1pbHlEaXNwbGF5TmFtZRImLmZhbWlseS52MS5TZXRGYW1pbHlEaXNwbGF5TmFtZVJlcXVlc3QaJy5mYW1pbHkudjEuU2V0RmFtaWx5RGlzcGxheU5hbWVSZXNwb25zZRJMCgtMZWF2ZUZhbWlseRIdLmZhbWlseS52MS5MZWF2ZUZhbWlseVJlcXVlc3QaHi5mYW1pbHkudjEuTGVhdmVGYW1pbHlSZXNwb25zZUIrWil0b29scy54ZG91YmxldS5jb20vZ2VuL2ZhbWlseS92MTtmYW1pbHl2MWIGcHJvdG8z");
+  fileDesc("ChZmYW1pbHkvdjEvZmFtaWx5LnByb3RvEglmYW1pbHkudjEiRAoMRmFtaWx5TWVtYmVyEg8KB3VzZXJfaWQYASABKAkSDQoFZW1haWwYAiABKAkSFAoMZGlzcGxheV9uYW1lGAMgASgJIlgKDEZhbWlseUludml0ZRIKCgJpZBgBIAEoCRIUCgxmcm9tX3VzZXJfaWQYAiABKAkSEgoKZnJvbV9lbWFpbBgDIAEoCRISCgpjcmVhdGVkX2F0GAQgASgJIhIKEEdldEZhbWlseVJlcXVlc3QibwoRR2V0RmFtaWx5UmVzcG9uc2USKAoHbWVtYmVycxgBIAMoCzIXLmZhbWlseS52MS5GYW1pbHlNZW1iZXISMAoPaW5jb21pbmdfaW52aXRlGAIgASgLMhcuZmFtaWx5LnYxLkZhbWlseUludml0ZSImChVJbnZpdGVUb0ZhbWlseVJlcXVlc3QSDQoFZW1haWwYASABKAkiGAoWSW52aXRlVG9GYW1pbHlSZXNwb25zZSIuChlBY2NlcHRGYW1pbHlJbnZpdGVSZXF1ZXN0EhEKCWludml0ZV9pZBgBIAEoCSIcChpBY2NlcHRGYW1pbHlJbnZpdGVSZXNwb25zZSIcChpEZWNsaW5lRmFtaWx5SW52aXRlUmVxdWVzdCIdChtEZWNsaW5lRmFtaWx5SW52aXRlUmVzcG9uc2UiFAoSTGVhdmVGYW1pbHlSZXF1ZXN0IhUKE0xlYXZlRmFtaWx5UmVzcG9uc2UyxQMKDUZhbWlseVNlcnZpY2USRgoJR2V0RmFtaWx5EhsuZmFtaWx5LnYxLkdldEZhbWlseVJlcXVlc3QaHC5mYW1pbHkudjEuR2V0RmFtaWx5UmVzcG9uc2USVQoOSW52aXRlVG9GYW1pbHkSIC5mYW1pbHkudjEuSW52aXRlVG9GYW1pbHlSZXF1ZXN0GiEuZmFtaWx5LnYxLkludml0ZVRvRmFtaWx5UmVzcG9uc2USYQoSQWNjZXB0RmFtaWx5SW52aXRlEiQuZmFtaWx5LnYxLkFjY2VwdEZhbWlseUludml0ZVJlcXVlc3QaJS5mYW1pbHkudjEuQWNjZXB0RmFtaWx5SW52aXRlUmVzcG9uc2USZAoTRGVjbGluZUZhbWlseUludml0ZRIlLmZhbWlseS52MS5EZWNsaW5lRmFtaWx5SW52aXRlUmVxdWVzdBomLmZhbWlseS52MS5EZWNsaW5lRmFtaWx5SW52aXRlUmVzcG9uc2USTAoLTGVhdmVGYW1pbHkSHS5mYW1pbHkudjEuTGVhdmVGYW1pbHlSZXF1ZXN0Gh4uZmFtaWx5LnYxLkxlYXZlRmFtaWx5UmVzcG9uc2VCK1opdG9vbHMueGRvdWJsZXUuY29tL2dlbi9mYW1pbHkvdjE7ZmFtaWx5djFiBnByb3RvMw");
 
 /**
  * @generated from message family.v1.FamilyMember
@@ -27,7 +27,8 @@ export type FamilyMember = Message<"family.v1.FamilyMember"> & {
   email: string;
 
   /**
-   * The member's chosen name, shown instead of their email; empty if unset.
+   * The member's user-management display name, shown instead of their email;
+   * empty if unset.
    *
    * @generated from field: string display_name = 3;
    */
@@ -101,14 +102,6 @@ export type GetFamilyResponse = Message<"family.v1.GetFamilyResponse"> & {
    * @generated from field: family.v1.FamilyInvite incoming_invite = 2;
    */
   incomingInvite?: FamilyInvite | undefined;
-
-  /**
-   * The caller's own chosen name (empty if unset); the caller is not in
-   * members.
-   *
-   * @generated from field: string self_display_name = 3;
-   */
-  selfDisplayName: string;
 };
 
 /**
@@ -207,36 +200,6 @@ export const DeclineFamilyInviteResponseSchema: GenMessage<DeclineFamilyInviteRe
   messageDesc(file_family_v1_family, 9);
 
 /**
- * @generated from message family.v1.SetFamilyDisplayNameRequest
- */
-export type SetFamilyDisplayNameRequest = Message<"family.v1.SetFamilyDisplayNameRequest"> & {
-  /**
-   * @generated from field: string display_name = 1;
-   */
-  displayName: string;
-};
-
-/**
- * Describes the message family.v1.SetFamilyDisplayNameRequest.
- * Use `create(SetFamilyDisplayNameRequestSchema)` to create a new message.
- */
-export const SetFamilyDisplayNameRequestSchema: GenMessage<SetFamilyDisplayNameRequest> = /*@__PURE__*/
-  messageDesc(file_family_v1_family, 10);
-
-/**
- * @generated from message family.v1.SetFamilyDisplayNameResponse
- */
-export type SetFamilyDisplayNameResponse = Message<"family.v1.SetFamilyDisplayNameResponse"> & {
-};
-
-/**
- * Describes the message family.v1.SetFamilyDisplayNameResponse.
- * Use `create(SetFamilyDisplayNameResponseSchema)` to create a new message.
- */
-export const SetFamilyDisplayNameResponseSchema: GenMessage<SetFamilyDisplayNameResponse> = /*@__PURE__*/
-  messageDesc(file_family_v1_family, 11);
-
-/**
  * @generated from message family.v1.LeaveFamilyRequest
  */
 export type LeaveFamilyRequest = Message<"family.v1.LeaveFamilyRequest"> & {
@@ -247,7 +210,7 @@ export type LeaveFamilyRequest = Message<"family.v1.LeaveFamilyRequest"> & {
  * Use `create(LeaveFamilyRequestSchema)` to create a new message.
  */
 export const LeaveFamilyRequestSchema: GenMessage<LeaveFamilyRequest> = /*@__PURE__*/
-  messageDesc(file_family_v1_family, 12);
+  messageDesc(file_family_v1_family, 10);
 
 /**
  * @generated from message family.v1.LeaveFamilyResponse
@@ -260,7 +223,7 @@ export type LeaveFamilyResponse = Message<"family.v1.LeaveFamilyResponse"> & {
  * Use `create(LeaveFamilyResponseSchema)` to create a new message.
  */
 export const LeaveFamilyResponseSchema: GenMessage<LeaveFamilyResponse> = /*@__PURE__*/
-  messageDesc(file_family_v1_family, 13);
+  messageDesc(file_family_v1_family, 11);
 
 /**
  * @generated from service family.v1.FamilyService
@@ -297,14 +260,6 @@ export const FamilyService: GenService<{
     methodKind: "unary";
     input: typeof DeclineFamilyInviteRequestSchema;
     output: typeof DeclineFamilyInviteResponseSchema;
-  },
-  /**
-   * @generated from rpc family.v1.FamilyService.SetFamilyDisplayName
-   */
-  setFamilyDisplayName: {
-    methodKind: "unary";
-    input: typeof SetFamilyDisplayNameRequestSchema;
-    output: typeof SetFamilyDisplayNameResponseSchema;
   },
   /**
    * @generated from rpc family.v1.FamilyService.LeaveFamily

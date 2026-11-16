@@ -173,7 +173,6 @@ POST /family.v1.FamilyService/DeclineFamilyInvite: 401, 415
 POST /family.v1.FamilyService/GetFamily: 401, 415
 POST /family.v1.FamilyService/InviteToFamily: 401, 415
 POST /family.v1.FamilyService/LeaveFamily: 401, 415
-POST /family.v1.FamilyService/SetFamilyDisplayName: 401, 415
 POST /feeds.v1.FeedService/: 401, 403
 POST /feeds.v1.FeedService/CreateFeed: 401, 403
 POST /feeds.v1.FeedService/CreateFilterRule: 401, 403

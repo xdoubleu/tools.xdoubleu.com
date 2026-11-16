@@ -75,9 +75,8 @@ func (h *familyConnectHandler) GetFamily(
 	}
 
 	resp := &familyv1.GetFamilyResponse{
-		Members:         members,
-		IncomingInvite:  nil,
-		SelfDisplayName: membership.SelfDisplayName,
+		Members:        members,
+		IncomingInvite: nil,
 	}
 	if hasInvite {
 		resp.IncomingInvite = &familyv1.FamilyInvite{
@@ -143,21 +142,6 @@ func (h *familyConnectHandler) DeclineFamilyInvite(
 	}
 
 	return &familyv1.DeclineFamilyInviteResponse{}, nil
-}
-
-func (h *familyConnectHandler) SetFamilyDisplayName(
-	ctx context.Context,
-	req *familyv1.SetFamilyDisplayNameRequest,
-) (*familyv1.SetFamilyDisplayNameResponse, error) {
-	userID := h.userID(ctx)
-
-	if err := h.app.Family.SetDisplayName(
-		ctx, userID, req.DisplayName,
-	); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
-	}
-
-	return &familyv1.SetFamilyDisplayNameResponse{}, nil
 }
 
 func (h *familyConnectHandler) LeaveFamily(
