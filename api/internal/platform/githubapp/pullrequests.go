@@ -369,6 +369,47 @@ func (c *Client) OpenPullRequests(
 	return out, nil
 }
 
+// PullRequestFiles lists the paths a pull request changes, with the old path of
+// a rename. A pull request of more files than maxPages hold is an error, never a
+// partial list.
+func (c *Client) PullRequestFiles(
+	ctx context.Context,
+	owner, repo string,
+	number int,
+) ([]string, error) {
+	if number < 1 {
+		return nil, errors.New("github: invalid pull request number")
+	}
+	token, err := c.readToken(ctx, owner, repo)
+	if err != nil {
+		return nil, err
+	}
+	out := []string{}
+	for page := 1; page <= maxPages; page++ {
+		var files []struct {
+			Name string `json:"filename"`
+			Was  string `json:"previous_filename"`
+		}
+		_, err = c.do(ctx, http.MethodGet,
+			"/repos/"+owner+"/"+repo+"/pulls/"+strconv.Itoa(number)+
+				"/files?per_page="+strconv.Itoa(pageSize)+"&page="+strconv.Itoa(page),
+			token, nil, &files)
+		if err != nil {
+			return nil, err
+		}
+		for _, f := range files {
+			out = append(out, f.Name)
+			if f.Was != "" {
+				out = append(out, f.Was)
+			}
+		}
+		if len(files) < pageSize {
+			return out, nil
+		}
+	}
+	return nil, errors.New("github: too many changed files to list")
+}
+
 // Deployed reports whether the commit sha is part of release, the commit a
 // deployment runs: release is the same commit or a descendant of it. A sha
 // GitHub doesn't know (or any failure) is an error, never "not deployed".

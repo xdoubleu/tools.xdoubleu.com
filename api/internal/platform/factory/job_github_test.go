@@ -34,6 +34,9 @@ type fakeGitHub struct {
 	deployErr error
 	// deployHangs makes the deploy check wait until its context ends.
 	deployHangs bool
+	// files answers PullRequestFiles by number; filesErr fails it.
+	files    map[int][]string
+	filesErr error
 }
 
 // testRelease is the release the factory under test says it runs.
@@ -63,6 +66,14 @@ func (f *fakeGitHub) Deployed(
 		return false, errors.New("unexpected release " + release)
 	}
 	return f.live[sha], f.deployErr
+}
+
+func (f *fakeGitHub) PullRequestFiles(
+	_ context.Context, _, _ string, number int,
+) ([]string, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.files[number], f.filesErr
 }
 
 func (f *fakeGitHub) MergedPullRequests(
@@ -113,7 +124,7 @@ func githubEnv(t *testing.T, extra ...factory.Option) (jobEnv, *fakeGitHub) {
 	gh := &fakeGitHub{
 		mu: sync.Mutex{}, asked: nil, err: nil, pulls: map[int]pullAnswer{},
 		polled: nil, merged: nil, open: nil, live: map[string]bool{}, deployErr: nil,
-		deployHangs: false,
+		deployHangs: false, files: map[int][]string{}, filesErr: nil,
 	}
 	opts := append([]factory.Option{factory.WithGitHub(gh)}, extra...)
 	return newJobEnvWith(t, true, "browser", opts...), gh
