@@ -78,7 +78,7 @@ func (s *JobService) SaveRoutine(
 	if routine.Enabled {
 		state = "enabled, every " + strconv.Itoa(routine.IntervalMinutes) + " minutes"
 	}
-	s.say.say(ctx, ":gear: Routine "+routine.Name+" was saved by "+actor.String()+
+	s.say.say(ctx, ":gear: Routine "+routine.Name+" was saved by "+actor.Name()+
 		" ("+state+").")
 	return routine, nil
 }
@@ -117,7 +117,11 @@ func (s *JobService) RunRoutine(
 	if err != nil {
 		return nil, err
 	}
-	return s.queueRoutine(ctx, routine, actor.String())
+	job, err := s.queueRoutine(ctx, routine, actor.String())
+	if err == nil && actor.Via != "" {
+		s.say.say(ctx, ":arrow_forward: Routine "+name+" was run by "+actor.Name()+".")
+	}
+	return job, err
 }
 
 // queueRoutine adds the routine's job; one already queued or running is a conflict.
@@ -192,7 +196,7 @@ func (s *JobService) StopRoutine(
 		return nil, err
 	}
 	s.revokeAccount(ctx, job.ID)
-	s.say.say(ctx, ":octagonal_sign: Routine "+name+" was stopped by "+actor.String()+".")
+	s.say.say(ctx, ":octagonal_sign: Routine "+name+" was stopped by "+actor.Name()+".")
 	return job, nil
 }
 

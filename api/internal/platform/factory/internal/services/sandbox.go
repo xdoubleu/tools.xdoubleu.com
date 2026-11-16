@@ -128,7 +128,7 @@ func (s *JobService) ReportBlocked(
 		job.ID.String()[:shortJobIDLen] + "):\n\n" + blocked
 	actor := models.Actor{
 		Kind: models.ActorAgent, ID: "runner:" + runnerID.String(),
-		Browser: false, Admin: false,
+		Browser: false, Admin: false, Via: "",
 	}
 	tasks := &TaskService{repo: s.tasks}
 	if noImageFix(blocked) {

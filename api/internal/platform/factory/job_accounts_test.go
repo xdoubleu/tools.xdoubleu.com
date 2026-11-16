@@ -402,13 +402,56 @@ func TestARoutineJobGetsAnAccountWithoutATaskScope(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "TASK_STATUS_BACKLOG", str(t, made, "task", "status"))
 
-	// ...but doesn't move or edit tasks, or touch routines.
+	// ...but doesn't move or edit tasks, nor run or change its own routine.
 	for name, args := range map[string]map[string]any{
 		"factory_move_task":   {"id": task.Id, "status": "done"},
 		"factory_update_task": {"id": task.Id, "title": "Renamed"},
 		"factory_run_routine": {"name": "sweep"},
+		"factory_set_routine": {
+			"name": "sweep", "repo_id": seededRepoID(t), "enabled": true,
+		},
 	} {
 		_, err = callTool(t, session, name, args)
 		require.Error(t, err, name)
 	}
+}
+
+func TestARoutineJobManagesOtherRoutinesAndIsNamedInTheNotice(t *testing.T) {
+	env, accounts := accountsEnv(t)
+	env.saveRoutine(t, "sweep", false, 0)
+	t.Cleanup(func() {
+		_, err := testDB.Exec(context.Background(), "DELETE FROM factory.jobs")
+		require.NoError(t, err)
+		_, err = testDB.Exec(context.Background(), "DELETE FROM factory.routines")
+		require.NoError(t, err)
+	})
+	_, err := env.tasks.RunRoutine(context.Background(),
+		&factoryv1.RunRoutineRequest{Name: "sweep"})
+	require.NoError(t, err)
+	claimed := env.claim(t)
+	acc := accounts.of(t, claimed.Id)
+	session := mcpSessionOn(t, env.app, &models.User{
+		ID: acc.userID, Email: "job@agent.invalid", Role: models.RoleAgent,
+		AppAccess: []string{"factory"}, WriteAccess: []string{"factory"},
+		HasMFA: false, DisplayName: "",
+	})
+
+	listed, err := callTool(t, session, "factory_list_routines", nil)
+	require.NoError(t, err)
+	assert.Equal(t, "sweep", str(t, listed, "routines", 0, "name"))
+
+	_, err = callTool(t, session, "factory_set_routine", map[string]any{
+		"name": "other", "repo_id": seededRepoID(t),
+		"enabled": false, "interval_minutes": 60,
+	})
+	require.NoError(t, err)
+	var by string
+	require.NoError(t, testDB.QueryRow(context.Background(),
+		`SELECT updated_by FROM factory.routines WHERE name = 'other'`).Scan(&by))
+	assert.Equal(t, "agent:"+acc.userID, by)
+
+	ran, err := callTool(t, session, "factory_run_routine",
+		map[string]any{"name": "other"})
+	require.NoError(t, err)
+	assert.Equal(t, "other", str(t, ran, "job", "routine"))
 }

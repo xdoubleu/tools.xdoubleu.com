@@ -98,3 +98,19 @@ func (s *JobService) TaskScope(
 	}
 	return &scope.TaskID, nil
 }
+
+// JobOf is the job the user's account was made for, or nil when it is not a
+// job's account.
+func (s *JobService) JobOf(
+	ctx context.Context,
+	userID uuid.UUID,
+) (*models.Job, error) {
+	if s.accounts == nil {
+		return nil, nil //nolint:nilnil // no job is an answer, not an error
+	}
+	scope, err := s.accounts.ScopeOf(ctx, userID)
+	if err != nil || scope == nil {
+		return nil, err
+	}
+	return s.jobs.Get(ctx, scope.JobID)
+}
