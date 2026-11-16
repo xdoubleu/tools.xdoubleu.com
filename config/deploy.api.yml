@@ -54,7 +54,12 @@ builder:
 proxy:
   # The root path service declares `ssl`; Grafana's /grafana service must not.
   host: tools.xdoubleu.com
-  ssl: true
+  # A Cloudflare Origin CA certificate, not Let's Encrypt: Cloudflare (Full
+  # strict) is the only client, and autocert renewal silently stopped behind it.
+  # kamal-proxy serves the root path service's certificate for the whole host.
+  ssl:
+    certificate_pem: ORIGIN_CERT_PEM
+    private_key_pem: ORIGIN_KEY_PEM
   app_port: 8000
   # No path_prefix: every path reaches the api, which serves web's files and
   # strips /api itself (kamal_proxy_shim.go) because /.well-known/* must arrive
