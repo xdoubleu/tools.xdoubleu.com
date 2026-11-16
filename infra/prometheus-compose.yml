@@ -47,6 +47,24 @@ services:
       # Reaches `postgres:5432` over the shared network.
       - kamal
 
+  blackbox-exporter:
+    # Probes the origin directly and through Cloudflare; see prometheus.yml's
+    # blackbox-* jobs. No host port; Prometheus reaches blackbox-exporter:9115.
+    image: prom/blackbox-exporter:v0.27.0
+    restart: unless-stopped
+    mem_limit: 64m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    command:
+      - "--config.file=/etc/blackbox/blackbox.yml"
+    volumes:
+      - ./blackbox.yml:/etc/blackbox/blackbox.yml:ro
+    networks:
+      - kamal
+
 networks:
   # Pre-created (infra/README.md); external because Kamal also uses it.
   kamal:

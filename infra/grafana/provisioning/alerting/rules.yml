@@ -202,6 +202,111 @@ groups:
                     type: gt
                     params: [0]
 
+      # Origin TLS probes (infra/blackbox.yml). Expiry rules cover the origin
+      # only: Cloudflare rotates its edge certificate itself. The `* 0 + 1`
+      # keeps an already-expired (negative) remainder above the > 0 threshold.
+      - uid: origin-cert-expiring
+        title: OriginCertExpiring
+        condition: C
+        for: 5m
+        labels:
+          severity: warning
+          notify: slack
+        annotations:
+          summary: "Origin TLS certificate expires in under 30 days"
+          description: >-
+            The origin certificate behind {{ $labels.instance }} expires in under 30 days. Renew or replace it.
+        noDataState: OK
+        execErrState: Alerting
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              expr: ((probe_ssl_earliest_cert_expiry{job="blackbox-origin"} - time()) < 86400 * 30) * 0 + 1
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0]
+
+      - uid: origin-cert-expiring-soon
+        title: OriginCertExpiringSoon
+        condition: C
+        for: 5m
+        labels:
+          severity: critical
+          notify: slack
+        annotations:
+          summary: "Origin TLS certificate expires in under 7 days"
+          description: >-
+            The origin certificate behind {{ $labels.instance }} expires in under 7 days; Cloudflare will return 526 once it lapses.
+        noDataState: OK
+        execErrState: Alerting
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              expr: ((probe_ssl_earliest_cert_expiry{job="blackbox-origin"} - time()) < 86400 * 7) * 0 + 1
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0]
+
+      - uid: origin-probe-down
+        title: OriginProbeDown
+        condition: C
+        for: 5m
+        labels:
+          severity: critical
+          notify: slack
+        annotations:
+          summary: "Origin probe failing: {{ $labels.instance }}"
+          description: >-
+            Blackbox probe {{ $labels.instance }} (job {{ $labels.job }}) has failed for 5 minutes (TLS handshake, connection or non-2xx status).
+        noDataState: OK
+        execErrState: Alerting
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              expr: probe_success{job=~"blackbox-origin|blackbox-edge"} == 0
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0]
+
       # A crash or OOM loop leaves `up` flapping between scrapes, so TargetDown
       # never fires. `instance` carries the release SHA, so a deploy starts a
       # fresh series (0 changes) and only in-place restarts count.
