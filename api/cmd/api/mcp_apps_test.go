@@ -40,8 +40,9 @@ var appsToolNames = []string{
 	// feeds (5)
 	"feeds_list_feeds", "feeds_list_items", "feeds_get_item",
 	"feeds_list_filter_rules", "feeds_get_filter_rule_suggestions",
-	// recipes (4); create_recipe mutates, draft-only (adr-0026)
+	// recipes (5); create_recipe/update_recipe mutate, draft-preserving (adr-0026)
 	"recipes_list_recipes", "recipes_get_recipe", "recipes_create_recipe",
+	"recipes_update_recipe",
 	"recipes_fetch_video",
 	// mealplans (3)
 	"mealplans_list_plans", "mealplans_get_plan", "mealplans_suggest_recipes",
