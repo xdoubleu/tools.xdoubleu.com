@@ -82,6 +82,31 @@ scrape_configs:
     static_configs:
       - targets: ["zitadel:8080"]
 
+  # TLS and reachability probes (blackbox.yml). __SERVER_IP__ is replaced with
+  # var.server_ip by main.tf. The origin probe skips Cloudflare, so an expired
+  # or failing origin certificate shows here before Cloudflare returns 526.
+  - job_name: blackbox-origin
+    metrics_path: /probe
+    params:
+      module: [origin]
+    static_configs:
+      - targets: ["https://__SERVER_IP__/api/health"]
+    relabel_configs: &blackbox_relabel
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+
+  - job_name: blackbox-edge
+    metrics_path: /probe
+    params:
+      module: [edge]
+    static_configs:
+      - targets: ["https://tools.xdoubleu.com/api/health"]
+    relabel_configs: *blackbox_relabel
+
   # Prometheus's own self-monitoring.
   - job_name: prometheus
     static_configs:
