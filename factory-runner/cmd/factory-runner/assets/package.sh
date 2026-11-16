@@ -52,8 +52,13 @@ cp "$BIN" "$DIST/factory-runner-darwin-arm64"
 STAGING=$(mktemp -d)
 cp -R "$APP" "$STAGING/"
 ln -s /Applications "$STAGING/Applications"
-hdiutil create -volname "Factory Runner" -srcfolder "$STAGING" -ov -format UDZO \
-  "$DIST/factory-runner.dmg" >/dev/null
+# hdiutil intermittently fails "Resource busy" on CI runners; retry.
+for attempt in 1 2 3 4 5; do
+  hdiutil create -volname "Factory Runner" -srcfolder "$STAGING" -ov -format UDZO \
+    "$DIST/factory-runner.dmg" >/dev/null && break
+  [ "$attempt" -lt 5 ] || exit 1
+  sleep $((attempt * 3))
+done
 rm -rf "$STAGING"
 
 echo "packaged $DIST/factory-runner.dmg and $DIST/factory-runner-darwin-arm64"
