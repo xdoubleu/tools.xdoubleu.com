@@ -61,18 +61,6 @@ type Config struct {
 	// OAuthRoutinesClientSecret is the static "routines" machine client's
 	// secret, reconciled like Grafana's. Empty disables the client.
 	OAuthRoutinesClientSecret string
-	// OIDCSignIn switches people's sign-in to the OIDC provider below; off keeps
-	// the password sign-in (adr-0051).
-	OIDCSignIn bool
-	// OIDCIssuer, OIDCClientID and OIDCClientSecret identify the api at the
-	// provider (Zitadel by default).
-	OIDCIssuer       string
-	OIDCClientID     string
-	OIDCClientSecret string
-	// ZitadelServiceToken is the access token of the Zitadel service user that
-	// user management calls with; it may manage only human users. Empty turns
-	// creating people off. The API is reached at OIDCIssuer.
-	ZitadelServiceToken string
 	// AuthIssuer is this api's OAuth 2.1 issuer URL. Defaults to APIURL.
 	AuthIssuer      string
 	SteamAPIKey     string
@@ -266,15 +254,6 @@ func (c parser) envBool(key string, defaultValue bool) bool {
 	return value
 }
 
-// loadOIDC reads the settings of the provider people sign in through.
-func (c parser) loadOIDC(cfg *Config) {
-	cfg.OIDCSignIn = c.envBool("OIDC_SIGN_IN", false)
-	cfg.OIDCIssuer = c.envStr("OIDC_ISSUER", "")
-	cfg.OIDCClientID = c.envStr("OIDC_CLIENT_ID", "")
-	cfg.OIDCClientSecret = c.envSecret("OIDC_CLIENT_SECRET", "")
-	cfg.ZitadelServiceToken = c.envSecret("ZITADEL_SERVICE_TOKEN", "")
-}
-
 // loadMonitoring reads the Prometheus and Grafana settings.
 func (c parser) loadMonitoring(cfg *Config) {
 	cfg.PrometheusURL = c.envStr(
@@ -340,7 +319,6 @@ func New(logger *slog.Logger) Config {
 	cfg.OAuthOIDCPrivateKey = p.envSecret("OAUTH_OIDC_PRIVATE_KEY", "")
 	cfg.OAuthGrafanaClientSecret = p.envSecret("OAUTH_GRAFANA_CLIENT_SECRET", "")
 	cfg.OAuthRoutinesClientSecret = p.envSecret("OAUTH_ROUTINES_CLIENT_SECRET", "")
-	p.loadOIDC(&cfg)
 	cfg.AuthIssuer = p.envStr("AUTH_ISSUER", "")
 	if cfg.AuthIssuer == "" {
 		cfg.AuthIssuer = cfg.APIURL

@@ -1,5 +1,4 @@
 import {
-  getAccountUrl,
   getApiUrl,
   getKoboGatewayRelease,
   getPostHogHost,
@@ -14,8 +13,7 @@ const env = {
   RELEASE: 'abc123',
   KOBO_GATEWAY_RELEASE: 'def456',
   POSTHOG_KEY: 'phc_key',
-  POSTHOG_HOST: 'https://eu.i.posthog.com',
-  ACCOUNT_URL: 'https://id.example/ui/console/users/me'
+  POSTHOG_HOST: 'https://eu.i.posthog.com'
 }
 
 describe('lib/env', () => {
@@ -32,7 +30,6 @@ describe('lib/env', () => {
     expect(getKoboGatewayRelease()).toBe(env.KOBO_GATEWAY_RELEASE)
     expect(getPostHogKey()).toBe(env.POSTHOG_KEY)
     expect(getPostHogHost()).toBe(env.POSTHOG_HOST)
-    expect(getAccountUrl()).toBe(env.ACCOUNT_URL)
   })
 
   it('falls back to dev defaults without window.__ENV__', () => {
@@ -40,7 +37,6 @@ describe('lib/env', () => {
     expect(getSentryDsn()).toBe('')
     expect(getRelease()).toBe('dev')
     expect(getKoboGatewayRelease()).toBe('dev')
-    expect(getAccountUrl()).toBe('')
     expect(getPostHogKey()).toBe('')
     expect(getPostHogHost()).toBe('')
   })

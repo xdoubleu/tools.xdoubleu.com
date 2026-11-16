@@ -4,11 +4,9 @@ import {
   useSetRole,
   useSetAppAccess,
   useSetDisplayName,
-  useCreateUser,
   useDeactivateUser
 } from '@/hooks/useUserManagement'
 import { Code, ConnectError } from '@connectrpc/connect'
-import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import type { AppUser } from '@/lib/gen/access/v1/access_pb'
 import { useState } from 'react'
@@ -134,99 +132,7 @@ function UserIdentity({ user }: { user: AppUser }) {
   )
 }
 
-/** One app's access as a checkbox that shows the current state. Used in the table row. */
-function AppAccessCheckbox({ user, appName }: { user: AppUser; appName: string }) {
-  const { hasAccess, change, dialog } = useAccessChange(user, appName)
-  return (
-    <>
-      <Checkbox
-        checked={hasAccess}
-        onChange={change}
-        label={<span className="sr-only">{`${appName} access for ${user.email}`}</span>}
-        labelClassName="justify-center"
-      />
-      {dialog}
-    </>
-  )
-}
-
-/** One app's access as a pill named after the app, for the mobile card where no column header names it. */
-function AppAccessPill({ user, appName }: { user: AppUser; appName: string }) {
-  const { hasAccess, change, dialog } = useAccessChange(user, appName)
-  return (
-    <>
-      <TogglePill label={appName} active={hasAccess} onClick={change} />
-      {dialog}
-    </>
-  )
-}
-
-/** Why an invite or deactivation failed, in the admin's words. */
-function failureText(err: unknown, fallback: string): string {
-  const error = ConnectError.from(err)
-  if (error.code === Code.AlreadyExists) return 'A user with this email already exists.'
-  if (error.code === Code.InvalidArgument) return error.rawMessage
-  if (error.code === Code.FailedPrecondition) return 'Inviting people is not set up.'
-  return fallback
-}
-
-/** Adds a person: the identity provider mails them an invite. */
-function InviteForm() {
-  const createUser = useCreateUser()
-  const [email, setEmail] = useState('')
-  const [name, setName] = useState('')
-  const [error, setError] = useState('')
-  const [invited, setInvited] = useState('')
-  const [busy, setBusy] = useState(false)
-
-  async function submit(e: React.FormEvent) {
-    e.preventDefault()
-    setError('')
-    setInvited('')
-    setBusy(true)
-    try {
-      const created = await createUser(email.trim(), name.trim())
-      setInvited(created.user?.email ?? email)
-      setEmail('')
-      setName('')
-      await mutate(swrKeys.userManagementUsers)
-    } catch (err) {
-      setError(failureText(err, 'Failed to invite this person.'))
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  return (
-    <Card className="space-y-3">
-      <form onSubmit={(e) => void submit(e)} className="flex flex-col gap-2 sm:flex-row">
-        <Input
-          type="email"
-          aria-label="Email of the person to invite"
-          placeholder="Email"
-          autoComplete="off"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
-        <Input
-          aria-label="Full name of the person to invite"
-          placeholder="Full name"
-          autoComplete="off"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-        <Button type="submit" disabled={busy} className="shrink-0">
-          Invite
-        </Button>
-      </form>
-      {invited && <Alert tone="success">{`Invite sent to ${invited}.`}</Alert>}
-      {error && <Alert tone="danger">{error}</Alert>}
-    </Card>
-  )
-}
-
-/** Deactivates a person at the identity provider and here, after asking. */
+/** Deactivates a person after asking: they are signed out and can't sign in. */
 function DeactivateButton({ user }: { user: AppUser }) {
   const deactivate = useDeactivateUser()
   const [confirming, setConfirming] = useState(false)
@@ -238,7 +144,8 @@ function DeactivateButton({ user }: { user: AppUser }) {
       await deactivate(user.id)
       await mutate(swrKeys.userManagementUsers)
     } catch (err) {
-      setError(failureText(err, 'Failed to deactivate.'))
+      const e = ConnectError.from(err)
+      setError(e.code === Code.InvalidArgument ? e.rawMessage : 'Failed to deactivate.')
     }
   }
 
@@ -266,6 +173,33 @@ function DeactivateButton({ user }: { user: AppUser }) {
   )
 }
 
+/** One app's access as a checkbox that shows the current state. Used in the table row. */
+function AppAccessCheckbox({ user, appName }: { user: AppUser; appName: string }) {
+  const { hasAccess, change, dialog } = useAccessChange(user, appName)
+  return (
+    <>
+      <Checkbox
+        checked={hasAccess}
+        onChange={change}
+        label={<span className="sr-only">{`${appName} access for ${user.email}`}</span>}
+        labelClassName="justify-center"
+      />
+      {dialog}
+    </>
+  )
+}
+
+/** One app's access as a pill named after the app, for the mobile card where no column header names it. */
+function AppAccessPill({ user, appName }: { user: AppUser; appName: string }) {
+  const { hasAccess, change, dialog } = useAccessChange(user, appName)
+  return (
+    <>
+      <TogglePill label={appName} active={hasAccess} onClick={change} />
+      {dialog}
+    </>
+  )
+}
+
 export default function UserManagementClient() {
   const { data, isLoading, error } = useUsers()
   const users = data?.users ?? []
@@ -284,8 +218,6 @@ export default function UserManagementClient() {
         title="User management"
         actions={<PageHeaderLink href="/user-management/agents">Agents</PageHeaderLink>}
       />
-
-      <InviteForm />
 
       {/* Mobile-first card-per-row view; the 9-column table would force a
           wide sideways scroll below `sm`. */}
@@ -320,14 +252,14 @@ export default function UserManagementClient() {
             <TableRow>
               <TableHead>User</TableHead>
               <TableHead>Role</TableHead>
-              <TableHead>
-                <span className="sr-only">Actions</span>
-              </TableHead>
               {APP_NAMES.map((name) => (
                 <TableHead key={name} className="text-center capitalize">
                   {name}
                 </TableHead>
               ))}
+              <TableHead>
+                <span className="sr-only">Actions</span>
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -346,14 +278,14 @@ export default function UserManagementClient() {
                   <TableCell>
                     <RoleSelect user={user} />
                   </TableCell>
-                  <TableCell>
-                    <DeactivateButton user={user} />
-                  </TableCell>
                   {APP_NAMES.map((appName) => (
                     <TableCell key={appName} className="text-center">
                       <AppAccessCheckbox user={user} appName={appName} />
                     </TableCell>
                   ))}
+                  <TableCell>
+                    <DeactivateButton user={user} />
+                  </TableCell>
                 </TableRow>
               ))
             )}

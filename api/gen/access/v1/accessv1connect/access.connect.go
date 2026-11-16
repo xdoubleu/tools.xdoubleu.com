@@ -36,8 +36,6 @@ const (
 	// AccessServiceSetAgentAppAccessProcedure is the procedure name of the AccessService's
 	// SetAgentAppAccess RPC.
 	AccessServiceSetAgentAppAccessProcedure = "/access.v1.AccessService/SetAgentAppAccess"
-	// AccessServiceCreateUserProcedure is the procedure name of the AccessService's CreateUser RPC.
-	AccessServiceCreateUserProcedure = "/access.v1.AccessService/CreateUser"
 	// AccessServiceDeactivateUserProcedure is the procedure name of the AccessService's DeactivateUser
 	// RPC.
 	AccessServiceDeactivateUserProcedure = "/access.v1.AccessService/DeactivateUser"
@@ -79,13 +77,6 @@ var (
 			Procedure:  AccessServiceSetAgentAppAccessProcedure,
 		}
 	})
-	accessServiceCreateUserSpec = sync.OnceValue(func() connect.Spec {
-		return connect.Spec{
-			StreamType: connect.StreamTypeUnary,
-			Schema:     v1.File_access_v1_access_proto.Services().ByName("AccessService").Methods().ByName("CreateUser"),
-			Procedure:  AccessServiceCreateUserProcedure,
-		}
-	})
 	accessServiceDeactivateUserSpec = sync.OnceValue(func() connect.Spec {
 		return connect.Spec{
 			StreamType: connect.StreamTypeUnary,
@@ -104,11 +95,8 @@ type AccessServiceClient interface {
 	SetDisplayName(context.Context, *v1.SetDisplayNameRequest) (*v1.SetDisplayNameResponse, error)
 	// SetAgentAppAccess grants or revokes a standing agent's access to an app.
 	SetAgentAppAccess(context.Context, *v1.SetAgentAppAccessRequest) (*v1.SetAgentAppAccessResponse, error)
-	// CreateUser adds a person at the identity provider and links it to a new
-	// account; the provider mails the invite. Admin only.
-	CreateUser(context.Context, *v1.CreateUserRequest) (*v1.CreateUserResponse, error)
-	// DeactivateUser blocks a person at the provider and signs them out
-	// everywhere. Admin only.
+	// DeactivateUser blocks a person's sign-in and signs them out everywhere.
+	// Admin only.
 	DeactivateUser(context.Context, *v1.DeactivateUserRequest) (*v1.DeactivateUserResponse, error)
 }
 
@@ -127,11 +115,8 @@ type AccessServiceHandler interface {
 	SetDisplayName(context.Context, *v1.SetDisplayNameRequest) (*v1.SetDisplayNameResponse, error)
 	// SetAgentAppAccess grants or revokes a standing agent's access to an app.
 	SetAgentAppAccess(context.Context, *v1.SetAgentAppAccessRequest) (*v1.SetAgentAppAccessResponse, error)
-	// CreateUser adds a person at the identity provider and links it to a new
-	// account; the provider mails the invite. Admin only.
-	CreateUser(context.Context, *v1.CreateUserRequest) (*v1.CreateUserResponse, error)
-	// DeactivateUser blocks a person at the provider and signs them out
-	// everywhere. Admin only.
+	// DeactivateUser blocks a person's sign-in and signs them out everywhere.
+	// Admin only.
 	DeactivateUser(context.Context, *v1.DeactivateUserRequest) (*v1.DeactivateUserResponse, error)
 }
 
@@ -145,7 +130,6 @@ func RegisterAccessServiceHandler(server *connect.Server, svc AccessServiceHandl
 		connect.Method{Spec: accessServiceSetAppAccessSpec(), Handler: adapter.setAppAccess},
 		connect.Method{Spec: accessServiceSetDisplayNameSpec(), Handler: adapter.setDisplayName},
 		connect.Method{Spec: accessServiceSetAgentAppAccessSpec(), Handler: adapter.setAgentAppAccess},
-		connect.Method{Spec: accessServiceCreateUserSpec(), Handler: adapter.createUser},
 		connect.Method{Spec: accessServiceDeactivateUserSpec(), Handler: adapter.deactivateUser},
 	)
 }
@@ -171,10 +155,6 @@ func (UnimplementedAccessServiceHandler) SetDisplayName(context.Context, *v1.Set
 
 func (UnimplementedAccessServiceHandler) SetAgentAppAccess(context.Context, *v1.SetAgentAppAccessRequest) (*v1.SetAgentAppAccessResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "access.v1.AccessService.SetAgentAppAccess is not implemented")
-}
-
-func (UnimplementedAccessServiceHandler) CreateUser(context.Context, *v1.CreateUserRequest) (*v1.CreateUserResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, "access.v1.AccessService.CreateUser is not implemented")
 }
 
 func (UnimplementedAccessServiceHandler) DeactivateUser(context.Context, *v1.DeactivateUserRequest) (*v1.DeactivateUserResponse, error) {
@@ -220,14 +200,6 @@ func (c *accessServiceClient) SetDisplayName(ctx context.Context, req *v1.SetDis
 func (c *accessServiceClient) SetAgentAppAccess(ctx context.Context, req *v1.SetAgentAppAccessRequest) (*v1.SetAgentAppAccessResponse, error) {
 	var res v1.SetAgentAppAccessResponse
 	if err := c.client.CallUnary(ctx, accessServiceSetAgentAppAccessSpec(), req, &res); err != nil {
-		return nil, err
-	}
-	return &res, nil
-}
-
-func (c *accessServiceClient) CreateUser(ctx context.Context, req *v1.CreateUserRequest) (*v1.CreateUserResponse, error) {
-	var res v1.CreateUserResponse
-	if err := c.client.CallUnary(ctx, accessServiceCreateUserSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -297,18 +269,6 @@ func (h accessServiceHandler) setAgentAppAccess(ctx context.Context, _ connect.S
 		return err
 	}
 	res, err := h.svc.SetAgentAppAccess(ctx, &req)
-	if err != nil {
-		return err
-	}
-	return stream.Send(res)
-}
-
-func (h accessServiceHandler) createUser(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
-	var req v1.CreateUserRequest
-	if err := stream.Receive(&req); err != nil {
-		return err
-	}
-	res, err := h.svc.CreateUser(ctx, &req)
 	if err != nil {
 		return err
 	}

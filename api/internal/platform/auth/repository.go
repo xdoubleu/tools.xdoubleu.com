@@ -17,9 +17,7 @@ type User struct {
 	Email        string
 	PasswordHash string
 	CreatedAt    time.Time
-	// OIDCSubject is empty until the user is linked to the provider.
-	OIDCSubject string
-	Deactivated bool
+	Deactivated  bool
 }
 
 // TOTPFactor is a row from auth.totp_factors.
@@ -59,11 +57,6 @@ type usersStore interface {
 	GetUserByID(ctx context.Context, id string) (*User, error)
 	CreateUser(ctx context.Context, email, passwordHash string) (*User, error)
 	SetPasswordHash(ctx context.Context, userID, hash string) error
-	GetUserByOIDCSubject(ctx context.Context, subject string) (*User, error)
-	SetOIDCSubject(ctx context.Context, userID, subject string) error
-	// CreateOIDCUser adds a user that signs in only through the provider.
-	CreateOIDCUser(ctx context.Context, email, subject string) (*User, error)
-	DeleteUser(ctx context.Context, userID string) error
 	SetDeactivated(ctx context.Context, userID string) error
 
 	CreateTOTPFactor(
@@ -119,20 +112,18 @@ var _ usersStore = (*Repository)(nil)
 
 var errNotFound = errors.New("auth: not found")
 
-const userColumns = `id, email, password_hash, created_at,
-	COALESCE(oidc_subject, ''), deactivated_at IS NOT NULL`
-
-func (u *User) scanDest() []any {
-	return []any{
-		&u.ID, &u.Email, &u.PasswordHash, &u.CreatedAt, &u.OIDCSubject, &u.Deactivated,
-	}
-}
-
 func wrapNotFound(err error) error {
 	if errors.Is(err, pgx.ErrNoRows) {
 		return errNotFound
 	}
 	return err
+}
+
+const userColumns = `id, email, password_hash, created_at,
+	deactivated_at IS NOT NULL`
+
+func (u *User) scanDest() []any {
+	return []any{&u.ID, &u.Email, &u.PasswordHash, &u.CreatedAt, &u.Deactivated}
 }
 
 func (r *Repository) GetUserByEmail(
@@ -447,60 +438,6 @@ func (r *Repository) MarkPasswordResetTokenUsed(
 	return tag.RowsAffected() == 1, err
 }
 
-// GetUserByOIDCSubject finds the user linked to an OIDC provider subject.
-func (r *Repository) GetUserByOIDCSubject(
-	ctx context.Context,
-	subject string,
-) (*User, error) {
-	var u User
-	err := r.db.QueryRow(ctx, `
-		SELECT `+userColumns+`
-		FROM auth.users WHERE oidc_subject = $1
-	`, subject).Scan(u.scanDest()...)
-	if err != nil {
-		return nil, wrapNotFound(err)
-	}
-	return &u, nil
-}
-
-// SetOIDCSubject links a user to an OIDC provider subject.
-func (r *Repository) SetOIDCSubject(
-	ctx context.Context,
-	userID, subject string,
-) error {
-	_, err := r.db.Exec(ctx, `
-		UPDATE auth.users SET oidc_subject = $2 WHERE id = $1
-	`, userID, subject)
-	return err
-}
-
-// oidcOnlyHash can never match a bcrypt comparison, so the password sign-in
-// refuses a user created through the provider.
-const oidcOnlyHash = "!"
-
-// CreateOIDCUser adds a user linked to subject with no usable password.
-func (r *Repository) CreateOIDCUser(
-	ctx context.Context,
-	email, subject string,
-) (*User, error) {
-	var u User
-	err := r.db.QueryRow(ctx, `
-		INSERT INTO auth.users (email, password_hash, oidc_subject)
-		VALUES ($1, $2, $3)
-		RETURNING `+userColumns, email, oidcOnlyHash, subject,
-	).Scan(u.scanDest()...)
-	if err != nil {
-		return nil, err
-	}
-	return &u, nil
-}
-
-// DeleteUser removes a user and, by cascade, its factors and tokens.
-func (r *Repository) DeleteUser(ctx context.Context, userID string) error {
-	_, err := r.db.Exec(ctx, `DELETE FROM auth.users WHERE id = $1`, userID)
-	return err
-}
-
 // SetDeactivated blocks every sign-in of the user.
 func (r *Repository) SetDeactivated(ctx context.Context, userID string) error {
 	_, err := r.db.Exec(ctx, `
@@ -508,41 +445,4 @@ func (r *Repository) SetDeactivated(ctx context.Context, userID string) error {
 		WHERE id = $1
 	`, userID)
 	return err
-}
-
-// ListImportCandidates returns active people with a password and no subject.
-// Agent and service users are excluded by role, and a hash that can never match
-// (oidcOnlyHash) has nothing to import.
-func (r *Repository) ListImportCandidates(
-	ctx context.Context,
-) ([]ImportCandidate, error) {
-	rows, err := r.db.Query(ctx, `
-		SELECT u.id, u.email, COALESCE(a.display_name, ''), u.password_hash,
-			COALESCE(t.secret, '')
-		FROM auth.users u
-		JOIN global.app_users a ON a.id = u.id::text
-		LEFT JOIN auth.totp_factors t
-			ON t.user_id = u.id AND t.status = 'verified'
-		WHERE u.oidc_subject IS NULL
-			AND u.deactivated_at IS NULL
-			AND u.password_hash <> $1
-			AND a.role IN ('admin', 'user')
-		ORDER BY u.created_at
-	`, oidcOnlyHash)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var out []ImportCandidate
-	for rows.Next() {
-		var c ImportCandidate
-		if err = rows.Scan(
-			&c.UserID, &c.Email, &c.DisplayName, &c.PasswordHash, &c.SealedTOTP,
-		); err != nil {
-			return nil, err
-		}
-		out = append(out, c)
-	}
-	return out, rows.Err()
 }

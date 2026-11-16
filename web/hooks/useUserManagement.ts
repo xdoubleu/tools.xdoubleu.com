@@ -29,16 +29,6 @@ export function useSetDisplayName() {
   return (userId: string, displayName: string) => client.setDisplayName({ userId, displayName })
 }
 
-export function useCreateUser() {
-  const client = createServiceClient(AccessService)
-  return (email: string, displayName: string) => client.createUser({ email, displayName })
-}
-
-export function useDeactivateUser() {
-  const client = createServiceClient(AccessService)
-  return (userId: string) => client.deactivateUser({ userId })
-}
-
 export function useAgents() {
   const client = createServiceClient(AgentAccountService)
   return useSWR<ListAgentAccountsResponse, Error>(swrKeys.userManagementAgents, () =>
@@ -81,4 +71,9 @@ export function useAgentActions() {
       await refresh()
     }
   }
+}
+
+export function useDeactivateUser() {
+  const client = createServiceClient(AccessService)
+  return (userId: string) => client.deactivateUser({ userId })
 }
