@@ -42,7 +42,7 @@ func (s *JobService) issueAccount(
 		reason := "Could not create the job's agent account."
 		if _, failErr := s.jobs.Complete(
 			ctx, job.ID, models.JobFailed, reason, "", "", runnerID, false, nil,
-		); failErr == nil {
+		); failErr == nil && !job.IsRoutine() {
 			_ = s.finishTask(
 				ctx, job.TaskID, systemAuthor, "Job failed: "+reason, models.StatusNeedsYou,
 			)

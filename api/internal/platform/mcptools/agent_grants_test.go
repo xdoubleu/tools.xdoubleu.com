@@ -18,7 +18,8 @@ type noArgs struct{}
 func toolsOnServer() []string {
 	return []string{
 		"factory_list_tasks", "books_get_library", "books_get_shelf",
-		"movies_list_backlog", "get_logs",
+		"movies_list_backlog", "get_logs", "resolve_sentry_issue",
+		"dismiss_security_alert",
 	}
 }
 
@@ -196,7 +197,10 @@ func TestOtherCallersDoNotSeeTheAgentTools(t *testing.T) {
 	} {
 		session := connectAs(t, u)
 		assert.ElementsMatch(t,
-			[]string{"books_get_library", "books_get_shelf", "movies_list_backlog", "get_logs"},
+			[]string{
+				"books_get_library", "books_get_shelf", "movies_list_backlog",
+				"get_logs", "resolve_sentry_issue", "dismiss_security_alert",
+			},
 			toolNames(t, session), name)
 		_, err := session.CallTool(context.Background(), callParams("books_get_library"))
 		assert.NoError(t, err, name)
@@ -250,4 +254,42 @@ func TestWriteNeedsTheWriteLevelForAnAgentAndAnyAccessForAPerson(t *testing.T) {
 		assert.Equal(t, tc.wrt,
 			mcptools.RequireAppWrite(ctxWith(tc.user), "books") == nil, name)
 	}
+}
+
+// The observability grant opens the read tools and resolve_sentry_issue, and
+// nothing else: not the admin-only dismissal, not another app's tools.
+func TestObservabilityGrantOpensOnlyItsTools(t *testing.T) {
+	session := connectAs(t, agent("factory", mcptools.ObservabilityGrant))
+
+	assert.ElementsMatch(t,
+		[]string{"factory_list_tasks", "get_logs", "resolve_sentry_issue"},
+		toolNames(t, session))
+	_, err := session.CallTool(context.Background(), callParams("resolve_sentry_issue"))
+	require.NoError(t, err)
+	_, err = session.CallTool(context.Background(), callParams("dismiss_security_alert"))
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "unknown tool")
+}
+
+func TestWithoutTheObservabilityGrantAnAgentSeesNoObservabilityTools(t *testing.T) {
+	session := connectAs(t, agent("factory"))
+
+	assert.Equal(t, []string{"factory_list_tasks"}, toolNames(t, session))
+}
+
+func TestCanObserveByRoleAndGrant(t *testing.T) {
+	withRole := func(u *models.User) context.Context {
+		if u == nil {
+			return context.Background()
+		}
+		return context.WithValue(context.Background(), constants.UserContextKey, *u)
+	}
+	assert.True(t, mcptools.CanObserve(withRole(user(models.RoleAdmin)), "get_logs"))
+	assert.True(t, mcptools.CanObserve(withRole(user(models.RoleService)), "get_logs"))
+	assert.False(t, mcptools.CanObserve(withRole(user(models.RoleUser)), "get_logs"))
+	assert.False(t, mcptools.CanObserve(withRole(nil), "get_logs"))
+	assert.False(t, mcptools.CanObserve(withRole(agent("factory")), "get_logs"))
+	granted := agent(mcptools.ObservabilityGrant)
+	assert.True(t, mcptools.CanObserve(withRole(granted), "prom_query"))
+	assert.False(t, mcptools.CanObserve(withRole(granted), "dismiss_security_alert"))
 }
