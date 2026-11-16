@@ -15,6 +15,7 @@ import glob, os, re, subprocess, sys
 
 MAX_COMMENT_LINES = 6
 SKILL_BUDGET = 900
+ADR_BUDGET = 1000
 BUDGETS = {
     "AGENTS.md": 1000,
     "CLAUDE.md": 400,
@@ -25,6 +26,12 @@ BUDGETS = {
 }
 for skill in glob.glob(".claude/skills/*/SKILL.md"):
     BUDGETS.setdefault(skill, SKILL_BUDGET)
+
+for adr in glob.glob("docs/adr-*.md"):
+    BUDGETS.setdefault(adr, ADR_BUDGET)
+for spec in glob.glob("docs/spec-*.md"):
+    print(f"{spec}: specs are not kept; the code is the spec — record the decision in an ADR")
+    sys.exit(1)
 
 only = {os.path.relpath(os.path.abspath(f)) for f in sys.argv[1:]}
 failed = False

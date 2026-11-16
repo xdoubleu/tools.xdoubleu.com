@@ -1,6 +1,6 @@
 # Convention: concise docs and comments
 
-- Enforced by: `make lint/docs` (CI `docs-lint`, `finish-task`, Claude `PostToolUse` hook, OpenCode `repo-guard` idle nudge) for budgets and long comment blocks, and `scripts/lint_doc_paths.sh` for backticked repo paths that must exist (exempt a removed one with `<!-- historical -->` at line end, or an `- Affects (historical):` line); review for the rest
+- Enforced by: `make lint/docs` (CI `docs-lint`, `finish-task`, Claude `PostToolUse` hook, OpenCode `repo-guard` idle nudge) for budgets (instruction files, skills, ADRs at 1000 words), long comment blocks and `docs/spec-*.md` files, and `scripts/lint_doc_paths.sh` for backticked repo paths that must exist (exempt a removed one with `<!-- historical -->` at line end, or an `- Affects (historical):` line); review for the rest
 - Issues: #1850
 
 ## Rule
@@ -13,6 +13,10 @@ Every sentence in a doc or comment costs every future reader, human or agent, an
 - **Current behavior only.** Never reference removed code or frame a landed change as pending. If history explains the code, phrase it to stay true ("replicating what X used to provide").
 - **No provenance in comments.** Issue numbers, "added because…", and incident narratives belong in the commit, PR, or a `docs/` ADR, not inline.
 - Prefer a short list over paragraphs.
+
+## ADRs record decisions, not specs
+
+The code is the spec. An ADR holds the context, the decision, the alternatives rejected and the consequences. Leave out field lists, step-by-step flows, flag and route inventories, and verification logs: a reader gets those from the code, and they drift. If an ADR needs more than the budget, it is describing the code.
 
 ## Why
 

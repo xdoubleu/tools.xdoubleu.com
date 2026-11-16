@@ -13,76 +13,17 @@ its own work ([ADR-0041](adr-0041-factory-runner-pairing.md)).
 
 ## Decision
 
-- **A `jobs` table is the queue.** `RunTask` (a human admin in a browser session,
-  as for Ready) adds a row and moves the task to In progress. The oldest queued
-  row is claimed first (`FOR UPDATE SKIP LOCKED`), and a unique index allows one unfinished job per task. A runner sends its `max_jobs` (default 2) with each claim and gets a job only while fewer run on it, counted under a lock on its row. `StopJob` (same actor rule) cancels a queued or running job; the runner's next check-in finds it not running, which is how it learns to stop.
-- **The runner pulls.** `ClaimJob` is held open for up to 20 seconds (a long
-  route, [ADR-0017](adr-0017-long-request-handler-deadlines.md)) and polls the
-  queue each second. `CheckIn` every 30 seconds keeps a job alive and tells the
-  runner to stop when the job is no longer running. `CompleteJob` finishes it.
-- **The prompt is frozen at Run.** It holds the repo's agent instructions, the
-  task's title and body, and the Run text; the runner adds its own preamble and
-  validates the repo and branch itself. Agent comments never enter it. If the
-  task's title or body holds text that isn't rendered (an HTML comment, an invisible
-  character), Run and the Ready move are refused: an agent could have written text
-  the owner never saw. Who last edited the body doesn't matter, so an agent-refined
-  task runs once the owner moves it to Ready.
-- **Five minutes of silence is lost.** A running job whose last check-in is that
-  old becomes `lost` and its task moves to Needs you. No timer runs on the
-  server; the sweep runs when a runner claims a job and when the board is read,
-  so a dead runner is noticed the next time the owner looks.
-- **A job runs until its PR merges.** The runner keeps the job's VM and resumes
-  the same agent session with what failed: a gate or host check (`Not published:`),
-  a push or PR problem, or a red `ci-pass` after the PR opens (read with the push
-  token; the failing checks' names and annotations go back to the agent). The job
-  stays `running` and checks in throughout, so the lost sweep still works; one
-  running job at a time means the queue waits meanwhile. It ends on a merge, then
-  the poller moves the task to Testing. Stops, each to Needs you with the reason:
-  a `Blocked:` line, the same failure twice with no new commit, a closed PR, a
-  stop from the board, a runner shutdown, 20 attempts, or six hours unmerged. A
-  usage limit waits in the VM until its reset (an hour if unsaid), then resumes.
-  The timeout is per attempt. Each attempt adds a log line and a task comment
-  (`AddJobComment`, running jobs only). A gate marked `not run (CI checks it)`,
-  for code the sandbox can't build, doesn't block the PR.
-- **A job that ends without a merge moves its task to Needs you** with the outcome
-  as a comment; one that opened a PR keeps its link.
-- **A job the Claude usage limit stopped** is `failed` with `limited` and, if the
-  CLI said, `limit_resets_at` (kept only within the next 15 days). The runner reads
-  it from the stream's `rate_limit_event` (status `rejected`) or an error result;
-  those shapes come from the CLI's own strings, not a capture of a real hit. The
-  board shows the latest limit in force as "Limited until ...", an hour after the
-  job ended when the CLI gave no time. While one is in force auto pickup leaves a
-  Ready task that would run on Claude Code waiting, instead of failing it too.
-- **The log is polled, not pushed.** The runner forwards the harness's stream-json
-  lines every 2 seconds, secrets removed, to `AppendJobEvents`; `ListJobEvents`
-  serves them to a human admin in a browser. A job keeps at most 5000 events, for
-  30 days.
-- The branch is `agent/t<number>-<slug>` (the task number, shown as T-<number>), chosen by the server and checked again
-  by the runner.
-
-- **Reply** queues a child job (`parent_job_id`) with the reply as its prompt, the
-  parent's harness and branch. The runner receives the parent's session id as
-  `resume_session_id`. It needs a finished newest job that left a session, and a
-  task that isn't Done.
-
-- **Slack** (`FACTORY_SLACK_WEBHOOK_URL`, https only; unset, nothing is posted) gets a
-  message when a job opens a PR, fails, finishes without one, or is lost, when a
-  runner pairs or an agent account is created, and once when a job has waited ten
-  minutes with no runner online. A message carries the task title as a link to `/factory?task=<id>`
-  and the outcome's first line, escaped so a title can't mention the channel. It is
-  sent in the background and never fails the work it reports.
-
-- **Harness and model** are the Mac's choice (`factory-runner config`), not the board's.
-  A claim reports them (`ClaimJobRequest.harness`/`model`, Claude Code when unset), the job
-  records them, and the board shows them read-only. A queued job holds neither. OpenCode runs
-  `opencode run --format json --auto` on an OpenRouter model (`vendor/model`) with the prompt
-  read from stdin by a shell step. A Reply resumes only a session of the harness the Mac runs.
-
-- **Auto pickup** (`repos.auto_pickup`, off by default) lets a claiming runner take the
-  oldest highest-priority Ready task when nothing is queued or running. The Ready
-  move snapshots the task's title and body (`ready_title`, `ready_body`); the job
-  is built from that, never from later edits. A board-wide pause switch overrides
-  every repo.
+- **A `jobs` table is the queue.** A human admin's Run adds a row and moves the task to In progress; the oldest queued row is claimed first, one unfinished job per task, and a runner holds at most its `max_jobs`. Stop cancels a job; the runner learns it must stop from its next check-in.
+- **The runner pulls.** A claim is a long-held request ([ADR-0017](adr-0017-long-request-handler-deadlines.md)) and a periodic check-in keeps a job alive, so the Mac accepts no inbound connection.
+- **The prompt is frozen at Run** from the repo's agent instructions, the task and the Run text; agent comments never enter it. A task whose title or body holds unrendered text (an HTML comment, an invisible character) can't be run or moved to Ready, since an agent could have written text the owner never saw.
+- **Five minutes of silence is lost**, and the task moves to Needs you. No server timer runs: the sweep runs on a claim and when the board is read.
+- **A job runs until its PR merges.** The runner keeps the VM and resumes the same agent session with what failed (a gate, a push or PR problem, a red `ci-pass`), so one running job blocks the queue meanwhile. It stops to Needs you with a reason on a `Blocked:` line, a repeated failure, a closed PR, a stop, shutdown, an attempt cap or a time cap.
+- **A usage limit** ends the job as limited; the server queues a continuing job and holds claims for that harness until the reset.
+- **Harness and model are the Mac's choice**, not the board's; the job records them.
+- **Auto pickup** (per repo, off by default) lets a claiming runner take the oldest highest-priority Ready task. The job is built from the title and body snapshotted at the Ready move, never later edits; a board-wide pause overrides it.
+- **Reply** queues a child job that resumes the parent's session.
+- **Logs are polled, not pushed**, with secrets removed, capped per job and expiring.
+- **Slack** notices go out in the background and never fail the work they report.
 
 ## Consequences
 
@@ -94,10 +35,6 @@ its own work ([ADR-0041](adr-0041-factory-runner-pairing.md)).
   are out of scope here.
 - Reading CI needs the GitHub App to hold `checks: read`; without it the runner
   can't see a red `ci-pass`, and the job ends at six hours unmerged.
-- A Claude usage limit ends the job as limited; the server queues a continuing
-  job (the same session, branch and unpushed clone) and holds Claude claims until
-  the reset, so the task resumes without the owner. Ten limits in a row go to
-  Needs you. `config on-limit wait|fallback`: `fallback` is inert for now.
 
 ## Revisit when
 
