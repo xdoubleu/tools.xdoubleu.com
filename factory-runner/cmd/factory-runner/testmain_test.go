@@ -13,5 +13,8 @@ func TestMain(m *testing.M) {
 	runner.ApplicationsDir = func(home string) string {
 		return filepath.Join(home, "Library", "Applications")
 	}
+	runner.CLIDirs = func(home string) []string {
+		return []string{filepath.Join(home, "bin")}
+	}
 	os.Exit(m.Run())
 }

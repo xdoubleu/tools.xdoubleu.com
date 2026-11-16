@@ -414,7 +414,19 @@ func (a *app) install(ctx context.Context) error {
 		return err
 	}
 	fmt.Fprintln(a.stdout, "Installed and loaded", path)
+	a.linkCLI(installed)
 	return nil
+}
+
+// linkCLI puts `factory-runner` on PATH so scripts, cron and agents can drive the
+// runner with no menu bar. Best-effort: the menu bar works without it.
+func (a *app) linkCLI(installed string) {
+	link, err := runner.LinkCLI(a.home, installed)
+	if err != nil {
+		fmt.Fprintln(a.stderr, "factory-runner:", err)
+		return
+	}
+	fmt.Fprintln(a.stdout, "Command available as", link)
 }
 
 // installBinary installs this executable's app and seals it, so the LaunchAgent
@@ -454,6 +466,7 @@ func (a *app) installFromApp(ctx context.Context) int {
 		fmt.Fprintln(a.stderr, "factory-runner:", err)
 		return 1
 	}
+	a.linkCLI(installed)
 	cfg, _, err := a.loadConfig()
 	if err != nil {
 		return 0

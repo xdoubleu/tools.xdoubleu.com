@@ -31,8 +31,14 @@ newer release", and the LaunchAgent had no log path, so stderr went nowhere.
   Pair… (code and server, shown while unpaired) and jobs at once write the config
   that the loops read each pass, so no restart. An unpaired runner still shows the
   menu and waits for Pair…. The status line says why nothing is claimed: "Not
-  paired", "Stopped" or "Not claiming: mode is off". The `config` CLI remains for
-  scripting.
+  paired", "Stopped" or "Not claiming: mode is off". The `config` CLI writes the same file
+  (see the next point).
+- **The CLI stays a first-class surface**: `install` and the app's first launch
+  link `factory-runner` onto PATH (first writable of `/usr/local/bin`,
+  `/opt/homebrew/bin`, `~/.local/bin`), pointing into the installed bundle; an
+  existing regular file is never overwritten, and a failed link only warns. Menu
+  and CLI share one binary and the config file, so `pair`, `config mode|repos|…` work
+  with no menu or terminal UI, and each surface sees the other's edits.
 - **Update checks are visible**: each logs its outcome and the menu shows the
   latest; "Check for updates" requests one now (still only when idle).
 - **Notifications, shared with kobo-gateway** (`selfupdate/notification`): a manual
