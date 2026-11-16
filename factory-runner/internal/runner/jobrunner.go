@@ -654,12 +654,12 @@ func (r *JobRunner) prepareDirs(
 	// A job claimed again (after a restart) starts from a clean directory, except
 	// for a clone holding work that was never pushed.
 	kept := r.setAsideClone(job, dirs.clone)
-	if err := os.RemoveAll(dir); err != nil {
+	if err := removeAll(dir); err != nil {
 		return jobDirs{}, "", fmt.Errorf("clear the job directory: %w", err)
 	}
 	since, err := r.prepareClone(ctx, job, &dirs, kept)
 	if kept != "" {
-		_ = os.RemoveAll(kept)
+		_ = removeAll(kept)
 	}
 	if err != nil {
 		return jobDirs{}, "", fmt.Errorf("prepare the clone: %w", err)

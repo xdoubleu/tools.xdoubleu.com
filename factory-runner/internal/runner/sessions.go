@@ -3,6 +3,7 @@ package runner
 import (
 	"context"
 	"errors"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"slices"
@@ -57,8 +58,20 @@ func (r *JobRunner) deleteSessions(root string, asked, finished []string) {
 		if !slices.Contains(asked, id) {
 			continue
 		}
-		if err := os.RemoveAll(filepath.Join(root, id)); err != nil {
+		if err := removeAll(filepath.Join(root, id)); err != nil {
 			r.Log.Warn("could not delete a session directory", "task", id, "error", err)
 		}
 	}
+}
+
+// removeAll is os.RemoveAll for a tree that may hold read-only directories,
+// such as a Go module cache.
+func removeAll(path string) error {
+	_ = filepath.WalkDir(path, func(p string, d fs.DirEntry, err error) error {
+		if err == nil && d.IsDir() {
+			_ = os.Chmod(p, 0o700) //nolint:gosec // owner-only, so the tree can be emptied
+		}
+		return nil
+	})
+	return os.RemoveAll(path)
 }

@@ -66,7 +66,7 @@ func (r *JobRunner) setAsideClone(job *ClaimedJob, clone string) string {
 		return ""
 	}
 	kept := filepath.Join(r.DataDir, "jobs", ".kept-"+job.ID)
-	if os.RemoveAll(kept) != nil || os.Rename(clone, kept) != nil {
+	if removeAll(kept) != nil || os.Rename(clone, kept) != nil {
 		return ""
 	}
 	return kept

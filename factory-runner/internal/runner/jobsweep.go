@@ -110,7 +110,7 @@ func (r *JobRunner) now() time.Time {
 
 // removeJobDir deletes one job's directory; id is a UUID.
 func (r *JobRunner) removeJobDir(id string) {
-	if err := os.RemoveAll(filepath.Join(r.DataDir, "jobs", id)); err != nil {
+	if err := removeAll(filepath.Join(r.DataDir, "jobs", id)); err != nil {
 		r.Log.Warn("could not delete a job directory", "job", id, "error", err)
 	}
 }
