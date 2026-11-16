@@ -52,19 +52,33 @@ variable "observability_ingest_secret" {
 # deploys the app with repo Secrets.
 
 variable "zitadel_enabled" {
-  description = "Provision Zitadel (ADR-0051). Off until its host gets a working certificate and passes kamal-proxy's health check."
+  description = "Provision Zitadel (ADR-0051). Needs zitadel_origin_cert_pem/zitadel_origin_key_pem and a proxied DNS record for zitadel_host."
   type        = bool
   default     = false
 }
 
 variable "zitadel_host" {
-  description = "Public hostname kamal-proxy routes to Zitadel (ADR-0051). Needs a DNS A record to the VPS; the Let's Encrypt cert is issued on first request."
+  description = "Public hostname kamal-proxy routes to Zitadel (ADR-0051). Must be covered by the Origin CA certificate (tools.xdoubleu.com and *.xdoubleu.com; not auth.tools.xdoubleu.com) and have a Cloudflare-proxied DNS A record to the VPS."
   type        = string
-  default     = "auth.tools.xdoubleu.com"
+  default     = "auth.xdoubleu.com"
 }
 
 variable "zitadel_smtp_password" {
   description = "Resend API key Zitadel uses as its SMTP password. Reuses the RESEND_API_KEY repo Secret; supplied in the infra-apply CI job as TF_VAR_zitadel_smtp_password."
   type        = string
   sensitive   = true
+}
+
+variable "zitadel_origin_cert_pem" {
+  description = "Cloudflare Origin CA certificate kamal-proxy serves for zitadel_host: the ORIGIN_CERT_PEM repo Secret, supplied as TF_VAR_zitadel_origin_cert_pem. Empty while zitadel_enabled is false."
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "zitadel_origin_key_pem" {
+  description = "Private key of zitadel_origin_cert_pem: the ORIGIN_KEY_PEM repo Secret, supplied as TF_VAR_zitadel_origin_key_pem."
+  type        = string
+  sensitive   = true
+  default     = ""
 }
