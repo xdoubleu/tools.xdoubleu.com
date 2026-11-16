@@ -10,81 +10,87 @@ import (
 
 func fakeClockLimiter() (*attemptLimiter, *time.Time) {
 	now := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
-	l := newAttemptLimiter()
+	l := newAttemptLimiter(newMemoryFailures())
 	l.now = func() time.Time { return now }
 	return l, &now
 }
 
 func TestAttemptLimiter_LocksAfterFreeFailures(t *testing.T) {
+	ctx := t.Context()
 	l, now := fakeClockLimiter()
 
 	for range lockoutFreeFailures {
-		require.NoError(t, l.check("k"))
-		l.fail("k")
+		require.NoError(t, l.check(ctx, "k"))
+		l.fail(ctx, "k")
 	}
-	require.NoError(t, l.check("k"), "free failures don't lock")
+	require.NoError(t, l.check(ctx, "k"), "free failures don't lock")
 
-	l.fail("k")
-	require.ErrorIs(t, l.check("k"), ErrTooManyAttempts)
-	require.NoError(t, l.check("other"), "keys are independent")
+	l.fail(ctx, "k")
+	require.ErrorIs(t, l.check(ctx, "k"), ErrTooManyAttempts)
+	require.NoError(t, l.check(ctx, "other"), "keys are independent")
 
 	*now = now.Add(lockoutBase)
-	require.NoError(t, l.check("k"), "lock expires after lockoutBase")
+	require.NoError(t, l.check(ctx, "k"), "lock expires after lockoutBase")
 
-	l.fail("k")
+	l.fail(ctx, "k")
 	*now = now.Add(lockoutBase)
-	require.ErrorIs(t, l.check("k"), ErrTooManyAttempts, "second lock doubles")
+	require.ErrorIs(t, l.check(ctx, "k"), ErrTooManyAttempts, "second lock doubles")
 	*now = now.Add(lockoutBase)
-	require.NoError(t, l.check("k"))
+	require.NoError(t, l.check(ctx, "k"))
 }
 
 func TestAttemptLimiter_BackoffCapsAtMax(t *testing.T) {
+	ctx := t.Context()
 	l, now := fakeClockLimiter()
 	for range lockoutFreeFailures + 20 {
-		l.fail("k")
+		l.fail(ctx, "k")
 	}
 	*now = now.Add(lockoutMax - time.Second)
-	require.ErrorIs(t, l.check("k"), ErrTooManyAttempts)
+	require.ErrorIs(t, l.check(ctx, "k"), ErrTooManyAttempts)
 	*now = now.Add(time.Second)
-	require.NoError(t, l.check("k"))
+	require.NoError(t, l.check(ctx, "k"))
 }
 
 func TestAttemptLimiter_SuccessAndForgetReset(t *testing.T) {
+	ctx := t.Context()
 	l, now := fakeClockLimiter()
 	for range lockoutFreeFailures {
-		l.fail("k")
+		l.fail(ctx, "k")
 	}
-	l.succeed("k")
-	l.fail("k")
-	require.NoError(t, l.check("k"), "success clears the count")
+	l.succeed(ctx, "k")
+	l.fail(ctx, "k")
+	require.NoError(t, l.check(ctx, "k"), "success clears the count")
 
 	for range lockoutFreeFailures - 1 {
-		l.fail("k")
+		l.fail(ctx, "k")
 	}
 	*now = now.Add(lockoutForget + time.Second)
-	l.fail("k")
-	require.NoError(t, l.check("k"), "stale failures are forgotten")
+	l.fail(ctx, "k")
+	require.NoError(t, l.check(ctx, "k"), "stale failures are forgotten")
 }
 
 func TestAttemptLimiter_PrunesStaleEntries(t *testing.T) {
+	ctx := t.Context()
 	l, now := fakeClockLimiter()
-	l.fail("stale")
+	l.fail(ctx, "stale")
 	*now = now.Add(lockoutForget + time.Second)
+	mem, ok := l.store.(*memoryFailures)
+	require.True(t, ok)
 	for i := range lockoutPruneSize {
-		l.entries[string(rune(i))+"-fresh"] = &attemptEntry{
+		mem.entries[string(rune(i))+"-fresh"] = &attemptEntry{
 			failures: 1, lastFailure: *now, lockedUntil: time.Time{},
 		}
 	}
-	l.fail("new")
-	assert.NotContains(t, l.entries, "stale")
-	assert.Contains(t, l.entries, "new")
+	l.fail(ctx, "new")
+	assert.NotContains(t, mem.entries, "stale")
+	assert.Contains(t, mem.entries, "new")
 }
 
 func TestCheckFactorCode_LockedOut(t *testing.T) {
 	//nolint:exhaustruct // only the limiter is read before the lockout returns
-	service := &LocalService{attempts: newAttemptLimiter()}
+	service := &LocalService{attempts: newAttemptLimiter(newMemoryFailures())}
 	for range lockoutFreeFailures + 1 {
-		service.attempts.fail("mfa:user")
+		service.attempts.fail(t.Context(), "mfa:user")
 	}
 	factor := &TOTPFactor{UserID: "user"} //nolint:exhaustruct // only UserID is read
 	valid, err := service.checkFactorCode(t.Context(), factor, "123456")

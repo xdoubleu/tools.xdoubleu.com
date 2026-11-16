@@ -238,7 +238,7 @@ func (service *LocalService) checkFactorCode(
 	code string,
 ) (bool, error) {
 	attemptKey := "mfa:" + factor.UserID
-	if err := service.attempts.check(attemptKey); err != nil {
+	if err := service.attempts.check(ctx, attemptKey); err != nil {
 		return false, err
 	}
 	valid, err := service.matchFactorCode(ctx, factor, code)
@@ -246,9 +246,9 @@ func (service *LocalService) checkFactorCode(
 		return false, err
 	}
 	if valid {
-		service.attempts.succeed(attemptKey)
+		service.attempts.succeed(ctx, attemptKey)
 	} else {
-		service.attempts.fail(attemptKey)
+		service.attempts.fail(ctx, attemptKey)
 	}
 	return valid, nil
 }

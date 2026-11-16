@@ -103,11 +103,20 @@ func NewService(
 		userCache: newUserCache(
 			time.Duration(cfg.AuthCacheTTL) * time.Second,
 		),
-		attempts:            newAttemptLimiter(),
+		attempts:            newAttemptLimiter(failureStoreFor(store)),
 		resolveGroup:        singleflight.Group{},
 		SignInRenderer:      nil,
 		OAuth2TokenResolver: nil,
 	}
+}
+
+// failureStoreFor persists lockouts in the users store when it can, so they
+// survive restarts and are shared across replicas.
+func failureStoreFor(store usersStore) failureStore {
+	if fs, ok := store.(failureStore); ok {
+		return fs
+	}
+	return newMemoryFailures()
 }
 
 // InvalidateUserCache drops every cached user; call it after role or
@@ -281,7 +290,7 @@ func (service *LocalService) SignInWithEmail(
 
 	// Keyed by email, known or not, so a lockout reveals nothing either.
 	attemptKey := "signin:" + strings.ToLower(strings.TrimSpace(email))
-	if err := service.attempts.check(attemptKey); err != nil {
+	if err := service.attempts.check(ctx, attemptKey); err != nil {
 		return nil, nil, err
 	}
 
@@ -290,17 +299,17 @@ func (service *LocalService) SignInWithEmail(
 		// Same bcrypt cost as a real account, so timing doesn't reveal which
 		// emails are registered.
 		_ = bcrypt.CompareHashAndPassword(dummyPasswordHash(), []byte(password))
-		service.attempts.fail(attemptKey)
+		service.attempts.fail(ctx, attemptKey)
 		return nil, nil, invalidCreds
 	}
 
 	if user.Deactivated || bcrypt.CompareHashAndPassword(
 		[]byte(user.PasswordHash), []byte(password),
 	) != nil {
-		service.attempts.fail(attemptKey)
+		service.attempts.fail(ctx, attemptKey)
 		return nil, nil, invalidCreds
 	}
-	service.attempts.succeed(attemptKey)
+	service.attempts.succeed(ctx, attemptKey)
 
 	accessToken, err := service.mintAccessToken(user.ID, aal1)
 	if err != nil {
