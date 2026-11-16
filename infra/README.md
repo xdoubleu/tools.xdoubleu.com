@@ -88,8 +88,8 @@ tofu apply <same -var flags as plan>
 
 This attaches the firewall (22/80/443 only) and runs `harden.sh` over SSH:
 non-root `deploy` user (passwordless sudo + docker group), Docker, `fail2ban`,
-`ufw`, `unattended-upgrades` (security-only, 04:00 UTC reboot window when a
-kernel update needs it), and root/password SSH disabled. Then it stands up the
+`ufw`, `unattended-upgrades` (security-only, never rebooting: a pending kernel
+update waits for a manual `sudo reboot` at a quiet hour), and root/password SSH disabled. Then it stands up the
 accessories below. `harden.sh` is idempotent — re-applying is always safe.
 
 **Getting notified of a new Ubuntu LTS release:** `unattended-upgrades` never

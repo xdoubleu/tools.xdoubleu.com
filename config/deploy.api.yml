@@ -12,6 +12,10 @@ image: xdoubleu/tools.xdoubleu.com/api
 # Kamal prunes at the end of each deploy but keeps this many old containers
 # (and their images); the default 5 costs several GB on the 40GB VPS.
 retain_containers: 2
+# Hash of what Kamal applies, set by CI; scripts/resolve_deploy_version.sh
+# redeploys the live version when it differs.
+labels:
+  deploy-config-hash: "<%= ENV.fetch("DEPLOY_CONFIG_HASH", "") %>"
 
 # The 4 GB host has no swap, so each role has a hard cap: a runaway job is
 # OOM-killed alone instead of starving the host. GOMEMLIMIT (soft) sits below

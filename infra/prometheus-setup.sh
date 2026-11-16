@@ -35,8 +35,7 @@ docker compose kill -s HUP prometheus || echo 'prometheus not running; skipped c
 flock -u 9
 
 # The timer re-runs `docker compose up -d` every 2 minutes (and on boot), which
-# starts an exited or removed container whatever stopped it: a reboot
-# (unattended-upgrades reboots at 04:00), a kill, or a failed recreate.
+# starts an exited or removed container whatever stopped it: a reboot, a kill, or a failed recreate.
 # Installed here (not harden.sh) to stay coupled to this compose project.
 sudo tee /etc/systemd/system/prometheus-compose.service >/dev/null <<'EOF'
 [Unit]
