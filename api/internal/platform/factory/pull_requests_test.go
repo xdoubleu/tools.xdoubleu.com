@@ -515,3 +515,47 @@ func TestAnArmedPullRequestThatCannotMergeIsFlaggedOnItsTaskAndCounted(t *testin
 	require.NoError(t, env.poll(t))
 	assert.Empty(t, env.task(t, task.Id).Task.PrMergeable)
 }
+
+func TestAMergedPullRequestSendsSelfCheckedWorkStraightToDone(t *testing.T) {
+	labels := []string{"factory-retro", "factory-sandbox", "routine-feedback"}
+	for _, label := range labels {
+		t.Run("poll "+label, func(t *testing.T) {
+			env, gh := githubEnv(t)
+			task := env.newLabelledTask(t, "polled", label)
+			env.run(t, task.Id, "")
+			complete(t, env, env.claim(t).Id, true, pullURL(42))
+			gh.answer(42, ended(githubapp.StateMerged), nil)
+
+			require.NoError(t, env.poll(t))
+
+			got := env.task(t, task.Id)
+			assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_DONE, got.Task.Status)
+			assert.Contains(t, got.Comments[len(got.Comments)-1].Body, "was merged: ")
+		})
+		t.Run("linked "+label, func(t *testing.T) {
+			env, gh := githubEnv(t)
+			task := env.newLabelledTask(t, "linked", label)
+			env.putInReview(t, task.Id)
+			gh.merge(pullURL(7), "Task: linked ("+task.Id+")\n\nbody")
+
+			require.NoError(t, env.poll(t))
+
+			got := env.task(t, task.Id)
+			assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_DONE, got.Task.Status)
+			require.Len(t, got.Comments, 1)
+		})
+	}
+}
+
+func TestAMergedPullRequestOfAnOtherLabelledTaskStillGoesToTesting(t *testing.T) {
+	env, gh := githubEnv(t)
+	task := env.newLabelledTask(t, "feature", "feature")
+	env.run(t, task.Id, "")
+	complete(t, env, env.claim(t).Id, true, pullURL(42))
+	gh.answer(42, ended(githubapp.StateMerged), nil)
+
+	require.NoError(t, env.poll(t))
+
+	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_TESTING,
+		env.task(t, task.Id).Task.Status)
+}

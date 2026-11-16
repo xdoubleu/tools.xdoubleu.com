@@ -84,6 +84,16 @@ func (e jobEnv) newTask(t *testing.T, title string) *factoryv1.Task {
 	return resp.Task
 }
 
+func (e jobEnv) newLabelledTask(t *testing.T, title, label string) *factoryv1.Task {
+	t.Helper()
+	resp, err := e.tasks.CreateTask(context.Background(), &factoryv1.CreateTaskRequest{
+		Title: title, Body: "Do the thing.", RepoId: seededRepoID(t),
+		Labels: []string{label},
+	})
+	require.NoError(t, err)
+	return resp.Task
+}
+
 func (e jobEnv) run(t *testing.T, taskID, text string) *factoryv1.Job {
 	t.Helper()
 	resp, err := e.tasks.RunTask(context.Background(),
