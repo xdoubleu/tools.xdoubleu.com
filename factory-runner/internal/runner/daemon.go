@@ -186,10 +186,13 @@ func due(opts Options, now, lastCheck time.Time) (bool, bool) {
 		return false, false
 	}
 	// Draining: the newer release is known, so the next check is the install,
-	// once the running jobs have ended.
-	if opts.Control != nil && opts.Control.Draining() &&
-		opts.Activity != nil && !opts.Activity.DrainIdle() {
-		return false, false
+	// as soon as the running jobs have ended.
+	if opts.Control != nil && opts.Control.Draining() && opts.Activity != nil {
+		if !opts.Activity.DrainIdle() {
+			return false, false
+		}
+		requested := opts.Control.takeCheck()
+		return true, requested
 	}
 	// A requested check is only consumed once it can run.
 	requested := opts.Control != nil && opts.Control.takeCheck()
