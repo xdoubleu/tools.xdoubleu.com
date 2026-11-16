@@ -6,37 +6,15 @@
 
 ## Context
 
-fosite is the protocol engine of the embedded AS ([ADR-0006](adr-0006-embedded-oauth21-authorization-server.md), [ADR-0021](adr-0021-oauth-as-general-purpose-oidc-idp.md), [ADR-0025](adr-0025-machine-client-credentials-service-role.md)). Registration (RFC 7591), metadata/discovery, JWKS, consent and rejection logging are our own code. fosite supplies:
+fosite is the protocol engine of the embedded AS ([ADR-0006](adr-0006-embedded-oauth21-authorization-server.md), [ADR-0021](adr-0021-oauth-as-general-purpose-oidc-idp.md), [ADR-0025](adr-0025-machine-client-credentials-service-role.md)); registration, discovery, JWKS and consent are our own code. As of 2026-10-25:
 
-| Area | fosite API used |
-|---|---|
-| Composition (`server.go`) | `compose.Compose` with the `OAuth2AuthorizeExplicit`, `OAuth2RefreshTokenGrant`, `OAuth2ClientCredentialsGrant`, `OAuth2PKCE`, `OpenIDConnectExplicit`, `OpenIDConnectRefresh`, `OAuth2TokenIntrospection` factories; `CommonStrategy` (HMAC core, OIDC, `jwt.DefaultSigner`); `fosite.Config` |
-| Endpoints (`handlers.go`, `resolver.go`) | `OAuth2Provider`: `NewAuthorizeRequest/Response`, `NewAccessRequest/Response`, `Write*`, `IntrospectToken` |
-| Storage (`storage.go`) | `fosite.Storage`/`ClientManager`, `oauth2.CoreStorage`, `oauth2.TokenRevocationStorage`, `pkce.PKCERequestStorage`, `openid.OpenIDConnectRequestStorage` |
-| Model | `Request`, `DefaultSession`, `openid.DefaultSession`, `jwt.IDTokenClaims`/`Headers`, `DefaultClient`, `Arguments` |
-| Errors (`observe.go`) | `RFC6749Error`, `ErrorToRFC6749Error`, `ErrInactiveToken` (reuse detection), `ErrNotFound`, `ErrInvalidatedAuthorizeCode`, `openid.ErrNoSessionFound`, `ErrAccessDenied`, `ErrRequestUnauthorized`, `ErrUnauthorizedClient` |
-
-State of fosite on 2026-10-25:
-
-- Last tag v0.49.0 (2024-12-12), last master commit `a5f0b09` (2025-07-03) ([proxy](https://proxy.golang.org/github.com/ory/fosite/@v/master.info)); OpenSSF Scorecard "Maintained" 0 ([deps.dev](https://deps.dev/project/github/ory%2Ffosite)).
-- The code moved into [Hydra's `fosite/`](https://github.com/ory/hydra/tree/v26.2.0/fosite) ("Merge branch 'fosite-monorepo'", Hydra 25.4.0, 2025-11-07, [CHANGELOG](https://github.com/ory/hydra/blob/v26.2.0/CHANGELOG.md)).
-- No advisory against fosite since 0.34.1 in 2021 ([OSV](https://osv.dev/list?q=github.com%2Fory%2Ffosite&ecosystem=Go)), and govulncheck on `api` is clean. Ory now files advisories against Hydra's modules ([GO-2026-4807](https://pkg.go.dev/vuln/GO-2026-4807)), so a future fix to fosite code would likely not flag `github.com/ory/fosite`.
-- 231 of the 955 packages in `cmd/api`'s build are there only for fosite, mostly via `ory/x/otelx`: the deprecated `otel/exporters/jaeger`, logrus, pop, grpc, plus the archived `golang/mock`.
+- The last tag is v0.49.0 (2024-12) and the last master commit is 2025-07; OpenSSF Scorecard "Maintained" is 0.
+- The code moved into Hydra's `fosite/`, and Ory files advisories against Hydra's modules, so a future fix would likely not flag `github.com/ory/fosite`.
+- 231 of the 955 packages in `cmd/api` exist only for fosite (deprecated jaeger exporter, logrus, pop, grpc, archived `golang/mock`).
 
 ## Options
 
-(a) and (c) were prototyped on a scratch copy of `api`, then run against the `internal/platform/oauth2as` suite (57 tests) and `cmd/api`'s OAuth/MCP tests on Postgres.
-
-| | today: fosite v0.49.0 | (a) Hydra v26.2.0 | (c) Authelia v0.3.3 |
-|---|---|---|---|
-| `api/go.sum` lines | 1046 | 490 | 294 |
-| packages in `cmd/api` | 955 | 943 | 784 |
-| stripped binary | 54.2 MB | 54.0 MB | 50.6 MB |
-| links jaeger, logrus, pop, grpc, `ory/x` | yes | yes | none |
-| non-import lines changed, tests included | — | 34 | 55 |
-| test suites | pass | pass, imports only changed | pass, two test lines changed |
-| tokens issued before the switch | — | valid | valid with prefix `ory_%s_` |
-| sessions stored before the switch | — | claim types unchanged | refresh and code exchange fail until backfilled |
+(a) and (c) were prototyped on a scratch copy and passed the `oauth2as` suite and the OAuth/MCP tests. (c) drops `go.sum` from 1046 to 294 lines and `cmd/api` from 955 to 784 packages, and links none of the deprecated dependencies; (a) keeps them.
 
 - **(a) Hydra's in-tree fosite** (`github.com/ory/hydra/v2/fosite`, not `internal/`). Storage and strategies become provider accessors (`AuthorizeCodeStorage()`, `CommonStrategyProvider`), and `fosite.Transactional` is required (a pass-through matches today). It is a dead end, though:
   - Hydra's calver tags are invalid for the `/v2` module path, so it pins only by pseudo-version (`v2.3.1-0.20260320110106-0b84568fffcc`), and Renovate can't follow releases.
@@ -53,16 +31,11 @@ State of fosite on 2026-10-25:
 
 (c), Authelia's fork: it is maintained and Renovate-trackable, drops every flagged dependency, keeps issued token strings valid, and passed both suites. Migration as shipped:
 
-1. **Fixtures**: `api/internal/platform/oauth2as/testdata/fosite-v0.49.0.json` holds tokens and `auth.oauth2_*` rows written by v0.49.0, captured before the swap.
-2. **Swap**: the root package is aliased as `fosite`, with the adaptations above and `NewHMACCoreStrategy(cfg, "ory_%s_")`. `api/go.sum` went from 1070 to 294 lines, `cmd/api` from 955 to 784 packages, the stripped binary from 54.2 to 50.5 MB.
-3. **Backfill** (migration 00058): v0.49 stored ID-token claim times as RFC 3339 strings and absent claims as `null`. The fork rejects both, including the `"ext": null` every scope-less MCP session carries. Claim times become Unix seconds, and zero times and `null` claims are dropped. Unmigrated rows still introspect, but refresh and code exchange fail. The Down block restores RFC 3339, so a rollback runs it before the old binary starts.
-4. **Compatibility test** (`api/internal/platform/oauth2as/v049_compat_test.go`): on the backfilled fixture, pre-switch access tokens introspect, refresh tokens rotate, a pending PKCE code exchanges, and reuse past the grace period revokes the chain.
-5. **Monitoring**: `make lint/vuln` runs govulncheck, and `api-vuln.yml` runs it daily rather than per PR.
-6. **After deploy**: one MCP connect and refresh, one Grafana SSO login, and the `oauth2 request rejected` logs.
-
-Stored sessions keep their `kid` header, which the fork emits as-is. It is `OIDCKeyID` of the persistent key, so refreshed ID tokens still match `/oauth2/jwks`.
-
-The repo has no conformance tests. One manual run of the OpenID conformance suite against a local stack is feasible, but it isn't a CI gate: its Basic OP plan expects a UserInfo endpoint, which ADR-0021 rejected.
+1. **Fixtures** written by v0.49.0 are captured before the swap.
+2. **Swap**: the root package is aliased as `fosite`, with `NewHMACCoreStrategy(cfg, "ory_%s_")` so issued tokens stay valid.
+3. **Backfill** (migration 00058): v0.49 stored claim times as RFC 3339 strings and absent claims as `null`, which the fork rejects. Unmigrated rows still introspect, but refresh and code exchange fail. The Down block restores the old shape, so a rollback runs it before the old binary starts.
+4. **Compatibility test** on the backfilled fixture covers introspection, refresh rotation, PKCE exchange and reuse revocation.
+5. **Monitoring**: govulncheck runs daily rather than per PR.
 
 Fallback: (a) is a one-time bridge if the fork stalls (34 lines, no data migration).
 

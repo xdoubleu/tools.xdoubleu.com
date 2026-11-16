@@ -58,8 +58,7 @@ run: handle issues sequentially via `git checkout -B <branch> origin/main`
      (edited after the Ready move); the owner re-approves by removing the
      comment or moving it out of Ready and back.
    - **Skip issues needing a `.github/workflows/` change** (the routine App
-     deliberately lacks the Workflows permission, so the push is rejected;
-     `docs/spec-agent-routines-on-actions.md`). Leave them for a human.
+     deliberately lacks the Workflows permission, so the push is rejected). Leave them for a human.
    - **Defer a `bug` whose only remaining step is an app-gated production
      diagnostic.** A `bug` whose plan says "check production and only then fix
      if the tool shows a cause", but whose check needs an app MCP tool the
