@@ -47,6 +47,9 @@ func (s *JobService) PollPullRequests(ctx context.Context) (int, error) {
 	if err = s.syncLinked(ctx); err != nil {
 		failures = append(failures, err)
 	}
+	if _, err = s.BackfillPathRules(ctx); err != nil {
+		failures = append(failures, err)
+	}
 	return len(jobs) + moved, errors.Join(failures...)
 }
 
@@ -215,14 +218,22 @@ func (s *JobService) PullRequestClosed(ctx context.Context, pr PullRequestRef) e
 	return errors.Join(failures...)
 }
 
-// afterMergeStatus is Done for work the agents found and fixed themselves, which
-// needs no person's check, and Testing for everything else.
-func afterMergeStatus(task *models.Task) models.Status {
+// afterMergeStatus is Done for work the agents found and fixed themselves, or
+// whose merged pull request only changes files CI or the board checks (see
+// selfCheckedBy), which need no person's check, and Testing for everything else.
+func (s *JobService) afterMergeStatus(
+	ctx context.Context,
+	task *models.Task,
+	prURL string,
+) models.Status {
 	for _, label := range task.Labels {
 		switch strings.ToLower(label) {
 		case "factory-retro", "factory-sandbox", "routine-feedback":
 			return models.StatusDone
 		}
+	}
+	if s.pathRule(ctx, prURL) != "" {
+		return models.StatusDone
 	}
 	return models.StatusTesting
 }
@@ -284,7 +295,7 @@ func (s *JobService) testingAfterMerge(
 	if len(jobs) > 0 {
 		return false, nil
 	}
-	if _, err = s.tasks.Move(ctx, id, afterMergeStatus(task)); err != nil {
+	if _, err = s.tasks.Move(ctx, id, s.afterMergeStatus(ctx, task, prURL)); err != nil {
 		return false, err
 	}
 	body := "The pull request was merged: " + prURL
@@ -342,7 +353,7 @@ func (s *JobService) pullRequestEnded(
 	}
 	to, body := models.StatusNeedsYou, "The pull request was closed without merging: "
 	if status.State == githubapp.StateMerged {
-		to, body = afterMergeStatus(task), "The pull request was merged: "
+		to, body = s.afterMergeStatus(ctx, task, job.PRURL), "The pull request was merged: "
 		err = s.tasks.SetMergeSHA(ctx, job.TaskID, status.MergeSHA)
 	}
 	// Move first: a failure after it loses a comment, where a failure before it

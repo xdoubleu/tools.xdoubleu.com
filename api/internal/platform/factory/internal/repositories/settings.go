@@ -54,3 +54,26 @@ func (r *SettingsRepository) SetPickupPaused(ctx context.Context, paused bool) e
 		paused)
 	return err
 }
+
+// PathRulesBackfilled reports whether the one-off move of self-checked Testing
+// tasks to Done has run.
+func (r *SettingsRepository) PathRulesBackfilled(ctx context.Context) (bool, error) {
+	var done bool
+	err := r.db.QueryRow(ctx, `
+		SELECT COALESCE((SELECT path_rules_backfilled
+			FROM factory.board_settings -- single-row
+		), false)`,
+	).Scan(&done)
+	if err != nil {
+		return false, postgres.PgxErrorToHTTPError(err)
+	}
+	return done, nil
+}
+
+// SetPathRulesBackfilled records that the one-off backfill has run.
+func (r *SettingsRepository) SetPathRulesBackfilled(ctx context.Context) error {
+	_, err := r.db.Exec(ctx, `
+		INSERT INTO factory.board_settings (id, path_rules_backfilled) VALUES (true, true)
+		ON CONFLICT (id) DO UPDATE SET path_rules_backfilled = true`)
+	return err
+}

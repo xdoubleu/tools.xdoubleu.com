@@ -513,3 +513,48 @@ func TestOnlyAnArmedPullRequestThatCannotMergeReportsWhy(t *testing.T) {
 		})
 	}
 }
+
+func TestPullRequestFilesPagesAndKeepsRenamedPaths(t *testing.T) {
+	key, pkcs1, _ := newKey(t)
+	f := newFake(t, key)
+	f.mux.HandleFunc("GET /repos/{o}/{r}/pulls/7/files",
+		func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Query().Get("page") == "1" {
+				items := make([]string, 100)
+				for i := range items {
+					items[i] = `{"filename":"docs/a.md"}`
+				}
+				items[0] = `{"filename":"docs/new.md","previous_filename":"web/old.md"}`
+				_, _ = io.WriteString(w, "["+strings.Join(items, ",")+"]")
+				return
+			}
+			_, _ = io.WriteString(w, `[{"filename":"last.md"}]`)
+		})
+	c := newClient(t, f, pkcs1)
+
+	got, err := c.PullRequestFiles(t.Context(), "xdoubleu", "tools.xdoubleu.com", 7)
+
+	require.NoError(t, err)
+	assert.Len(t, got, 102)
+	assert.Contains(t, got, "web/old.md")
+	assert.Equal(t, "last.md", got[len(got)-1])
+}
+
+func TestPullRequestFilesRefusesABadNumberAndAnEndlessList(t *testing.T) {
+	key, pkcs1, _ := newKey(t)
+	f := newFake(t, key)
+	f.mux.HandleFunc("GET /repos/{o}/{r}/pulls/8/files",
+		func(w http.ResponseWriter, _ *http.Request) {
+			items := make([]string, 100)
+			for i := range items {
+				items[i] = `{"filename":"a.md"}`
+			}
+			_, _ = io.WriteString(w, "["+strings.Join(items, ",")+"]")
+		})
+	c := newClient(t, f, pkcs1)
+
+	_, err := c.PullRequestFiles(t.Context(), "xdoubleu", "tools.xdoubleu.com", 0)
+	require.Error(t, err)
+	_, err = c.PullRequestFiles(t.Context(), "xdoubleu", "tools.xdoubleu.com", 8)
+	require.Error(t, err)
+}

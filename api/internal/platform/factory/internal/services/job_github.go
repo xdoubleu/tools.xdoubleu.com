@@ -42,6 +42,8 @@ type PullRequestSource interface {
 		ctx context.Context,
 		owner, repo string,
 	) ([]githubapp.OpenPullRequest, error)
+	// PullRequestFiles lists the paths a pull request changes.
+	PullRequestFiles(ctx context.Context, owner, repo string, number int) ([]string, error)
 	// Deployed reports whether release contains the commit sha.
 	Deployed(ctx context.Context, owner, repo, sha, release string) (bool, error)
 }
