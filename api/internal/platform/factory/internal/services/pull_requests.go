@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"slices"
 	"time"
 
 	"github.com/google/uuid"
@@ -270,7 +271,7 @@ func (s *JobService) testingAfterMerge(
 	if len(jobs) > 0 {
 		return false, nil
 	}
-	if _, err = s.tasks.Move(ctx, id, models.StatusTesting); err != nil {
+	if _, err = s.tasks.Move(ctx, id, afterMerge(task)); err != nil {
 		return false, err
 	}
 	body := "The pull request was merged: " + prURL
@@ -328,7 +329,7 @@ func (s *JobService) pullRequestEnded(
 	}
 	to, body := models.StatusNeedsYou, "The pull request was closed without merging: "
 	if status.State == githubapp.StateMerged {
-		to, body = models.StatusTesting, "The pull request was merged: "
+		to, body = afterMerge(task), "The pull request was merged: "
 		err = s.tasks.SetMergeSHA(ctx, job.TaskID, status.MergeSHA)
 	}
 	// Move first: a failure after it loses a comment, where a failure before it
@@ -341,6 +342,20 @@ func (s *JobService) pullRequestEnded(
 	}
 	_, err = s.tasks.AddComment(ctx, job.TaskID, systemAuthor, body+job.PRURL)
 	return err
+}
+
+// agentFoundLabels mark work agents found and fixed on their own; nobody needs to
+// check it once merged.
+var agentFoundLabels = []string{"factory-retro", "factory-sandbox", "routine-feedback"}
+
+// afterMerge is the column a task moves to once its pull request merges.
+func afterMerge(task *models.Task) models.Status {
+	for _, l := range task.Labels {
+		if slices.Contains(agentFoundLabels, l) {
+			return models.StatusDone
+		}
+	}
+	return models.StatusTesting
 }
 
 // syncLinked keeps the status of the open pull requests that link a task in their

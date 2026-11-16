@@ -103,6 +103,44 @@ func TestAMergedPullRequestMovesItsTaskToTestingOnce(t *testing.T) {
 	assert.Len(t, env.task(t, task.Id).Comments, 2)
 }
 
+func (e jobEnv) labelled(t *testing.T, id string, labels ...string) {
+	t.Helper()
+	task := e.task(t, id).Task
+	_, err := e.tasks.UpdateTask(context.Background(), &factoryv1.UpdateTaskRequest{
+		Id: id, Title: task.Title, Body: task.Body, Labels: labels,
+	})
+	require.NoError(t, err)
+}
+
+func TestAMergedPullRequestOfAgentFoundWorkMovesItsTaskToDone(t *testing.T) {
+	env, gh := githubEnv(t)
+	task := inReview(t, env, "retro", 43)
+	env.labelled(t, task.Id, "bug", "factory-retro")
+	gh.answer(43, ended(githubapp.StateMerged), nil)
+
+	require.NoError(t, env.poll(t))
+
+	got := env.task(t, task.Id)
+	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_DONE, got.Task.Status)
+	assert.Contains(t, got.Comments[len(got.Comments)-1].Body, "was merged: "+pullURL(43))
+}
+
+func TestAMergedPullRequestLinkingAJoblessSandboxTaskMovesItToDone(t *testing.T) {
+	env, gh := githubEnv(t)
+	task := env.newTask(t, "sandbox")
+	env.labelled(t, task.Id, "factory-sandbox")
+	env.putInReview(t, task.Id)
+	gh.merge(pullURL(8), "Task: sandbox ("+task.Id+")\n\nbody")
+
+	require.NoError(t, env.poll(t))
+
+	assert.Equal(
+		t,
+		factoryv1.TaskStatus_TASK_STATUS_DONE,
+		env.task(t, task.Id).Task.Status,
+	)
+}
+
 func TestAPullRequestClosedWithoutMergingSendsItsTaskBackToNeedsYou(t *testing.T) {
 	env, gh := githubEnv(t)
 	task := inReview(t, env, "closed", 42)
