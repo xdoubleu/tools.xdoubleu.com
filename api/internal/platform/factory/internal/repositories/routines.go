@@ -11,7 +11,8 @@ type RoutinesRepository struct {
 	db postgres.DB
 }
 
-const routineColumns = `name, repo_id, enabled, interval_minutes, created_at, updated_by`
+const routineColumns = `name, repo_id, enabled, interval_minutes, created_at,
+	updated_by`
 
 func scanRoutine(row rowScanner) (*models.Routine, error) {
 	var r models.Routine
