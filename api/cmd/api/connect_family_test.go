@@ -46,12 +46,6 @@ func (erroringFamilyService) Decline(context.Context, string) error {
 	return errFamilyServiceFake
 }
 
-func (erroringFamilyService) SetDisplayName(
-	context.Context, string, string,
-) error {
-	return errFamilyServiceFake
-}
-
 func (erroringFamilyService) Leave(context.Context, string) error {
 	return errFamilyServiceFake
 }
@@ -231,61 +225,6 @@ func TestLeaveFamily_Success(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotEqual(t, before.FamilyID, after.FamilyID,
 		"leaving should hand testUserID a fresh solo family")
-}
-
-func TestSetFamilyDisplayName_Success(t *testing.T) {
-	senderID := insertPendingFamilyInvite(t)
-
-	client := familyClient(t)
-
-	acceptReq := &familyv1.AcceptFamilyInviteRequest{
-		InviteId: pendingInviteID(t),
-	}
-	_, err := client.AcceptFamilyInvite(
-		withCookies(context.Background(), accessToken),
-		acceptReq,
-	)
-	require.NoError(t, err)
-
-	nameReq := &familyv1.SetFamilyDisplayNameRequest{
-		DisplayName: "Sam",
-	}
-	_, err = client.SetFamilyDisplayName(
-		withCookies(context.Background(), accessToken),
-		nameReq,
-	)
-	require.NoError(t, err)
-
-	membership, err := testApp.family.GetMembership(context.Background(), senderID)
-	require.NoError(t, err)
-	assert.Equal(t, "Sam", membership.DisplayNames[testUserID])
-
-	getReq := &familyv1.GetFamilyRequest{}
-	getResp, err := client.GetFamily(
-		withCookies(context.Background(), accessToken),
-		getReq,
-	)
-	require.NoError(t, err)
-	assert.Equal(t, "Sam", getResp.SelfDisplayName)
-
-	require.NoError(t, testApp.family.Leave(context.Background(), testUserID))
-}
-
-func TestSetFamilyDisplayName_InternalError(t *testing.T) {
-	withErroringFamilyService(t)
-
-	client := familyClient(t)
-	req := &familyv1.SetFamilyDisplayNameRequest{
-		DisplayName: "x",
-	}
-	_, err := client.SetFamilyDisplayName(
-		withCookies(context.Background(), accessToken),
-		req,
-	)
-	require.Error(t, err)
-	var connectErr *connect.Error
-	require.ErrorAs(t, err, &connectErr)
-	assert.Equal(t, connect.CodeInternal, connectErr.Code())
 }
 
 func TestGetFamily_InternalError(t *testing.T) {

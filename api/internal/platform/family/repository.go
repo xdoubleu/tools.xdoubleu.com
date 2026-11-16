@@ -71,8 +71,10 @@ func (r *Repository) MemberDisplayNames(
 	familyID uuid.UUID,
 ) (map[string]string, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT user_id, display_name FROM global.family_members
-		WHERE family_id = $1`,
+		SELECT m.user_id, COALESCE(u.display_name, '')
+		FROM global.family_members m
+		LEFT JOIN global.app_users u ON u.id = m.user_id
+		WHERE m.family_id = $1`,
 		familyID,
 	)
 	if err != nil {
@@ -89,18 +91,6 @@ func (r *Repository) MemberDisplayNames(
 		names[userID] = displayName
 	}
 	return names, rows.Err()
-}
-
-// SetDisplayName sets userID's display name; a no-op without a membership row.
-func (r *Repository) SetDisplayName(
-	ctx context.Context,
-	userID, displayName string,
-) error {
-	_, err := r.db.Exec(ctx, `
-		UPDATE global.family_members SET display_name = $2 WHERE user_id = $1`,
-		userID, displayName,
-	)
-	return err
 }
 
 // EnsureFamily returns userID's family, creating a solo one if needed, so

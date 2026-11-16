@@ -7,14 +7,14 @@ service FamilyService {
   rpc InviteToFamily(InviteToFamilyRequest) returns (InviteToFamilyResponse);
   rpc AcceptFamilyInvite(AcceptFamilyInviteRequest) returns (AcceptFamilyInviteResponse);
   rpc DeclineFamilyInvite(DeclineFamilyInviteRequest) returns (DeclineFamilyInviteResponse);
-  rpc SetFamilyDisplayName(SetFamilyDisplayNameRequest) returns (SetFamilyDisplayNameResponse);
   rpc LeaveFamily(LeaveFamilyRequest) returns (LeaveFamilyResponse);
 }
 
 message FamilyMember {
   string user_id = 1;
   string email = 2;
-  // The member's chosen name, shown instead of their email; empty if unset.
+  // The member's user-management display name, shown instead of their email;
+  // empty if unset.
   string display_name = 3;
 }
 
@@ -31,9 +31,6 @@ message GetFamilyResponse {
   repeated FamilyMember members = 1;
   // Set when the caller has a pending invite to another family.
   FamilyInvite incoming_invite = 2;
-  // The caller's own chosen name (empty if unset); the caller is not in
-  // members.
-  string self_display_name = 3;
 }
 
 message InviteToFamilyRequest {
@@ -52,12 +49,6 @@ message AcceptFamilyInviteResponse {}
 message DeclineFamilyInviteRequest {}
 
 message DeclineFamilyInviteResponse {}
-
-message SetFamilyDisplayNameRequest {
-  string display_name = 1;
-}
-
-message SetFamilyDisplayNameResponse {}
 
 message LeaveFamilyRequest {}
 

@@ -1,11 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { mutate } from 'swr'
 import {
   useFamily,
   useInviteToFamily,
   useAcceptFamilyInvite,
   useDeclineFamilyInvite,
-  useSetFamilyDisplayName,
   useLeaveFamily
 } from '@/hooks/useFamily'
 import { Button } from '@/components/ui/button'
@@ -24,7 +23,6 @@ export default function FamilyPageClient() {
   const inviteToFamily = useInviteToFamily()
   const acceptInvite = useAcceptFamilyInvite()
   const declineInvite = useDeclineFamilyInvite()
-  const setDisplayName = useSetFamilyDisplayName()
   const leaveFamily = useLeaveFamily()
 
   const [email, setEmail] = useState('')
@@ -35,16 +33,8 @@ export default function FamilyPageClient() {
   const [leaving, setLeaving] = useState(false)
   const [confirmingLeave, setConfirmingLeave] = useState(false)
 
-  const [name, setName] = useState('')
-  const [savingName, setSavingName] = useState(false)
-
   const members = data?.members ?? []
   const incomingInvite = data?.incomingInvite
-  const selfDisplayName = data?.selfDisplayName ?? ''
-
-  useEffect(() => {
-    setName(selfDisplayName)
-  }, [selfDisplayName])
 
   async function handleInvite(e: React.FormEvent) {
     e.preventDefault()
@@ -83,19 +73,6 @@ export default function FamilyPageClient() {
       // ignore
     } finally {
       setDeclining(false)
-    }
-  }
-
-  async function handleSaveName(e: React.FormEvent) {
-    e.preventDefault()
-    setSavingName(true)
-    try {
-      await setDisplayName(name.trim())
-      await mutate(swrKeys.family)
-    } catch {
-      // ignore
-    } finally {
-      setSavingName(false)
     }
   }
 
@@ -163,25 +140,6 @@ export default function FamilyPageClient() {
             />
             <Button type="submit" disabled={inviting}>
               {inviting ? 'Inviting…' : 'Invite'}
-            </Button>
-          </form>
-        </SettingsSection>
-
-        <SettingsSection
-          title="Your name"
-          description="Shown to the rest of your family in place of your email."
-        >
-          <form onSubmit={handleSaveName} className="flex gap-2">
-            <Input
-              type="text"
-              aria-label="Your name"
-              placeholder="Your name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="min-w-0 flex-1"
-            />
-            <Button type="submit" disabled={savingName || name.trim() === selfDisplayName}>
-              {savingName ? 'Saving…' : 'Save'}
             </Button>
           </form>
         </SettingsSection>
