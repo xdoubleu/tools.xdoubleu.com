@@ -41,6 +41,14 @@ func TestAMergedPullRequestGoesToDoneByItsChangedFiles(t *testing.T) {
 		"factory":   {"factory-runner/main.go", "api/internal/platform/factory/app.go"},
 		"container": {"factory-runner/Containerfile"},
 		"mixed":     {"docs/a.md", "x/y_test.go", "factory-runner/z.go", ".github/ci.yml"},
+		"factory gen": {"proto/factory/v1/runners.proto", "api/gen/factory/v1/runners.pb.go",
+			"web/lib/gen/factory/v1/runners_pb.ts"},
+		"factory migration": {"api/internal/platform/factory/migrations/1_x.sql"},
+		"githubapp":         {"api/internal/platform/githubapp/githubapp.go"},
+		"diff-coverage":     {"diff-coverage/internal/diffcov/diff.go"},
+		"agent tooling": {".claude/skills/x/SKILL.md", ".factory/gates", "CLAUDE.md",
+			"api/scripts/ensure_go_tool.sh", "scripts/lint_docs.sh", "scripts/test_hooks.sh",
+			"scripts/check_feature_gate.sh"},
 	}
 	for name, files := range cases {
 		t.Run(name, func(t *testing.T) {
@@ -58,14 +66,18 @@ func TestAMergedPullRequestGoesToDoneByItsChangedFiles(t *testing.T) {
 
 func TestAMergedPullRequestOfAnyOtherFileGoesToTesting(t *testing.T) {
 	cases := map[string][]string{
-		"web":        {"docs/a.md", "web/src/App.tsx"},
-		"web test":   {"web/src/App.test.tsx"},
-		"infra":      {"infra/README.md"},
-		"deploy":     {"config/deploy.yml"},
-		"migration":  {"api/apps/books/migrations/1_x.sql"},
-		"migrations": {"migrations/x.md"},
-		"app code":   {"api/apps/books/main.go", "docs/a.md"},
-		"no files":   {},
+		"web":           {"docs/a.md", "web/src/App.tsx"},
+		"web test":      {"web/src/App.test.tsx"},
+		"infra":         {"infra/README.md"},
+		"deploy":        {"config/deploy.yml"},
+		"migration":     {"api/apps/books/migrations/1_x.sql"},
+		"migrations":    {"migrations/x.md"},
+		"app code":      {"api/apps/books/main.go", "docs/a.md"},
+		"no files":      {},
+		"deploy script": {"scripts/resolve_deploy_version.sh"},
+		"other gen":     {"api/gen/books/v1/books.pb.go"},
+		"other proto":   {"proto/books/v1/books.proto"},
+		"web non-gen":   {"web/lib/factory/x.ts"},
 	}
 	for name, files := range cases {
 		t.Run(name, func(t *testing.T) {

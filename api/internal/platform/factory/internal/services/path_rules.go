@@ -18,6 +18,12 @@ var errNotPullRequest = errors.New("not a pull request address")
 // person's check.
 func selfCheckedRule(file string) string {
 	file = strings.TrimPrefix(file, "/")
+	// Factory paths under otherwise denied prefixes: its generated code follows
+	// the proto, and its migrations run first at startup and stop it on failure.
+	if hasAnyPrefix(file, "proto/factory/", "api/gen/factory/", "web/lib/gen/factory/",
+		"api/internal/platform/factory/migrations/") {
+		return "factory"
+	}
 	// Paths whose change always needs a person's check, whatever else matches.
 	for _, p := range []string{"infra/", "config/deploy", "web/"} {
 		if strings.HasPrefix(file, p) {
@@ -35,11 +41,36 @@ func selfCheckedRule(file string) string {
 	case path.Base(file) == "Makefile" || strings.HasPrefix(file, ".github/") ||
 		strings.HasPrefix(file, "tools/") || path.Base(file) == "Containerfile":
 		return "CI/build"
-	case strings.HasPrefix(file, "factory-runner/") ||
-		strings.HasPrefix(file, "api/internal/platform/factory/"):
+	case hasAnyPrefix(file, "factory-runner/", "api/internal/platform/factory/",
+		"api/internal/platform/githubapp/"):
 		return "factory"
+	case hasAnyPrefix(file, "diff-coverage/"):
+		return "CI/build"
+	case isAgentTooling(file):
+		return "agent tooling"
 	}
 	return ""
+}
+
+// isAgentTooling is agent instructions and the scripts only CI runs; other
+// scripts/ files, such as the deploy scripts, need a person's check.
+func isAgentTooling(file string) bool {
+	if file == "AGENTS.md" || file == "CLAUDE.md" ||
+		hasAnyPrefix(file, ".claude/", ".factory/", "api/scripts/") {
+		return true
+	}
+	dir, base := path.Split(file)
+	return dir == "scripts/" && strings.HasSuffix(base, ".sh") &&
+		hasAnyPrefix(base, "lint_", "test_", "check_")
+}
+
+func hasAnyPrefix(s string, prefixes ...string) bool {
+	for _, prefix := range prefixes {
+		if strings.HasPrefix(s, prefix) {
+			return true
+		}
+	}
+	return false
 }
 
 func hasAnySuffix(s string, suffixes ...string) bool {
