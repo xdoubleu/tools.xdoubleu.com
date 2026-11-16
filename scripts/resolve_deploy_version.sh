@@ -4,10 +4,16 @@
 # that or a newer one is already live. The concurrency group replaces its
 # pending job in build-finish order, so the last job can belong to an older
 # commit; this makes it ship main's tip anyway.
+# A live version is still redeployed when what Kamal applies (deploy config,
+# secrets, the deploy step's env) differs from the hash labelled on the live
+# container, or when FORCE_DEPLOY=true.
 
 # usage: resolve_deploy_version.sh api|grafana...
-# env: GH_TOKEN GITHUB_REPOSITORY GITHUB_SHA [GITHUB_RUN_ATTEMPT GITHUB_OUTPUT]
-# Writes <service>=<sha|skip> to $GITHUB_OUTPUT (stdout when unset).
+# env: GH_TOKEN GITHUB_REPOSITORY GITHUB_SHA KAMAL_SERVER_IP
+#      [GITHUB_RUN_ATTEMPT GITHUB_OUTPUT FORCE_DEPLOY]
+# Writes <service>=<sha|skip> and <service>_config_hash=<hash> to $GITHUB_OUTPUT
+# (stdout when unset). The deploy step labels its containers with the hash
+# (config/deploy.*.yml `labels`).
 set -euo pipefail
 shopt -s inherit_errexit
 
@@ -109,6 +115,43 @@ deployed_version() {
   fi
 }
 
+# config_hash SERVICE: a hash of everything Kamal applies for SERVICE from this
+# checkout: its deploy config, .kamal/secrets and the env of its deploy step.
+config_hash() {
+  {
+    cat "config/deploy.$1.yml" .kamal/secrets 2>/dev/null
+    awk -v n="- name: Deploy $1 via Kamal" '
+      /^ *- name: / { on = index($0, n) > 0 }
+      on && !/^ *#/' .github/workflows/main.yml 2>/dev/null
+  } | sha256sum | cut -d' ' -f1
+}
+
+# live_config_hash SERVICE: the hash labelled on the live containers, empty when
+# they carry none or disagree; fails when the host can't be asked.
+live_config_hash() {
+  local out hashes
+  out=$(ssh "deploy@${KAMAL_SERVER_IP:?}" docker ps \
+    --filter "label=service=tools-xdoubleu-com-$1" \
+    --format '{{.Labels}}' 2>/dev/null) || return 1
+  mapfile -t hashes < <(grep -o 'deploy-config-hash=[0-9a-f]*' <<<"$out" | cut -d= -f2 | sort -u || true)
+  [[ ${#hashes[@]} -eq 1 ]] && echo "${hashes[0]}"
+  return 0
+}
+
+# config_stale SERVICE: whether the live containers lack this checkout's config.
+# A job whose checkout differs from main's tip never claims it: the tip's own
+# job applies its config.
+config_stale() {
+  local live
+  if ! live=$(live_config_hash "$1"); then
+    log "::warning::Could not read the live $1 config hash; not redeploying for config"
+    return 1
+  fi
+  [[ $live != "$(config_hash "$1")" ]] || return 1
+  [[ -n $2 ]] && same_deploy_config "$2" || return 1
+  log "::notice::$1: the live config differs from this checkout's; redeploying ${live:+(live hash $live)}"
+}
+
 # A job of an older commit deploys with its own checkout, so a newer commit that
 # changed the deploy config or secrets can't be shipped safely from it.
 same_deploy_config() {
@@ -120,8 +163,9 @@ main() {
   [[ $# -gt 0 ]] || { log "usage: $0 api|grafana..."; exit 2; }
   : "${GITHUB_REPOSITORY:?}" "${GITHUB_SHA:?}"
   local attempt=${GITHUB_RUN_ATTEMPT:-1} out=${GITHUB_OUTPUT:-/dev/stdout}
-  local cands svc deployed target run
+  local cands svc deployed target run tip
   cands=$(candidates)
+  tip=$(awk 'NR == 1 {print $1}' <<<"$cands")
   for svc in "$@"; do
     [[ $svc == api || $svc == grafana ]] || { log "unknown service: $svc"; exit 2; }
     deployed=$(deployed_version "$svc")
@@ -134,7 +178,16 @@ main() {
       fi
       log "::notice::$svc: shipping $target, newer than this run's $GITHUB_SHA (live: ${deployed:-unknown})"
     fi
+    if [[ $target == skip && -n $deployed ]]; then
+      if [[ ${FORCE_DEPLOY:-} == true ]]; then
+        log "::notice::$svc: force_deploy redeploys the live $deployed"
+        target=$deployed
+      elif config_stale "$svc" "$tip"; then
+        target=$deployed
+      fi
+    fi
     echo "$svc=$target" >>"$out"
+    echo "${svc}_config_hash=$(config_hash "$svc")" >>"$out"
   done
 }
 
