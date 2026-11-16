@@ -598,3 +598,32 @@ func (s *Store) ScopeOf(ctx context.Context, userID uuid.UUID) (*Scope, error) {
 	}
 	return &scope, nil
 }
+
+// OwnerNames maps each account's user to the display name (or email) of the
+// person in created_by. The name is "" when created_by names no person, such as
+// the factory itself. Users with no account are left out.
+func (s *Store) OwnerNames(
+	ctx context.Context,
+	userIDs []uuid.UUID,
+) (map[uuid.UUID]string, error) {
+	rows, err := s.db.Query(ctx, `
+		SELECT a.user_id, COALESCE(NULLIF(u.display_name, ''), u.email, '')
+		FROM global.agent_accounts a
+		LEFT JOIN global.app_users u ON a.created_by = 'human:' || u.id::text
+		WHERE a.user_id = ANY($1)`, userIDs)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	out := map[uuid.UUID]string{}
+	for rows.Next() {
+		var id uuid.UUID
+		var name string
+		if err = rows.Scan(&id, &name); err != nil {
+			return nil, err
+		}
+		out[id] = name
+	}
+	return out, rows.Err()
+}

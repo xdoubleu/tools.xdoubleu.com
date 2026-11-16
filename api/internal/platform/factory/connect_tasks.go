@@ -134,7 +134,70 @@ func priorityFromProto(p factoryv1.TaskPriority) models.Priority {
 	return models.PriorityInvalid
 }
 
-func protoTask(t *models.Task) *factoryv1.Task {
+// labelled is the actor with its owner when it is an agent, else as it is.
+func labelled(labels map[string]string, actor string) string {
+	if label, ok := labels[actor]; ok {
+		return label
+	}
+	return actor
+}
+
+// actorLabels names the owner of every agent among the actors, in one lookup.
+func (f *Factory) actorLabels(
+	ctx context.Context,
+	actors ...string,
+) map[string]string {
+	return f.services.Jobs.ActorLabels(ctx, actors)
+}
+
+// protoTasks converts tasks with their agent creators' owners shown.
+func (f *Factory) protoTasks(
+	ctx context.Context,
+	tasks []models.Task,
+) []*factoryv1.Task {
+	actors := make([]string, len(tasks))
+	for i := range tasks {
+		actors[i] = tasks[i].CreatedBy
+	}
+	labels := f.actorLabels(ctx, actors...)
+	out := make([]*factoryv1.Task, len(tasks))
+	for i := range tasks {
+		out[i] = protoTask(&tasks[i], labels)
+	}
+	return out
+}
+
+// protoTaskOf converts one task with its agent creator's owner shown.
+func (f *Factory) protoTaskOf(ctx context.Context, t *models.Task) *factoryv1.Task {
+	return protoTask(t, f.actorLabels(ctx, t.CreatedBy))
+}
+
+// protoCommentOf converts one comment with its agent author's owner shown.
+func (f *Factory) protoCommentOf(
+	ctx context.Context,
+	c *models.Comment,
+) *factoryv1.Comment {
+	return protoComment(c, f.actorLabels(ctx, c.Author))
+}
+
+// protoComments converts comments with their agent authors' owners shown.
+func (f *Factory) protoComments(
+	ctx context.Context,
+	comments []models.Comment,
+) []*factoryv1.Comment {
+	actors := make([]string, len(comments))
+	for i := range comments {
+		actors[i] = comments[i].Author
+	}
+	labels := f.actorLabels(ctx, actors...)
+	out := make([]*factoryv1.Comment, len(comments))
+	for i := range comments {
+		out[i] = protoComment(&comments[i], labels)
+	}
+	return out
+}
+
+func protoTask(t *models.Task, labels map[string]string) *factoryv1.Task {
 	return &factoryv1.Task{
 		Id:                models.TaskRef(t.Number),
 		RepoId:            t.RepoID.String(),
@@ -143,7 +206,7 @@ func protoTask(t *models.Task) *factoryv1.Task {
 		Status:            statusToProto(t.Status),
 		Priority:          priorityToProto(t.Priority),
 		Labels:            t.Labels,
-		CreatedBy:         t.CreatedBy,
+		CreatedBy:         labelled(labels, t.CreatedBy),
 		CreatedAt:         t.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:         t.UpdatedAt.Format(time.RFC3339),
 		CommentCount:      int32(t.CommentCount), //nolint:gosec // a count, far below 2^31
@@ -159,10 +222,13 @@ func protoTask(t *models.Task) *factoryv1.Task {
 	}
 }
 
-func protoComment(c *models.Comment) *factoryv1.Comment {
+func protoComment(
+	c *models.Comment,
+	labels map[string]string,
+) *factoryv1.Comment {
 	return &factoryv1.Comment{
 		Id:        c.ID.String(),
-		Author:    c.Author,
+		Author:    labelled(labels, c.Author),
 		Body:      c.Body,
 		CreatedAt: c.CreatedAt.Format(time.RFC3339),
 	}
@@ -183,10 +249,7 @@ func (h *taskConnectHandler) ListTasks(
 		return nil, mapError(err)
 	}
 	h.app.services.Jobs.FillDeploy(ctx, tasks)
-	out := make([]*factoryv1.Task, len(tasks))
-	for i := range tasks {
-		out[i] = protoTask(&tasks[i])
-	}
+	out := h.app.protoTasks(ctx, tasks)
 	paused, err := h.app.services.Jobs.PickupPaused(ctx)
 	if err != nil {
 		return nil, mapError(err)
@@ -223,10 +286,7 @@ func (h *taskConnectHandler) GetTask(
 	if err != nil {
 		return nil, mapError(err)
 	}
-	out := make([]*factoryv1.Comment, len(comments))
-	for i := range comments {
-		out[i] = protoComment(&comments[i])
-	}
+	out := h.app.protoComments(ctx, comments)
 	filled := []models.Task{*task}
 	h.app.services.Jobs.FillDeploy(ctx, filled)
 	task = &filled[0]
@@ -250,7 +310,8 @@ func (h *taskConnectHandler) GetTask(
 		}
 	}
 	return &factoryv1.GetTaskResponse{
-		Task: protoTask(task), Comments: out, Jobs: jobOut, PullRequests: pullOut,
+		Task: h.app.protoTaskOf(ctx, task), Comments: out, Jobs: jobOut,
+		PullRequests: pullOut,
 	}, nil
 }
 
@@ -275,7 +336,7 @@ func (h *taskConnectHandler) CreateTask(
 	if err != nil {
 		return nil, mapError(err)
 	}
-	return &factoryv1.CreateTaskResponse{Task: protoTask(task)}, nil
+	return &factoryv1.CreateTaskResponse{Task: h.app.protoTaskOf(ctx, task)}, nil
 }
 
 func (h *taskConnectHandler) UpdateTask(
@@ -299,7 +360,7 @@ func (h *taskConnectHandler) UpdateTask(
 	if err != nil {
 		return nil, mapError(err)
 	}
-	return &factoryv1.UpdateTaskResponse{Task: protoTask(task)}, nil
+	return &factoryv1.UpdateTaskResponse{Task: h.app.protoTaskOf(ctx, task)}, nil
 }
 
 func (h *taskConnectHandler) MoveTask(
@@ -318,7 +379,7 @@ func (h *taskConnectHandler) MoveTask(
 	if err != nil {
 		return nil, mapError(err)
 	}
-	return &factoryv1.MoveTaskResponse{Task: protoTask(task)}, nil
+	return &factoryv1.MoveTaskResponse{Task: h.app.protoTaskOf(ctx, task)}, nil
 }
 
 func (h *taskConnectHandler) AddComment(
@@ -337,7 +398,7 @@ func (h *taskConnectHandler) AddComment(
 	if err != nil {
 		return nil, mapError(err)
 	}
-	return &factoryv1.AddCommentResponse{Comment: protoComment(comment)}, nil
+	return &factoryv1.AddCommentResponse{Comment: h.app.protoCommentOf(ctx, comment)}, nil
 }
 
 // taskID resolves a task reference from a request.

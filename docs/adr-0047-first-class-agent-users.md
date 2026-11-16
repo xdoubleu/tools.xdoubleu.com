@@ -83,6 +83,11 @@ Slices 1 and 2 land first; 3–5 need slice 2; 6 is independent.
 
 - Granting an app lets an agent read everything that app shows its own user.
 - Existing accounts keep working: a migration gives them the `factory` grant.
+- Every agent has an owner, who answers for what it does; a leaked secret still
+  attributes to that owner. A standing account's owner is the admin who created
+  it, a job's account is owned by the person who started the job (the factory
+  only when no person did). The board and `factory_*` output show an agent as
+  "agent of <owner>", or "unknown owner" when none resolves.
 
 ## Revisit when
 
