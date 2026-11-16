@@ -2,6 +2,8 @@ package factory_test
 
 import (
 	"context"
+	"os"
+	"strings"
 	"testing"
 
 	"connectrpc.com/connect/v2"
@@ -182,4 +184,36 @@ func TestThePausedBoardQueuesNoRoutine(t *testing.T) {
 
 	require.NoError(t, env.app.EnqueueRoutinesNow(context.Background()))
 	assert.Nil(t, env.claim(t))
+}
+
+func TestTheSeedMigrationListsBothRoutinesAndIsIdempotent(t *testing.T) {
+	env := routineEnv(t)
+	raw, err := os.ReadFile("migrations/20261116070046_seed_routines.sql")
+	require.NoError(t, err)
+	up := strings.SplitN(string(raw), "-- +goose Down", 2)[0]
+	for range 2 {
+		_, err = testDB.Exec(context.Background(), up)
+		require.NoError(t, err)
+	}
+
+	got := map[string]*factoryv1.Routine{}
+	for _, r := range env.routines(t) {
+		got[r.Name] = r
+	}
+	require.Len(t, got, 2)
+	assert.True(t, got["nightly-maintenance-sweep"].Enabled)
+	assert.Equal(t, int32(1440), got["nightly-maintenance-sweep"].IntervalMinutes)
+	assert.True(t, got["posthog-ux-discovery"].Enabled)
+	assert.Equal(t, int32(10080), got["posthog-ux-discovery"].IntervalMinutes)
+
+	_, err = testDB.Exec(context.Background(),
+		`UPDATE factory.routines SET enabled = false WHERE name = 'posthog-ux-discovery'`)
+	require.NoError(t, err)
+	_, err = testDB.Exec(context.Background(), up)
+	require.NoError(t, err)
+	for _, r := range env.routines(t) {
+		if r.Name == "posthog-ux-discovery" {
+			assert.False(t, r.Enabled, "an existing row stays as it is")
+		}
+	}
 }
