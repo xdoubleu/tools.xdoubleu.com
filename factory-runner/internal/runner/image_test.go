@@ -9,6 +9,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -280,4 +281,31 @@ func TestEnsureImageRetriesTransientManifestError(t *testing.T) {
 	inspect := `[{"digest":"sha256:` + testDigest + `"}]`
 	e := newImageEnsurer(t, ts, pubB64, imageAnswerScript(1, inspect, &pulls, &tags))
 	require.NoError(t, e.Ensure(context.Background()))
+}
+
+func TestEnsureImageStopsRetryingWhenContextEnds(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(
+		w http.ResponseWriter, _ *http.Request,
+	) {
+		w.WriteHeader(http.StatusBadGateway)
+	}))
+	defer ts.Close()
+	pubB64, _, _ := updatesig.GenerateKey()
+	var pulls, tags []string
+	e := newImageEnsurer(t, ts, pubB64, imageAnswerScript(1, "", &pulls, &tags))
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+	err := e.Ensure(ctx)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "502")
+}
+
+func TestEnsureImageRejectsBadOrigin(t *testing.T) {
+	ts := httptest.NewServer(http.NotFoundHandler())
+	defer ts.Close()
+	pubB64, _, _ := updatesig.GenerateKey()
+	var pulls, tags []string
+	e := newImageEnsurer(t, ts, pubB64, imageAnswerScript(1, "", &pulls, &tags))
+	e.Origin = "://bad"
+	require.Error(t, e.Ensure(context.Background()))
 }
