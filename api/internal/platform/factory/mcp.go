@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/google/uuid"
@@ -134,6 +135,9 @@ func (a *Factory) RegisterMCPTools(srv *mcp.Server) {
 			"queued or running is a conflict.", t.runRoutine)
 }
 
+// shortJobID is how many characters of a job id name it in a notice.
+const shortJobID = 8
+
 type mcpTools struct {
 	app *Factory
 }
@@ -150,6 +154,7 @@ func agentActor(ctx context.Context) (models.Actor, error) {
 		ID:      user.ID,
 		Browser: false,
 		Admin:   false,
+		Via:     "",
 	}, nil
 }
 
@@ -180,7 +185,7 @@ func (t *mcpTools) scopedTask(ctx context.Context) (uuid.UUID, bool, error) {
 
 // confined reports whether the account may touch only its own task. A routine
 // job's account has no task, so it reads, files and comments board-wide, and
-// refuseScoped still keeps it from moving or editing tasks and routines.
+// refuseScoped still keeps it from moving or editing tasks.
 func confined(own uuid.UUID, scoped bool) bool {
 	return scoped && own != uuid.Nil
 }
@@ -456,6 +461,37 @@ func (t *mcpTools) refuseScoped(ctx context.Context, what string) error {
 	return nil
 }
 
+// routineActor is the calling account as an actor allowed to manage routines.
+// A job's account may, but not the routine its own job runs for, so a routine
+// can't re-run or reconfigure itself. Its notices name the job and its task.
+func (t *mcpTools) routineActor(
+	ctx context.Context, routine string,
+) (models.Actor, error) {
+	actor, err := agentActor(ctx)
+	if err != nil {
+		return actor, err
+	}
+	userID, err := uuid.Parse(actor.ID)
+	if err != nil {
+		return actor, errors.New("this tool is for agent accounts only")
+	}
+	job, err := t.app.services.Jobs.JobOf(ctx, userID)
+	if err != nil {
+		return actor, connecttools.MapError(err)
+	}
+	if job == nil {
+		return actor, nil
+	}
+	if job.Routine != "" && job.Routine == routine {
+		return actor, errors.New("a job can't run or change the routine it runs for")
+	}
+	actor.Via = "job " + job.ID.String()[:shortJobID]
+	if job.TaskNumber > 0 {
+		actor.Via += " on T-" + strconv.FormatInt(job.TaskNumber, 10)
+	}
+	return actor, nil
+}
+
 func (t *mcpTools) moveTasks(
 	ctx context.Context, args mcpMoveManyArgs,
 ) (proto.Message, error) {
@@ -492,9 +528,6 @@ func (t *mcpTools) moveTasks(
 func (t *mcpTools) listRoutines(
 	ctx context.Context, _ mcptools.NoArgs,
 ) (proto.Message, error) {
-	if err := t.refuseScoped(ctx, "read routines"); err != nil {
-		return nil, err
-	}
 	list, err := t.app.services.Jobs.ListRoutines(ctx)
 	if err != nil {
 		return nil, connecttools.MapError(err)
@@ -509,11 +542,8 @@ func (t *mcpTools) listRoutines(
 func (t *mcpTools) setRoutine(
 	ctx context.Context, args mcpSetRoutineArgs,
 ) (proto.Message, error) {
-	actor, err := agentActor(ctx)
+	actor, err := t.routineActor(ctx, args.Name)
 	if err != nil {
-		return nil, err
-	}
-	if err = t.refuseScoped(ctx, "change routines"); err != nil {
 		return nil, err
 	}
 	repoID, err := parseID(args.RepoID)
@@ -533,11 +563,8 @@ func (t *mcpTools) setRoutine(
 func (t *mcpTools) runRoutine(
 	ctx context.Context, args mcpRunRoutineArgs,
 ) (proto.Message, error) {
-	actor, err := agentActor(ctx)
+	actor, err := t.routineActor(ctx, args.Name)
 	if err != nil {
-		return nil, err
-	}
-	if err = t.refuseScoped(ctx, "run routines"); err != nil {
 		return nil, err
 	}
 	job, err := t.app.services.Jobs.RunRoutine(ctx, actor, args.Name)
