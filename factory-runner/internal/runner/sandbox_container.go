@@ -411,7 +411,8 @@ func execArgv(name, envFile, npmCache string, first bool, spec SandboxSpec) []st
 
 // postgresScript starts a throwaway trust-auth cluster on the tmpfs, reachable as
 // postgres@localhost:5432, when the image has Postgres. A failure is reported, not
-// fatal.
+// fatal. A cluster left by an earlier exec of the same job has every non-public
+// schema dropped, so half-migrated state cannot fail the next gate.
 const postgresScript = `pgbin=$(ls -d /usr/lib/postgresql/*/bin 2>/dev/null | tail -n 1)
 if [ -n "$pgbin" ] && [ ! -d /tmp/pgdata ]; then
   { "$pgbin/initdb" -D /tmp/pgdata -U postgres --auth=trust \
@@ -419,6 +420,15 @@ if [ -n "$pgbin" ] && [ ! -d /tmp/pgdata ]; then
     "$pgbin/pg_ctl" -D /tmp/pgdata -l /tmp/pgdata.log -w \
       -o "-k /tmp -c listen_addresses=localhost" start >/dev/null; } ||
     echo "factory: postgres did not start, see /tmp/pgdata.log" >&2
+elif [ -n "$pgbin" ]; then
+  for db in $("$pgbin/psql" -h /tmp -U postgres -d postgres -Atc \
+    "select datname from pg_database where not datistemplate" 2>/dev/null); do
+    "$pgbin/psql" -h /tmp -U postgres -d "$db" -qc "do \$\$ declare s text; begin
+      for s in select nspname from pg_namespace where nspname <> 'public'
+        and nspname !~ '^pg_' and nspname <> 'information_schema' loop
+        execute format('drop schema %I cascade', s); end loop; end \$\$" \
+      >/dev/null 2>&1 || echo "factory: could not reset schemas in $db" >&2
+  done
 fi
 `
 

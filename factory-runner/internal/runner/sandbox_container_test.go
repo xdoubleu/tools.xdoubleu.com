@@ -248,6 +248,7 @@ func TestAJobWithoutAProxyStillUsesTheBakedCachesAndALocalPostgres(t *testing.T)
 	execLine := strings.Join(exec.find("exec")[0], " ")
 	assert.Contains(t, execLine, "cp -R /opt/npmcache /tmp/npmcache")
 	assert.Contains(t, execLine, `initdb" -D /tmp/pgdata -U postgres --auth=trust`)
+	assert.Contains(t, execLine, "drop schema %I cascade")
 }
 
 func TestSetupInstallsNodeModulesForEachLockfileThatLacksThem(t *testing.T) {
