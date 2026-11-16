@@ -79,65 +79,6 @@ func (h *accessConnectHandler) SetAgentAppAccess(
 	return &accessv1.SetAgentAppAccessResponse{User: protoAppUser(*user)}, nil
 }
 
-// CreateUser invites a person: the provider creates and mails them, and the
-// account here is linked to it.
-func (h *accessConnectHandler) CreateUser(
-	ctx context.Context,
-	req *accessv1.CreateUserRequest,
-) (*accessv1.CreateUserResponse, error) {
-	if err := obs.RequireAdmin(ctx); err != nil {
-		return nil, err
-	}
-
-	created, err := h.app.Auth.CreateUser(ctx, req.Email, req.DisplayName)
-	switch {
-	case errors.Is(err, auth.ErrInvalidEmail):
-		return nil, connect.NewError(connect.CodeInvalidArgument, "invalid email")
-	case errors.Is(err, auth.ErrUserExists):
-		return nil, connect.NewError(connect.CodeAlreadyExists, err.Error())
-	case errors.Is(err, auth.ErrDirectoryOff):
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error())
-	case err != nil:
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
-	}
-
-	user, err := h.app.AppUsers.GetByID(ctx, created.ID)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
-	}
-	return &accessv1.CreateUserResponse{User: protoAppUser(*user)}, nil
-}
-
-// DeactivateUser blocks a person at the provider and here, and signs them out.
-func (h *accessConnectHandler) DeactivateUser(
-	ctx context.Context,
-	req *accessv1.DeactivateUserRequest,
-) (*accessv1.DeactivateUserResponse, error) {
-	if err := obs.RequireAdmin(ctx); err != nil {
-		return nil, err
-	}
-	caller := contexttools.GetValue[models.User](ctx, constants.UserContextKey)
-	if caller.ID == req.UserId {
-		return nil, connect.NewError(
-			connect.CodeInvalidArgument, "you can't deactivate yourself",
-		)
-	}
-	if err := h.refuseAgent(ctx, req.UserId); err != nil {
-		return nil, err
-	}
-
-	err := h.app.Auth.DeactivateUser(ctx, req.UserId)
-	switch {
-	case errors.Is(err, auth.ErrUserNotFound):
-		return nil, connect.NewError(connect.CodeNotFound, "user not found")
-	case errors.Is(err, auth.ErrDirectoryOff):
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error())
-	case err != nil:
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
-	}
-	return &accessv1.DeactivateUserResponse{}, nil
-}
-
 func (h *accessConnectHandler) ListUsers(
 	ctx context.Context,
 	_ *accessv1.ListUsersRequest,
@@ -264,4 +205,32 @@ func (h *accessConnectHandler) SetDisplayName(
 	}
 
 	return &accessv1.SetDisplayNameResponse{User: protoAppUser(*user)}, nil
+}
+
+// DeactivateUser blocks a person's sign-in and signs them out everywhere.
+func (h *accessConnectHandler) DeactivateUser(
+	ctx context.Context,
+	req *accessv1.DeactivateUserRequest,
+) (*accessv1.DeactivateUserResponse, error) {
+	if err := obs.RequireAdmin(ctx); err != nil {
+		return nil, err
+	}
+	caller := contexttools.GetValue[models.User](ctx, constants.UserContextKey)
+	if caller.ID == req.UserId {
+		return nil, connect.NewError(
+			connect.CodeInvalidArgument, "you can't deactivate yourself",
+		)
+	}
+	if err := h.refuseAgent(ctx, req.UserId); err != nil {
+		return nil, err
+	}
+
+	err := h.app.Auth.DeactivateUser(ctx, req.UserId)
+	switch {
+	case errors.Is(err, auth.ErrUserNotFound):
+		return nil, connect.NewError(connect.CodeNotFound, "user not found")
+	case err != nil:
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+	}
+	return &accessv1.DeactivateUserResponse{}, nil
 }

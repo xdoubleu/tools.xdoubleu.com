@@ -10,11 +10,8 @@ service AccessService {
   rpc SetDisplayName(SetDisplayNameRequest) returns (SetDisplayNameResponse);
   // SetAgentAppAccess grants or revokes a standing agent's access to an app.
   rpc SetAgentAppAccess(SetAgentAppAccessRequest) returns (SetAgentAppAccessResponse);
-  // CreateUser adds a person at the identity provider and links it to a new
-  // account; the provider mails the invite. Admin only.
-  rpc CreateUser(CreateUserRequest) returns (CreateUserResponse);
-  // DeactivateUser blocks a person at the provider and signs them out
-  // everywhere. Admin only.
+  // DeactivateUser blocks a person's sign-in and signs them out everywhere.
+  // Admin only.
   rpc DeactivateUser(DeactivateUserRequest) returns (DeactivateUserResponse);
 }
 
@@ -71,15 +68,6 @@ message SetDisplayNameRequest {
 }
 
 message SetDisplayNameResponse {
-  AppUser user = 1;
-}
-
-message CreateUserRequest {
-  string email = 1;
-  string display_name = 2;
-}
-
-message CreateUserResponse {
   AppUser user = 1;
 }
 

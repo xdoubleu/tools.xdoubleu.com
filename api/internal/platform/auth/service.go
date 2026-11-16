@@ -33,8 +33,6 @@ type appUsersStore interface {
 	Upsert(ctx context.Context, id, email string) error
 	GetByID(ctx context.Context, id string) (*models.User, error)
 	GetAll(ctx context.Context) ([]models.User, error)
-	SetDisplayName(ctx context.Context, id, displayName string) error
-	Delete(ctx context.Context, id string) error
 }
 
 // OAuth2TokenResolver resolves a fosite opaque access token to a user ID. It is
@@ -77,12 +75,6 @@ type LocalService struct {
 	SignInRenderer SignInRenderFunc
 	// OAuth2TokenResolver may be nil: then only local session JWTs resolve.
 	OAuth2TokenResolver OAuth2TokenResolver
-	// OIDC is set by cmd/api when people sign in through an OIDC provider
-	// (adr-0051); nil keeps the password sign-in.
-	OIDC *OIDCProvider
-	// Directory is the provider's user API for creating and deactivating
-	// people; nil when none is configured.
-	Directory Directory
 }
 
 var _ Service = (*LocalService)(nil)
@@ -115,8 +107,6 @@ func NewService(
 		resolveGroup:        singleflight.Group{},
 		SignInRenderer:      nil,
 		OAuth2TokenResolver: nil,
-		OIDC:                nil,
-		Directory:           nil,
 	}
 }
 
@@ -196,6 +186,9 @@ var dummyPasswordHash = sync.OnceValue(func() []byte {
 // ErrWrongCredential rejects a step-up check: a wrong current password, MFA
 // code or recovery code.
 var ErrWrongCredential = errors.New("current password or code is incorrect")
+
+// ErrUserNotFound means no such user.
+var ErrUserNotFound = errors.New("auth: user not found")
 
 // ErrPasswordTooShort rejects a new password under minPasswordLength.
 var ErrPasswordTooShort = fmt.Errorf(
@@ -581,6 +574,21 @@ func (service *LocalService) UpdatePassword(
 
 // revokeAllSessions signs the user out everywhere: every refresh token and
 // every OAuth grant.
+// DeactivateUser blocks the person's sign-in and signs them out everywhere.
+func (service *LocalService) DeactivateUser(ctx context.Context, userID string) error {
+	_, err := service.usersStore.GetUserByID(ctx, userID)
+	if errors.Is(err, errNotFound) {
+		return ErrUserNotFound
+	}
+	if err == nil {
+		err = service.usersStore.SetDeactivated(ctx, userID)
+	}
+	if err == nil {
+		err = service.revokeAllSessions(ctx, userID)
+	}
+	return err
+}
+
 func (service *LocalService) revokeAllSessions(
 	ctx context.Context,
 	userID string,

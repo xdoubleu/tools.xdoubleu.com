@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file access/v1/access.proto.
  */
 export const file_access_v1_access: GenFile = /*@__PURE__*/
-  fileDesc("ChZhY2Nlc3MvdjEvYWNjZXNzLnByb3RvEglhY2Nlc3MudjEicgoHQXBwVXNlchIKCgJpZBgBIAEoCRINCgVlbWFpbBgCIAEoCRIMCgRyb2xlGAMgASgJEhIKCmFwcF9hY2Nlc3MYBCADKAkSFAoMd3JpdGVfYWNjZXNzGAUgAygJEhQKDGRpc3BsYXlfbmFtZRgGIAEoCSISChBMaXN0VXNlcnNSZXF1ZXN0IjYKEUxpc3RVc2Vyc1Jlc3BvbnNlEiEKBXVzZXJzGAEgAygLMhIuYWNjZXNzLnYxLkFwcFVzZXIiLwoOU2V0Um9sZVJlcXVlc3QSDwoHdXNlcl9pZBgBIAEoCRIMCgRyb2xlGAIgASgJIjMKD1NldFJvbGVSZXNwb25zZRIgCgR1c2VyGAEgASgLMhIuYWNjZXNzLnYxLkFwcFVzZXIiRwoTU2V0QXBwQWNjZXNzUmVxdWVzdBIPCgd1c2VyX2lkGAEgASgJEhAKCGFwcF9uYW1lGAIgASgJEg0KBWdyYW50GAMgASgIIjgKFFNldEFwcEFjY2Vzc1Jlc3BvbnNlEiAKBHVzZXIYASABKAsyEi5hY2Nlc3MudjEuQXBwVXNlciJMChhTZXRBZ2VudEFwcEFjY2Vzc1JlcXVlc3QSDwoHdXNlcl9pZBgBIAEoCRIQCghhcHBfbmFtZRgCIAEoCRINCgVsZXZlbBgDIAEoCSI9ChlTZXRBZ2VudEFwcEFjY2Vzc1Jlc3BvbnNlEiAKBHVzZXIYASABKAsyEi5hY2Nlc3MudjEuQXBwVXNlciI+ChVTZXREaXNwbGF5TmFtZVJlcXVlc3QSDwoHdXNlcl9pZBgBIAEoCRIUCgxkaXNwbGF5X25hbWUYAiABKAkiOgoWU2V0RGlzcGxheU5hbWVSZXNwb25zZRIgCgR1c2VyGAEgASgLMhIuYWNjZXNzLnYxLkFwcFVzZXIiOAoRQ3JlYXRlVXNlclJlcXVlc3QSDQoFZW1haWwYASABKAkSFAoMZGlzcGxheV9uYW1lGAIgASgJIjYKEkNyZWF0ZVVzZXJSZXNwb25zZRIgCgR1c2VyGAEgASgLMhIuYWNjZXNzLnYxLkFwcFVzZXIiKAoVRGVhY3RpdmF0ZVVzZXJSZXF1ZXN0Eg8KB3VzZXJfaWQYASABKAkiGAoWRGVhY3RpdmF0ZVVzZXJSZXNwb25zZTLDBAoNQWNjZXNzU2VydmljZRJGCglMaXN0VXNlcnMSGy5hY2Nlc3MudjEuTGlzdFVzZXJzUmVxdWVzdBocLmFjY2Vzcy52MS5MaXN0VXNlcnNSZXNwb25zZRJACgdTZXRSb2xlEhkuYWNjZXNzLnYxLlNldFJvbGVSZXF1ZXN0GhouYWNjZXNzLnYxLlNldFJvbGVSZXNwb25zZRJPCgxTZXRBcHBBY2Nlc3MSHi5hY2Nlc3MudjEuU2V0QXBwQWNjZXNzUmVxdWVzdBofLmFjY2Vzcy52MS5TZXRBcHBBY2Nlc3NSZXNwb25zZRJVCg5TZXREaXNwbGF5TmFtZRIgLmFjY2Vzcy52MS5TZXREaXNwbGF5TmFtZVJlcXVlc3QaIS5hY2Nlc3MudjEuU2V0RGlzcGxheU5hbWVSZXNwb25zZRJeChFTZXRBZ2VudEFwcEFjY2VzcxIjLmFjY2Vzcy52MS5TZXRBZ2VudEFwcEFjY2Vzc1JlcXVlc3QaJC5hY2Nlc3MudjEuU2V0QWdlbnRBcHBBY2Nlc3NSZXNwb25zZRJJCgpDcmVhdGVVc2VyEhwuYWNjZXNzLnYxLkNyZWF0ZVVzZXJSZXF1ZXN0Gh0uYWNjZXNzLnYxLkNyZWF0ZVVzZXJSZXNwb25zZRJVCg5EZWFjdGl2YXRlVXNlchIgLmFjY2Vzcy52MS5EZWFjdGl2YXRlVXNlclJlcXVlc3QaIS5hY2Nlc3MudjEuRGVhY3RpdmF0ZVVzZXJSZXNwb25zZUIrWil0b29scy54ZG91YmxldS5jb20vZ2VuL2FjY2Vzcy92MTthY2Nlc3N2MWIGcHJvdG8z");
+  fileDesc("ChZhY2Nlc3MvdjEvYWNjZXNzLnByb3RvEglhY2Nlc3MudjEicgoHQXBwVXNlchIKCgJpZBgBIAEoCRINCgVlbWFpbBgCIAEoCRIMCgRyb2xlGAMgASgJEhIKCmFwcF9hY2Nlc3MYBCADKAkSFAoMd3JpdGVfYWNjZXNzGAUgAygJEhQKDGRpc3BsYXlfbmFtZRgGIAEoCSISChBMaXN0VXNlcnNSZXF1ZXN0IjYKEUxpc3RVc2Vyc1Jlc3BvbnNlEiEKBXVzZXJzGAEgAygLMhIuYWNjZXNzLnYxLkFwcFVzZXIiLwoOU2V0Um9sZVJlcXVlc3QSDwoHdXNlcl9pZBgBIAEoCRIMCgRyb2xlGAIgASgJIjMKD1NldFJvbGVSZXNwb25zZRIgCgR1c2VyGAEgASgLMhIuYWNjZXNzLnYxLkFwcFVzZXIiRwoTU2V0QXBwQWNjZXNzUmVxdWVzdBIPCgd1c2VyX2lkGAEgASgJEhAKCGFwcF9uYW1lGAIgASgJEg0KBWdyYW50GAMgASgIIjgKFFNldEFwcEFjY2Vzc1Jlc3BvbnNlEiAKBHVzZXIYASABKAsyEi5hY2Nlc3MudjEuQXBwVXNlciJMChhTZXRBZ2VudEFwcEFjY2Vzc1JlcXVlc3QSDwoHdXNlcl9pZBgBIAEoCRIQCghhcHBfbmFtZRgCIAEoCRINCgVsZXZlbBgDIAEoCSI9ChlTZXRBZ2VudEFwcEFjY2Vzc1Jlc3BvbnNlEiAKBHVzZXIYASABKAsyEi5hY2Nlc3MudjEuQXBwVXNlciI+ChVTZXREaXNwbGF5TmFtZVJlcXVlc3QSDwoHdXNlcl9pZBgBIAEoCRIUCgxkaXNwbGF5X25hbWUYAiABKAkiOgoWU2V0RGlzcGxheU5hbWVSZXNwb25zZRIgCgR1c2VyGAEgASgLMhIuYWNjZXNzLnYxLkFwcFVzZXIiKAoVRGVhY3RpdmF0ZVVzZXJSZXF1ZXN0Eg8KB3VzZXJfaWQYASABKAkiGAoWRGVhY3RpdmF0ZVVzZXJSZXNwb25zZTL4AwoNQWNjZXNzU2VydmljZRJGCglMaXN0VXNlcnMSGy5hY2Nlc3MudjEuTGlzdFVzZXJzUmVxdWVzdBocLmFjY2Vzcy52MS5MaXN0VXNlcnNSZXNwb25zZRJACgdTZXRSb2xlEhkuYWNjZXNzLnYxLlNldFJvbGVSZXF1ZXN0GhouYWNjZXNzLnYxLlNldFJvbGVSZXNwb25zZRJPCgxTZXRBcHBBY2Nlc3MSHi5hY2Nlc3MudjEuU2V0QXBwQWNjZXNzUmVxdWVzdBofLmFjY2Vzcy52MS5TZXRBcHBBY2Nlc3NSZXNwb25zZRJVCg5TZXREaXNwbGF5TmFtZRIgLmFjY2Vzcy52MS5TZXREaXNwbGF5TmFtZVJlcXVlc3QaIS5hY2Nlc3MudjEuU2V0RGlzcGxheU5hbWVSZXNwb25zZRJeChFTZXRBZ2VudEFwcEFjY2VzcxIjLmFjY2Vzcy52MS5TZXRBZ2VudEFwcEFjY2Vzc1JlcXVlc3QaJC5hY2Nlc3MudjEuU2V0QWdlbnRBcHBBY2Nlc3NSZXNwb25zZRJVCg5EZWFjdGl2YXRlVXNlchIgLmFjY2Vzcy52MS5EZWFjdGl2YXRlVXNlclJlcXVlc3QaIS5hY2Nlc3MudjEuRGVhY3RpdmF0ZVVzZXJSZXNwb25zZUIrWil0b29scy54ZG91YmxldS5jb20vZ2VuL2FjY2Vzcy92MTthY2Nlc3N2MWIGcHJvdG8z");
 
 /**
  * @generated from message access.v1.AppUser
@@ -257,45 +257,6 @@ export const SetDisplayNameResponseSchema: GenMessage<SetDisplayNameResponse> = 
   messageDesc(file_access_v1_access, 10);
 
 /**
- * @generated from message access.v1.CreateUserRequest
- */
-export type CreateUserRequest = Message<"access.v1.CreateUserRequest"> & {
-  /**
-   * @generated from field: string email = 1;
-   */
-  email: string;
-
-  /**
-   * @generated from field: string display_name = 2;
-   */
-  displayName: string;
-};
-
-/**
- * Describes the message access.v1.CreateUserRequest.
- * Use `create(CreateUserRequestSchema)` to create a new message.
- */
-export const CreateUserRequestSchema: GenMessage<CreateUserRequest> = /*@__PURE__*/
-  messageDesc(file_access_v1_access, 11);
-
-/**
- * @generated from message access.v1.CreateUserResponse
- */
-export type CreateUserResponse = Message<"access.v1.CreateUserResponse"> & {
-  /**
-   * @generated from field: access.v1.AppUser user = 1;
-   */
-  user?: AppUser | undefined;
-};
-
-/**
- * Describes the message access.v1.CreateUserResponse.
- * Use `create(CreateUserResponseSchema)` to create a new message.
- */
-export const CreateUserResponseSchema: GenMessage<CreateUserResponse> = /*@__PURE__*/
-  messageDesc(file_access_v1_access, 12);
-
-/**
  * @generated from message access.v1.DeactivateUserRequest
  */
 export type DeactivateUserRequest = Message<"access.v1.DeactivateUserRequest"> & {
@@ -310,7 +271,7 @@ export type DeactivateUserRequest = Message<"access.v1.DeactivateUserRequest"> &
  * Use `create(DeactivateUserRequestSchema)` to create a new message.
  */
 export const DeactivateUserRequestSchema: GenMessage<DeactivateUserRequest> = /*@__PURE__*/
-  messageDesc(file_access_v1_access, 13);
+  messageDesc(file_access_v1_access, 11);
 
 /**
  * @generated from message access.v1.DeactivateUserResponse
@@ -323,7 +284,7 @@ export type DeactivateUserResponse = Message<"access.v1.DeactivateUserResponse">
  * Use `create(DeactivateUserResponseSchema)` to create a new message.
  */
 export const DeactivateUserResponseSchema: GenMessage<DeactivateUserResponse> = /*@__PURE__*/
-  messageDesc(file_access_v1_access, 14);
+  messageDesc(file_access_v1_access, 12);
 
 /**
  * @generated from service access.v1.AccessService
@@ -374,19 +335,8 @@ export const AccessService: GenService<{
     output: typeof SetAgentAppAccessResponseSchema;
   },
   /**
-   * CreateUser adds a person at the identity provider and links it to a new
-   * account; the provider mails the invite. Admin only.
-   *
-   * @generated from rpc access.v1.AccessService.CreateUser
-   */
-  createUser: {
-    methodKind: "unary";
-    input: typeof CreateUserRequestSchema;
-    output: typeof CreateUserResponseSchema;
-  },
-  /**
-   * DeactivateUser blocks a person at the provider and signs them out
-   * everywhere. Admin only.
+   * DeactivateUser blocks a person's sign-in and signs them out everywhere.
+   * Admin only.
    *
    * @generated from rpc access.v1.AccessService.DeactivateUser
    */

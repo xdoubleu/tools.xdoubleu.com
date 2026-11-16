@@ -358,12 +358,6 @@ func (f *fakeAppUsersStore) GetByID(_ context.Context, _ string) (*models.User, 
 	return nil, errors.New("fakeAppUsersStore: GetByID not implemented")
 }
 
-func (f *fakeAppUsersStore) SetDisplayName(context.Context, string, string) error {
-	return nil
-}
-
-func (f *fakeAppUsersStore) Delete(context.Context, string) error { return nil }
-
 func (f *fakeAppUsersStore) GetAll(_ context.Context) ([]models.User, error) {
 	return f.users, f.err
 }
@@ -467,4 +461,30 @@ func TestNewService_PanicsWithoutJWTSecretInProduction(t *testing.T) {
 	assert.Panics(t, func() {
 		auth.NewService(cfg, nil, nil, nil, mailer.New("", "", ""))
 	})
+}
+
+func TestDeactivateUser_BlocksSignInAndSignsOut(t *testing.T) {
+	service, db := newTestService(t)
+	ctx := context.Background()
+	userID := seedUser(t, db)
+	access, refresh, err := service.SignInWithEmail(
+		ctx, userID+"@example.com", testPassword,
+	)
+	require.NoError(t, err)
+
+	require.NoError(t, service.DeactivateUser(ctx, userID))
+	require.NoError(t, service.DeactivateUser(ctx, userID), "repeatable")
+
+	_, _, err = service.SignInWithEmail(ctx, userID+"@example.com", testPassword)
+	require.Error(t, err)
+	_, err = service.GetUser(ctx, *access)
+	require.ErrorContains(t, err, "deactivated")
+	_, _, err = service.SignInWithRefreshToken(ctx, *refresh)
+	require.Error(t, err, "refresh tokens are revoked")
+}
+
+func TestDeactivateUser_UnknownUser(t *testing.T) {
+	service, _ := newTestService(t)
+	err := service.DeactivateUser(context.Background(), uuid.NewString())
+	require.ErrorIs(t, err, auth.ErrUserNotFound)
 }

@@ -588,102 +588,6 @@ func (x *SetDisplayNameResponse) GetUser() *AppUser {
 	return nil
 }
 
-type CreateUserRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Email         string                 `protobuf:"bytes,1,opt,name=email,proto3" json:"email,omitempty"`
-	DisplayName   string                 `protobuf:"bytes,2,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *CreateUserRequest) Reset() {
-	*x = CreateUserRequest{}
-	mi := &file_access_v1_access_proto_msgTypes[11]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *CreateUserRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*CreateUserRequest) ProtoMessage() {}
-
-func (x *CreateUserRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_access_v1_access_proto_msgTypes[11]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use CreateUserRequest.ProtoReflect.Descriptor instead.
-func (*CreateUserRequest) Descriptor() ([]byte, []int) {
-	return file_access_v1_access_proto_rawDescGZIP(), []int{11}
-}
-
-func (x *CreateUserRequest) GetEmail() string {
-	if x != nil {
-		return x.Email
-	}
-	return ""
-}
-
-func (x *CreateUserRequest) GetDisplayName() string {
-	if x != nil {
-		return x.DisplayName
-	}
-	return ""
-}
-
-type CreateUserResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	User          *AppUser               `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *CreateUserResponse) Reset() {
-	*x = CreateUserResponse{}
-	mi := &file_access_v1_access_proto_msgTypes[12]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *CreateUserResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*CreateUserResponse) ProtoMessage() {}
-
-func (x *CreateUserResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_access_v1_access_proto_msgTypes[12]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use CreateUserResponse.ProtoReflect.Descriptor instead.
-func (*CreateUserResponse) Descriptor() ([]byte, []int) {
-	return file_access_v1_access_proto_rawDescGZIP(), []int{12}
-}
-
-func (x *CreateUserResponse) GetUser() *AppUser {
-	if x != nil {
-		return x.User
-	}
-	return nil
-}
-
 type DeactivateUserRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
@@ -693,7 +597,7 @@ type DeactivateUserRequest struct {
 
 func (x *DeactivateUserRequest) Reset() {
 	*x = DeactivateUserRequest{}
-	mi := &file_access_v1_access_proto_msgTypes[13]
+	mi := &file_access_v1_access_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -705,7 +609,7 @@ func (x *DeactivateUserRequest) String() string {
 func (*DeactivateUserRequest) ProtoMessage() {}
 
 func (x *DeactivateUserRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_access_v1_access_proto_msgTypes[13]
+	mi := &file_access_v1_access_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -718,7 +622,7 @@ func (x *DeactivateUserRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeactivateUserRequest.ProtoReflect.Descriptor instead.
 func (*DeactivateUserRequest) Descriptor() ([]byte, []int) {
-	return file_access_v1_access_proto_rawDescGZIP(), []int{13}
+	return file_access_v1_access_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *DeactivateUserRequest) GetUserId() string {
@@ -736,7 +640,7 @@ type DeactivateUserResponse struct {
 
 func (x *DeactivateUserResponse) Reset() {
 	*x = DeactivateUserResponse{}
-	mi := &file_access_v1_access_proto_msgTypes[14]
+	mi := &file_access_v1_access_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -748,7 +652,7 @@ func (x *DeactivateUserResponse) String() string {
 func (*DeactivateUserResponse) ProtoMessage() {}
 
 func (x *DeactivateUserResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_access_v1_access_proto_msgTypes[14]
+	mi := &file_access_v1_access_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -761,7 +665,7 @@ func (x *DeactivateUserResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeactivateUserResponse.ProtoReflect.Descriptor instead.
 func (*DeactivateUserResponse) Descriptor() ([]byte, []int) {
-	return file_access_v1_access_proto_rawDescGZIP(), []int{14}
+	return file_access_v1_access_proto_rawDescGZIP(), []int{12}
 }
 
 var File_access_v1_access_proto protoreflect.FileDescriptor
@@ -801,23 +705,16 @@ const file_access_v1_access_proto_rawDesc = "" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12!\n" +
 	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\"@\n" +
 	"\x16SetDisplayNameResponse\x12&\n" +
-	"\x04user\x18\x01 \x01(\v2\x12.access.v1.AppUserR\x04user\"L\n" +
-	"\x11CreateUserRequest\x12\x14\n" +
-	"\x05email\x18\x01 \x01(\tR\x05email\x12!\n" +
-	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\"<\n" +
-	"\x12CreateUserResponse\x12&\n" +
 	"\x04user\x18\x01 \x01(\v2\x12.access.v1.AppUserR\x04user\"0\n" +
 	"\x15DeactivateUserRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\"\x18\n" +
-	"\x16DeactivateUserResponse2\xc3\x04\n" +
+	"\x16DeactivateUserResponse2\xf8\x03\n" +
 	"\rAccessService\x12F\n" +
 	"\tListUsers\x12\x1b.access.v1.ListUsersRequest\x1a\x1c.access.v1.ListUsersResponse\x12@\n" +
 	"\aSetRole\x12\x19.access.v1.SetRoleRequest\x1a\x1a.access.v1.SetRoleResponse\x12O\n" +
 	"\fSetAppAccess\x12\x1e.access.v1.SetAppAccessRequest\x1a\x1f.access.v1.SetAppAccessResponse\x12U\n" +
 	"\x0eSetDisplayName\x12 .access.v1.SetDisplayNameRequest\x1a!.access.v1.SetDisplayNameResponse\x12^\n" +
-	"\x11SetAgentAppAccess\x12#.access.v1.SetAgentAppAccessRequest\x1a$.access.v1.SetAgentAppAccessResponse\x12I\n" +
-	"\n" +
-	"CreateUser\x12\x1c.access.v1.CreateUserRequest\x1a\x1d.access.v1.CreateUserResponse\x12U\n" +
+	"\x11SetAgentAppAccess\x12#.access.v1.SetAgentAppAccessRequest\x1a$.access.v1.SetAgentAppAccessResponse\x12U\n" +
 	"\x0eDeactivateUser\x12 .access.v1.DeactivateUserRequest\x1a!.access.v1.DeactivateUserResponseB+Z)tools.xdoubleu.com/gen/access/v1;accessv1b\x06proto3"
 
 var (
@@ -832,7 +729,7 @@ func file_access_v1_access_proto_rawDescGZIP() []byte {
 	return file_access_v1_access_proto_rawDescData
 }
 
-var file_access_v1_access_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
+var file_access_v1_access_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
 var file_access_v1_access_proto_goTypes = []any{
 	(*AppUser)(nil),                   // 0: access.v1.AppUser
 	(*ListUsersRequest)(nil),          // 1: access.v1.ListUsersRequest
@@ -845,10 +742,8 @@ var file_access_v1_access_proto_goTypes = []any{
 	(*SetAgentAppAccessResponse)(nil), // 8: access.v1.SetAgentAppAccessResponse
 	(*SetDisplayNameRequest)(nil),     // 9: access.v1.SetDisplayNameRequest
 	(*SetDisplayNameResponse)(nil),    // 10: access.v1.SetDisplayNameResponse
-	(*CreateUserRequest)(nil),         // 11: access.v1.CreateUserRequest
-	(*CreateUserResponse)(nil),        // 12: access.v1.CreateUserResponse
-	(*DeactivateUserRequest)(nil),     // 13: access.v1.DeactivateUserRequest
-	(*DeactivateUserResponse)(nil),    // 14: access.v1.DeactivateUserResponse
+	(*DeactivateUserRequest)(nil),     // 11: access.v1.DeactivateUserRequest
+	(*DeactivateUserResponse)(nil),    // 12: access.v1.DeactivateUserResponse
 }
 var file_access_v1_access_proto_depIdxs = []int32{
 	0,  // 0: access.v1.ListUsersResponse.users:type_name -> access.v1.AppUser
@@ -856,26 +751,23 @@ var file_access_v1_access_proto_depIdxs = []int32{
 	0,  // 2: access.v1.SetAppAccessResponse.user:type_name -> access.v1.AppUser
 	0,  // 3: access.v1.SetAgentAppAccessResponse.user:type_name -> access.v1.AppUser
 	0,  // 4: access.v1.SetDisplayNameResponse.user:type_name -> access.v1.AppUser
-	0,  // 5: access.v1.CreateUserResponse.user:type_name -> access.v1.AppUser
-	1,  // 6: access.v1.AccessService.ListUsers:input_type -> access.v1.ListUsersRequest
-	3,  // 7: access.v1.AccessService.SetRole:input_type -> access.v1.SetRoleRequest
-	5,  // 8: access.v1.AccessService.SetAppAccess:input_type -> access.v1.SetAppAccessRequest
-	9,  // 9: access.v1.AccessService.SetDisplayName:input_type -> access.v1.SetDisplayNameRequest
-	7,  // 10: access.v1.AccessService.SetAgentAppAccess:input_type -> access.v1.SetAgentAppAccessRequest
-	11, // 11: access.v1.AccessService.CreateUser:input_type -> access.v1.CreateUserRequest
-	13, // 12: access.v1.AccessService.DeactivateUser:input_type -> access.v1.DeactivateUserRequest
-	2,  // 13: access.v1.AccessService.ListUsers:output_type -> access.v1.ListUsersResponse
-	4,  // 14: access.v1.AccessService.SetRole:output_type -> access.v1.SetRoleResponse
-	6,  // 15: access.v1.AccessService.SetAppAccess:output_type -> access.v1.SetAppAccessResponse
-	10, // 16: access.v1.AccessService.SetDisplayName:output_type -> access.v1.SetDisplayNameResponse
-	8,  // 17: access.v1.AccessService.SetAgentAppAccess:output_type -> access.v1.SetAgentAppAccessResponse
-	12, // 18: access.v1.AccessService.CreateUser:output_type -> access.v1.CreateUserResponse
-	14, // 19: access.v1.AccessService.DeactivateUser:output_type -> access.v1.DeactivateUserResponse
-	13, // [13:20] is the sub-list for method output_type
-	6,  // [6:13] is the sub-list for method input_type
-	6,  // [6:6] is the sub-list for extension type_name
-	6,  // [6:6] is the sub-list for extension extendee
-	0,  // [0:6] is the sub-list for field type_name
+	1,  // 5: access.v1.AccessService.ListUsers:input_type -> access.v1.ListUsersRequest
+	3,  // 6: access.v1.AccessService.SetRole:input_type -> access.v1.SetRoleRequest
+	5,  // 7: access.v1.AccessService.SetAppAccess:input_type -> access.v1.SetAppAccessRequest
+	9,  // 8: access.v1.AccessService.SetDisplayName:input_type -> access.v1.SetDisplayNameRequest
+	7,  // 9: access.v1.AccessService.SetAgentAppAccess:input_type -> access.v1.SetAgentAppAccessRequest
+	11, // 10: access.v1.AccessService.DeactivateUser:input_type -> access.v1.DeactivateUserRequest
+	2,  // 11: access.v1.AccessService.ListUsers:output_type -> access.v1.ListUsersResponse
+	4,  // 12: access.v1.AccessService.SetRole:output_type -> access.v1.SetRoleResponse
+	6,  // 13: access.v1.AccessService.SetAppAccess:output_type -> access.v1.SetAppAccessResponse
+	10, // 14: access.v1.AccessService.SetDisplayName:output_type -> access.v1.SetDisplayNameResponse
+	8,  // 15: access.v1.AccessService.SetAgentAppAccess:output_type -> access.v1.SetAgentAppAccessResponse
+	12, // 16: access.v1.AccessService.DeactivateUser:output_type -> access.v1.DeactivateUserResponse
+	11, // [11:17] is the sub-list for method output_type
+	5,  // [5:11] is the sub-list for method input_type
+	5,  // [5:5] is the sub-list for extension type_name
+	5,  // [5:5] is the sub-list for extension extendee
+	0,  // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_access_v1_access_proto_init() }
@@ -889,7 +781,7 @@ func file_access_v1_access_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_access_v1_access_proto_rawDesc), len(file_access_v1_access_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   15,
+			NumMessages:   13,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

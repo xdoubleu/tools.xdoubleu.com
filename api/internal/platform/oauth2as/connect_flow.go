@@ -121,7 +121,7 @@ func (f *ConnectFlow) CallbackRoute() http.HandlerFunc {
 		if err != nil {
 			f.Logger.ErrorContext(r.Context(), "oauth exchange failed",
 				slog.String("provider", name), slog.Any("error", err))
-			http.Redirect(
+			http.Redirect( //nolint:gosec // WebURL is config; name is a known provider
 				w, r, f.Config.WebURL+"/monitoring/connections?oauth_error="+name,
 				http.StatusFound,
 			)
@@ -137,7 +137,7 @@ func (f *ConnectFlow) CallbackRoute() http.HandlerFunc {
 			return
 		}
 
-		http.Redirect(
+		http.Redirect( //nolint:gosec // WebURL is config; name is a known provider
 			w, r, f.Config.WebURL+"/monitoring/connections?oauth_connected="+name,
 			http.StatusFound,
 		)

@@ -1,6 +1,6 @@
 # ADR-0051: People sign in through self-hosted Zitadel; the api keeps the MCP authorization server
 
-- Status: Accepted
+- Status: Superseded by [ADR-0053](adr-0053-keep-first-party-auth.md)
 - Issues: spike T-254, epic T-224
 - Affects: `api/internal/platform/auth/`, `web/app/auth/`, `infra/`, `config/deploy.api.yml`
 - Supersedes in part: [adr-0005](adr-0005-first-party-auth-replacing-gotrue.md) (passwords, TOTP, recovery codes, reset mail)

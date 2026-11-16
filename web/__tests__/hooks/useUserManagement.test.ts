@@ -27,7 +27,6 @@ import {
   useSetRole,
   useSetAppAccess,
   useSetDisplayName,
-  useCreateUser,
   useDeactivateUser
 } from '@/hooks/useUserManagement'
 
@@ -99,17 +98,14 @@ describe('useSetDisplayName', () => {
   })
 })
 
-describe('useCreateUser and useDeactivateUser', () => {
-  it('call the access client', () => {
-    const createUser = vi.fn().mockResolvedValue({})
+describe('useDeactivateUser', () => {
+  it('returns a function that calls client.deactivateUser', () => {
     const deactivateUser = vi.fn().mockResolvedValue({})
     // @ts-expect-error -- mock client returns partial shape
-    mockCreateServiceClient.mockReturnValue({ createUser, deactivateUser })
+    mockCreateServiceClient.mockReturnValue({ deactivateUser })
 
-    renderHook(() => useCreateUser()).result.current('a@example.com', 'Ada')
-    renderHook(() => useDeactivateUser()).result.current('user-1')
-
-    expect(createUser).toHaveBeenCalledWith({ email: 'a@example.com', displayName: 'Ada' })
+    const { result } = renderHook(() => useDeactivateUser())
+    result.current('user-1')
     expect(deactivateUser).toHaveBeenCalledWith({ userId: 'user-1' })
   })
 })
