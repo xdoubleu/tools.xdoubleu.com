@@ -356,7 +356,7 @@ func standing(ctx context.Context, tx pgx.Tx, id uuid.UUID) (*Account, error) {
 }
 
 // JoinFamily puts a standing account in familyID, replacing the family it was
-// in, and names it after the account. It joins without an invite, since an
+// in. It joins without an invite, since an
 // agent can't accept one; family data still needs the account's app grants.
 func (s *Store) JoinFamily(
 	ctx context.Context,
@@ -373,14 +373,13 @@ func (s *Store) JoinFamily(
 		return nil, err
 	}
 	if _, err = tx.Exec(ctx, `
-		INSERT INTO global.family_members (user_id, family_id, display_name)
-		VALUES ($1, $2, $3)
+		INSERT INTO global.family_members (user_id, family_id)
+		VALUES ($1, $2)
 		ON CONFLICT (user_id) DO UPDATE
 		SET family_id = EXCLUDED.family_id,
-		    display_name = EXCLUDED.display_name,
 		    joined_at = now()
 		WHERE global.family_members.family_id <> EXCLUDED.family_id`,
-		account.UserID.String(), familyID, account.Name,
+		account.UserID.String(), familyID,
 	); err != nil {
 		return nil, err
 	}

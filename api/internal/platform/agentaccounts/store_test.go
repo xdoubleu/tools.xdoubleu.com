@@ -362,17 +362,16 @@ func TestRotateSecretRefusesRevokedJobAndUnknownAccounts(t *testing.T) {
 
 func familyOf(
 	t *testing.T, db postgres.DB, userID uuid.UUID,
-) (uuid.UUID, string, bool) {
+) (uuid.UUID, bool) {
 	t.Helper()
 	var familyID uuid.UUID
-	var name string
 	err := db.QueryRow(context.Background(), `
-		SELECT family_id, display_name FROM global.family_members
-		WHERE user_id = $1`, userID.String()).Scan(&familyID, &name)
+		SELECT family_id FROM global.family_members
+		WHERE user_id = $1`, userID.String()).Scan(&familyID)
 	if err != nil {
-		return uuid.Nil, "", false
+		return uuid.Nil, false
 	}
-	return familyID, name, true
+	return familyID, true
 }
 
 func TestAStandingAccountJoinsAndLeavesAFamilyAndRevokingLeavesIt(t *testing.T) {
@@ -390,29 +389,25 @@ func TestAStandingAccountJoinsAndLeavesAFamilyAndRevokingLeavesIt(t *testing.T) 
 
 	_, err = store.JoinFamily(ctx, account.ID, familyID)
 	require.NoError(t, err)
-	got, name, ok := familyOf(t, db, account.UserID)
+	got, ok := familyOf(t, db, account.UserID)
 	require.True(t, ok)
 	assert.Equal(t, familyID, got)
-	assert.Equal(t, "Family bot", name)
 
-	_, err = db.Exec(ctx, `UPDATE global.family_members SET display_name = 'Renamed'
-		WHERE user_id = $1`, account.UserID.String())
-	require.NoError(t, err)
 	_, err = store.JoinFamily(ctx, account.ID, familyID)
 	require.NoError(t, err)
-	_, name, _ = familyOf(t, db, account.UserID)
-	assert.Equal(t, "Renamed", name, "joining the same family again changes nothing")
+	got, _ = familyOf(t, db, account.UserID)
+	assert.Equal(t, familyID, got, "joining the same family again changes nothing")
 
 	_, err = store.LeaveFamily(ctx, account.ID)
 	require.NoError(t, err)
-	_, _, ok = familyOf(t, db, account.UserID)
+	_, ok = familyOf(t, db, account.UserID)
 	assert.False(t, ok)
 
 	_, err = store.JoinFamily(ctx, account.ID, familyID)
 	require.NoError(t, err)
 	_, err = store.Revoke(ctx, account.ID)
 	require.NoError(t, err)
-	_, _, ok = familyOf(t, db, account.UserID)
+	_, ok = familyOf(t, db, account.UserID)
 	assert.False(t, ok, "revoking takes the account out of the family")
 }
 
