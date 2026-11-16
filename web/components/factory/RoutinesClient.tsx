@@ -6,10 +6,13 @@ import {
   jobStatusLabel,
   jobStatusVariant,
   ROUTINE_INTERVALS,
+  repoLabel,
+  reposOf,
   routineIntervalLabel
 } from '@/lib/factory/board'
 import { formatDateTime } from '@/lib/dates'
-import { useFactoryActions, useFactoryRoutines } from '@/hooks/useFactory'
+import { useFactoryActions, useFactoryRepos, useFactoryRoutines } from '@/hooks/useFactory'
+import { useSearchParams } from '@/hooks/navigation'
 import AppSections from '@/components/AppSections'
 import { ConfirmDialog } from '@/components/ui/dialog'
 import { Alert } from '@/components/ui/alert'
@@ -24,6 +27,9 @@ import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
 /** The routines the server runs on a schedule: last run, status, and Run / Stop. */
 export default function RoutinesClient() {
   const { data, error, isLoading } = useFactoryRoutines()
+  const repos = reposOf(useFactoryRepos().data)
+  // Starts from the board's ?repo=<id>, so the same repo stays in focus.
+  const [repoFilter, setRepoFilter] = useState(useSearchParams().get('repo') ?? '')
   const { saveRoutine, runRoutine, stopRoutine, deleteRoutine } = useFactoryActions()
   const [failure, setFailure] = useState('')
   const [deleting, setDeleting] = useState<string | null>(null)
@@ -55,6 +61,14 @@ export default function RoutinesClient() {
       })
     )
 
+  const repoName = (id: string) => {
+    const repo = repos.find((r) => r.id === id)
+    return repo ? repoLabel(repo) : ''
+  }
+  const routines = (data?.routines ?? []).filter(
+    (r) => repoFilter === '' || r.repoId === repoFilter
+  )
+
   return (
     <PageContainer size="narrow">
       <PageHeader title="Routines" />
@@ -66,14 +80,30 @@ export default function RoutinesClient() {
       )}
       {error && !data && <ErrorState what="routines" />}
       {isLoading && !data && <LoadingState label="routines" />}
-      {data && data.routines.length === 0 && <EmptyState>No routines yet.</EmptyState>}
-      {data && data.routines.length > 0 && (
+      {repos.length > 1 && (
+        <Select
+          aria-label="Repo"
+          value={repoFilter}
+          onChange={(e) => setRepoFilter(e.target.value)}
+          className="mb-4 w-full sm:w-auto"
+        >
+          <option value="">All repos</option>
+          {repos.map((r) => (
+            <option key={r.id} value={r.id}>
+              {repoLabel(r)}
+            </option>
+          ))}
+        </Select>
+      )}
+      {data && routines.length === 0 && <EmptyState>No routines yet.</EmptyState>}
+      {data && routines.length > 0 && (
         <GroupedList aria-label="Routines">
-          {data.routines.map((routine) => (
+          {routines.map((routine) => (
             <GroupedListItem key={routine.name}>
               <div className="min-w-0 flex-1">
                 <p className="break-words font-medium">{routine.name}</p>
                 <p className="text-xs text-muted">
+                  {repos.length > 1 && repoName(routine.repoId) && `${repoName(routine.repoId)} · `}
                   {routine.lastJob
                     ? `Last run ${formatDateTime(routine.lastJob.createdAt)}`
                     : 'Never run'}
