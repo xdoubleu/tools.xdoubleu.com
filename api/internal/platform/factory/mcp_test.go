@@ -128,7 +128,8 @@ func TestAgentSeesTheBoardTools(t *testing.T) {
 	assert.ElementsMatch(t, []string{
 		"factory_list_repos", "factory_list_tasks", "factory_get_task",
 		"factory_create_task", "factory_comment_task", "factory_move_task",
-		"factory_update_task", "factory_move_tasks",
+		"factory_update_task", "factory_move_tasks", "factory_list_routines",
+		"factory_set_routine", "factory_run_routine",
 	}, names)
 }
 
@@ -307,6 +308,53 @@ func TestAgentMovesATaskToReadyAndIsRecorded(t *testing.T) {
 		`SELECT body FROM factory.task_comments WHERE task_id = $1`,
 		taskKey(t, id)).Scan(&comment))
 	assert.Contains(t, comment, "Moved to Ready by agent:")
+}
+
+func TestAgentCreatesEnablesAndRunsARoutineAndIsRecorded(t *testing.T) {
+	routineEnv(t)
+	session := mcpSessionAs(t, asUser(models.RoleAgent))
+
+	saved, err := callTool(t, session, "factory_set_routine", map[string]any{
+		"name": "sweep", "repo_id": seededRepoID(t),
+		"enabled": true, "interval_minutes": 1440,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "sweep", str(t, saved, "routine", "name"))
+
+	var by string
+	require.NoError(t, testDB.QueryRow(context.Background(),
+		`SELECT updated_by FROM factory.routines WHERE name = 'sweep'`).Scan(&by))
+	assert.Contains(t, by, "agent:")
+
+	listed, err := callTool(t, session, "factory_list_routines", nil)
+	require.NoError(t, err)
+	assert.Equal(t, "sweep", str(t, listed, "routines", 0, "name"))
+
+	ran, err := callTool(t, session, "factory_run_routine",
+		map[string]any{"name": "sweep"})
+	require.NoError(t, err)
+	assert.Equal(t, "sweep", str(t, ran, "job", "routine"))
+	var createdBy string
+	require.NoError(t, testDB.QueryRow(context.Background(),
+		`SELECT created_by FROM factory.jobs WHERE routine = 'sweep'`).Scan(&createdBy))
+	assert.Contains(t, createdBy, "agent:")
+
+	_, err = callTool(t, session, "factory_set_routine", map[string]any{
+		"name": "Bad Name", "repo_id": seededRepoID(t),
+	})
+	require.Error(t, err)
+}
+
+func TestRoutineToolsRefuseABadRepoAndAnUnknownRoutine(t *testing.T) {
+	routineEnv(t)
+	session := mcpSessionAs(t, asUser(models.RoleAgent))
+
+	_, err := callTool(t, session, "factory_set_routine",
+		map[string]any{"name": "sweep", "repo_id": "not-an-id"})
+	require.Error(t, err)
+	_, err = callTool(t, session, "factory_run_routine",
+		map[string]any{"name": "missing"})
+	require.Error(t, err)
 }
 
 func TestListTasksFiltersAndOmitsBodies(t *testing.T) {

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"regexp"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -45,15 +46,16 @@ func routinePrompt(repo *models.Repo, name string) string {
 }
 
 // SaveRoutine creates a routine or changes its repo, flag and interval. Enabling a
-// routine is the approval for it to run unattended, so only a human admin in a
-// browser may, as for Ready.
+// routine is the approval for it to run unattended, so only who may move a task
+// to Ready may, a human admin in a browser or an agent. The change is announced
+// with its author.
 func (s *JobService) SaveRoutine(
 	ctx context.Context,
 	actor models.Actor,
 	in RoutineInput,
 ) (*models.Routine, error) {
-	if !actor.CanMoveToReady() {
-		return nil, forbidden("only a human admin in a browser session can change a routine")
+	if !actor.CanManageRoutines() {
+		return nil, forbidden("only a browser admin or an agent can change a routine")
 	}
 	if !routineNamePattern.MatchString(in.Name) {
 		return nil, badRequest("a routine name is lower-case letters, digits and dashes")
@@ -64,10 +66,21 @@ func (s *JobService) SaveRoutine(
 	if _, err := s.repos.Get(ctx, in.RepoID); err != nil {
 		return nil, err
 	}
-	return s.routines.Save(ctx, models.Routine{
+	routine, err := s.routines.Save(ctx, models.Routine{
 		Name: in.Name, RepoID: in.RepoID, Enabled: in.Enabled,
-		IntervalMinutes: in.IntervalMinutes, CreatedAt: time.Time{}, LastJob: nil,
+		IntervalMinutes: in.IntervalMinutes, CreatedAt: time.Time{},
+		UpdatedBy: actor.String(), LastJob: nil,
 	})
+	if err != nil {
+		return nil, err
+	}
+	state := "disabled"
+	if routine.Enabled {
+		state = "enabled, every " + strconv.Itoa(routine.IntervalMinutes) + " minutes"
+	}
+	s.say.say(ctx, ":gear: Routine "+routine.Name+" was saved by "+actor.String()+
+		" ("+state+").")
+	return routine, nil
 }
 
 // ListRoutines returns every routine with its newest job.
@@ -90,14 +103,15 @@ func (s *JobService) ListRoutines(ctx context.Context) ([]models.Routine, error)
 }
 
 // RunRoutine queues a job for the routine now, by hand, even when it is disabled
-// or unscheduled. Only a human admin in a browser may, as for Run.
+// or unscheduled. The job is attributed to the actor. Only who may manage
+// routines may.
 func (s *JobService) RunRoutine(
 	ctx context.Context,
 	actor models.Actor,
 	name string,
 ) (*models.Job, error) {
-	if !actor.CanMoveToReady() {
-		return nil, forbidden("only a human admin in a browser session can run a routine")
+	if !actor.CanManageRoutines() {
+		return nil, forbidden("only a browser admin or an agent can run a routine")
 	}
 	routine, err := s.routines.Get(ctx, name)
 	if err != nil {
@@ -161,15 +175,14 @@ func isConflict(err error) bool {
 }
 
 // StopRoutine cancels the routine's queued or running job. A running job's runner
-// learns of it on its next check-in. Only a human admin in a browser may, as for
-// Stop.
+// learns of it on its next check-in. Only who may manage routines may.
 func (s *JobService) StopRoutine(
 	ctx context.Context,
 	actor models.Actor,
 	name string,
 ) (*models.Job, error) {
-	if !actor.CanMoveToReady() {
-		return nil, forbidden("only a human admin in a browser session can stop a job")
+	if !actor.CanManageRoutines() {
+		return nil, forbidden("only a browser admin or an agent can stop a routine")
 	}
 	job, err := s.jobs.CancelRoutine(ctx, name)
 	if errors.Is(err, database.ErrResourceNotFound) {

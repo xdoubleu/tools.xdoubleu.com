@@ -17,9 +17,11 @@ the opposite of what the board needs.
 
 ## Decision
 
-- Eight tools on `/apps/mcp`: `factory_list_repos`, `factory_list_tasks`,
+- Eleven tools on `/apps/mcp`: `factory_list_repos`, `factory_list_tasks`,
   `factory_get_task` (read) and `factory_create_task`, `factory_comment_task`,
-  `factory_move_task`, `factory_move_tasks`, `factory_update_task` (write).
+  `factory_move_task`, `factory_move_tasks`, `factory_update_task` (write), plus the routine tools
+  `factory_list_routines` (read), `factory_set_routine` and `factory_run_routine`
+  (write; [adr-0052](adr-0052-factory-scheduled-routines.md)).
   `factory_list_jobs` waits for jobs to exist (#2706).
 - `factory_update_task` edits title, body, priority and labels but never the
   column. It refuses a title or body change once a task is Ready, because a
