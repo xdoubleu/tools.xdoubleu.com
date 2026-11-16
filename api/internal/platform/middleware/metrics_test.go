@@ -85,6 +85,33 @@ func TestRequestDurationSkipsInfraPaths(t *testing.T) {
 	assert.NotContains(t, scrapeMetrics(t), `route="/health"`)
 }
 
+func TestRequestDurationSkipsRunnerLongPolls(t *testing.T) {
+	t.Parallel()
+
+	const claim = "/factory.v1.RunnerService/ClaimJob"
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /factory.v1.RunnerService/", func(
+		w http.ResponseWriter, _ *http.Request,
+	) {
+		w.WriteHeader(http.StatusOK)
+	})
+	handler := middleware.RequestDuration()(mux)
+
+	for _, path := range []string{claim, "/factory.v1.RunnerService/Heartbeat"} {
+		handler.ServeHTTP(
+			httptest.NewRecorder(),
+			httptest.NewRequest(http.MethodPost, path, nil),
+		)
+	}
+	assert.NotContains(t, scrapeMetrics(t), `route="POST /factory.v1.RunnerService/"`)
+
+	handler.ServeHTTP(
+		httptest.NewRecorder(),
+		httptest.NewRequest(http.MethodPost, "/factory.v1.RunnerService/ListJobs", nil),
+	)
+	assert.Contains(t, scrapeMetrics(t), `route="POST /factory.v1.RunnerService/"`)
+}
+
 func scrapeMetrics(t *testing.T) string {
 	t.Helper()
 
