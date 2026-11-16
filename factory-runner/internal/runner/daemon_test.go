@@ -335,3 +335,23 @@ func TestDaemonUpdatesAfterTheDrainTimeoutWhenNoVMRuns(t *testing.T) {
 	require.ErrorIs(t, err, runner.ErrRestart)
 	assert.Contains(t, sink.String(), "drain timed out")
 }
+
+func TestDaemonInstallsAsSoonAsTheDrainEndsNotAtTheNextHourlyCheck(t *testing.T) {
+	control := runner.NewControl(filepath.Join(t.TempDir(), "paused"), "v", nil)
+	activity := runner.NewActivity(awakeStub())
+	require.NoError(t, activity.Begin())
+	upd := &busyAwareUpdater{calls: atomic.Int32{}}
+	hb := newScripted(func(int) error {
+		time.Sleep(5 * time.Millisecond) // lets the update goroutine run
+		if control.Draining() {
+			activity.End()
+		}
+		return nil
+	}, nil)
+	frozen := time.Date(2026, 11, 1, 12, 0, 0, 0, time.UTC)
+	err := runner.RunForTest(context.Background(), hb, "frt_x", newQuiet(),
+		options(upd, activity, control),
+		func(context.Context, time.Duration) {}, func() time.Time { return frozen })
+	require.ErrorIs(t, err, runner.ErrRestart)
+	assert.Equal(t, 2, int(upd.calls.Load()), "a check while busy, then the install")
+}
