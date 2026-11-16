@@ -133,19 +133,20 @@ export default function RoutinesClient() {
           ))}
         </GroupedList>
       )}
-      <ConfirmDialog
-        open={deleting !== null}
-        onOpenChange={(open) => !open && setDeleting(null)}
-        title={`Delete ${deleting ?? 'routine'}?`}
-        description="Its schedule and any queued or running job are removed. Past jobs stay on the board."
-        confirmLabel="Delete routine"
-        destructive
-        onConfirm={() => {
-          const name = deleting
-          setDeleting(null)
-          if (name) void act(() => deleteRoutine(name))
-        }}
-      />
+      {deleting && (
+        <ConfirmDialog
+          open
+          onOpenChange={() => setDeleting(null)}
+          title={`Delete ${deleting}?`}
+          description="Its schedule and any queued or running job are removed. Past jobs stay on the board."
+          confirmLabel="Delete routine"
+          destructive
+          onConfirm={() => {
+            setDeleting(null)
+            void act(() => deleteRoutine(deleting))
+          }}
+        />
+      )}
     </PageContainer>
   )
 }

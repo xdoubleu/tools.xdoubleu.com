@@ -115,6 +115,15 @@ describe('RoutinesClient', () => {
     await waitFor(() => expect(mockDelete).toHaveBeenCalledWith('noop'))
   })
 
+  it('keeps the routine when the delete is cancelled', () => {
+    mockRoutines({ data: list })
+    render(<RoutinesClient />)
+    fireEvent.click(screen.getByRole('button', { name: 'Delete noop' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(mockDelete).not.toHaveBeenCalled()
+    expect(screen.queryByRole('button', { name: 'Delete routine' })).not.toBeInTheDocument()
+  })
+
   it('says why a change was refused', async () => {
     mockRoutines({ data: list })
     mockRun.mockRejectedValueOnce(new ConnectError('no', Code.PermissionDenied))
