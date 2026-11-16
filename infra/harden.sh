@@ -57,6 +57,7 @@ if ! dpkg -s unattended-upgrades &>/dev/null; then
   apt-get install -y unattended-upgrades
 fi
 
+# Never reboot unattended: a kernel update waits for an explicit, quiet-hour reboot.
 cat >/etc/apt/apt.conf.d/50unattended-upgrades <<'EOF'
 Unattended-Upgrade::Allowed-Origins {
     "${distro_id}:${distro_codename}-security";
@@ -65,9 +66,7 @@ Unattended-Upgrade::Allowed-Origins {
 };
 Unattended-Upgrade::Remove-Unused-Kernel-Packages "true";
 Unattended-Upgrade::Remove-Unused-Dependencies "true";
-Unattended-Upgrade::Automatic-Reboot "true";
-Unattended-Upgrade::Automatic-Reboot-WithUsers "true";
-Unattended-Upgrade::Automatic-Reboot-Time "04:00";
+Unattended-Upgrade::Automatic-Reboot "false";
 EOF
 
 cat >/etc/apt/apt.conf.d/20auto-upgrades <<'EOF'
