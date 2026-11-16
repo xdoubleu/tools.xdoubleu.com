@@ -27,4 +27,17 @@ tofu -chdir="$infra_dir" init -backend=false -input=false >/dev/null
 echo "==> tofu validate (infra/)"
 tofu -chdir="$infra_dir" validate
 
+# An apply must never reboot the server: it is not managed here (var.server_id),
+# no script may reboot it, and unattended-upgrades must not.
+echo "==> no reboot path in infra/"
+if grep -nE '^resource "hcloud_server"' "$infra_dir"/*.tf; then
+	echo "infra must not manage hcloud_server: a replace reboots production" >&2
+	exit 1
+fi
+if grep -nE '(^|[^[:alnum:]_-])(reboot|shutdown|poweroff)([[:space:]]|$)|systemctl[[:space:]]+(reboot|poweroff)|Automatic-Reboot[^;]*"true"' \
+	"$infra_dir"/*.sh "$infra_dir"/*.tf | grep -vE '^[^:]+:[0-9]+:[[:space:]]*#'; then
+	echo "infra scripts must not reboot the server" >&2
+	exit 1
+fi
+
 echo "ok: prometheus.yml + OpenTofu config valid"
