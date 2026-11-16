@@ -102,7 +102,12 @@ func TestARunnerNeverRunsMoreJobsThanItsCap(t *testing.T) {
 				break
 			}
 		}
-		time.Sleep(400 * time.Millisecond)
+		// Hold until the cap is reached, so a slow claim loop cannot hide it.
+		for end := time.Now().Add(5 * time.Second); peak.Load() < 2 &&
+			time.Now().Before(end); {
+			time.Sleep(10 * time.Millisecond)
+		}
+		time.Sleep(200 * time.Millisecond)
 		return writes("Did it.", 0)(ctx, spec)
 	}, jobNo(1), jobNo(2), jobNo(3))
 	env.runner.MaxJobs = func() int { return 2 }
