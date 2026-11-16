@@ -201,6 +201,9 @@ message Job {
   string limit_resets_at = 13;
   // The routine a task-less job runs; empty for a task's job, which sets task_id.
   string routine = 14;
+  // How the job ended, as the agent wrote it; set only on a routine's last_job,
+  // truncated.
+  string outcome = 15;
 }
 
 // One event of a job's log: a line of the harness's stream-json output.

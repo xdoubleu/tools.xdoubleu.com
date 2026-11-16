@@ -80,7 +80,7 @@ func TestAManuallyRunRoutineRunsToTheEndWithoutATask(t *testing.T) {
 	require.NoError(t, err)
 
 	_, err = env.runner.CompleteJob(bearer(env.token), &factoryv1.CompleteJobRequest{
-		JobId: claimed.Id, Succeeded: true, Outcome: "No-op ran.",
+		JobId: claimed.Id, Succeeded: true, Outcome: "No-op ran." + strings.Repeat("x", 3000),
 	})
 	require.NoError(t, err)
 
@@ -88,6 +88,9 @@ func TestAManuallyRunRoutineRunsToTheEndWithoutATask(t *testing.T) {
 	require.Len(t, list, 1)
 	require.NotNil(t, list[0].LastJob)
 	assert.Equal(t, factoryv1.JobStatus_JOB_STATUS_SUCCEEDED, list[0].LastJob.Status)
+	outcome := list[0].LastJob.Outcome
+	assert.True(t, strings.HasPrefix(outcome, "No-op ran."))
+	assert.Less(t, len(outcome), 2100, "a long outcome is truncated")
 }
 
 func TestStopRoutineCancelsItsJob(t *testing.T) {
