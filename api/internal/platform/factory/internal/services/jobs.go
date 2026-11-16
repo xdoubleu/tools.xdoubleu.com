@@ -292,11 +292,36 @@ func (s *JobService) Stop(
 	return job, nil
 }
 
-// Claim starts the oldest queued job, or returns nil when there is none or the
-// runner already runs maxJobs (below 1 means 1), and records the harness and
-// model the runner runs it on. It first marks jobs that
-// stopped checking in as lost.
-func (s *JobService) Claim(
+// PrepareClaim does the bookkeeping a claim starts with: it checks the harness and
+// model, marks lost jobs, records the runner's slots and picks up Ready tasks. A
+// runner polling for a job calls it once, then ClaimQueued on each poll.
+func (s *JobService) PrepareClaim(
+	ctx context.Context,
+	runnerID uuid.UUID,
+	maxJobs int,
+	harness models.Harness,
+	model string,
+) error {
+	if !harness.Valid() {
+		return badRequest("invalid harness")
+	}
+	if err := checkModel(harness, strings.TrimSpace(model)); err != nil {
+		return err
+	}
+	if err := s.ExpireLost(ctx); err != nil {
+		return err
+	}
+	// Best effort: a failure here leaves the queue as it was, and the next claim
+	// looks again.
+	_ = s.runners.SetMaxJobs(ctx, runnerID, max(maxJobs, 1))
+	_ = s.pickUp(ctx)
+	return nil
+}
+
+// ClaimQueued starts the oldest queued job, or returns nil when there is none or
+// the runner already runs maxJobs (below 1 means 1), and records the harness and
+// model the runner runs it on.
+func (s *JobService) ClaimQueued(
 	ctx context.Context,
 	runnerID uuid.UUID,
 	maxJobs int,
@@ -304,19 +329,6 @@ func (s *JobService) Claim(
 	model string,
 ) (*ClaimedJob, error) {
 	model = strings.TrimSpace(model)
-	if !harness.Valid() {
-		return nil, badRequest("invalid harness")
-	}
-	if err := checkModel(harness, model); err != nil {
-		return nil, err
-	}
-	if err := s.ExpireLost(ctx); err != nil {
-		return nil, err
-	}
-	// Best effort: a failure here leaves the queue as it was, and the next claim
-	// looks again.
-	_ = s.runners.SetMaxJobs(ctx, runnerID, max(maxJobs, 1))
-	_ = s.pickUp(ctx)
 	// A Claude job claimed in a limit would only fail the same way.
 	until, limitErr := s.jobs.ActiveLimit(ctx)
 	if limitErr != nil {

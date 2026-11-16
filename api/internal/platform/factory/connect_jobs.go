@@ -209,10 +209,17 @@ func (h *runnerHandler) ClaimJob(
 	// Held open so the runner needs no inbound port and learns of a job within a
 	// second of it being queued; answered empty when the hold ends.
 	deadline := time.Now().Add(h.app.heartbeatHold)
+	maxJobs := int(min(req.GetMaxJobs(), maxRunnerJobs))
+	harness := harnessFromProto(req.GetHarness())
+	// The sweep and pick-up bookkeeping runs once per hold, not on every poll.
+	if err = h.app.services.Jobs.PrepareClaim(
+		ctx, runner.ID, maxJobs, harness, req.GetModel(),
+	); err != nil {
+		return nil, mapError(err)
+	}
 	for {
-		claimed, claimErr := h.app.services.Jobs.Claim(
-			ctx, runner.ID, int(min(req.GetMaxJobs(), maxRunnerJobs)),
-			harnessFromProto(req.GetHarness()), req.GetModel(),
+		claimed, claimErr := h.app.services.Jobs.ClaimQueued(
+			ctx, runner.ID, maxJobs, harness, req.GetModel(),
 		)
 		if claimErr != nil {
 			return nil, mapError(claimErr)
