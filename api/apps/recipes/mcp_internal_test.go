@@ -4,10 +4,12 @@ import (
 	"context"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/encoding/protojson"
 
+	"tools.xdoubleu.com/apps/recipes/internal/models"
 	recipesv1 "tools.xdoubleu.com/gen/recipes/v1"
 	"tools.xdoubleu.com/internal/kit/constants"
 	"tools.xdoubleu.com/internal/kit/logging"
@@ -112,4 +114,110 @@ func TestMCPTools_CreateRecipeIsDraft(t *testing.T) {
 	assert.Contains(t, string(listJSON), created.Recipe.Id)
 	assert.NotContains(t, string(listJSON), "Kook de pasta",
 		"the list tool leaves instructions to recipes_get_recipe")
+}
+
+// TestMCPTools_UpdateRecipe sets categories and ingredient alternatives on an
+// existing draft through recipes_update_recipe, preserving its draft state.
+func TestMCPTools_UpdateRecipe(t *testing.T) {
+	cfg := testhelper.NewTestConfig()
+	pg := testhelper.ConnectTestDB(cfg.DBDsn)
+
+	const mcpUserID = "mcp-recipes-update-user"
+	app := New(
+		context.Background(),
+		sharedmocks.NewMockedAuthService(mcpUserID),
+		logging.NewNopLogger(),
+		cfg,
+		pg,
+		family.NewFamilyRepository(pg),
+	)
+	h := &recipesConnectHandler{app: app}
+
+	ctx := context.WithValue(
+		context.Background(),
+		constants.UserContextKey,
+		//nolint:exhaustruct // only ID and AppAccess matter for the gate
+		sharedmodels.User{ID: mcpUserID, AppAccess: []string{mcpAppName}},
+	)
+
+	// Unknown caller: the tool must not mutate anything and not crash.
+	//nolint:exhaustruct // only ID is needed for the unauthenticated path
+	_, err := h.mcpUpdateRecipe(context.Background(), mcpUpdateRecipeArgs{
+		ID: "00000000-0000-0000-0000-000000000000",
+	})
+	require.Error(t, err)
+
+	createdMsg, err := h.mcpCreateRecipe(ctx, mcpCreateRecipeArgs{
+		Name: "Pasta of rijst",
+		Steps: []string{
+			"1. Kook de pasta of rijst.",
+		},
+		BaseServings:  2,
+		BatchServings: nil,
+		Ingredients: []mcpIngredientArg{
+			{
+				Name: "pasta", Amount: 200, Unit: "g",
+				GroupName: "", AlternativeGroup: "",
+			},
+			{
+				Name: "tomaten", Amount: 3, Unit: "",
+				GroupName: "", AlternativeGroup: "",
+			},
+		},
+	})
+	require.NoError(t, err)
+	created, ok := createdMsg.(*recipesv1.CreateRecipeResponse)
+	require.True(t, ok)
+	require.True(t, created.Recipe.IsDraft)
+
+	// Publish the recipe through the service, as the user would in the app,
+	// so the update path is exercised against an already-published recipe.
+	createdID, err := uuid.Parse(created.Recipe.Id)
+	require.NoError(t, err)
+	//nolint:exhaustruct // only ID and the published-flag fields matter here
+	err = h.app.services.Recipes.Update(ctx, mcpUserID, models.Recipe{
+		ID: createdID, IsDraft: false,
+		Name:         "Pasta of rijst",
+		Instructions: "1. Kook de pasta of rijst.",
+		BaseServings: 2,
+	})
+	require.NoError(t, err)
+
+	// The update drops "tomaten" and adds "rijst" as an alternative to pasta:
+	// UpdateRecipe is a full replacement, so the omitted ingredient must go.
+	updatedMsg, err := h.mcpUpdateRecipe(ctx, mcpUpdateRecipeArgs{
+		ID:            created.Recipe.Id,
+		Name:          "Pasta of rijst",
+		Steps:         []string{"1. Kook de pasta of rijst."},
+		BaseServings:  2,
+		MealType:      models.MealTypeMain,
+		Effort:        models.EffortLow,
+		BatchServings: nil,
+		Ingredients: []mcpIngredientArg{
+			{
+				Name: "pasta", Amount: 200, Unit: "g",
+				GroupName: "", AlternativeGroup: "basis",
+			},
+			{
+				Name: "rijst", Amount: 200, Unit: "g",
+				GroupName: "", AlternativeGroup: "basis",
+			},
+		},
+	})
+	require.NoError(t, err)
+	got, ok := updatedMsg.(*recipesv1.GetRecipeResponse)
+	require.True(t, ok)
+	recipe := got.Recipe
+	assert.False(t, recipe.IsDraft, "update preserves published status")
+	assert.Equal(t, models.MealTypeMain, recipe.MealType)
+	assert.Equal(t, models.EffortLow, recipe.Effort)
+	require.Len(t, recipe.Ingredients, 2, "omitted tomaten is removed")
+	byName := map[string]*recipesv1.Ingredient{}
+	for _, ing := range recipe.Ingredients {
+		byName[ing.Name] = ing
+	}
+	require.NotNil(t, byName["pasta"].AlternativeGroup)
+	require.NotNil(t, byName["rijst"].AlternativeGroup)
+	assert.Equal(t, "basis", *byName["pasta"].AlternativeGroup)
+	assert.Equal(t, "basis", *byName["rijst"].AlternativeGroup)
 }
