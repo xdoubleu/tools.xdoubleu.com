@@ -178,13 +178,20 @@ func (t *mcpTools) scopedTask(ctx context.Context) (uuid.UUID, bool, error) {
 	return *id, true, nil
 }
 
+// confined reports whether the account may touch only its own task. A routine
+// job's account has no task, so it reads, files and comments board-wide, and
+// refuseScoped still keeps it from moving or editing tasks and routines.
+func confined(own uuid.UUID, scoped bool) bool {
+	return scoped && own != uuid.Nil
+}
+
 // onlyOwnTask refuses a task other than the scoped one, if there is a scope.
 func (t *mcpTools) onlyOwnTask(ctx context.Context, id uuid.UUID) error {
 	own, scoped, err := t.scopedTask(ctx)
 	if err != nil {
 		return err
 	}
-	if scoped && id != own {
+	if confined(own, scoped) && id != own {
 		task, _, getErr := t.app.services.Tasks.Get(ctx, id)
 		if getErr != nil || !services.IsSandboxTask(task) {
 			return errTaskNotFound
@@ -236,7 +243,8 @@ func (t *mcpTools) listTasks(
 	}
 	out := []*factoryv1.Task{}
 	for i := range tasks {
-		if scoped && tasks[i].ID != own && !services.IsSandboxTask(&tasks[i]) {
+		if confined(own, scoped) && tasks[i].ID != own &&
+			!services.IsSandboxTask(&tasks[i]) {
 			continue
 		}
 		if args.Status != "" && string(tasks[i].Status) != args.Status {
@@ -295,11 +303,11 @@ func (t *mcpTools) createTask(
 	if err != nil {
 		return nil, err
 	}
-	_, scoped, err := t.scopedTask(ctx)
+	own, scoped, err := t.scopedTask(ctx)
 	if err != nil {
 		return nil, err
 	}
-	if scoped {
+	if confined(own, scoped) {
 		// A job's account may only report a sandbox problem: the label, priority and
 		// column are fixed, and a repeat comments on the open task.
 		task, _, repErr := t.app.services.Tasks.ReportSandbox(

@@ -274,6 +274,10 @@ func TestEveryAccountHoldsTheFactoryApp(t *testing.T) {
 		JobID: uuid.New(), TaskID: uuid.New(),
 	})
 	require.NoError(t, err)
+	routine, _, err := store.CreateForJob(ctx, "system", "Routine", agentaccounts.Scope{
+		JobID: uuid.New(), TaskID: uuid.Nil,
+	})
+	require.NoError(t, err)
 
 	access := func(userID uuid.UUID) []string {
 		rows, qErr := db.Query(ctx,
@@ -291,6 +295,9 @@ func TestEveryAccountHoldsTheFactoryApp(t *testing.T) {
 	}
 	assert.Equal(t, []string{"factory:write"}, access(standing.UserID))
 	assert.Equal(t, []string{"factory:write"}, access(job.UserID))
+	assert.ElementsMatch(t,
+		[]string{"factory:write", "observability:read"}, access(routine.UserID),
+		"only a routine job's account may observe")
 
 	_, err = store.Revoke(ctx, standing.ID)
 	require.NoError(t, err)

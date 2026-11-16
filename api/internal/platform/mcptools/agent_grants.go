@@ -44,7 +44,7 @@ func agentCall(
 	switch method {
 	case "tools/call":
 		call, ok := req.(*mcp.CallToolRequest)
-		if !ok || call.Params == nil || !held(apps, call.Params.Name, "_") {
+		if !ok || call.Params == nil || !toolHeld(apps, call.Params.Name) {
 			return nil, errUnknownTool
 		}
 	case "resources/read":
@@ -56,7 +56,7 @@ func agentCall(
 		res, err := next(ctx, method, req)
 		if list, ok := res.(*mcp.ListToolsResult); ok && err == nil {
 			list.Tools = slices.DeleteFunc(slices.Clone(list.Tools), func(t *mcp.Tool) bool {
-				return !held(apps, t.Name, "_")
+				return !toolHeld(apps, t.Name)
 			})
 		}
 		return res, err
@@ -77,6 +77,11 @@ func agentCall(
 		}
 	}
 	return next(ctx, method, req)
+}
+
+// toolHeld reports whether an agent holding apps may use the tool.
+func toolHeld(apps []string, name string) bool {
+	return held(apps, name, "_") || agentMayObserve(apps, name)
 }
 
 // held reports whether name starts with "<app><sep>" for an app in apps.

@@ -14,7 +14,7 @@ The routines run on Actions with a GitHub App token in the agent's shell. The fa
 - **The server starts routines.** The existing `jobqueue` (durable through `job_runs`) enqueues a task-less routine job when one is due, unless that routine already has a job queued or running, so missed runs coalesce into one. The runner claims it like any job; Stop works.
 - **The board holds what may run; `main` holds the prompt.** A routine's enabled flag, schedule, grants and harness are board settings that a human admin in a browser or an agent account can change, the same actor rule as the Ready move (`CanManageRoutines`), through `factory_set_routine` and `factory_run_routine`. The change is announced with its author and stored in `updated_by`; a run's job carries its author in `created_by`. Resuming board-wide pickup stays human-only. Its prompt is its skill on `main`.
 - **Enabling a routine is the approval.** Filing routines (nightly maintenance sweep, PostHog UX discovery) still write only to Backlog, so their output waits for your Ready move as before.
-- **A standing agent account per routine** ([adr-0047](adr-0047-first-class-agent-users.md)) with fixed grants: `factory` create and comment plus read-only observability tools, and for red-PR repair `get_failing_pull_requests` and `get_workflow_runs`. The host mints a short-lived token per job; the VM reaches it only through the proxy's `/mcp` route.
+- **A routine job's own agent account** ([adr-0047](adr-0047-first-class-agent-users.md)), made at claim and revoked with the job like a task job's, with `task_id` the nil UUID. It holds `factory` (reads and comments board-wide and files tasks, but can't move or edit tasks or touch routines) plus an `observability` grant, which `AgentGrants` maps to the read tools and `resolve_sentry_issue`; `dismiss_security_alert` stays admin-only. A task job's account never holds the grant. The host mints a short-lived token per job; the VM reaches it only through the proxy's `/mcp` route.
 - **No GitHub access in the VM.** GitHub reads go through the MCP tools. Third-party keys (PostHog) get a proxy route that swaps in the real key, like OpenRouter's.
 - **Red-PR repair pushes through the host** (ADR-0045), narrowed: only to the head branch of an open, same-repo PR opened by Dependabot, Renovate, the owner or the factory App, never forced. Those PRs keep auto-merge. For a red `main` it opens a new PR **without** auto-merge and posts to Slack.
 - **The ready-issues executor retires.** Auto pickup already runs Ready tasks.
@@ -31,7 +31,7 @@ The routines run on Actions with a GitHub App token in the agent's shell. The fa
 
 ## Consequences
 
-- The factory gains a task-less job type, and job accounts a routine scope beside `JobID`/`TaskID`. Until the standing routine account lands, a routine's job gets no agent account.
+- The factory gains a task-less job type, and job accounts a routine scope beside `JobID`/`TaskID`.
 - The watchdog, transcript upload and run ledger of the Actions runner are replaced by job check-ins, job events and Slack notices, not ported.
 
 ## Revisit when

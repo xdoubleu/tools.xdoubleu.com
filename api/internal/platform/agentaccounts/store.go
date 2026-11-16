@@ -18,6 +18,7 @@ import (
 
 	"tools.xdoubleu.com/internal/kit/database"
 	"tools.xdoubleu.com/internal/kit/database/postgres"
+	"tools.xdoubleu.com/internal/platform/mcptools"
 )
 
 // secretBytes of randomness make a 43-character URL-safe client secret.
@@ -53,10 +54,16 @@ type Account struct {
 	WriteAccess []string
 }
 
-// Scope is what a job's account is confined to.
+// Scope is what a job's account is confined to. A routine's job has no task:
+// its TaskID is uuid.Nil.
 type Scope struct {
 	JobID  uuid.UUID
 	TaskID uuid.UUID
+}
+
+// IsRoutine reports whether the scope belongs to a routine's job.
+func (s Scope) IsRoutine() bool {
+	return s.TaskID == uuid.Nil
 }
 
 // Store persists agent accounts in the global and auth schemas.
@@ -184,6 +191,16 @@ func (s *Store) create(
 		userID.String(), StandingApp,
 	); err != nil {
 		return nil, "", err
+	}
+	if scope != nil && scope.IsRoutine() {
+		// Read-level: the grant names tools, and the middleware limits it to them.
+		if _, err = tx.Exec(ctx,
+			`INSERT INTO global.app_access (user_id, app_name, level)
+			 VALUES ($1, $2, 'read')`,
+			userID.String(), mcptools.ObservabilityGrant,
+		); err != nil {
+			return nil, "", err
+		}
 	}
 	account, err := scanAccount(tx.QueryRow(ctx, `
 		INSERT INTO global.agent_accounts
