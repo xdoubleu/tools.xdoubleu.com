@@ -11,6 +11,7 @@ import (
 
 	"connectrpc.com/connect/v2"
 
+	"tools.xdoubleu.com/gen/factory/v1/factoryv1connect"
 	observabilityv1 "tools.xdoubleu.com/gen/observability/v1"
 	"tools.xdoubleu.com/internal/platform/github"
 	"tools.xdoubleu.com/internal/platform/reposignals"
@@ -547,13 +548,26 @@ func (h *obsConnectHandler) slowTransactions(
 	return resp, nil
 }
 
-// protoSlowTransactions sorts slowest-first and caps to
+// longPollTransactions are the runner's deliberate 20s holds; their p95 is the
+// poll interval, not slowness.
+//
+//nolint:gochecknoglobals //effectively const
+var longPollTransactions = map[string]bool{
+	"POST " + factoryv1connect.RunnerServiceClaimJobProcedure:  true,
+	"POST " + factoryv1connect.RunnerServiceHeartbeatProcedure: true,
+}
+
+// protoSlowTransactions drops long-poll transactions, sorts slowest-first and caps to
 // currentSlowTransactionsLimit.
 func protoSlowTransactions(
 	stats []sentryapi.TransactionStat,
 ) []*observabilityv1.SlowTransaction {
-	sorted := make([]sentryapi.TransactionStat, len(stats))
-	copy(sorted, stats)
+	sorted := make([]sentryapi.TransactionStat, 0, len(stats))
+	for _, s := range stats {
+		if !longPollTransactions[s.Transaction] {
+			sorted = append(sorted, s)
+		}
+	}
 	sort.Slice(sorted, func(i, j int) bool {
 		return sorted[i].P95DurationMs > sorted[j].P95DurationMs
 	})

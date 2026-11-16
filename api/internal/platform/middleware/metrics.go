@@ -8,6 +8,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 
+	"tools.xdoubleu.com/gen/factory/v1/factoryv1connect"
 	"tools.xdoubleu.com/internal/platform/communication/httptools"
 )
 
@@ -27,12 +28,17 @@ var requestDuration = promauto.NewHistogramVec(
 )
 
 // unmeteredPaths are polled on a fixed cadence and would only add p95 noise.
+// The runner's ClaimJob and Heartbeat are deliberate 20s long polls that
+// share a route label with the rest of RunnerService.
 //
 //nolint:gochecknoglobals //effectively const
 var unmeteredPaths = map[string]bool{
 	"/metrics":     true,
 	"/health":      true,
 	"/api/version": true,
+
+	factoryv1connect.RunnerServiceClaimJobProcedure:  true,
+	factoryv1connect.RunnerServiceHeartbeatProcedure: true,
 }
 
 // RequestDuration records each request's duration in
