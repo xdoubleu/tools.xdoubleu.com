@@ -11,7 +11,7 @@ set -a
 set +a
 
 # Not a superuser; Zitadel owns only its own database.
-pg() { docker exec -i postgres psql -v ON_ERROR_STOP=1 --username=postgres --dbname=postgres "$@"; }
+pg() { docker exec -i postgres-postgres-1 psql -v ON_ERROR_STOP=1 --username=postgres --dbname=postgres "$@"; }
 
 if [ -z "$(pg -tAc "SELECT 1 FROM pg_roles WHERE rolname = 'zitadel'")" ]; then
 	pg -c "CREATE ROLE zitadel LOGIN PASSWORD '${ZITADEL_DATABASE_POSTGRES_USER_PASSWORD}'"
