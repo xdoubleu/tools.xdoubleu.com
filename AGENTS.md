@@ -27,7 +27,7 @@ Read the `AGENTS.md` of `api/`, `web/`, `kobo-gateway/` or `factory-runner/` bef
 - **Never push to `main`** — it deploys on every push without re-testing. Merge only on green CI.
 - Every outbound fetch of a **user-supplied URL** goes through `api/internal/kit/safedial` (refuses non-public IPs; SSRF guard), never a bare `http.Client`.
 - Never skip, disable, or quarantine a test, or bypass hooks/signing, unless a human asks for that specific exception.
-- Deploy secrets are listed in three places that must agree (`make lint/kamal-secrets`) → [convention-deploy-secrets](docs/convention-deploy-secrets.md). `infra/README.md` has the full list.
+- Deploy secrets are listed in three agreeing places (`make lint/kamal-secrets`) → [convention-deploy-secrets](docs/convention-deploy-secrets.md). `infra/README.md` has the full list.
 - A migration that changes an existing column's meaning needs a backfill, or a comment saying why none is needed.
 
 ## Code Conventions
@@ -57,7 +57,7 @@ make build | dist | test | lint/fix
 make build | test | test/mutation/diff | lint/fix
 
 # repo root
-make lint/docs | lint/skills | lint/workflows | lint/infra | lint/grafana | grafana/verify | hooks/test | lint/deploy-version
+make lint/docs | lint/skills | lint/workflows | lint/ci-tools | lint/infra | lint/grafana | grafana/verify | hooks/test | lint/deploy-version
 
 # proto changes: run BOTH generators (…/local variants avoid buf.build)
 cd api && make proto/generate    # check: make proto/check
