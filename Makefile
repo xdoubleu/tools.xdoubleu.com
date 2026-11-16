@@ -22,6 +22,10 @@ lint/conflict-markers:
 lint/workflows:
 	./scripts/lint_workflows.sh
 
+# Fail when a script lost its executable bit.
+lint/script-modes:
+	./scripts/lint_script_modes.sh
+
 # Exercise scripts/resolve_deploy_version.sh against a stubbed GitHub and Kamal.
 lint/deploy-version:
 	./scripts/test_resolve_deploy_version.sh
