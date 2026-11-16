@@ -27,6 +27,9 @@ const (
 
 	// ImageFetchTimeout bounds a single manifest download.
 	ImageFetchTimeout = 30 * time.Second
+
+	downloadAttempts = 3
+	downloadBackoff  = 2 * time.Second
 )
 
 // ImageEnsurer makes sure the versioned job image a release needs is present in
@@ -137,21 +140,47 @@ func (e *ImageEnsurer) run(
 	return nil
 }
 
-// download fetches a small signed file wholly into memory.
+// download fetches a small signed file wholly into memory, retrying transport
+// errors and 5xx answers (transient edge failures) a few times.
 func (e *ImageEnsurer) download(
 	ctx context.Context, url string, maxSize int64,
 ) ([]byte, error) {
+	var err error
+	for attempt := range downloadAttempts {
+		if attempt > 0 {
+			select {
+			case <-ctx.Done():
+				return nil, err
+			case <-time.After(downloadBackoff * time.Duration(attempt)):
+			}
+		}
+		var body []byte
+		var retry bool
+		body, retry, err = e.downloadOnce(ctx, url, maxSize)
+		if err == nil || !retry {
+			return body, err
+		}
+	}
+	return nil, err
+}
+
+// downloadOnce makes one request; retry reports whether the failure is transient.
+func (e *ImageEnsurer) downloadOnce(
+	ctx context.Context, url string, maxSize int64,
+) ([]byte, bool, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	resp, err := e.Client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("download %s: %w", url, err)
+		return nil, true, fmt.Errorf("download %s: %w", url, err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("download %s: %s", url, resp.Status)
+		return nil, resp.StatusCode >= http.StatusInternalServerError,
+			fmt.Errorf("download %s: %s", url, resp.Status)
 	}
-	return io.ReadAll(io.LimitReader(resp.Body, maxSize))
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxSize))
+	return body, err != nil, err
 }

@@ -7,7 +7,9 @@ import (
 	"net/http/httptest"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -260,4 +262,50 @@ func TestEnsureImageErrorsWhenTagNotPresent(t *testing.T) {
 	err := e.Ensure(context.Background())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "did not appear")
+}
+
+func TestEnsureImageRetriesTransientManifestError(t *testing.T) {
+	srv, pubB64 := newImageServer("abc123 " + testDigest + "\n")
+	var fails atomic.Int32
+	ts := httptest.NewServer(http.HandlerFunc(func(
+		w http.ResponseWriter, r *http.Request,
+	) {
+		if fails.Add(1) == 1 {
+			w.WriteHeader(525)
+			return
+		}
+		srv.ServeHTTP(w, r)
+	}))
+	defer ts.Close()
+	var pulls, tags []string
+	inspect := `[{"digest":"sha256:` + testDigest + `"}]`
+	e := newImageEnsurer(t, ts, pubB64, imageAnswerScript(1, inspect, &pulls, &tags))
+	require.NoError(t, e.Ensure(context.Background()))
+}
+
+func TestEnsureImageStopsRetryingWhenContextEnds(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(
+		w http.ResponseWriter, _ *http.Request,
+	) {
+		w.WriteHeader(http.StatusBadGateway)
+	}))
+	defer ts.Close()
+	pubB64, _, _ := updatesig.GenerateKey()
+	var pulls, tags []string
+	e := newImageEnsurer(t, ts, pubB64, imageAnswerScript(1, "", &pulls, &tags))
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+	err := e.Ensure(ctx)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "502")
+}
+
+func TestEnsureImageRejectsBadOrigin(t *testing.T) {
+	ts := httptest.NewServer(http.NotFoundHandler())
+	defer ts.Close()
+	pubB64, _, _ := updatesig.GenerateKey()
+	var pulls, tags []string
+	e := newImageEnsurer(t, ts, pubB64, imageAnswerScript(1, "", &pulls, &tags))
+	e.Origin = "://bad"
+	require.Error(t, e.Ensure(context.Background()))
 }
