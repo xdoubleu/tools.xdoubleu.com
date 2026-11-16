@@ -345,6 +345,18 @@ func TestAgentCreatesEnablesAndRunsARoutineAndIsRecorded(t *testing.T) {
 	require.Error(t, err)
 }
 
+func TestRoutineToolsRefuseABadRepoAndAnUnknownRoutine(t *testing.T) {
+	routineEnv(t)
+	session := mcpSessionAs(t, asUser(models.RoleAgent))
+
+	_, err := callTool(t, session, "factory_set_routine",
+		map[string]any{"name": "sweep", "repo_id": "not-an-id"})
+	require.Error(t, err)
+	_, err = callTool(t, session, "factory_run_routine",
+		map[string]any{"name": "missing"})
+	require.Error(t, err)
+}
+
 func TestListTasksFiltersAndOmitsBodies(t *testing.T) {
 	browserClient(t)
 	session := mcpSessionAs(t, asUser(models.RoleAgent))
