@@ -3,6 +3,10 @@ RELEASE ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo dev)
 test:
 	go test ./...
 
+# Timing-flake check: repeated, on one and four CPUs (-cpu 1 and 4).
+test/flaky:
+	go test -count=3 -cpu 1,4 ./internal/runner/ ./cmd/factory-runner/
+
 tools/mutation:
 	go install github.com/go-gremlins/gremlins/cmd/gremlins@v0.6.0
 
