@@ -32,6 +32,8 @@ tool and reads anywhere by default.
   read-only; the VM runs with `GOPROXY=off` and `npm ci --offline`. A registry
   that fetches whatever the client names (the `proxy.golang.org/attacker.example/…`
   leak) is never reachable.
+- **No Docker daemon.** `make lint/infra` and `make grafana/verify` need Docker, so CI
+  runs them, not the job.
 - **Credentials: the token reaches the VM through an allowlisted route only.**
   Claude Code sends `CLAUDE_CODE_OAUTH_TOKEN` last in its credential order and
   honours `ANTHROPIC_BASE_URL`, so the VM can talk to the host proxy over plain
