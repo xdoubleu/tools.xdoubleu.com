@@ -22,6 +22,10 @@ lint/conflict-markers:
 lint/workflows:
 	./scripts/lint_workflows.sh
 
+# Fail when CI installs a tool the job image's manifest lacks or pins differently.
+lint/ci-tools:
+	./scripts/lint_ci_tools.sh
+
 # Fail when a script lost its executable bit.
 lint/script-modes:
 	./scripts/lint_script_modes.sh

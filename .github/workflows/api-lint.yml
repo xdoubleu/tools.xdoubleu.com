@@ -40,7 +40,7 @@ jobs:
           path: ~/.cache/pip
           key: sqlfluff-4.5.0
       - name: Install sqlfluff
-        run: pip install sqlfluff==4.5.0
+        run: ./tools/setup-ci-tools.sh pip
       - name: Run sqlfluff
         run: sqlfluff lint --dialect postgres .
         working-directory: './api'
@@ -60,7 +60,7 @@ jobs:
           path: ~/.cache/pip
           key: sqlfluff-4.5.0
       - name: Install sqlfluff
-        run: pip install sqlfluff==4.5.0
+        run: ./tools/setup-ci-tools.sh pip
       - name: Fetch main
         run: git fetch origin main
       - name: Check migration versions

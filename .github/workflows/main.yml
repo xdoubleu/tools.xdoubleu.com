@@ -320,6 +320,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: make lint/workflows
         run: make lint/workflows
+      - name: make lint/ci-tools
+        run: make lint/ci-tools
       - name: make lint/script-modes
         run: make lint/script-modes
       - name: make lint/deploy-version
