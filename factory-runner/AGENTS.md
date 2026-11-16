@@ -19,7 +19,7 @@ internal/runner/
   harness.go, sandbox.go      Claude Code/OpenCode commands; Sandbox
   sandbox_container.go        one Apple `container` VM per job
   egress_proxy.go, mcp_token.go  the VM's way out; board token
-  validate.go, config.go      job validator; server URL, repo allowlist
+  validate.go, config.go      job validator; config; cli_link.go PATH link
   token.go, launchagent.go, update.go  keychain; plist; update
 ```
 
@@ -41,7 +41,7 @@ The server is untrusted; each job needs UUID ids, an allowlisted repo, an `agent
 
 `factory-runner status` and the menu show the claim state: claiming, or the one reason it holds. Each minute the watchdog compares the heartbeat's queued-jobs count with it; after 10 minutes of work waiting beside a free slot it logs why and repairs (frees leaked slots, retries the job image, restarts a stuck drain). `lifecycle_test.go` runs the real daemon, claim loop and update drain against fakes; add a scenario for each new stall.
 
-Settings live in the menu bar; `config …` scripts them. Log: `~/Library/Logs/factory-runner.log` → [`adr-0049`](../docs/adr-0049-factory-runner-menu-bar.md).
+Menu bar and `config …`/`pair` write the same the config file; `install` and the app's first launch link `factory-runner` onto PATH for headless use. Log: `~/Library/Logs/factory-runner.log` → [`adr-0049`](../docs/adr-0049-factory-runner-menu-bar.md).
 
 ## Building
 
