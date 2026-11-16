@@ -67,7 +67,18 @@ svc=${svc%.yml}
 if [ -e "$FX/live-$svc.fail" ]; then echo "ERROR (Errno::ECONNREFUSED)"; exit 1; fi
 if [ -e "$FX/live-$svc" ]; then cat "$FX/live-$svc"; fi
 SH
-chmod +x "$WORK/bin/gh" "$WORK/bin/bundle"
+# ssh deploy@IP docker ps --filter label=service=tools-xdoubleu-com-SVC ...:
+# prints the live containers' labels; label-SVC (or auto-label-SVC, the
+# checkout's own hash) is the hash, label-SVC.fail an unreachable host.
+cat > "$WORK/bin/ssh" <<'SH'
+#!/usr/bin/env bash
+for a in "$@"; do case $a in label=service=*) svc=${a##*-} ;; esac; done
+if [ -e "$FX/label-$svc.fail" ]; then exit 255; fi
+for f in "$FX/label-$svc" "$FX/auto-label-$svc"; do
+  if [ -e "$f" ]; then echo "service=x,deploy-config-hash=$(cat "$f"),role=web"; exit 0; fi
+done
+SH
+chmod +x "$WORK/bin/gh" "$WORK/bin/bundle" "$WORK/bin/ssh"
 
 # --- fixture builders ---------------------------------------------------
 fx_reset() { rm -rf "$FX"; mkdir -p "$FX"; : > "$FX/commits.txt"; : > "$FX/runs.txt"; }
@@ -120,9 +131,13 @@ resolve() {
   git -C "$WORK/ws" fetch -q --no-tags --depth=1 origin "${S[$own]}"
   git -C "$WORK/ws" checkout -q --detach FETCH_HEAD
   : > "$WORK/out"
-  (cd "$WORK/ws" && PATH="$WORK/bin:$PATH" FX="$FX" GH_TOKEN=x GITHUB_REPOSITORY=o/r \
+  local svc
+  for svc in "$@"; do
+    (cd "$WORK/ws" && source "$SCRIPT" && config_hash "$svc") > "$FX/auto-label-$svc"
+  done
+  (cd "$WORK/ws" && PATH="$WORK/bin:$PATH" FX="$FX" KAMAL_SERVER_IP=1.2.3.4 GH_TOKEN=x GITHUB_REPOSITORY=o/r \
     GITHUB_SHA="${S[$own]}" GITHUB_RUN_ATTEMPT="$attempt" GITHUB_OUTPUT="$WORK/out" \
-    GITHUB_SERVER_URL=https://github.example GH_RETRY_SLEEP=0 "$SCRIPT" "$@") 2> "$WORK/err"
+    GITHUB_SERVER_URL=https://github.example GH_RETRY_SLEEP=0 FORCE_DEPLOY="${FORCE:-}" "$SCRIPT" "$@") 2> "$WORK/err"
   RC=$?
 }
 got() { sed -n "s/^$1=//p" "$WORK/out"; }
@@ -305,6 +320,39 @@ for order in "4 5 6" "6 5 4" "6 4" "5 4"; do
     failn "jobs run as $order: ends on $(tr -d '\n' < "$FX/live-api")"
   fi
 done
+
+# 15. The live commit is redeployed when its config hash differs (a config-only
+# change builds nothing, so no newer commit is deployable), not when it matches.
+fx_reset
+fx 6 success skipped skipped skipped
+fx 5 success skipped success success
+live api 5; live grafana 5
+echo stale > "$FX/label-api"
+resolve 6 1 api grafana
+expect "config changed since the live deploy: the live commit is redeployed" api 5
+expect "unchanged grafana config: stays skipped" grafana skip
+if [ -n "$(got api_config_hash)" ]; then pass "config hash is written for the deploy step"; else failn "config hash is written for the deploy step"; fi
+rm "$FX/label-api"
+resolve 6 1 api
+expect "live container carries the current hash: skip" api skip
+: > "$FX/label-api"
+resolve 6 1 api
+expect "live container has no hash label: redeploys" api 5
+touch "$FX/label-api.fail"
+resolve 6 1 api
+expect "live hash unreadable: skip, no guessing" api skip
+rm -f "$FX/label-api" "$FX/label-api.fail"
+echo stale > "$FX/label-api"
+resolve 1 1 api
+expect "job on older config than the tip never applies it over the live one" api skip
+
+# 16. force_deploy redeploys whatever is live, even with a matching hash.
+FORCE=true resolve 6 1 api grafana
+expect "force_deploy redeploys the live api" api 5
+expect "force_deploy redeploys the live grafana" grafana 5
+live api none
+FORCE=true resolve 6 1 api
+expect "force_deploy with nothing live: normal resolution" api 5
 
 # 14. The job names the script reads must exist in the workflows.
 names_ok=1

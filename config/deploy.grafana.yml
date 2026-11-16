@@ -8,6 +8,10 @@ service: tools-xdoubleu-com-grafana
 # No registry prefix or tag: Kamal adds both.
 image: xdoubleu/tools.xdoubleu.com/grafana
 retain_containers: 2
+# Hash of what Kamal applies, set by CI; scripts/resolve_deploy_version.sh
+# redeploys the live version when it differs.
+labels:
+  deploy-config-hash: "<%= ENV.fetch("DEPLOY_CONFIG_HASH", "") %>"
 
 # Hard cap, like the api roles (deploy.api.yml). The server peaks near 600 MiB
 # and its ~15 backend plugin processes (bundled and preinstalled datasources)

@@ -6,6 +6,12 @@ permissions:
 
 on:
   workflow_dispatch:
+    inputs:
+      # Redeploys the live api and grafana versions, e.g. to reapply config or secrets.
+      force_deploy:
+        description: Redeploy the live versions
+        type: boolean
+        default: false
   push:
     branches: [main]
   # labeled/edited re-run the feature-gate check when evidence or the label changes.
@@ -431,9 +437,9 @@ jobs:
     needs: [build-api, build-grafana, infra-apply, migration-versions]
     if: |
       always() &&
-      github.event_name == 'push' &&
       github.ref == 'refs/heads/main' &&
-      needs.migration-versions.result == 'success' &&
+      ((github.event_name == 'push' && needs.migration-versions.result == 'success') ||
+      (github.event_name == 'workflow_dispatch' && inputs.force_deploy)) &&
       (needs.build-api.result == 'success' || needs.build-api.result == 'skipped') &&
       (needs.build-grafana.result == 'success' || needs.build-grafana.result == 'skipped') &&
       (needs.infra-apply.result == 'success' || needs.infra-apply.result == 'skipped')
@@ -483,7 +489,8 @@ jobs:
 
       # The group queues one pending job and replaces it in build-finish order,
       # so this run may not be main's newest. Ships the newest built commit
-      # instead, or skips when it is already live (scripts/resolve_deploy_version.sh).
+      # instead, or skips when it is already live with the current deploy config
+      # (scripts/resolve_deploy_version.sh); force_deploy redeploys the live versions.
       # Its checkout is this run's, so it refuses a tip that changed deploy config.
       - name: Resolve the versions to deploy
         id: version
@@ -491,6 +498,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           KAMAL_SERVER_IP: ${{ secrets.KAMAL_SERVER_IP }}
           KAMAL_REGISTRY_USERNAME: ${{ secrets.KAMAL_REGISTRY_USERNAME }}
+          FORCE_DEPLOY: ${{ inputs.force_deploy }}
         run: ./scripts/resolve_deploy_version.sh api grafana
 
       # Kamal's own pull error on a missing tag names no cause; this tells a
@@ -552,6 +560,7 @@ jobs:
           KAMAL_REGISTRY_USERNAME: ${{ secrets.KAMAL_REGISTRY_USERNAME }}
           KAMAL_VERSION: ${{ steps.version.outputs.api }}
           RELEASE: ${{ steps.version.outputs.api }}
+          DEPLOY_CONFIG_HASH: ${{ steps.version.outputs.api_config_hash }}
           DB_DSN: ${{ secrets.KAMAL_DB_DSN }}
           KAMAL_REGISTRY_PASSWORD: ${{ secrets.KAMAL_REGISTRY_PASSWORD }}
           # See config/deploy.api.yml.
@@ -610,6 +619,7 @@ jobs:
           KAMAL_REGISTRY_USERNAME: ${{ secrets.KAMAL_REGISTRY_USERNAME }}
           KAMAL_VERSION: ${{ steps.version.outputs.grafana }}
           RELEASE: ${{ steps.version.outputs.grafana }}
+          DEPLOY_CONFIG_HASH: ${{ steps.version.outputs.grafana_config_hash }}
           KAMAL_REGISTRY_PASSWORD: ${{ secrets.KAMAL_REGISTRY_PASSWORD }}
           # Same secret as OAUTH_GRAFANA_CLIENT_SECRET (see .kamal/secrets).
           GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET: ${{ secrets.OAUTH_GRAFANA_CLIENT_SECRET }}
