@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"sync"
 	"testing"
@@ -128,4 +129,23 @@ func TestLogHandler_CapturesErrorWithoutErrorAttr(t *testing.T) {
 	assert.NotPanics(t, func() {
 		slog.New(handler).ErrorContext(ctx, "boom without error attr")
 	})
+}
+
+func TestLogHandler_IgnoresContextCanceled(t *testing.T) {
+	t.Parallel()
+
+	hub, transport := mockedHub(t)
+	ctx := sentry.SetHubOnContext(context.Background(), hub)
+
+	var buf bytes.Buffer
+	handler := sentrytools.NewLogHandler("production", slog.NewTextHandler(&buf, nil))
+
+	slog.New(handler).ErrorContext(
+		ctx,
+		"poll failed",
+		slog.Any("error", fmt.Errorf("GET /runs: %w", context.Canceled)),
+	)
+
+	assert.Empty(t, transport.Events())
+	assert.Contains(t, buf.String(), "poll failed")
 }
