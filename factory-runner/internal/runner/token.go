@@ -31,10 +31,11 @@ var ErrNoSecret = errors.New("secret not stored")
 const (
 	SecretClaude     = "claude"
 	SecretOpenRouter = "openrouter"
+	SecretPostHog    = "posthog"
 )
 
 // SecretStore keeps the credentials jobs use: the Claude setup-token and the
-// OpenRouter key.
+// OpenRouter key and the PostHog personal API key.
 type SecretStore interface {
 	GetSecret(name string) (string, error)
 	SetSecret(name, value string) error
@@ -116,7 +117,7 @@ func (k *Keychain) SetSecret(name, value string) error {
 }
 
 func validSecretName(name string) bool {
-	return name == SecretClaude || name == SecretOpenRouter
+	return name == SecretClaude || name == SecretOpenRouter || name == SecretPostHog
 }
 
 // Set stores the token, replacing any earlier one.

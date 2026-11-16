@@ -29,9 +29,9 @@ func cachedKey(secrets runner.SecretStore, name string) func() (string, error) {
 }
 
 // newJobProxy builds the egress proxy for one job: the board with the job's own
-// account (a job without one reaches no board), OpenRouter with the stored key, and
-// Anthropic with whatever the VM sends. The keys are read when a request needs them,
-// so a missing one fails that request, not the whole job.
+// account (a job without one reaches no board), OpenRouter and PostHog with the
+// stored keys, and Anthropic with whatever the VM sends. The keys are read when a
+// request needs them, so a missing one fails that request, not the whole job.
 func newJobProxy(
 	cfg runner.Config,
 	job *runner.ClaimedJob,
@@ -42,10 +42,11 @@ func newJobProxy(
 		Server:        cfg.Server,
 		Transport:     nil,
 		OpenRouterKey: cachedKey(secrets, runner.SecretOpenRouter),
+		PostHogKey:    cachedKey(secrets, runner.SecretPostHog),
 		MCPToken:      nil,
 		MCPRejected:   nil,
 		Anthropic:     "",
-		OpenRouter:    "", GoProxy: "", NPM: "",
+		OpenRouter:    "", PostHog: "", GoProxy: "", NPM: "",
 		Log: log,
 	}
 	if job.MCPClientID != "" && job.MCPClientSecret != "" {
