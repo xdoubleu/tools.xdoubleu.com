@@ -22,8 +22,8 @@ type mcpRecipeArgs struct {
 	Servings int32  `json:"servings,omitempty" jsonschema:"scale ingredients to servings"`
 }
 
-// RegisterMCPTools exposes the app's read RPCs, a video-text fetch and a
-// draft-only create as MCP tools, scoped to the caller's family
+// RegisterMCPTools exposes the app's read RPCs, a video-text fetch and
+// draft-preserving create/update write tools, scoped to the caller's family
 // (docs/adr-0026-recipes-mcp-write-tool.md).
 func (a *Recipes) RegisterMCPTools(srv *mcp.Server) {
 	h := &recipesConnectHandler{app: a}
@@ -38,6 +38,8 @@ func (a *Recipes) RegisterMCPTools(srv *mcp.Server) {
 		h.mcpGetRecipe)
 	mcptools.AddWriteTool(srv, mcpAppName, "recipes_create_recipe",
 		mcpCreateRecipeDescription, h.mcpCreateRecipe)
+	mcptools.AddWriteTool(srv, mcpAppName, "recipes_update_recipe",
+		mcpUpdateRecipeDescription, h.mcpUpdateRecipe)
 	mcptools.AddReadTool(srv, mcpAppName, "recipes_fetch_video",
 		mcpFetchVideoDescription, h.mcpFetchVideo)
 }

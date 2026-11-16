@@ -389,6 +389,7 @@ recipes_create_recipe
 recipes_fetch_video
 recipes_get_recipe
 recipes_list_recipes
+recipes_update_recipe
 resolve_sentry_issue
 shoppinglist_get_custom_list
 shoppinglist_get_meal_plan_export_items

@@ -383,8 +383,7 @@ OAUTH_GRAFANA_CLIENT_SECRET  (static "grafana" OAuth client secret; api
                               GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET)
 OAUTH_ROUTINES_CLIENT_SECRET (static "routines" machine client secret for the
                               scheduled agent routines' client_credentials
-                              grant; unset ⇒ that client can't authenticate.
-                              Also an Actions secret in the agents environment)
+                              grant; unset ⇒ that client can't authenticate)
 OIDC_CLIENT_SECRET           (client secret at the OIDC provider, Zitadel by
                               default; only read when OIDC_SIGN_IN=true)
 ZITADEL_SERVICE_TOKEN        (personal access token of a Zitadel service user whose
