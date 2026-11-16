@@ -20,8 +20,7 @@ function devEnv(env: Record<string, string>): Plugin {
           RELEASE: env.RELEASE ?? 'dev',
           KOBO_GATEWAY_RELEASE: env.KOBO_GATEWAY_RELEASE ?? 'dev',
           POSTHOG_KEY: env.POSTHOG_KEY ?? '',
-          POSTHOG_HOST: env.POSTHOG_HOST ?? '',
-          ACCOUNT_URL: env.ACCOUNT_URL ?? ''
+          POSTHOG_HOST: env.POSTHOG_HOST ?? ''
         }
         res.setHeader('Content-Type', 'application/javascript; charset=utf-8')
         res.end(`window.__ENV__=${JSON.stringify(values)}`)

@@ -76,12 +76,6 @@ scrape_configs:
     static_configs:
       - targets: ["postgres-exporter:9187"]
 
-  # Zitadel (ADR-0051); TargetDown alerts when it stops answering.
-  - job_name: zitadel
-    metrics_path: /debug/metrics
-    static_configs:
-      - targets: ["zitadel:8080"]
-
   # TLS and reachability probes (blackbox.yml). __SERVER_IP__ is replaced with
   # var.server_ip by main.tf. The origin probe skips Cloudflare, so an expired
   # or failing origin certificate shows here before Cloudflare returns 526.

@@ -2,9 +2,7 @@ package main
 
 import (
 	"net/http"
-	"strings"
 
-	"tools.xdoubleu.com/internal/config"
 	"tools.xdoubleu.com/internal/platform/observability"
 	"tools.xdoubleu.com/internal/platform/spa"
 )
@@ -34,7 +32,6 @@ func (app *Application) Handler() (http.Handler, error) {
 		SentryDSN:          app.config.SentryDsnWeb,
 		PostHogKey:         app.config.PostHogKey,
 		PostHogHost:        app.config.PostHogHost,
-		AccountURL:         accountURL(app.config),
 		OfflineDisabled:    app.config.OfflineDisabled,
 		APIHosts:           customDomains,
 		Logs:               observability.WebLogsHandler(app.logger, app.logsRepo),
@@ -43,13 +40,4 @@ func (app *Application) Handler() (http.Handler, error) {
 		return nil, err
 	}
 	return web.Wrap(api), nil
-}
-
-// accountURL is where a person manages their password and second factors, on
-// the OIDC provider (Zitadel's console); empty while people sign in by password.
-func accountURL(cfg config.Config) string {
-	if !cfg.OIDCSignIn || cfg.OIDCIssuer == "" {
-		return ""
-	}
-	return strings.TrimSuffix(cfg.OIDCIssuer, "/") + "/ui/console/users/me"
 }

@@ -210,29 +210,6 @@ the `kamal` network, and Docker-socket access — the image runs as `nobody`, so
 `group_add`. `docker logs prometheus | grep docker_sd` shows a permission
 error plainly. The `TargetMissing` alert fires on this case.
 
-## Zitadel
-
-[ADR-0051](../docs/adr-0051-zitadel-for-people-sign-in.md): `null_resource.zitadel`
-uploads `zitadel-compose.yml` and a generated `.env` to `/home/deploy/zitadel/`
-and runs `zitadel-setup.sh`, which creates the `zitadel` database and role in
-Postgres, starts the container (768 MiB cap, no host port) and registers
-`zitadel:8080` in kamal-proxy for `var.zitadel_host`
-(default `auth.xdoubleu.com`, covered by the Origin CA certificate's
-`*.xdoubleu.com`; **create its Cloudflare-proxied DNS A record first**), served
-with that certificate (`ORIGIN_CERT_PEM`/`ORIGIN_KEY_PEM`, no Let's Encrypt) and
-only after the container reports healthy. Enable it with `zitadel_enabled`. The
-route is skipped until kamal-proxy exists, so the next apply adds it. It is
-Tofu-managed like Prometheus, not a Kamal service, so it adds no Kamal deploy
-secret (`make lint/kamal-secrets` is unaffected): the masterkey, database and
-first-admin passwords are `random_password`s in Tofu state, and the SMTP
-password is `TF_VAR_zitadel_smtp_password` from `RESEND_API_KEY`. Read the
-admin login with `tofu output -raw zitadel_admin_password`; back up the
-masterkey, since losing it loses every encrypted secret.
-Prometheus scrapes `zitadel:8080/debug/metrics`, so `TargetDown` alerts when it
-is down. Renovate tracks the image; check `HostMemoryHigh` stays quiet after
-the first apply. Nothing signs in through it yet. Locally:
-`docker-compose --profile zitadel up -d` in `api/`.
-
 ## GoTrue is gone
 
 Auth (password sign-in, TOTP MFA, the MCP OAuth 2.1 authorization server) is
@@ -384,13 +361,6 @@ OAUTH_GRAFANA_CLIENT_SECRET  (static "grafana" OAuth client secret; api
 OAUTH_ROUTINES_CLIENT_SECRET (static "routines" machine client secret for the
                               scheduled agent routines' client_credentials
                               grant; unset ⇒ that client can't authenticate)
-OIDC_CLIENT_SECRET           (client secret at the OIDC provider, Zitadel by
-                              default; only read when OIDC_SIGN_IN=true)
-ZITADEL_SERVICE_TOKEN        (personal access token of a Zitadel service user whose
-                              only role is org user manager, so it can manage
-                              human users and nothing else; unset ⇒ user
-                              management can't create people and the import
-                              job doesn't run)
 GRAFANA_ADMIN_PASSWORD       (Grafana break-glass admin, GF_SECURITY_ADMIN_PASSWORD;
                               also given to api for get_grafana_alerts)
 STEAM_API_KEY

@@ -48,9 +48,6 @@ type Config struct {
 	SentryDSN          string
 	PostHogKey         string
 	PostHogHost        string
-	// AccountURL is the identity provider's page for a person's own password and
-	// second factors; empty while people sign in by password.
-	AccountURL string
 	// OfflineDisabled serves a service worker that unregisters itself.
 	OfflineDisabled bool
 	// APIHosts are custom domains the api serves itself (set by an app's GetDomain).
@@ -148,7 +145,6 @@ func runtimeEnv(cfg Config) ([]byte, error) {
 		"KOBO_GATEWAY_RELEASE": cfg.KoboGatewayRelease,
 		"POSTHOG_KEY":          cfg.PostHogKey,
 		"POSTHOG_HOST":         cfg.PostHogHost,
-		"ACCOUNT_URL":          cfg.AccountURL,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("marshal runtime env: %w", err)

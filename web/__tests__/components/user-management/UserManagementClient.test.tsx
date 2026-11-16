@@ -1,7 +1,6 @@
 import React from 'react'
 import { create } from '@bufbuild/protobuf'
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
-import { Code, ConnectError } from '@connectrpc/connect'
 import UserManagementClient from '@/components/user-management/UserManagementClient'
 import { AppUserSchema } from '@/lib/gen/access/v1/access_pb'
 
@@ -9,8 +8,7 @@ const mockUseUsers = vi.fn()
 const mockSetRole = vi.fn()
 const mockSetAppAccess = vi.fn()
 const mockSetDisplayName = vi.fn()
-const mockCreateUser = vi.fn()
-const mockDeactivateUser = vi.fn()
+const mockDeactivate = vi.fn()
 const mockMutate = vi.fn()
 
 vi.mock('@/hooks/useUserManagement', () => ({
@@ -18,8 +16,7 @@ vi.mock('@/hooks/useUserManagement', () => ({
   useSetRole: () => mockSetRole,
   useSetAppAccess: () => mockSetAppAccess,
   useSetDisplayName: () => mockSetDisplayName,
-  useCreateUser: () => mockCreateUser,
-  useDeactivateUser: () => mockDeactivateUser
+  useDeactivateUser: () => mockDeactivate
 }))
 
 vi.mock('swr', () => ({
@@ -32,93 +29,8 @@ describe('UserManagementClient', () => {
     mockSetRole.mockReset()
     mockSetAppAccess.mockReset()
     mockSetDisplayName.mockReset()
-    mockCreateUser.mockReset()
-    mockDeactivateUser.mockReset()
+    mockDeactivate.mockReset()
     mockMutate.mockReset()
-  })
-
-  it('invites a person and refreshes the list', async () => {
-    mockUseUsers.mockReturnValue({ data: { users: [] }, isLoading: false, error: undefined })
-    mockCreateUser.mockResolvedValue({ user: { email: 'new@example.com' } })
-    render(<UserManagementClient />)
-
-    fireEvent.change(screen.getByLabelText('Email of the person to invite'), {
-      target: { value: ' new@example.com ' }
-    })
-    fireEvent.change(screen.getByLabelText('Full name of the person to invite'), {
-      target: { value: 'New Person' }
-    })
-    fireEvent.click(screen.getByRole('button', { name: 'Invite' }))
-
-    await waitFor(() =>
-      expect(mockCreateUser).toHaveBeenCalledWith('new@example.com', 'New Person')
-    )
-    expect(await screen.findByText('Invite sent to new@example.com.')).toBeInTheDocument()
-    expect(mockMutate).toHaveBeenCalled()
-  })
-
-  it('says when the person already exists', async () => {
-    mockUseUsers.mockReturnValue({ data: { users: [] }, isLoading: false, error: undefined })
-    mockCreateUser.mockRejectedValue(new ConnectError('dup', Code.AlreadyExists))
-    render(<UserManagementClient />)
-
-    fireEvent.change(screen.getByLabelText('Email of the person to invite'), {
-      target: { value: 'a@example.com' }
-    })
-    fireEvent.click(screen.getByRole('button', { name: 'Invite' }))
-
-    expect(await screen.findByText('A user with this email already exists.')).toBeInTheDocument()
-  })
-
-  it('shows the reason for other invite failures', async () => {
-    mockUseUsers.mockReturnValue({ data: { users: [] }, isLoading: false, error: undefined })
-    mockCreateUser.mockRejectedValueOnce(new ConnectError('bad', Code.InvalidArgument))
-    render(<UserManagementClient />)
-    fireEvent.change(screen.getByLabelText('Email of the person to invite'), {
-      target: { value: 'a@example.com' }
-    })
-    fireEvent.click(screen.getByRole('button', { name: 'Invite' }))
-    expect(await screen.findByText('bad')).toBeInTheDocument()
-
-    mockCreateUser.mockRejectedValueOnce(new ConnectError('x', Code.FailedPrecondition))
-    fireEvent.click(screen.getByRole('button', { name: 'Invite' }))
-    expect(await screen.findByText('Inviting people is not set up.')).toBeInTheDocument()
-
-    mockCreateUser.mockRejectedValueOnce(new Error('boom'))
-    fireEvent.click(screen.getByRole('button', { name: 'Invite' }))
-    expect(await screen.findByText('Failed to invite this person.')).toBeInTheDocument()
-  })
-
-  it('deactivates a person after confirming', async () => {
-    mockUseUsers.mockReturnValue({
-      data: { users: [create(AppUserSchema, { id: 'u1', email: 'a@example.com', role: 'user' })] },
-      isLoading: false,
-      error: undefined
-    })
-    mockDeactivateUser.mockResolvedValue({})
-    render(<UserManagementClient />)
-
-    fireEvent.click(screen.getAllByRole('button', { name: 'Deactivate a@example.com' })[0])
-    expect(mockDeactivateUser).not.toHaveBeenCalled()
-    fireEvent.click(await screen.findByRole('button', { name: 'Deactivate' }))
-
-    await waitFor(() => expect(mockDeactivateUser).toHaveBeenCalledWith('u1'))
-    expect(mockMutate).toHaveBeenCalled()
-  })
-
-  it('reports a failed deactivation', async () => {
-    mockUseUsers.mockReturnValue({
-      data: { users: [create(AppUserSchema, { id: 'u1', email: 'a@example.com', role: 'user' })] },
-      isLoading: false,
-      error: undefined
-    })
-    mockDeactivateUser.mockRejectedValue(new Error('boom'))
-    render(<UserManagementClient />)
-
-    fireEvent.click(screen.getAllByRole('button', { name: 'Deactivate a@example.com' })[0])
-    fireEvent.click(await screen.findByRole('button', { name: 'Deactivate' }))
-
-    expect((await screen.findAllByText('Failed to deactivate.')).length).toBeGreaterThan(0)
   })
 
   it('shows a loading state', () => {
@@ -281,5 +193,50 @@ describe('UserManagementClient', () => {
     mockUseUsers.mockReturnValue({ data: { users: [] }, isLoading: false, error: undefined })
     render(<UserManagementClient />)
     expect(screen.getByRole('columnheader', { name: 'taste' })).toBeInTheDocument()
+  })
+
+  describe('deactivating a user', () => {
+    const users = [create(AppUserSchema, { id: '7', email: 'gone@b.com', role: 'user' })]
+
+    function confirmDeactivate() {
+      mockUseUsers.mockReturnValue({ data: { users }, isLoading: false, error: undefined })
+      render(<UserManagementClient />)
+      fireEvent.click(screen.getAllByRole('button', { name: 'Deactivate gone@b.com' })[0])
+      fireEvent.click(
+        within(screen.getByRole('dialog')).getByRole('button', { name: 'Deactivate' })
+      )
+    }
+
+    it('deactivates after confirming and refreshes the list', async () => {
+      mockDeactivate.mockResolvedValue({})
+      confirmDeactivate()
+      await waitFor(() => expect(mockDeactivate).toHaveBeenCalledWith('7'))
+      await waitFor(() => expect(mockMutate).toHaveBeenCalled())
+    })
+
+    it('does nothing when the dialog is cancelled', () => {
+      mockUseUsers.mockReturnValue({ data: { users }, isLoading: false, error: undefined })
+      render(<UserManagementClient />)
+      fireEvent.click(screen.getAllByRole('button', { name: 'Deactivate gone@b.com' })[0])
+      fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancel' }))
+      expect(mockDeactivate).not.toHaveBeenCalled()
+    })
+
+    it("shows the server's reason for an invalid request", async () => {
+      const { Code, ConnectError } = await import('@connectrpc/connect')
+      mockDeactivate.mockRejectedValue(
+        new ConnectError("you can't deactivate yourself", Code.InvalidArgument)
+      )
+      confirmDeactivate()
+      expect((await screen.findAllByText("you can't deactivate yourself")).length).toBeGreaterThan(
+        0
+      )
+    })
+
+    it('shows a generic error otherwise', async () => {
+      mockDeactivate.mockRejectedValue(new Error('boom'))
+      confirmDeactivate()
+      expect((await screen.findAllByText('Failed to deactivate.')).length).toBeGreaterThan(0)
+    })
   })
 })
