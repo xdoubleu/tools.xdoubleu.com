@@ -241,6 +241,7 @@ output "zitadel_admin_password" {
 }
 
 resource "null_resource" "zitadel" {
+  count      = var.zitadel_enabled ? 1 : 0
   depends_on = [null_resource.harden, null_resource.kamal_network, null_resource.postgres]
 
   triggers = {

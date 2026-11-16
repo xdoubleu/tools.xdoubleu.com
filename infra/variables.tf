@@ -51,6 +51,12 @@ variable "observability_ingest_secret" {
 # No app secrets: Tofu provisions the host; main.yml's deploy-kamal job
 # deploys the app with repo Secrets.
 
+variable "zitadel_enabled" {
+  description = "Provision Zitadel (ADR-0051). Off until its host gets a working certificate and passes kamal-proxy's health check."
+  type        = bool
+  default     = false
+}
+
 variable "zitadel_host" {
   description = "Public hostname kamal-proxy routes to Zitadel (ADR-0051). Needs a DNS A record to the VPS; the Let's Encrypt cert is issued on first request."
   type        = string
