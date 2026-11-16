@@ -289,6 +289,45 @@ describe('MealPlanCalendar', () => {
     await waitFor(() => expect(mockAddMeal).toHaveBeenCalled())
   })
 
+  it('does not open the add form when tapping between meals', () => {
+    const plan = {
+      ...basePlan,
+      meals: [
+        makePlanMeal({
+          id: 'm1',
+          mealDate: '2026-05-25',
+          mealSlot: 'breakfast',
+          recipeId: '',
+          customName: 'Eggs and toast',
+          servings: 1
+        })
+      ]
+    }
+    render(<MealPlanCalendar plan={plan} recipes={baseRecipes} {...defaultNavProps} />)
+    fireEvent.click(screen.getAllByText(/Eggs and toast/)[0].closest('.flex-col')!)
+    expect(screen.queryByRole('tab', { name: 'Recipe' })).not.toBeInTheDocument()
+  })
+
+  it('scrolls today into view on the phone layout', () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-05-27T12:00:00Z'))
+    const scrollIntoView = vi.fn()
+    const original = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offsetParent')
+    Object.defineProperty(HTMLElement.prototype, 'offsetParent', {
+      configurable: true,
+      get: () => document.body
+    })
+    Element.prototype.scrollIntoView = scrollIntoView
+    try {
+      render(<MealPlanCalendar plan={basePlan} recipes={baseRecipes} {...defaultNavProps} />)
+      expect(scrollIntoView).toHaveBeenCalledWith({ block: 'start' })
+    } finally {
+      vi.useRealTimers()
+      if (original) Object.defineProperty(HTMLElement.prototype, 'offsetParent', original)
+      else Reflect.deleteProperty(HTMLElement.prototype, 'offsetParent')
+    }
+  })
+
   it('displays customName for meals without a matching recipe', () => {
     const planWithCustomMeal = {
       ...basePlan,
