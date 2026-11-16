@@ -101,3 +101,17 @@ func TestSessionsAreCleanedAfterEachJob(t *testing.T) {
 	assert.NoDirExists(t, filepath.Join(root, doneTask))
 	assert.DirExists(t, filepath.Join(root, taskID), "the job's own task is not finished")
 }
+
+func TestASessionWithReadOnlyFilesIsDeleted(t *testing.T) {
+	env := newEnv(t, writes("ok", 0))
+	root := sessionDirs(t, env, doneTask)
+	mod := filepath.Join(root, doneTask, "gomodcache", "example.com", "m@v1")
+	require.NoError(t, os.MkdirAll(mod, 0o755))
+	require.NoError(t, os.WriteFile(filepath.Join(mod, "m.go"), nil, 0o444))
+	require.NoError(t, os.Chmod(mod, 0o555))
+	env.api.finished = []string{doneTask}
+
+	env.runner.CleanSessions(context.Background())
+
+	assert.NoDirExists(t, filepath.Join(root, doneTask))
+}
