@@ -2,6 +2,7 @@ package sentrytools
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -54,7 +55,7 @@ func SetupGoRoutineHub(
 }
 
 func captureError(hub *sentry.Hub, err error) {
-	if err == nil {
+	if err == nil || errors.Is(err, context.Canceled) {
 		return
 	}
 

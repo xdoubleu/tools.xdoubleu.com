@@ -3,6 +3,7 @@ package sentrytools_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"testing"
 
@@ -105,4 +106,18 @@ func TestSetupGoRoutineHub_NoErrorCapturesNothing(t *testing.T) {
 
 	events := sentrytools.MockedHubEvents(hub)
 	assert.Empty(t, events)
+}
+
+func TestSetupGoRoutineHub_IgnoresContextCanceled(t *testing.T) {
+	hub := initSentryTestClient(t)
+
+	sentrytools.SetupGoRoutineHub(
+		t.Context(),
+		logging.NewNopLogger(),
+		func(_ context.Context, _ *slog.Logger) error {
+			return fmt.Errorf("GET /runs: %w", context.Canceled)
+		},
+	)
+
+	assert.Empty(t, sentrytools.MockedHubEvents(hub))
 }

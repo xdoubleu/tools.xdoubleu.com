@@ -93,6 +93,11 @@ func (l *LogHandler) sendErrorToSentry(ctx context.Context, record slog.Record) 
 
 		captureErr := l.setRecordTags(scope, record, prefix)
 
+		// A cancelled context is a shutdown or client abort, not a defect.
+		if errors.Is(captureErr, context.Canceled) {
+			return
+		}
+
 		scope.SetLevel(sentry.LevelError)
 		hub.CaptureException(captureErr)
 	})
