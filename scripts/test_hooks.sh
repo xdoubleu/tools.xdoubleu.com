@@ -213,7 +213,7 @@ run_session_start() {
 
 # case: fast-forwards local main when behind origin and clean
 BARE="$WORK/origin.git"
-git init -q --bare "$BARE"
+git init -q --bare --initial-branch=main "$BARE"
 LOCAL="$WORK/local-main-repo"
 git clone -q "$BARE" "$LOCAL"
 git -C "$LOCAL" config user.email test@example.com
