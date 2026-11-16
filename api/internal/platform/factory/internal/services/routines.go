@@ -104,7 +104,7 @@ func (s *JobService) DeleteRoutine(
 	if job != nil {
 		s.revokeAccount(ctx, job.ID)
 	}
-	if err = s.routines.Delete(ctx, name); err != nil {
+	if _, err = s.routines.Delete(ctx, name); err != nil {
 		return err
 	}
 	s.say.say(ctx, ":wastebasket: Routine "+name+" was deleted by "+actor.Name()+".")

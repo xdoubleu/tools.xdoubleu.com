@@ -3,7 +3,6 @@ package repositories
 import (
 	"context"
 
-	"tools.xdoubleu.com/internal/kit/database"
 	"tools.xdoubleu.com/internal/kit/database/postgres"
 	"tools.xdoubleu.com/internal/platform/factory/internal/models"
 )
@@ -78,16 +77,14 @@ func (r *RoutinesRepository) Save(
 		routine.UpdatedBy))
 }
 
-// Delete removes a routine; its jobs stay. An unknown name is not found.
-func (r *RoutinesRepository) Delete(ctx context.Context, name string) error {
-	tag, err := r.db.Exec(ctx, `DELETE FROM factory.routines WHERE name = $1`, name)
-	if err != nil {
-		return err
-	}
-	if tag.RowsAffected() == 0 {
-		return database.ErrResourceNotFound
-	}
-	return nil
+// Delete removes a routine and returns it; its jobs stay. An unknown name is not
+// found.
+func (r *RoutinesRepository) Delete(
+	ctx context.Context,
+	name string,
+) (*models.Routine, error) {
+	return scanRoutine(r.db.QueryRow(ctx,
+		`DELETE FROM factory.routines WHERE name = $1 RETURNING `+routineColumns, name))
 }
 
 // Due returns the enabled scheduled routines with no job queued or running and
