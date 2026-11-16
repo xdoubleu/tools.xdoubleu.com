@@ -248,10 +248,8 @@ POST /oauth2/authorize: 302, 302
 POST /oauth2/register: 400, 400
 POST /oauth2/token: 400, 400
 POST /observability.v1.ObservabilityService/: 401, 404
-POST /observability.v1.ObservabilityService/CloseAutomatedAction: 401, 415
 POST /observability.v1.ObservabilityService/DisconnectOAuthConnection: 401, 415
 POST /observability.v1.ObservabilityService/DismissSecurityAlert: 401, 415
-POST /observability.v1.ObservabilityService/GetAutomatedActions: 401, 415
 POST /observability.v1.ObservabilityService/GetDatabaseStats: 401, 415
 POST /observability.v1.ObservabilityService/GetFailingPullRequests: 401, 415
 POST /observability.v1.ObservabilityService/GetHealthOverview: 401, 415
@@ -268,7 +266,6 @@ POST /observability.v1.ObservabilityService/GetStorageStats: 401, 415
 POST /observability.v1.ObservabilityService/GetUsageStats: 401, 415
 POST /observability.v1.ObservabilityService/GetWorkflowRuns: 401, 415
 POST /observability.v1.ObservabilityService/ListOAuthConnections: 401, 415
-POST /observability.v1.ObservabilityService/OpenAutomatedAction: 401, 415
 POST /observability.v1.ObservabilityService/ResolveSentryIssue: 401, 415
 POST /observability.v1.ObservabilityService/SetProviderConfig: 401, 415
 POST /observability.v1.ObservabilityService/TriggerStorageScan: 401, 415
@@ -357,7 +354,6 @@ games_get_steam
 games_get_steam_distribution
 games_get_steam_game
 games_get_wishlist
-get_automated_actions
 get_database_stats
 get_failing_pull_requests
 get_grafana_alerts
@@ -393,7 +389,6 @@ recipes_create_recipe
 recipes_fetch_video
 recipes_get_recipe
 recipes_list_recipes
-record_action
 resolve_sentry_issue
 shoppinglist_get_custom_list
 shoppinglist_get_meal_plan_export_items

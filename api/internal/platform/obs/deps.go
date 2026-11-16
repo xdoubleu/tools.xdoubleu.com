@@ -45,7 +45,6 @@ type Deps struct {
 	UsageRepo                *repositories.UsageRepository
 	StorageRepo              *repositories.StorageSnapshotsRepository
 	DBStatsRepo              *repositories.DBStatsRepository
-	AutomatedActionsRepo     *repositories.AutomatedActionsRepository
 	LogsRepo                 *repositories.LogsRepository
 	NotificationSettingsRepo *repositories.NotificationSettingsRepository
 	OAuthConnRepo            *oauthconn.OAuthConnectionsRepository

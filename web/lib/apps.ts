@@ -198,11 +198,10 @@ export const APPS: AppEntry[] = [
     id: 'monitoring',
     label: 'Monitoring',
     href: '/monitoring/connections',
-    description: 'Connections and self-healing routine runs',
+    description: 'Provider connections and Grafana',
     base: '/monitoring',
     sections: [
       { label: 'Connections', href: '/monitoring/connections' },
-      { label: 'Automated actions', href: '/monitoring/observability' },
       { label: 'Grafana', href: '/grafana', external: true }
     ],
     group: 'Admin',

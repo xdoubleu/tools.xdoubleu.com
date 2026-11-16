@@ -45,53 +45,6 @@ type dismissSecurityAlertArgs struct {
 	Reason      string `json:"reason"       jsonschema:"see this type's doc comment"`
 }
 
-// RecordActionArgs: a routine calls "open" first (TriggerSource
-// schedule|api|manual|ci, RoutineName) and "close" last (the returned ID,
-// Outcome succeeded|failed|no_action_needed, optional PRURL/Error/Metrics).
-type RecordActionArgs struct {
-	Mode          string `json:"mode"                     jsonschema:"open or close"`
-	TriggerSource string `json:"trigger_source,omitempty" jsonschema:"see doc comment"`
-	RoutineName   string `json:"routine_name,omitempty"   jsonschema:"see doc comment"`
-	ID            int64  `json:"id,omitempty"             jsonschema:"see doc comment"`
-	Outcome       string `json:"outcome,omitempty"        jsonschema:"see doc comment"`
-	PRURL         string `json:"pr_url,omitempty"         jsonschema:"see doc comment"`
-	Error         string `json:"error,omitempty"          jsonschema:"see doc comment"`
-
-	Metrics *runMetricsArgs `json:"metrics,omitempty" jsonschema:"see doc comment"`
-}
-
-// runMetricsArgs mirrors observabilityv1.RunMetrics with its JSON names.
-type runMetricsArgs struct {
-	Requests          int32   `json:"requests"`
-	InputTokens       int64   `json:"input_tokens"`
-	OutputTokens      int64   `json:"output_tokens"`
-	ReasoningTokens   int64   `json:"reasoning_tokens"`
-	CacheReadTokens   int64   `json:"cache_read_tokens"`
-	CostUSD           float64 `json:"cost_usd"`
-	DurationSeconds   float64 `json:"duration_seconds"`
-	ToolCalls         int32   `json:"tool_calls"`
-	ToolErrors        int32   `json:"tool_errors"`
-	RepeatedToolCalls int32   `json:"repeated_tool_calls"`
-}
-
-func (m *runMetricsArgs) proto() *observabilityv1.RunMetrics {
-	if m == nil {
-		return nil
-	}
-	return &observabilityv1.RunMetrics{
-		Requests:          m.Requests,
-		InputTokens:       m.InputTokens,
-		OutputTokens:      m.OutputTokens,
-		ReasoningTokens:   m.ReasoningTokens,
-		CacheReadTokens:   m.CacheReadTokens,
-		CostUsd:           m.CostUSD,
-		DurationSeconds:   m.DurationSeconds,
-		ToolCalls:         m.ToolCalls,
-		ToolErrors:        m.ToolErrors,
-		RepeatedToolCalls: m.RepeatedToolCalls,
-	}
-}
-
 // projectIssuesByStatusArgs is the input for get_project_issues_by_status.
 type projectIssuesByStatusArgs struct {
 	ProjectNumber int32  `json:"project_number"   jsonschema:"board number (required)"`
@@ -122,14 +75,6 @@ func RegisterMCPTools(srv *mcp.Server, deps *Deps) {
 		"Background job run statistics and recent runs (global.job_runs).",
 		func(ctx context.Context, a WindowArgs) (proto.Message, error) {
 			return h.jobStats(ctx, a.WindowDays)
-		})
-	addObsTool(srv, "get_automated_actions",
-		"Run history for self-healing routines (global.automated_actions) — "+
-			"distinct from get_job_stats: these run outside api's own process "+
-			"(e.g. on scheduled-agent infrastructure), so a row only exists "+
-			"because the routine itself opened and closed it via record_action.",
-		func(ctx context.Context, a WindowArgs) (proto.Message, error) {
-			return h.automatedActions(ctx, a.WindowDays)
 		})
 	addObsTool(srv, "get_usage_stats",
 		"Per-day request counts and response bytes by app and endpoint "+
@@ -207,34 +152,24 @@ func RegisterMCPTools(srv *mcp.Server, deps *Deps) {
 	registerAlertMCPTools(srv, h)
 }
 
-// registerMutatingMCPTools registers the three mutating tools (split out for
+// registerMutatingMCPTools registers the two mutating tools (split out for
 // the function-length lint).
 func registerMutatingMCPTools(srv *mcp.Server, h *obsConnectHandler) {
 	addObsTool(srv, "resolve_sentry_issue",
 		"Marks a Sentry issue as resolved and returns the status Sentry reports "+
-			"back (\"resolved\" on success). One of three mutating observability "+
-			"tools, alongside dismiss_security_alert and record_action.",
+			"back (\"resolved\" on success). One of two mutating observability "+
+			"tools, alongside dismiss_security_alert.",
 		func(ctx context.Context, a resolveSentryIssueArgs) (proto.Message, error) {
 			return h.resolveSentryIssue(ctx, a.IssueID)
 		})
 	addObsTool(srv, "dismiss_security_alert",
 		"Dismisses/resolves a GitHub Dependabot, code-scanning, or "+
-			"secret-scanning security alert. One of three mutating observability "+
-			"tools, alongside resolve_sentry_issue and record_action.",
+			"secret-scanning security alert. One of two mutating observability "+
+			"tools, alongside resolve_sentry_issue.",
 		func(ctx context.Context, a dismissSecurityAlertArgs) (proto.Message, error) {
 			return h.dismissSecurityAlert(
 				ctx, github.SecurityAlertType(a.AlertType), a.AlertNumber, a.Reason,
 			)
-		})
-	addObsTool(srv, "record_action",
-		"Opens or closes a run record for a self-healing routine "+
-			"(global.automated_actions): mode=open first, mode=close last, "+
-			"since it executes outside api's own process. The routine "+
-			"workflow does this itself and adds the run's metrics on close. "+
-			"One of three mutating observability tools, alongside "+
-			"resolve_sentry_issue and dismiss_security_alert.",
-		func(ctx context.Context, a RecordActionArgs) (proto.Message, error) {
-			return h.recordAction(ctx, a)
 		})
 }
 

@@ -27,7 +27,7 @@ Use `Agent` for noisy bulk work (grep sweeps, log/CI trawls, large MCP outputs s
 
 ## Other skills
 
-`.claude/skills/` also holds operational sweeps (see each skill's description). Scheduled GitHub Actions workflows (`routine-*.yml`) run them through OpenCode → [adr-0052](docs/adr-0052-factory-scheduled-routines.md).
+`.claude/skills/` also holds operational sweeps (see each skill's description). Factory routines (scheduled jobs on the board, run by the Mac runner) run them unattended → [adr-0052](docs/adr-0052-factory-scheduled-routines.md).
 
 ## MCP
 

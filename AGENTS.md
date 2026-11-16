@@ -57,7 +57,7 @@ make build | dist | test | lint/fix
 make build | test | test/mutation/diff | lint/fix
 
 # repo root
-make lint/docs | lint/skills | lint/workflows | lint/infra | lint/grafana | grafana/verify | hooks/test | routines/test | lint/deploy-version
+make lint/docs | lint/skills | lint/workflows | lint/infra | lint/grafana | grafana/verify | hooks/test | lint/deploy-version
 
 # proto changes: run BOTH generators (…/local variants avoid buf.build)
 cd api && make proto/generate    # check: make proto/check
@@ -72,7 +72,7 @@ Fresh branch off up-to-date `main`, board task before the first edit, lint/cover
 
 ## MCP
 
-`/apps/mcp` (`api/cmd/api/mcp_apps.go`) exposes each app's read RPCs as `<app>_<rpc>` tools (caller's own data only) plus admin-only observability tools (`prom_query`, `get_grafana_alerts`, `get_sentry_issues`, …). Mutating tools: learningpaths' write tools ([adr-0023](docs/adr-0023-learningpaths-mcp-write-tools.md)), the draft-only `recipes_create_recipe` ([adr-0026](docs/adr-0026-recipes-mcp-write-tool.md)), and `resolve_sentry_issue`, `dismiss_security_alert`, `record_action` (admin). Auth is first-party OAuth 2.1 with dynamic client registration → [adr-0006](docs/adr-0006-embedded-oauth21-authorization-server.md). Headless routines use client_credentials as the `service` role: observability tools, no user data → [adr-0025](docs/adr-0025-machine-client-credentials-service-role.md). Agents use `agent` accounts with per-app grants (the board is `factory`) → [adr-0047](docs/adr-0047-first-class-agent-users.md), [adr-0048](docs/adr-0048-consent-delegates-to-agent-accounts.md), [adr-0039](docs/adr-0039-agent-accounts.md), [adr-0040](docs/adr-0040-factory-mcp-tools.md).
+`/apps/mcp` (`api/cmd/api/mcp_apps.go`) exposes each app's read RPCs as `<app>_<rpc>` tools (caller's own data only) plus admin-only observability tools (`prom_query`, `get_grafana_alerts`, `get_sentry_issues`, …). Mutating tools: learningpaths' write tools ([adr-0023](docs/adr-0023-learningpaths-mcp-write-tools.md)), the draft-only `recipes_create_recipe` ([adr-0026](docs/adr-0026-recipes-mcp-write-tool.md)), and `resolve_sentry_issue`, `dismiss_security_alert` (admin). Auth is first-party OAuth 2.1 with dynamic client registration → [adr-0006](docs/adr-0006-embedded-oauth21-authorization-server.md). Headless routines use client_credentials as the `service` role: observability tools, no user data → [adr-0025](docs/adr-0025-machine-client-credentials-service-role.md). Agents use `agent` accounts with per-app grants (the board is `factory`) → [adr-0047](docs/adr-0047-first-class-agent-users.md), [adr-0048](docs/adr-0048-consent-delegates-to-agent-accounts.md), [adr-0039](docs/adr-0039-agent-accounts.md), [adr-0040](docs/adr-0040-factory-mcp-tools.md).
 
 **Gap first:** if no MCP tool surfaces a production issue, or one returns wrong data, fix the tool before the issue → [convention-mcp-gap-first](docs/convention-mcp-gap-first.md).
 

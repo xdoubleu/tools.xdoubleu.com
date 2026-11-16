@@ -22,10 +22,6 @@ lint/conflict-markers:
 lint/workflows:
 	./scripts/lint_workflows.sh
 
-# Exercise scripts/routine_watchdog.sh against synthetic transcripts.
-lint/watchdog:
-	./scripts/test_routine_watchdog.sh
-
 # Exercise scripts/resolve_deploy_version.sh against a stubbed GitHub and Kamal.
 lint/deploy-version:
 	./scripts/test_resolve_deploy_version.sh
@@ -33,20 +29,6 @@ lint/deploy-version:
 # The Mac sandbox probe needs macOS 26 and `container`; CI only parses it.
 lint/sandbox-probe:
 	bash -n scripts/factory_sandbox_probe.sh
-
-# Exercise scripts/routine_preflight.sh against a mock MCP server.
-lint/preflight:
-	./scripts/test_routine_preflight.sh
-
-# The agent-routine workflow's script suites: sandbox, metrics, watchdog (loop
-# circuit-breaker), preflight (MCP tool check), record, and finish (resume).
-routines/test:
-	./scripts/test_routine_sandbox.sh
-	./scripts/test_routine_metrics.sh
-	./scripts/test_routine_watchdog.sh
-	./scripts/test_routine_preflight.sh
-	./scripts/test_routine_record.sh
-	./scripts/test_routine_finish.sh
 
 # Wait for a PR's CI, then its merge: make pr/wait PR=<n> [MODE=mergeable].
 pr/wait:

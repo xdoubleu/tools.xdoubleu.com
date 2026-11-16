@@ -13,7 +13,7 @@ import (
 // tools over streamable HTTP. Tools are gated by per-app access or
 // obs.requireObservability. The observability tools live in internal/platform/obs.
 // Deliberate mutations: learningpaths' write tools (docs/adr-0023) and the
-// admin tools resolve_sentry_issue, dismiss_security_alert and record_action.
+// admin tools resolve_sentry_issue and dismiss_security_alert.
 
 const (
 	appsMCPServerName = "tools-apps"

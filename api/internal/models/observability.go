@@ -74,37 +74,6 @@ type LogEntry struct {
 	AttrsJSON []byte
 }
 
-// AutomatedAction is one run of an out-of-process routine, recorded by the
-// routine or its workflow. Finish fields are empty while open.
-type AutomatedAction struct {
-	ID            int64
-	FiredAt       time.Time
-	TriggerSource string
-	RoutineName   string
-	FinishedAt    *time.Time
-	// Outcome is "succeeded" | "failed" | "no_action_needed", empty while open.
-	Outcome string
-	PRURL   string
-	Error   string
-	// Metrics is nil unless the run was closed with them.
-	Metrics *RunMetrics
-}
-
-// RunMetrics is what a routine run cost, measured from its agent transcript.
-// CostUSD is the agent's estimate, not the provider's bill.
-type RunMetrics struct {
-	Requests          int32
-	InputTokens       int64
-	OutputTokens      int64
-	ReasoningTokens   int64
-	CacheReadTokens   int64
-	CostUSD           float64
-	DurationSeconds   float64
-	ToolCalls         int32
-	ToolErrors        int32
-	RepeatedToolCalls int32
-}
-
 // TransactionTrend flags a transaction whose p95 regressed between two
 // adjacent windows of global.transaction_latency_daily.
 type TransactionTrend struct {

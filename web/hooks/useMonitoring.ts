@@ -8,8 +8,7 @@ import {
 } from '@/lib/gen/observability/v1/observability_pb'
 import type {
   ListOAuthConnectionsResponse,
-  GetProviderOptionsResponse,
-  GetAutomatedActionsResponse
+  GetProviderOptionsResponse
 } from '@/lib/gen/observability/v1/observability_pb'
 import { swrKeys } from '@/lib/swrKeys'
 
@@ -51,14 +50,5 @@ export function useSetProviderConfig() {
       await mutate(swrKeys.monitoringOAuthConnections)
     },
     [client]
-  )
-}
-
-// useAutomatedActions reads recent global.automated_actions runs (the RPC's
-// default window is 30 days).
-export function useAutomatedActions() {
-  const client = createServiceClient(ObservabilityService)
-  return useSWR<GetAutomatedActionsResponse, Error>(swrKeys.monitoringAutomatedActions, () =>
-    client.getAutomatedActions({})
   )
 }

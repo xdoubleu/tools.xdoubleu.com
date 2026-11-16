@@ -42,12 +42,12 @@ Full command list: [AGENTS.md](AGENTS.md#commands). Run `make lint/fix` (from `a
 `/apps/mcp` exposes every app's read RPCs as `<app>_<rpc>` tools (e.g.
 `games_get_steam`, `books_search_library`, `trains_search_journeys`) plus
 unprefixed admin observability tools (`prom_query`, `get_grafana_alerts`,
-`get_sentry_issues`, `get_job_stats`, `get_automated_actions`, …), so a coding
+`get_sentry_issues`, `get_job_stats`, …), so a coding
 agent can pull production data and system health in as context. Which tools
 mutate is listed in [AGENTS.md](AGENTS.md#mcp).
 
 - App tools are gated by the caller's per-app access and return only their own data (trains' timetable is public, so every caller with access sees the same data). Observability tools require admin.
-- `record_action` opens (`mode: "open"`) and closes (`mode: "close"`, passing back the id) a `global.automated_actions` row — the only record of a routine that runs outside the api process. `get_automated_actions` reads it; `get_job_stats` reads in-process `global.job_runs`.
+- `get_job_stats` reads in-process `global.job_runs`.
 - `get_grafana_alerts` reads alert state from Grafana's ruler API, since Grafana-managed alerts never appear in Prometheus `ALERTS{}`.
 
 Connect a local Claude Code (OAuth is automatic):

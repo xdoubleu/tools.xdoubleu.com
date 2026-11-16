@@ -79,7 +79,6 @@ type Application struct {
 	usageRepo                     *platformrepositories.UsageRepository
 	storageRepo                   *platformrepositories.StorageSnapshotsRepository
 	dbStatsRepo                   *platformrepositories.DBStatsRepository
-	automatedActionsRepo          *platformrepositories.AutomatedActionsRepository
 	logsRepo                      *platformrepositories.LogsRepository
 	notificationSettingsRepo      *platformrepositories.NotificationSettingsRepository
 	githubClient                  github.Client
@@ -88,7 +87,6 @@ type Application struct {
 	oauthState                    *oauthconn.StateStore
 	issueSignalCollectorJob       *jobs.IssueSignalCollectorJob
 	repoSignals                   reposignals.Source
-	automatedActionSweepJob       *jobs.AutomatedActionSweepJob
 	transactionLatencyRepo        *platformrepositories.TransactionLatencyRepository
 	transactionLatencySnapshotJob *jobs.TransactionLatencySnapshotJob
 	weeklyDigestJob               *jobs.WeeklyDigestJob
@@ -128,7 +126,6 @@ func (app *Application) obsDeps() *obs.Deps {
 		UsageRepo:                app.usageRepo,
 		StorageRepo:              app.storageRepo,
 		DBStatsRepo:              app.dbStatsRepo,
-		AutomatedActionsRepo:     app.automatedActionsRepo,
 		LogsRepo:                 app.logsRepo,
 		NotificationSettingsRepo: app.notificationSettingsRepo,
 		OAuthConnRepo:            app.oauthConnRepo,
@@ -360,7 +357,6 @@ func newCrossAppJobs(
 	githubClient github.Client,
 	storageSnapshotsRepo *platformrepositories.StorageSnapshotsRepository,
 	dbStatsRepo *platformrepositories.DBStatsRepository,
-	automatedActionsRepo *platformrepositories.AutomatedActionsRepository,
 ) (
 	*jobs.IssueSignalCollectorJob,
 	*platformrepositories.TransactionLatencyRepository,
@@ -370,7 +366,7 @@ func newCrossAppJobs(
 
 	issueSignalCollectorJob := jobs.NewIssueSignalCollectorJob(
 		githubClient, sentryClient, storageSnapshotsRepo, dbStatsRepo,
-		automatedActionsRepo, transactionLatencyRepo,
+		transactionLatencyRepo,
 	)
 
 	transactionLatencySnapshotJob := jobs.NewTransactionLatencySnapshotJob(
@@ -467,12 +463,6 @@ func startCrossAppJobs(app *Application) error {
 		return err
 	}
 	if err := app.globalJobQueue.AddJob(
-		observability.NewTrackedJob(app.automatedActionSweepJob, app.db),
-		noopCallback,
-	); err != nil {
-		return err
-	}
-	if err := app.globalJobQueue.AddJob(
 		observability.NewTrackedJob(app.transactionLatencySnapshotJob, app.db),
 		noopCallback,
 	); err != nil {
@@ -555,10 +545,6 @@ func NewApplication(
 	notificationSettingsRepo := platformrepositories.NewNotificationSettingsRepository(db)
 	storageSnapshotsRepo := platformrepositories.NewStorageSnapshotsRepository(db)
 	dbStatsRepo := platformrepositories.NewDBStatsRepository(db)
-	automatedActionsRepo := platformrepositories.NewAutomatedActionsRepository(db)
-	automatedActionSweepJob := jobs.NewAutomatedActionSweepJob(
-		automatedActionsRepo,
-	)
 	issueSignalCollectorJob, transactionLatencyRepo,
 		transactionLatencySnapshotJob := newCrossAppJobs(
 		db,
@@ -566,7 +552,6 @@ func NewApplication(
 		githubClient,
 		storageSnapshotsRepo,
 		dbStatsRepo,
-		automatedActionsRepo,
 	)
 
 	repoSignals := factory.NewRepoSignals(db)
@@ -594,7 +579,6 @@ func NewApplication(
 		usageRepo:                platformrepositories.NewUsageRepository(db),
 		storageRepo:              storageSnapshotsRepo,
 		dbStatsRepo:              dbStatsRepo,
-		automatedActionsRepo:     automatedActionsRepo,
 		logsRepo:                 logsRepo,
 		notificationSettingsRepo: notificationSettingsRepo,
 		oauthConnRepo:            oauthConnRepo,
@@ -606,7 +590,6 @@ func NewApplication(
 		sentryClient:                  sentryClient,
 		issueSignalCollectorJob:       issueSignalCollectorJob,
 		repoSignals:                   repoSignals,
-		automatedActionSweepJob:       automatedActionSweepJob,
 		transactionLatencyRepo:        transactionLatencyRepo,
 		transactionLatencySnapshotJob: transactionLatencySnapshotJob,
 		globalJobQueue: jobqueue.NewJobQueue(

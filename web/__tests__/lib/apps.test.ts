@@ -87,7 +87,6 @@ describe('sections', () => {
       ],
       monitoring: [
         { label: 'Connections', href: '/monitoring/connections' },
-        { label: 'Automated actions', href: '/monitoring/observability' },
         { label: 'Grafana', href: '/grafana', external: true }
       ],
       movies: [
@@ -107,7 +106,6 @@ describe('appForPath', () => {
     ['/books/library', 'books'],
     ['/games/123', 'games'],
     ['/dashboard/games/library', 'games'],
-    ['/monitoring/observability/runs', 'monitoring'],
     ['/monitoring/connections', 'monitoring'],
     ['/monitoring/issues', 'monitoring'],
     ['/settings', 'settings']

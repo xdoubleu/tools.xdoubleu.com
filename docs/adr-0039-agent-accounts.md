@@ -64,10 +64,8 @@ and, on the consent page, delegate the client to an agent account
 tools while a delegated session lists only `factory_*`, so the tools you see
 tell you which identity the connection has.
 
-Headless clients (the Actions routines) can't run the consent flow: they mint
-a client_credentials token for a standing agent account
-(`FACTORY_ROUTINES_AGENT_CLIENT_ID`/`…_SECRET` in
-`.github/workflows/agent-routine.yml`) and send it in an `Authorization` header
+Headless clients can't run the consent flow: they mint a client_credentials
+token for a standing agent account and send it in an `Authorization` header
 with `oauth: false`. To rotate that secret, an admin calls
 `RotateAgentAccountSecret` (TOTP step-up, as for create). The old secret keeps
 working for 24 hours (a second rotation waits until then; revoke to end a
