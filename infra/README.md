@@ -178,6 +178,16 @@ Dashboard JSON under `infra/grafana/dashboards/` is the source of truth
 `make grafana/verify` check it (also run by `build-grafana.yml`). Rationale:
 [ADR-0022](../docs/adr-0022-prometheus-grafana-metrics.md).
 
+A `blackbox-exporter` accessory (`blackbox.yml`) probes `/api/health` on the
+origin directly (`https://<server_ip>`, SNI `tools.xdoubleu.com`, so
+Cloudflare is bypassed) and through Cloudflare; `main.tf` substitutes
+`__SERVER_IP__` in `prometheus.yml`. `OriginCertExpiring` (under 30 days) and
+`OriginCertExpiringSoon` (under 7 days) read the origin's
+`probe_ssl_earliest_cert_expiry`; `OriginProbeDown` fires when either probe
+fails for 5 minutes. All post to Slack and show in `get_grafana_alerts`. There
+is no log pipeline (Loki), so kamal-proxy `TLS handshake error` rates are not
+alerted; the failing probe covers a broken origin handshake.
+
 Re-applying redeploys the Prometheus accessory; `kamal deploy -c
 config/deploy.grafana.yml` (or a push to `main` touching `infra/grafana/**` or
 `infra/grafana.Dockerfile`) redeploys Grafana.

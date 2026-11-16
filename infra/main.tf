@@ -299,7 +299,7 @@ resource "null_resource" "node_exporter" {
   depends_on = [null_resource.harden, null_resource.kamal_network]
 
   triggers = {
-    compose_hash = filesha256("${path.module}/node-exporter-compose.yml")
+    compose_hash  = filesha256("${path.module}/node-exporter-compose.yml")
     command_hash = sha256(local.compose_up)
   }
 
@@ -326,14 +326,20 @@ resource "null_resource" "node_exporter" {
   }
 }
 
+locals {
+  # The origin probe target needs the VPS address.
+  prometheus_config = replace(file("${path.module}/prometheus.yml"), "__SERVER_IP__", var.server_ip)
+}
+
 # Prometheus + postgres_exporter; reuses random_password.postgres for
 # postgres_exporter's DATA_SOURCE_NAME.
 resource "null_resource" "prometheus" {
   depends_on = [null_resource.harden, null_resource.kamal_network, null_resource.postgres]
 
   triggers = {
-    compose_hash = filesha256("${path.module}/prometheus-compose.yml")
-    config_hash  = filesha256("${path.module}/prometheus.yml")
+    compose_hash  = filesha256("${path.module}/prometheus-compose.yml")
+    config_hash   = sha256(local.prometheus_config)
+    blackbox_hash = filesha256("${path.module}/blackbox.yml")
     # Hash, not the password itself.
     password_hash = sha256(random_password.postgres.result)
     # Restarts Prometheus when the /metrics bearer token rotates.
@@ -360,8 +366,13 @@ resource "null_resource" "prometheus" {
   }
 
   provisioner "file" {
-    source      = "${path.module}/prometheus.yml"
+    content     = local.prometheus_config
     destination = "/home/deploy/prometheus/prometheus.yml"
+  }
+
+  provisioner "file" {
+    source      = "${path.module}/blackbox.yml"
+    destination = "/home/deploy/prometheus/blackbox.yml"
   }
 
   provisioner "file" {

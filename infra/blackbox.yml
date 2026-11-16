@@ -1,0 +1,23 @@
+# Probe modules for prometheus.yml's blackbox-* jobs.
+modules:
+  # Straight to the VPS with SNI/Host of the public name. The Cloudflare Origin
+  # CA certificate isn't publicly trusted, so verification is off; expiry
+  # (probe_ssl_earliest_cert_expiry) and handshake failures are still reported.
+  origin:
+    prober: http
+    timeout: 10s
+    http:
+      method: GET
+      headers:
+        Host: tools.xdoubleu.com
+      fail_if_not_ssl: true
+      tls_config:
+        server_name: tools.xdoubleu.com
+        insecure_skip_verify: true
+  # Through Cloudflare, as users see it.
+  edge:
+    prober: http
+    timeout: 10s
+    http:
+      method: GET
+      fail_if_not_ssl: true
