@@ -292,23 +292,6 @@ func (s *JobService) Stop(
 	return job, nil
 }
 
-// Claim starts the oldest queued job, or returns nil when there is none or the
-// runner already runs maxJobs (below 1 means 1), and records the harness and
-// model the runner runs it on. It first marks jobs that stopped checking in as
-// lost.
-func (s *JobService) Claim(
-	ctx context.Context,
-	runnerID uuid.UUID,
-	maxJobs int,
-	harness models.Harness,
-	model string,
-) (*ClaimedJob, error) {
-	if err := s.PrepareClaim(ctx, runnerID, maxJobs, harness, model); err != nil {
-		return nil, err
-	}
-	return s.ClaimQueued(ctx, runnerID, maxJobs, harness, model)
-}
-
 // PrepareClaim does the bookkeeping a claim starts with: it checks the harness and
 // model, marks lost jobs, records the runner's slots and picks up Ready tasks. A
 // runner polling for a job calls it once, then ClaimQueued on each poll.
@@ -335,8 +318,9 @@ func (s *JobService) PrepareClaim(
 	return nil
 }
 
-// ClaimQueued starts the oldest queued job like Claim, without PrepareClaim's
-// bookkeeping.
+// ClaimQueued starts the oldest queued job, or returns nil when there is none or
+// the runner already runs maxJobs (below 1 means 1), and records the harness and
+// model the runner runs it on.
 func (s *JobService) ClaimQueued(
 	ctx context.Context,
 	runnerID uuid.UUID,
