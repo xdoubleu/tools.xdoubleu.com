@@ -596,6 +596,9 @@ jobs:
           OBSERVABILITY_INGEST_SECRET: ${{ secrets.OBSERVABILITY_INGEST_SECRET }}
           # Grafana's admin password; get_grafana_alerts authenticates with it.
           GRAFANA_ADMIN_PASSWORD: ${{ secrets.GRAFANA_ADMIN_PASSWORD }}
+          # Cloudflare Origin CA certificate for kamal-proxy; see config/deploy.api.yml.
+          ORIGIN_CERT_PEM: ${{ secrets.ORIGIN_CERT_PEM }}
+          ORIGIN_KEY_PEM: ${{ secrets.ORIGIN_KEY_PEM }}
         run: bundle exec kamal deploy -c config/deploy.api.yml --skip-push --version="$KAMAL_VERSION"
 
       # Last so its OAuth login hits the newest api. Skipped when no commit to

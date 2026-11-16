@@ -353,6 +353,10 @@ KAMAL_DB_DSN                 (postgres://postgres:<tofu output -raw
                               postgres_password>@postgres:5432/postgres —
                               copy it in once; rotating means updating both)
 KAMAL_REGISTRY_PASSWORD      (also pulls the Grafana wrapper image from GHCR)
+ORIGIN_CERT_PEM              (Cloudflare Origin CA certificate for
+                              tools.xdoubleu.com, served by kamal-proxy;
+                              Cloudflare SSL/TLS → Origin Server, 15 years)
+ORIGIN_KEY_PEM               (its private key, shown once at creation)
 JWT_SECRET                   (signs api session JWTs — rotating signs everyone out)
 OAUTH_HMAC_SECRET            (MCP OAuth AS token strategy — rotating invalidates
                               every issued MCP token)
