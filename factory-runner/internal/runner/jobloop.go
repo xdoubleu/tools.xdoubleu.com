@@ -273,6 +273,14 @@ func (l *jobLoop) attempt(command []string, prompt string) step {
 		res.blocked = b
 	}
 	res.waitingOn = waitingOn(text)
+	// A reported problem that no longer reproduces leaves nothing to commit,
+	// check or publish; the agent has already closed the task.
+	if _, ok := findLine(text, "Already-fixed:"); ok && res.blocked == "" &&
+		len(res.waitingOn) == 0 {
+		res.succeeded = true
+		res.outcome = text
+		return over(res)
+	}
 	if res.blocked == "" && len(res.waitingOn) == 0 {
 		if fb := l.runGates(); fb != "" {
 			ref, _ := os.ReadFile(filepath.Join(l.dirs.clone, ".git", "refs", "heads",

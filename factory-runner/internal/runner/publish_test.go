@@ -661,13 +661,13 @@ func TestATransientTokenFailureIsRetriedButAFinalOneIsNot(t *testing.T) {
 	assert.GreaterOrEqual(t, calls, 3)
 	assert.NotEmpty(t, p.api.done()[0].prURL)
 
-	// Always unavailable: three tries on each of two attempts (the second fails
+	// Always unavailable: five tries on each of two attempts (the second fails
 	// the same way with no new commit), then the work stays on the Mac.
 	p = newPublishing(t, writes("Did it."+allPass, 0))
 	p.api.pushErr, p.api.pushToken = &runner.Error{Code: "unavailable", Message: "x"}, ""
 	_, err = p.runner.Next(context.Background())
 	require.NoError(t, err)
-	assert.Equal(t, 6, p.api.tokenAsks)
+	assert.Equal(t, 10, p.api.tokenAsks)
 	assert.Contains(t, p.api.done()[0].outcome, "could not get a push token")
 
 	// Not set up is final: asked once.

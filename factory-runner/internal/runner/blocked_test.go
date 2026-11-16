@@ -98,3 +98,23 @@ func TestThePreambleExplainsWaitingOnAgainstBlocked(t *testing.T) {
 	require.NoError(t, err)
 	assert.Contains(t, env.sandbox.specs[0].Stdin, "Waiting-on: T-6, T-8")
 }
+
+func TestAnAlreadyFixedJobEndsAtOnceWithoutGatesOrAPullRequest(t *testing.T) {
+	p := newPublishing(t, attempts(agentRuns(
+		"Did none\n\nAlready-fixed: go build ./... passes", true)))
+
+	_, err := p.runner.Next(context.Background())
+	require.NoError(t, err)
+
+	assert.Len(t, p.sandbox.specs, 1)
+	got := p.api.done()[0]
+	assert.True(t, got.succeeded)
+	assert.Empty(t, got.blocked)
+}
+
+func TestThePreambleOffersAlreadyFixedForAProblemThatNoLongerReproduces(t *testing.T) {
+	env := newEnv(t, writes("Did it.", 0), newJob())
+	_, err := env.runner.Next(context.Background())
+	require.NoError(t, err)
+	assert.Contains(t, env.sandbox.specs[0].Stdin, "Already-fixed: <evidence>")
+}
