@@ -215,7 +215,7 @@ resource "null_resource" "postgres" {
 }
 
 # Zitadel (ADR-0051): own database and role in the Postgres above, routed
-# through kamal-proxy at var.zitadel_host. Not yet used for sign-in.
+# through kamal-proxy at var.zitadel_host with the Origin CA certificate.
 resource "random_password" "zitadel_db" {
   length  = 32
   special = false # lands in .env and a SQL string
@@ -249,7 +249,7 @@ resource "null_resource" "zitadel" {
     setup_hash     = filesha256("${path.module}/zitadel-setup.sh")
     host           = var.zitadel_host
     smtp_from      = var.release_check_email_from
-    secrets_hash   = sha256("${random_password.zitadel_db.result}${random_password.zitadel_masterkey.result}${random_password.zitadel_admin.result}${var.zitadel_smtp_password}")
+    secrets_hash   = sha256("${random_password.zitadel_db.result}${random_password.zitadel_masterkey.result}${random_password.zitadel_admin.result}${var.zitadel_smtp_password}${var.zitadel_origin_cert_pem}${var.zitadel_origin_key_pem}")
     postgres_reset = null_resource.postgres.id
   }
 
@@ -261,7 +261,7 @@ resource "null_resource" "zitadel" {
   }
 
   provisioner "remote-exec" {
-    inline = ["mkdir -p /home/deploy/zitadel"]
+    inline = ["mkdir -p /home/deploy/zitadel/tls"]
   }
 
   provisioner "file" {
@@ -282,13 +282,23 @@ resource "null_resource" "zitadel" {
   }
 
   provisioner "file" {
+    content     = var.zitadel_origin_cert_pem
+    destination = "/home/deploy/zitadel/tls/cert.pem"
+  }
+
+  provisioner "file" {
+    content     = var.zitadel_origin_key_pem
+    destination = "/home/deploy/zitadel/tls/key.pem"
+  }
+
+  provisioner "file" {
     source      = "${path.module}/zitadel-setup.sh"
     destination = "/home/deploy/zitadel/zitadel-setup.sh"
   }
 
   provisioner "remote-exec" {
     inline = [
-      "chmod 600 /home/deploy/zitadel/.env",
+      "chmod 600 /home/deploy/zitadel/.env /home/deploy/zitadel/tls/key.pem",
       "cd /home/deploy/zitadel && bash zitadel-setup.sh",
     ]
   }

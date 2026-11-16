@@ -207,7 +207,10 @@ uploads `zitadel-compose.yml` and a generated `.env` to `/home/deploy/zitadel/`
 and runs `zitadel-setup.sh`, which creates the `zitadel` database and role in
 Postgres, starts the container (768 MiB cap, no host port) and registers
 `zitadel:8080` in kamal-proxy for `var.zitadel_host`
-(default `auth.tools.xdoubleu.com`; **create its DNS A record first**). The
+(default `auth.xdoubleu.com`, covered by the Origin CA certificate's
+`*.xdoubleu.com`; **create its Cloudflare-proxied DNS A record first**), served
+with that certificate (`ORIGIN_CERT_PEM`/`ORIGIN_KEY_PEM`, no Let's Encrypt) and
+only after the container reports healthy. Enable it with `zitadel_enabled`. The
 route is skipped until kamal-proxy exists, so the next apply adds it. It is
 Tofu-managed like Prometheus, not a Kamal service, so it adds no Kamal deploy
 secret (`make lint/kamal-secrets` is unaffected): the masterkey, database and
