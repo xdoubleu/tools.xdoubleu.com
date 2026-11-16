@@ -344,14 +344,12 @@ func (s *JobService) pullRequestEnded(
 	return err
 }
 
-// agentFoundLabels mark work agents found and fixed on their own; nobody needs to
-// check it once merged.
-var agentFoundLabels = []string{"factory-retro", "factory-sandbox", "routine-feedback"}
-
-// afterMerge is the column a task moves to once its pull request merges.
+// afterMerge is the column a task moves to once its pull request merges. Work
+// agents found and fixed on their own needs nobody to check it.
 func afterMerge(task *models.Task) models.Status {
+	agentFound := []string{"factory-retro", "factory-sandbox", "routine-feedback"}
 	for _, l := range task.Labels {
-		if slices.Contains(agentFoundLabels, l) {
+		if slices.Contains(agentFound, l) {
 			return models.StatusDone
 		}
 	}
