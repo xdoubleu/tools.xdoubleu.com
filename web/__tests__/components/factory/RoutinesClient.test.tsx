@@ -9,6 +9,7 @@ const mockStop = vi.fn()
 const mockDelete = vi.fn()
 vi.mock('@/hooks/useFactory', () => ({
   useFactoryRoutines: vi.fn(),
+  useFactoryRepos: vi.fn(() => ({ data: undefined })),
   useFactoryActions: vi.fn(() => ({
     saveRoutine: mockSave,
     runRoutine: mockRun,
@@ -18,11 +19,13 @@ vi.mock('@/hooks/useFactory', () => ({
 }))
 
 import RoutinesClient from '@/components/factory/RoutinesClient'
-import { useFactoryRoutines } from '@/hooks/useFactory'
+import { useFactoryRepos, useFactoryRoutines } from '@/hooks/useFactory'
 import {
   JobSchema,
   JobStatus,
+  ListReposResponseSchema,
   ListRoutinesResponseSchema,
+  RepoSchema,
   RoutineSchema
 } from '@/lib/gen/factory/v1/factory_pb'
 
@@ -57,6 +60,8 @@ const list = create(ListRoutinesResponseSchema, {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  // @ts-expect-error -- partial SWRResponse
+  vi.mocked(useFactoryRepos).mockReturnValue({ data: undefined })
   mockSave.mockResolvedValue(undefined)
   mockRun.mockResolvedValue(undefined)
   mockStop.mockResolvedValue(undefined)
@@ -64,6 +69,32 @@ beforeEach(() => {
 })
 
 describe('RoutinesClient', () => {
+  it('filters routines by repo once several are registered', () => {
+    mockRoutines({
+      data: create(ListRoutinesResponseSchema, {
+        routines: [
+          create(RoutineSchema, { name: 'one', repoId: 'r1' }),
+          create(RoutineSchema, { name: 'two', repoId: 'r2' })
+        ]
+      })
+    })
+    // @ts-expect-error -- partial SWRResponse
+    vi.mocked(useFactoryRepos).mockReturnValue({
+      data: create(ListReposResponseSchema, {
+        repos: [
+          create(RepoSchema, { id: 'r1', owner: 'a', name: 'x' }),
+          create(RepoSchema, { id: 'r2', owner: 'a', name: 'y' })
+        ]
+      })
+    })
+    render(<RoutinesClient />)
+    expect(screen.getByText('one')).toBeInTheDocument()
+    expect(screen.getByText(/a\/y · Never run/)).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText('Repo'), { target: { value: 'r2' } })
+    expect(screen.queryByText('one')).not.toBeInTheDocument()
+    expect(screen.getByText('two')).toBeInTheDocument()
+  })
+
   it('lists each routine with its last run, status and Run or Stop', () => {
     mockRoutines({ data: list })
     render(<RoutinesClient />)
