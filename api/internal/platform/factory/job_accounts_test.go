@@ -33,6 +33,7 @@ type accountOf struct {
 	name     string
 	taskID   uuid.UUID
 	active   bool
+	owner    string
 }
 
 func newFakeAccounts() *fakeAccounts {
@@ -40,7 +41,7 @@ func newFakeAccounts() *fakeAccounts {
 }
 
 func (f *fakeAccounts) CreateForJob(
-	_ context.Context, _, name string, scope agentaccounts.Scope,
+	_ context.Context, createdBy, name string, scope agentaccounts.Scope,
 ) (*agentaccounts.Account, string, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -49,7 +50,7 @@ func (f *fakeAccounts) CreateForJob(
 	}
 	acc := &accountOf{
 		userID: uuid.NewString(), clientID: "agent-" + uuid.NewString(),
-		name: name, taskID: scope.TaskID, active: true,
+		name: name, taskID: scope.TaskID, active: true, owner: createdBy,
 	}
 	f.accounts[scope.JobID] = acc
 	account := &agentaccounts.Account{
@@ -94,6 +95,27 @@ func (f *fakeAccounts) ScopeOf(
 		}
 	}
 	return nil, nil //nolint:nilnil // not scoped
+}
+
+// OwnerNames names the person in created_by as its id, like a store would a
+// display name; the factory itself has none.
+func (f *fakeAccounts) OwnerNames(
+	_ context.Context, userIDs []uuid.UUID,
+) (map[uuid.UUID]string, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	out := map[uuid.UUID]string{}
+	for _, acc := range f.accounts {
+		for _, id := range userIDs {
+			if acc.userID == id.String() {
+				out[id] = strings.TrimPrefix(acc.owner, "human:")
+				if !strings.HasPrefix(acc.owner, "human:") {
+					out[id] = ""
+				}
+			}
+		}
+	}
+	return out, nil
 }
 
 var _ services.JobAccounts = (*fakeAccounts)(nil)
@@ -222,6 +244,12 @@ func (brokenAccounts) ScopeOf(
 	return nil, nil //nolint:nilnil // not scoped
 }
 
+func (brokenAccounts) OwnerNames(
+	context.Context, []uuid.UUID,
+) (map[uuid.UUID]string, error) {
+	return nil, errors.New("accounts are down")
+}
+
 var _ services.JobAccounts = brokenAccounts{}
 
 func TestAJobThatCannotHaveAnAccountIsFailedNotRun(t *testing.T) {
@@ -280,7 +308,7 @@ func TestAJobAccountSeesAndActsOnItsOwnTaskOnly(t *testing.T) {
 	require.NoError(t, err)
 	comments := env.task(t, mine.Id).Comments
 	require.Len(t, comments, 1)
-	assert.Equal(t, "agent:"+acc.userID, comments[0].Author)
+	assert.Equal(t, "agent:"+acc.userID+" (agent of "+adminID+")", comments[0].Author)
 	_, err = callTool(t, session, "factory_comment_task",
 		map[string]any{"task_id": other.Id, "body": "Nope."})
 	require.Error(t, err)
@@ -459,4 +487,35 @@ func TestARoutineJobManagesOtherRoutinesAndIsNamedInTheNotice(t *testing.T) {
 	_, err = callTool(t, session, "factory_delete_routine",
 		map[string]any{"name": "other"})
 	require.NoError(t, err)
+}
+
+func TestAJobsAccountIsOwnedByThePersonWhoStartedIt(t *testing.T) {
+	env, accounts := accountsEnv(t)
+	env.run(t, env.newTask(t, "owned").Id, "")
+
+	claimed := env.claim(t)
+	assert.Equal(t, "human:"+adminID, accounts.of(t, claimed.Id).owner)
+}
+
+func TestAnAgentsActionsShowTheirOwner(t *testing.T) {
+	env, accounts := accountsEnv(t)
+	task := env.newTask(t, "attributed")
+	env.run(t, task.Id, "")
+	claimed := env.claim(t)
+	jobAgent := "agent:" + accounts.of(t, claimed.Id).userID
+	stranger := "agent:" + uuid.NewString()
+	for _, author := range []string{jobAgent, stranger, "human:someone"} {
+		_, err := testDB.Exec(context.Background(),
+			`INSERT INTO factory.task_comments (task_id, author, body)
+			 VALUES ($1, $2, 'hi')`, taskKey(t, task.Id), author)
+		require.NoError(t, err)
+	}
+
+	got := map[string]bool{}
+	for _, c := range env.task(t, task.Id).Comments {
+		got[c.Author] = true
+	}
+	assert.True(t, got[jobAgent+" (agent of "+adminID+")"], got)
+	assert.True(t, got[stranger+" (agent of unknown owner)"], got)
+	assert.True(t, got["human:someone"], got)
 }

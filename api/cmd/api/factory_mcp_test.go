@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -86,7 +87,8 @@ func TestFactoryMCP_AgentWorksTheBoardAndMarksReady(t *testing.T) {
 	require.NoError(t, err)
 	id := str(t, filed, "task", "id")
 	assert.Equal(t, "TASK_STATUS_BACKLOG", str(t, filed, "task", "status"))
-	assert.Equal(t, "agent:"+created.Account.UserId, str(t, filed, "task", "createdBy"))
+	assert.True(t, strings.HasPrefix(str(t, filed, "task", "createdBy"),
+		"agent:"+created.Account.UserId+" (agent of "), "the agent's owner is shown")
 
 	_, err = callAgentTool(t, session, "factory_comment_task",
 		map[string]any{"task_id": id, "body": "first note"})

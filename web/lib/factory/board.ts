@@ -222,11 +222,15 @@ export function accountsOf(data: ListAgentAccountsResponse | undefined): AgentAc
 
 const AGENT_ACTOR_PREFIX = 'agent:'
 
-/** An actor ("<kind>:<id>") as shown to people: an agent by its account name. */
+/**
+ * An actor ("<kind>:<id>") as shown to people: an agent by its account name.
+ * The api appends " (agent of <owner>)" to an agent; it is kept after the name.
+ */
 export function actorLabel(actor: string, agents: AgentAccount[]): string {
   if (!actor.startsWith(AGENT_ACTOR_PREFIX)) return actor
-  const userId = actor.slice(AGENT_ACTOR_PREFIX.length)
-  return agents.find((a) => a.userId === userId)?.name ?? actor
+  const [id, ...owner] = actor.slice(AGENT_ACTOR_PREFIX.length).split(' ')
+  const name = agents.find((a) => a.userId === id)?.name
+  return name === undefined ? actor : [name, ...owner].join(' ')
 }
 
 /** The runners in a list response, none while it hasn't loaded. */

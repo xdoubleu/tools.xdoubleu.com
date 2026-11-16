@@ -218,6 +218,8 @@ describe('board', () => {
   it('shows an agent actor by its account name and leaves other actors alone', () => {
     const agents = [create(AgentAccountSchema, { userId: 'u-1', name: 'Reviewer' })]
     expect(actorLabel('agent:u-1', agents)).toBe('Reviewer')
+    expect(actorLabel('agent:u-1 (agent of Ada)', agents)).toBe('Reviewer (agent of Ada)')
+    expect(actorLabel('agent:u-9 (agent of Ada)', agents)).toBe('agent:u-9 (agent of Ada)')
     expect(actorLabel('agent:u-9', agents)).toBe('agent:u-9')
     expect(actorLabel('human:u-1', agents)).toBe('human:u-1')
     expect(actorLabel('human:agent:u-1', agents)).toBe('human:agent:u-1')

@@ -253,7 +253,7 @@ func (t *mcpTools) listTasks(
 	if err != nil {
 		return nil, connecttools.MapError(err)
 	}
-	out := []*factoryv1.Task{}
+	kept := []models.Task{}
 	for i := range tasks {
 		if confined(own, scoped) && tasks[i].ID != own &&
 			!services.IsSandboxTask(&tasks[i]) {
@@ -268,9 +268,9 @@ func (t *mcpTools) listTasks(
 		if !matchesLabel(&tasks[i], args.Label) {
 			continue
 		}
-		out = append(out, protoTask(&tasks[i]))
+		kept = append(kept, tasks[i])
 	}
-	return &factoryv1.ListTasksResponse{Tasks: out}, nil
+	return &factoryv1.ListTasksResponse{Tasks: t.app.protoTasks(ctx, kept)}, nil
 }
 
 // matchesLabel keeps every task when label is empty.
@@ -297,11 +297,10 @@ func (t *mcpTools) getTask(
 	if err != nil {
 		return nil, connecttools.MapError(err)
 	}
-	out := make([]*factoryv1.Comment, len(comments))
-	for i := range comments {
-		out[i] = protoComment(&comments[i])
-	}
-	return &factoryv1.GetTaskResponse{Task: protoTask(task), Comments: out}, nil
+	return &factoryv1.GetTaskResponse{
+		Task:     t.app.protoTaskOf(ctx, task),
+		Comments: t.app.protoComments(ctx, comments),
+	}, nil
 }
 
 func (t *mcpTools) createTask(
@@ -327,7 +326,7 @@ func (t *mcpTools) createTask(
 		if repErr != nil {
 			return nil, connecttools.MapError(repErr)
 		}
-		return &factoryv1.CreateTaskResponse{Task: protoTask(task)}, nil
+		return &factoryv1.CreateTaskResponse{Task: t.app.protoTaskOf(ctx, task)}, nil
 	}
 	task, err := t.app.services.Tasks.Create(ctx, actor, repoID, services.TaskInput{
 		Title:    args.Title,
@@ -338,7 +337,7 @@ func (t *mcpTools) createTask(
 	if err != nil {
 		return nil, connecttools.MapError(err)
 	}
-	return &factoryv1.CreateTaskResponse{Task: protoTask(task)}, nil
+	return &factoryv1.CreateTaskResponse{Task: t.app.protoTaskOf(ctx, task)}, nil
 }
 
 func (t *mcpTools) commentTask(
@@ -359,7 +358,7 @@ func (t *mcpTools) commentTask(
 	if err != nil {
 		return nil, connecttools.MapError(err)
 	}
-	return &factoryv1.AddCommentResponse{Comment: protoComment(comment)}, nil
+	return &factoryv1.AddCommentResponse{Comment: t.app.protoCommentOf(ctx, comment)}, nil
 }
 
 func (t *mcpTools) moveTask(
@@ -385,7 +384,7 @@ func (t *mcpTools) moveTask(
 	if err != nil {
 		return nil, connecttools.MapError(err)
 	}
-	return &factoryv1.MoveTaskResponse{Task: protoTask(task)}, nil
+	return &factoryv1.MoveTaskResponse{Task: t.app.protoTaskOf(ctx, task)}, nil
 }
 
 func (t *mcpTools) updateTask(
@@ -429,7 +428,7 @@ func (t *mcpTools) updateTask(
 	if err != nil {
 		return nil, connecttools.MapError(err)
 	}
-	return &factoryv1.UpdateTaskResponse{Task: protoTask(task)}, nil
+	return &factoryv1.UpdateTaskResponse{Task: t.app.protoTaskOf(ctx, task)}, nil
 }
 
 // mergeLabels applies the removals (ignoring case) and then the additions,

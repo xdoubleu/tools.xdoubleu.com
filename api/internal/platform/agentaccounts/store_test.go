@@ -550,3 +550,27 @@ func TestRevokeEndsTheTokensOfDelegatedClients(t *testing.T) {
 	_, err = store.Delegate(ctx, account.ID, client, "human:a")
 	assert.Error(t, err, "a revoked account can't be delegated to again")
 }
+
+func TestOwnerNamesResolvesThePersonBehindEachAccount(t *testing.T) {
+	store, pool := newStore(t, nil)
+	ctx := context.Background()
+	personID := uuid.New()
+	_, err := pool.Exec(ctx, `
+		INSERT INTO global.app_users (id, email, role, display_name)
+		VALUES ($1, $2, 'user', 'Ada')`,
+		personID, "ada-"+personID.String()+"@example.com")
+	require.NoError(t, err)
+
+	owned, _, err := store.Create(ctx, "human:"+personID.String(), "Night shift")
+	require.NoError(t, err)
+	factoryOwned, _, err := store.CreateForJob(ctx, "system:factory", "job #1",
+		agentaccounts.Scope{JobID: uuid.New(), TaskID: uuid.New()})
+	require.NoError(t, err)
+
+	got, err := store.OwnerNames(ctx,
+		[]uuid.UUID{owned.UserID, factoryOwned.UserID, uuid.New()})
+	require.NoError(t, err)
+	assert.Equal(t, "Ada", got[owned.UserID])
+	assert.Equal(t, "", got[factoryOwned.UserID])
+	assert.Len(t, got, 2, "a user with no account is left out")
+}
