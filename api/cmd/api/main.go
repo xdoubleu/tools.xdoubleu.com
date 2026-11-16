@@ -91,6 +91,7 @@ type Application struct {
 	transactionLatencySnapshotJob *jobs.TransactionLatencySnapshotJob
 	weeklyDigestJob               *jobs.WeeklyDigestJob
 	logPruneJob                   *jobs.LogPruneJob
+	loginFailurePruneJob          *auth.LoginFailurePruneJob
 	// importJob is nil unless the provider's user API is configured.
 	importJob      *auth.ImportJob
 	globalJobQueue *jobqueue.JobQueue
@@ -480,8 +481,13 @@ func startCrossAppJobs(app *Application) error {
 			return err
 		}
 	}
-	return app.globalJobQueue.AddJob(
+	if err := app.globalJobQueue.AddJob(
 		observability.NewTrackedJob(app.logPruneJob, app.db), noopCallback,
+	); err != nil {
+		return err
+	}
+	return app.globalJobQueue.AddJob(
+		observability.NewTrackedJob(app.loginFailurePruneJob, app.db), noopCallback,
 	)
 }
 
@@ -609,6 +615,7 @@ func NewApplication(
 		feedsApp, notificationsSvc, notificationSettingsRepo,
 	)
 	app.logPruneJob = jobs.NewLogPruneJob(logsRepo)
+	app.loginFailurePruneJob = auth.NewLoginFailurePruneJob(authRepo)
 	app.importJob = newImportJob(config, authRepo, authSealer)
 
 	err = app.ApplyMigrations(db)

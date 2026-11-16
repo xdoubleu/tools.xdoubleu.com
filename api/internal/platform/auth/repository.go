@@ -546,3 +546,61 @@ func (r *Repository) ListImportCandidates(
 	}
 	return out, rows.Err()
 }
+
+var _ failureStore = (*Repository)(nil)
+
+// Locked implements failureStore.
+func (r *Repository) Locked(
+	ctx context.Context, key string, now time.Time,
+) (bool, error) {
+	var locked bool
+	err := r.db.QueryRow(ctx, `
+		SELECT EXISTS (
+			SELECT 1 FROM auth.login_failures
+			WHERE key = $1 AND locked_until > $2
+		)`, key, now).Scan(&locked)
+	return locked, err
+}
+
+// failureCount is the failure count after one more failure at $2: it restarts
+// at 1 once the last failure is older than $3 seconds.
+const failureCount = `CASE
+	WHEN login_failures.last_failure < $2 - make_interval(secs => $3) THEN 1
+	ELSE login_failures.failures + 1
+END`
+
+// RecordFailure implements failureStore. The count and the lock move in one
+// statement, so concurrent failures (and replicas) can't lose updates.
+func (r *Repository) RecordFailure(
+	ctx context.Context, key string, now time.Time,
+) error {
+	_, err := r.db.Exec(ctx, `
+		INSERT INTO auth.login_failures (key, failures, last_failure, locked_until)
+		VALUES ($1, 1, $2, NULL)
+		ON CONFLICT (key) DO UPDATE SET
+			failures = `+failureCount+`,
+			last_failure = $2,
+			locked_until = CASE
+				WHEN (`+failureCount+`) > $4 THEN $2 + make_interval(
+					secs => LEAST($5 * power(2, LEAST((`+failureCount+`) - $4 - 1, $6)), $7)
+				)
+			END`,
+		key, now, lockoutForget.Seconds(), lockoutFreeFailures,
+		lockoutBase.Seconds(), lockoutMaxShift, lockoutMax.Seconds())
+	return err
+}
+
+// Clear implements failureStore.
+func (r *Repository) Clear(ctx context.Context, key string) error {
+	_, err := r.db.Exec(ctx, `DELETE FROM auth.login_failures WHERE key = $1`, key)
+	return err
+}
+
+// PruneFailures deletes rows forgotten by now whose lock has expired.
+func (r *Repository) PruneFailures(ctx context.Context, now time.Time) error {
+	_, err := r.db.Exec(ctx, `
+		DELETE FROM auth.login_failures
+		WHERE last_failure < $1 AND (locked_until IS NULL OR locked_until < $2)`,
+		now.Add(-lockoutForget), now)
+	return err
+}
