@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -55,7 +56,7 @@ func (s *JobService) PollPullRequests(ctx context.Context) (int, error) {
 var taskLine = regexp.MustCompile(
 	`(?m)^Task: .*\((T-[0-9]+|[0-9a-fA-F-]{36})\)\s*$`)
 
-// mergedLinked moves to Testing the task of each recently merged pull request
+// mergedLinked moves the task of each recently merged pull request
 // that links one, whoever opened it. It leaves a task that has jobs (their own
 // pull requests are polled above), one a person has moved on, and one that is
 // not In review. A repeat does nothing, as the task has moved. The App's webhook
@@ -214,9 +215,22 @@ func (s *JobService) PullRequestClosed(ctx context.Context, pr PullRequestRef) e
 	return errors.Join(failures...)
 }
 
-// TestingAfterMerge moves to Testing each task a merged pull request links in its
-// body, under the same rules as the poll, and keeps the merge commit for the
-// deploy state. It reports whether a task moved.
+// afterMergeStatus is Done for work the agents found and fixed themselves, which
+// needs no person's check, and Testing for everything else.
+func afterMergeStatus(task *models.Task) models.Status {
+	for _, label := range task.Labels {
+		switch strings.ToLower(label) {
+		case "factory-retro", "factory-sandbox", "routine-feedback":
+			return models.StatusDone
+		}
+	}
+	return models.StatusTesting
+}
+
+// TestingAfterMerge moves each task a merged pull request links in its
+// body to Testing, or Done (see afterMergeStatus), under the same rules as the
+// poll, and keeps the merge commit for the deploy state. It reports whether a
+// task moved.
 func (s *JobService) TestingAfterMerge(
 	ctx context.Context,
 	pr PullRequestRef,
@@ -270,7 +284,7 @@ func (s *JobService) testingAfterMerge(
 	if len(jobs) > 0 {
 		return false, nil
 	}
-	if _, err = s.tasks.Move(ctx, id, models.StatusTesting); err != nil {
+	if _, err = s.tasks.Move(ctx, id, afterMergeStatus(task)); err != nil {
 		return false, err
 	}
 	body := "The pull request was merged: " + prURL
@@ -328,7 +342,7 @@ func (s *JobService) pullRequestEnded(
 	}
 	to, body := models.StatusNeedsYou, "The pull request was closed without merging: "
 	if status.State == githubapp.StateMerged {
-		to, body = models.StatusTesting, "The pull request was merged: "
+		to, body = afterMergeStatus(task), "The pull request was merged: "
 		err = s.tasks.SetMergeSHA(ctx, job.TaskID, status.MergeSHA)
 	}
 	// Move first: a failure after it loses a comment, where a failure before it
