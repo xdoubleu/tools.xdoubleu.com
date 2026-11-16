@@ -18,7 +18,8 @@ type FailureCounts struct {
 
 // FailureCounts counts open pull requests with failing CI, and the jobs that
 // finished since the given time without a pull request or with an outcome that
-// admits the work was not checked.
+// admits the work was not checked. Routine jobs are skipped: they open no pull
+// request by design.
 func (r *JobsRepository) FailureCounts(
 	ctx context.Context,
 	since, stuckBefore time.Time,
@@ -29,9 +30,10 @@ func (r *JobsRepository) FailureCounts(
 			(SELECT count(*) FROM factory.linked_pull_requests
 				WHERE state = 'open' AND ci = 'failing'),
 			(SELECT count(*) FROM factory.jobs
-				WHERE status = 'succeeded' AND pr_url = '' AND finished_at >= $1),
+				WHERE status = 'succeeded' AND pr_url = '' AND routine = ''
+				AND finished_at >= $1),
 			(SELECT count(*) FROM factory.jobs
-				WHERE finished_at >= $1
+				WHERE finished_at >= $1 AND routine = ''
 				AND (outcome ILIKE '%not verified%' OR outcome ILIKE '%could not run%')),
 			(SELECT count(*) FROM factory.linked_pull_requests
 				WHERE state = 'open' AND mergeable <> '' AND unmergeable_since < $2)`,

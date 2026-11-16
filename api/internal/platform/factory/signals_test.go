@@ -82,3 +82,30 @@ func TestTheFailureGaugesCountWhatNobodyPointsAt(t *testing.T) {
 	assert.Greater(t, gaugeValue(t, "factory_jobs_unverified_outcome"), unverified)
 	assert.Greater(t, gaugeValue(t, "factory_merged_tasks_undeployed"), undeployed)
 }
+
+func TestARoutineJobIsNotCountedAsLostWork(t *testing.T) {
+	env, _ := githubEnv(t)
+	ctx := context.Background()
+	env.saveRoutine(t, "signal-sweep", false, 0)
+	t.Cleanup(func() {
+		_, err := testDB.Exec(ctx, "DELETE FROM factory.jobs")
+		require.NoError(t, err)
+		_, err = testDB.Exec(ctx, "DELETE FROM factory.routines")
+		require.NoError(t, err)
+	})
+	require.NoError(t, env.app.CollectSignalsNow(ctx))
+	noPR := gaugeValue(t, "factory_jobs_finished_without_pr")
+	unverified := gaugeValue(t, "factory_jobs_unverified_outcome")
+
+	_, err := env.tasks.RunRoutine(ctx, &factoryv1.RunRoutineRequest{Name: "signal-sweep"})
+	require.NoError(t, err)
+	job := env.claim(t)
+	_, err = env.runner.CompleteJob(bearer(env.token), &factoryv1.CompleteJobRequest{
+		JobId: job.Id, Succeeded: true, Outcome: "Swept, not verified.",
+	})
+	require.NoError(t, err)
+	require.NoError(t, env.app.CollectSignalsNow(ctx))
+
+	assert.InDelta(t, noPR, gaugeValue(t, "factory_jobs_finished_without_pr"), 0)
+	assert.InDelta(t, unverified, gaugeValue(t, "factory_jobs_unverified_outcome"), 0)
+}
