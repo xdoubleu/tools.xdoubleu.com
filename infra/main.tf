@@ -299,7 +299,7 @@ resource "null_resource" "node_exporter" {
   depends_on = [null_resource.harden, null_resource.kamal_network]
 
   triggers = {
-    compose_hash  = filesha256("${path.module}/node-exporter-compose.yml")
+    compose_hash = filesha256("${path.module}/node-exporter-compose.yml")
     command_hash = sha256(local.compose_up)
   }
 
