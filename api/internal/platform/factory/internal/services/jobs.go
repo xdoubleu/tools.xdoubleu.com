@@ -348,8 +348,7 @@ func (s *JobService) Claim(
 	}
 	claimed := &ClaimedJob{Job: *job, Repo: *repo, MCPClientID: "", MCPClientSecret: "",
 		ResumeSessionID: resume}
-	// A routine's job has no task for an account to be confined to.
-	if s.accounts != nil && !job.IsRoutine() {
+	if s.accounts != nil {
 		if err = s.issueAccount(ctx, claimed, runnerID); err != nil {
 			return nil, err
 		}

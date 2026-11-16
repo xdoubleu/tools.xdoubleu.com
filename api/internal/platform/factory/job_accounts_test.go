@@ -355,3 +355,60 @@ func TestAJobAccountStaysConfinedAfterItsJobEnds(t *testing.T) {
 	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_BACKLOG,
 		env.task(t, other.Id).Task.Status)
 }
+
+func TestARoutineJobGetsAnAccountWithoutATaskScope(t *testing.T) {
+	env, accounts := accountsEnv(t)
+	env.saveRoutine(t, "sweep", false, 0)
+	t.Cleanup(func() {
+		_, err := testDB.Exec(context.Background(), "DELETE FROM factory.jobs")
+		require.NoError(t, err)
+		_, err = testDB.Exec(context.Background(), "DELETE FROM factory.routines")
+		require.NoError(t, err)
+	})
+	task := env.newTask(t, "on the board")
+	_, err := env.tasks.RunRoutine(context.Background(),
+		&factoryv1.RunRoutineRequest{Name: "sweep"})
+	require.NoError(t, err)
+	claimed := env.claim(t)
+	require.Equal(t, "sweep", claimed.Routine)
+	assert.NotEmpty(t, claimed.McpClientId)
+	assert.NotEmpty(t, claimed.McpClientSecret)
+	acc := accounts.of(t, claimed.Id)
+	assert.Equal(t, uuid.Nil, acc.taskID)
+
+	session := mcpSessionOn(t, env.app, &models.User{
+		ID: acc.userID, Email: "job@agent.invalid", Role: models.RoleAgent,
+		AppAccess: []string{"factory"}, WriteAccess: []string{"factory"},
+		HasMFA: false, DisplayName: "",
+	})
+
+	// It reads and comments across the board and files a Backlog task...
+	list, err := callTool(t, session, "factory_list_tasks", map[string]any{})
+	require.NoError(t, err)
+	tasks, ok := list["tasks"].([]any)
+	require.True(t, ok)
+	ids := []string{}
+	for i := range tasks {
+		ids = append(ids, str(t, tasks[i], "id"))
+	}
+	assert.Contains(t, ids, task.Id)
+	assert.Greater(t, len(ids), 1, "a routine sees the board, not one task")
+	_, err = callTool(t, session, "factory_comment_task",
+		map[string]any{"task_id": task.Id, "body": "Seen again."})
+	require.NoError(t, err)
+	made, err := callTool(t, session, "factory_create_task", map[string]any{
+		"repo_id": seededRepoID(t), "title": "Found by the sweep",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "TASK_STATUS_BACKLOG", str(t, made, "task", "status"))
+
+	// ...but doesn't move or edit tasks, or touch routines.
+	for name, args := range map[string]map[string]any{
+		"factory_move_task":   {"id": task.Id, "status": "done"},
+		"factory_update_task": {"id": task.Id, "title": "Renamed"},
+		"factory_run_routine": {"name": "sweep"},
+	} {
+		_, err = callTool(t, session, name, args)
+		require.Error(t, err, name)
+	}
+}

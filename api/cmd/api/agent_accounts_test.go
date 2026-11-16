@@ -10,6 +10,7 @@ import (
 
 	"connectrpc.com/connect/v2"
 	"connectrpc.com/connect/v2/connecthttp"
+	"github.com/google/uuid"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -20,6 +21,7 @@ import (
 	factoryv1 "tools.xdoubleu.com/gen/factory/v1"
 	"tools.xdoubleu.com/gen/factory/v1/factoryv1connect"
 	"tools.xdoubleu.com/internal/models"
+	"tools.xdoubleu.com/internal/platform/agentaccounts"
 	"tools.xdoubleu.com/internal/platform/oauth2as"
 )
 
@@ -331,4 +333,52 @@ func TestAgentUser_AdminGrantsAndRevokesAppAccess(t *testing.T) {
 		UserId: account.UserId, AppName: "books", Level: "read",
 	})
 	assert.Equal(t, connect.CodePermissionDenied, connect.CodeOf(err))
+}
+
+// A routine job's account lists the observability tools it needs and calls
+// resolve_sentry_issue past the gate; a task job's account sees neither.
+func TestAgentAccount_OnlyARoutineJobSeesTheObservabilityTools(t *testing.T) {
+	store := agentaccounts.NewStore(testApp.db, testApp.auth.InvalidateUserCache)
+	ctx := context.Background()
+	toolsOf := func(scope agentaccounts.Scope) (*mcp.ClientSession, []string) {
+		account, secret, err := store.CreateForJob(ctx, "system:factory", "job", scope)
+		require.NoError(t, err)
+		t.Cleanup(func() { _ = store.RevokeForJob(ctx, scope.JobID) })
+		token, status := agentToken(t, account.ClientID, secret)
+		require.Equal(t, http.StatusOK, status)
+		session := appsMCPSession(t, token)
+		list, err := session.ListTools(ctx, nil)
+		require.NoError(t, err)
+		names := []string{}
+		for _, tool := range list.Tools {
+			names = append(names, tool.Name)
+		}
+		return session, names
+	}
+
+	routine, routineTools := toolsOf(agentaccounts.Scope{
+		JobID: uuid.New(), TaskID: uuid.Nil,
+	})
+	_, taskTools := toolsOf(agentaccounts.Scope{JobID: uuid.New(), TaskID: uuid.New()})
+
+	for _, name := range []string{
+		"get_grafana_alerts", "get_sentry_issues", "get_failing_pull_requests",
+		"get_workflow_runs", "get_security_alerts", "get_storage_stats",
+		"prom_query", "resolve_sentry_issue",
+	} {
+		assert.Contains(t, routineTools, name)
+		assert.NotContains(t, taskTools, name)
+	}
+	assert.NotContains(t, routineTools, "dismiss_security_alert")
+	assert.Subset(t, routineTools, taskTools)
+
+	_, err := routine.CallTool(ctx, toolCall("dismiss_security_alert"))
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "unknown tool")
+	// An allowed tool passes the gate; any failure is the tool's own.
+	_, err = routine.CallTool(ctx, toolCall("get_storage_stats"))
+	if err != nil {
+		assert.NotContains(t, err.Error(), "unknown tool")
+		assert.NotContains(t, err.Error(), "admin access required")
+	}
 }

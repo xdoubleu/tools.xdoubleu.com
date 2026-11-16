@@ -59,7 +59,7 @@ func registerGrafanaAlertsMCPTool(srv *mcp.Server, deps *Deps) {
 		_ *mcp.CallToolRequest,
 		args grafanaAlertsArgs,
 	) (*mcp.CallToolResult, any, error) {
-		if err := RequireObservability(ctx); err != nil {
+		if err := RequireObservability(ctx, "get_grafana_alerts"); err != nil {
 			return nil, nil, err
 		}
 		body, err := GrafanaAlerts(
