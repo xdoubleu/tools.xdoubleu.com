@@ -53,10 +53,8 @@ type pullRequestEvent struct {
 	} `json:"pull_request"`
 }
 
-// githubWebhook links the tasks a pull request names and moves them: In review
-// while it is open, Testing once it merges; a close without a merge only leaves a
-// comment. The signature is the only authentication; other events are
-// acknowledged and ignored.
+// githubWebhook handles pull request and workflow run events. The signature is
+// the only authentication; other events are acknowledged and ignored.
 func (a *Factory) githubWebhook(w http.ResponseWriter, r *http.Request) {
 	if a.webhookSecret == "" {
 		http.Error(w, "not configured", http.StatusServiceUnavailable)
@@ -72,11 +70,72 @@ func (a *Factory) githubWebhook(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
-	if r.Header.Get("X-GitHub-Event") != "pull_request" {
+	switch r.Header.Get("X-GitHub-Event") {
+	case "pull_request":
+		a.pullRequestWebhook(w, r, body)
+	case "workflow_run":
+		a.workflowRunWebhook(w, r, body)
+	default:
+		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
+type workflowRunEvent struct {
+	Action      string `json:"action"`
+	WorkflowRun struct {
+		Conclusion string `json:"conclusion"`
+		HeadBranch string `json:"head_branch"`
+		Actor      struct {
+			Type string `json:"type"`
+		} `json:"actor"`
+	} `json:"workflow_run"`
+	Repository struct {
+		Name  string `json:"name"`
+		Owner struct {
+			Login string `json:"login"`
+		} `json:"owner"`
+	} `json:"repository"`
+}
+
+// workflowRunWebhook queues red-pr-repair when a CI run fails.
+func (a *Factory) workflowRunWebhook(
+	w http.ResponseWriter,
+	r *http.Request,
+	body []byte,
+) {
+	var event workflowRunEvent
+	if err := json.Unmarshal(body, &event); err != nil {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+	run := event.WorkflowRun
+	if event.Action != "completed" || run.Conclusion != "failure" {
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
+	_, err := a.services.Jobs.QueueRedPRRepair(r.Context(), services.FailedRun{
+		Owner: event.Repository.Owner.Login, Name: event.Repository.Name,
+		Branch: run.HeadBranch, ByBot: run.Actor.Type == "Bot",
+	})
+	if err != nil {
+		a.Logger.ErrorContext(r.Context(), "github webhook: queueing red-pr-repair failed",
+			"error", err, "branch", run.HeadBranch)
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// pullRequestWebhook links the tasks a pull request names and moves them: In
+// review while it is open, Testing once it merges; a close without a merge only
+// leaves a comment.
+func (a *Factory) pullRequestWebhook(
+	w http.ResponseWriter,
+	r *http.Request,
+	body []byte,
+) {
 	var event pullRequestEvent
+	var err error
 	if err = json.Unmarshal(body, &event); err != nil {
 		http.Error(w, "bad request", http.StatusBadRequest)
 		return

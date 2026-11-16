@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -218,4 +219,52 @@ func (s *JobService) endRoutine(
 		s.say.say(ctx, ":x: Routine "+job.Routine+" failed: "+
 			slack.Escape(firstLine(outcome)))
 	}
+}
+
+// githubAuthor is who a job a GitHub event queued is attributed to.
+const githubAuthor = "system:github"
+
+// RedPRRoutine is the routine a failed CI run queues.
+const RedPRRoutine = "red-pr-repair"
+
+// FailedRun is a CI run that finished red, from a workflow_run event.
+type FailedRun struct {
+	Owner, Name string
+	Branch      string
+	ByBot       bool
+}
+
+// QueueRedPRRepair queues red-pr-repair for a failed run on its repo's default
+// branch, on a branch with the repo's red-PR prefix, or started by a bot. The
+// routine must be enabled, its approval. A job already queued or running absorbs
+// the event. It reports whether a job was queued.
+func (s *JobService) QueueRedPRRepair(
+	ctx context.Context,
+	run FailedRun,
+) (bool, error) {
+	routine, err := s.routines.Get(ctx, RedPRRoutine)
+	if errors.Is(err, database.ErrResourceNotFound) {
+		return false, nil
+	}
+	if err != nil || !routine.Enabled {
+		return false, err
+	}
+	repo, err := s.repos.Get(ctx, routine.RepoID)
+	if err != nil {
+		return false, err
+	}
+	if !strings.EqualFold(repo.Owner, run.Owner) ||
+		!strings.EqualFold(repo.Name, run.Name) {
+		return false, nil
+	}
+	prefixed := repo.RedPRBranchPrefix != "" &&
+		strings.HasPrefix(run.Branch, repo.RedPRBranchPrefix)
+	if run.Branch != repo.DefaultBranch && !prefixed && !run.ByBot {
+		return false, nil
+	}
+	_, err = s.queueRoutine(ctx, routine, githubAuthor)
+	if isConflict(err) {
+		return false, nil
+	}
+	return err == nil, err
 }
