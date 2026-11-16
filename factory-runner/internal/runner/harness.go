@@ -50,16 +50,17 @@ func (ClaudeCode) Command() []string {
 const ClaudeConfigSeed = "/opt/claude-config"
 
 // claudeStart seeds the config once, then, when the sandbox has a proxy, points Claude
-// at it: the API through /anthropic and the board's MCP server through /mcp with no
-// credential (the host adds it).
+// at it: the API through /anthropic and the board's and PostHog's MCP servers
+// through /mcp and /posthog with no credential (the host adds it).
 const claudeStart = `[ -e "$CLAUDE_CONFIG_DIR/.seeded" ] || ` +
 	`{ cp -R "$CLAUDE_CONFIG_SEED/." "$CLAUDE_CONFIG_DIR/" && ` +
 	`touch "$CLAUDE_CONFIG_DIR/.seeded"; } || exit 1
 if [ -n "${FACTORY_PROXY:-}" ]; then
   export ANTHROPIC_BASE_URL="$FACTORY_PROXY/anthropic"
   mcp="$HOME/factory-mcp.json"
-  printf '{"mcpServers":{"board":{"type":"http","url":"%s/mcp"}}}\n' ` +
-	`"$FACTORY_PROXY" > "$mcp" || exit 1
+  printf '{"mcpServers":{"board":{"type":"http","url":"%s/mcp"},` +
+	`"posthog":{"type":"http","url":"%s/posthog"}}}\n' ` +
+	`"$FACTORY_PROXY" "$FACTORY_PROXY" > "$mcp" || exit 1
   exec "$@" --mcp-config "$mcp"
 fi
 exec "$@"`
@@ -192,13 +193,14 @@ type OpenCode struct {
 
 // openCodePrelude writes the job's OpenCode config when the sandbox has a proxy:
 // OpenRouter through /openrouter (the model is declared, as the catalogue needs the
-// network) and the board's MCP server through /mcp. The model id is validated, so it
-// is safe inside the JSON string.
+// network), and the board's and PostHog's MCP servers through /mcp and /posthog.
+// The model id is validated, so it is safe inside the JSON string.
 const openCodePrelude = `if [ -n "${FACTORY_PROXY:-}" ]; then
   cfg="$HOME/opencode-job.json"
   printf '{"provider":{"openrouter":{"options":{"baseURL":"%s/openrouter/v1"},` +
-	`"models":{"%s":{}}}},"mcp":{"board":{"type":"remote","url":"%s/mcp"}}}\n' ` +
-	`"$FACTORY_PROXY" "$1" "$FACTORY_PROXY" > "$cfg" || exit 1
+	`"models":{"%s":{}}}},"mcp":{"board":{"type":"remote","url":"%s/mcp"},` +
+	`"posthog":{"type":"remote","url":"%s/posthog"}}}\n' ` +
+	`"$FACTORY_PROXY" "$1" "$FACTORY_PROXY" "$FACTORY_PROXY" > "$cfg" || exit 1
   export OPENCODE_CONFIG="$cfg"
 fi
 `

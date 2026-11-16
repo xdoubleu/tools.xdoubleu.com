@@ -21,6 +21,7 @@ const (
 
 	anthropicURL  = "https://api.anthropic.com"
 	openRouterURL = "https://openrouter.ai/api"
+	postHogURL    = "https://mcp.posthog.com/mcp"
 	goProxyURL    = "https://proxy.golang.org"
 	npmURL        = "https://registry.npmjs.org"
 
@@ -35,18 +36,20 @@ type EgressConfig struct {
 	// Server is the API root, like Config.Server; the board's MCP endpoint is
 	// <Server>/apps/mcp.
 	Server string
-	// MCPToken and OpenRouterKey return the credential to add. A nil one leaves
-	// its route out: the VM then cannot reach that service at all.
+	// MCPToken, OpenRouterKey and PostHogKey return the credential to add. A nil
+	// one leaves its route out: the VM then cannot reach that service at all.
 	MCPToken      func(ctx context.Context) (string, error)
 	OpenRouterKey func() (string, error)
+	PostHogKey    func() (string, error)
 	// MCPRejected, when set, is called when the board answers 401, so a token it
 	// revoked early is not served again.
 	MCPRejected func()
 	// Transport is how the upstream is reached; nil means a TLS default.
 	Transport http.RoundTripper
-	// Anthropic and OpenRouter override the upstream bases, for tests.
+	// Anthropic, OpenRouter and PostHog override the upstream bases, for tests.
 	Anthropic  string
 	OpenRouter string
+	PostHog    string
 	GoProxy    string
 	NPM        string
 	Log        *slog.Logger
@@ -79,6 +82,14 @@ type EgressProxy struct {
 
 type authKey struct{}
 
+// bearer turns a stored key into a route's Authorization.
+func bearer(key func() (string, error)) func(context.Context) (string, error) {
+	return func(context.Context) (string, error) {
+		k, err := key()
+		return "Bearer " + k, err
+	}
+}
+
 // NewEgressProxy builds the proxy for one job.
 func NewEgressProxy(cfg EgressConfig) (*EgressProxy, error) {
 	p := &EgressProxy{routes: nil, rp: nil, log: cfg.Log}
@@ -102,14 +113,20 @@ func NewEgressProxy(cfg EgressConfig) (*EgressProxy, error) {
 		orDefault(cfg.Anthropic, anthropicURL), nil, nil); err != nil {
 		return nil, err
 	}
-	if cfg.OpenRouterKey != nil {
-		key := cfg.OpenRouterKey
-		err := add("openrouter", "/openrouter/", false,
-			orDefault(cfg.OpenRouter, openRouterURL),
-			func(context.Context) (string, error) {
-				k, err := key()
-				return "Bearer " + k, err
-			}, nil)
+	// Third-party services: the stored key replaces the VM's placeholder.
+	for _, svc := range []struct {
+		name, prefix, base string
+		exact              bool
+		key                func() (string, error)
+	}{
+		{"openrouter", "/openrouter/", orDefault(cfg.OpenRouter, openRouterURL),
+			false, cfg.OpenRouterKey},
+		{"posthog", "/posthog", orDefault(cfg.PostHog, postHogURL), true, cfg.PostHogKey},
+	} {
+		if svc.key == nil {
+			continue
+		}
+		err := add(svc.name, svc.prefix, svc.exact, svc.base, bearer(svc.key), nil)
 		if err != nil {
 			return nil, err
 		}

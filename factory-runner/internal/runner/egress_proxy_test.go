@@ -49,10 +49,12 @@ func proxyFor(
 		Server:        up.srv.URL,
 		MCPToken:      func(context.Context) (string, error) { return "mcp-token", nil },
 		OpenRouterKey: func() (string, error) { return "real-or-key", nil },
+		PostHogKey:    func() (string, error) { return "real-ph-key", nil },
 		MCPRejected:   nil,
 		Transport:     nil,
 		Anthropic:     up.srv.URL,
-		OpenRouter:    up.srv.URL + "/api", GoProxy: "", NPM: "",
+		OpenRouter:    up.srv.URL + "/api", PostHog: up.srv.URL + "/mcp",
+		GoProxy: "", NPM: "",
 		Log: nil,
 	}
 	if mutate != nil {
@@ -226,8 +228,9 @@ func TestResponsesStreamAsTheyArrive(t *testing.T) {
 	up := httptest.NewServer(http.HandlerFunc(events))
 	defer up.Close()
 	p, err := runner.NewEgressProxy(runner.EgressConfig{
-		Server: "", MCPToken: nil, OpenRouterKey: nil, MCPRejected: nil,
-		Transport: nil, Anthropic: up.URL, OpenRouter: "", GoProxy: "", NPM: "", Log: nil,
+		Server: "", MCPToken: nil, OpenRouterKey: nil, PostHogKey: nil, MCPRejected: nil,
+		Transport: nil, Anthropic: up.URL, OpenRouter: "", PostHog: "",
+		GoProxy: "", NPM: "", Log: nil,
 	})
 	require.NoError(t, err)
 	front := httptest.NewServer(p)
@@ -248,8 +251,8 @@ func TestResponsesStreamAsTheyArrive(t *testing.T) {
 
 func TestABadUpstreamBaseIsRejectedWhenBuildingTheProxy(t *testing.T) {
 	_, err := runner.NewEgressProxy(runner.EgressConfig{
-		Server: "", MCPToken: nil, OpenRouterKey: nil, MCPRejected: nil,
-		Transport: nil, Anthropic: "not a url", OpenRouter: "", GoProxy: "",
+		Server: "", MCPToken: nil, OpenRouterKey: nil, PostHogKey: nil, MCPRejected: nil,
+		Transport: nil, Anthropic: "not a url", OpenRouter: "", PostHog: "", GoProxy: "",
 		NPM: "", Log: nil,
 	})
 	require.ErrorContains(t, err, "bad upstream")
@@ -342,4 +345,26 @@ func TestRegistriesAreReadOnlyRoutesToTheirFixedUpstreams(t *testing.T) {
 		}
 		assert.Nil(t, up.got, "a write never reaches a registry")
 	}
+}
+
+func TestPostHogGetsTheRealKeyOnItsOneEndpoint(t *testing.T) {
+	p, up := proxyFor(t, nil)
+
+	rec := do(t, p, http.MethodPost, "/posthog", `{"jsonrpc":"2.0"}`,
+		map[string]string{"Authorization": "Bearer from-the-vm"})
+
+	require.Equal(t, http.StatusOK, rec.Code)
+	assert.Equal(t, "/mcp", up.got.URL.Path)
+	assert.Equal(t, "Bearer real-ph-key", up.got.Header.Get("Authorization"))
+	for _, other := range []string{"/posthog/", "/posthog/api/projects", "/posthogx"} {
+		assert.Equal(t, http.StatusForbidden,
+			do(t, p, http.MethodPost, other, "{}", nil).Code, other)
+	}
+}
+
+func TestWithoutAPostHogKeyThereIsNoPostHogRoute(t *testing.T) {
+	p, _ := proxyFor(t, func(c *runner.EgressConfig) { c.PostHogKey = nil })
+
+	assert.Equal(t, http.StatusForbidden,
+		do(t, p, http.MethodPost, "/posthog", "{}", nil).Code)
 }

@@ -104,6 +104,8 @@ func TestClaudeIsPointedAtTheProxyAndTheBoardThroughIt(t *testing.T) {
 	assert.Equal(t, "http", mcp.Servers["board"].Type)
 	assert.Equal(t, proxyURL+"/mcp", mcp.Servers["board"].URL)
 	assert.Empty(t, mcp.Servers["board"].Headers, "the host adds the credential")
+	assert.Equal(t, "http", mcp.Servers["posthog"].Type)
+	assert.Equal(t, proxyURL+"/posthog", mcp.Servers["posthog"].URL)
 }
 
 func TestAResumedClaudeJobKeepsItsResumeFlagAndGetsTheSameConfig(t *testing.T) {
@@ -156,6 +158,8 @@ func TestOpenCodeIsPointedAtOpenRouterAndTheBoardThroughTheProxy(t *testing.T) {
 	assert.Contains(t, cfg.Provider["openrouter"].Models, "vendor/model:free")
 	assert.Equal(t, "remote", cfg.MCP["board"].Type)
 	assert.Equal(t, proxyURL+"/mcp", cfg.MCP["board"].URL)
+	assert.Equal(t, "remote", cfg.MCP["posthog"].Type)
+	assert.Equal(t, proxyURL+"/posthog", cfg.MCP["posthog"].URL)
 	assert.Contains(t, strings.Join(got.args, " "), "-m openrouter/vendor/model:free")
 }
 

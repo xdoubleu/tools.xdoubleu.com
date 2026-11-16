@@ -16,7 +16,8 @@ var errConfigUsage = errors.New(
 	"usage: factory-runner config show | mode off|claude | server <url> | " +
 		"repos add|remove <owner/name> | repos list | image <ref> | max-jobs <n> | " +
 		"on-limit wait|fallback | " +
-		"data|gocache|npmcache <dir> | bot-email <address> | secret claude|openrouter",
+		"data|gocache|npmcache <dir> | bot-email <address> | " +
+		"secret claude|openrouter|posthog",
 )
 
 func (a *app) config(args []string) error {

@@ -41,7 +41,7 @@ const usage = `usage:
   factory-runner config image <ref>
   factory-runner config data|gocache|npmcache <dir>
   factory-runner config bot-email <address>
-  factory-runner config secret claude|openrouter   (the value is read from stdin)
+  factory-runner config secret claude|openrouter|posthog  (value read from stdin)
   factory-runner version
 `
 
