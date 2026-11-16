@@ -14,10 +14,14 @@ modules:
       tls_config:
         server_name: tools.xdoubleu.com
         insecure_skip_verify: true
-  # Through Cloudflare, as users see it.
+  # Through Cloudflare, as users see it. IPv4 only: the kamal network has no
+  # IPv6, so a Cloudflare AAAA answer made the probe fail in ~2ms (status 0)
+  # while the site was up. The origin probe targets an IPv4 literal.
   edge:
     prober: http
     timeout: 10s
     http:
       method: GET
+      preferred_ip_protocol: ip4
+      ip_protocol_fallback: false
       fail_if_not_ssl: true

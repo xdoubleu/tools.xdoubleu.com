@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useRef } from 'react'
 import { CalendarPlus } from 'lucide-react'
 import { formatMealDate, MEAL_SLOTS } from '@/lib/mealplans/mealPlanCalendar'
 import type { PlanMeal } from '@/lib/gen/mealplans/v1/mealplans_pb'
@@ -52,6 +52,14 @@ export default function MealPlanWeekGrid({
   onMealFocused
 }: MealPlanWeekGridProps) {
   const today = formatMealDate(new Date())
+  const todayRef = useRef<HTMLDivElement>(null)
+  const weekStart = formatMealDate(weekDates[0])
+
+  // A phone stacks seven day cards; bring today into view instead of starting at Monday.
+  useEffect(() => {
+    const el = todayRef.current
+    if (el && el.offsetParent !== null) el.scrollIntoView?.({ block: 'start' })
+  }, [weekStart])
 
   const renderCell = (formattedDate: string, slot: string) => {
     const meals = getMealsForSlot(formattedDate, slot)
@@ -64,7 +72,8 @@ export default function MealPlanWeekGrid({
           'min-h-12 min-w-0 shadow-none sm:min-h-14',
           swappingMeal && 'border-dashed border-accent/50 bg-accent/5 hover:bg-accent/10'
         )}
-        onClick={() => onCellClick(formattedDate, slot)}
+        // Taps between chips must not open the add form; only the + button does.
+        onClick={hasMeals && !swappingMeal ? undefined : () => onCellClick(formattedDate, slot)}
       >
         <div className="flex h-full min-h-12 flex-col justify-center gap-1 sm:min-h-14 sm:justify-start sm:p-1.5">
           {meals.map((meal) => (
@@ -124,33 +133,37 @@ export default function MealPlanWeekGrid({
             const formattedDate = formatMealDate(date)
             const isToday = formattedDate === today
             return (
-              <Card key={formattedDate} padding="sm" className="shadow-none">
-                <div className="-mt-1.5 mb-1.5 flex items-center justify-between gap-2">
-                  <div className={cn('text-sm font-semibold', isToday ? 'text-accent' : 'text-fg')}>
-                    {DAY_NAMES[date.getDay()]} {date.getDate()}
-                    {isToday && <span className="ml-1 text-xs font-normal">(today)</span>}
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    aria-label="Fill day"
-                    className="text-muted"
-                    onClick={() => onFillDay(formattedDate)}
-                  >
-                    <CalendarPlus className="h-4 w-4" aria-hidden />
-                  </Button>
-                </div>
-                <div className="space-y-1">
-                  {MEAL_SLOTS.map((slot) => (
-                    <div key={slot} className="flex gap-2">
-                      <span className="w-16 shrink-0 pt-4 text-xs font-medium text-muted">
-                        {slotLabel(slot)}
-                      </span>
-                      <div className="flex-1">{renderCell(formattedDate, slot)}</div>
+              <div key={formattedDate} ref={isToday ? todayRef : undefined} className="scroll-mt-4">
+                <Card padding="sm" className="shadow-none">
+                  <div className="-mt-1.5 mb-1.5 flex items-center justify-between gap-2">
+                    <div
+                      className={cn('text-sm font-semibold', isToday ? 'text-accent' : 'text-fg')}
+                    >
+                      {DAY_NAMES[date.getDay()]} {date.getDate()}
+                      {isToday && <span className="ml-1 text-xs font-normal">(today)</span>}
                     </div>
-                  ))}
-                </div>
-              </Card>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label="Fill day"
+                      className="text-muted"
+                      onClick={() => onFillDay(formattedDate)}
+                    >
+                      <CalendarPlus className="h-4 w-4" aria-hidden />
+                    </Button>
+                  </div>
+                  <div className="space-y-1">
+                    {MEAL_SLOTS.map((slot) => (
+                      <div key={slot} className="flex gap-2">
+                        <span className="w-16 shrink-0 pt-4 text-xs font-medium text-muted">
+                          {slotLabel(slot)}
+                        </span>
+                        <div className="flex-1">{renderCell(formattedDate, slot)}</div>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              </div>
             )
           })}
         </div>
