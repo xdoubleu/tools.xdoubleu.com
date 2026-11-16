@@ -588,6 +588,7 @@ func (s *JobService) ExpireLost(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	var failures []error
 	for i := range lost {
 		if lost[i].IsRoutine() {
 			s.say.say(ctx, ":x: Routine "+lost[i].Routine+
@@ -596,17 +597,11 @@ func (s *JobService) ExpireLost(ctx context.Context) error {
 		}
 		body := "Job lost: the runner stopped checking in. Its branch `" +
 			lost[i].Branch + "` may hold partial work on the Mac."
-		task, getErr := s.tasks.Get(ctx, lost[i].TaskID)
-		if getErr != nil {
-			return getErr
-		}
-		if err = s.settle(ctx, task, &lost[i], body); err != nil {
-			return err
-		}
+		failures = append(failures, s.settleLost(ctx, &lost[i], body))
 		s.say.say(ctx, ":x: A job was lost on "+s.taskLink(ctx, lost[i].TaskID)+
 			": the runner stopped checking in.")
 	}
-	return nil
+	return errors.Join(failures...)
 }
 
 // autoPickupAuthor is who a job queued by auto pickup is attributed to.

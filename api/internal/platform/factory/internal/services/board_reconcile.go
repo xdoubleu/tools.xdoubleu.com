@@ -50,6 +50,19 @@ func (s *JobService) livePR(
 	return &status
 }
 
+// settleLost settles the task of a lost job.
+func (s *JobService) settleLost(
+	ctx context.Context,
+	job *models.Job,
+	body string,
+) error {
+	task, err := s.tasks.Get(ctx, job.TaskID)
+	if err != nil {
+		return err
+	}
+	return s.settle(ctx, task, job, body)
+}
+
 // settle moves a task that has lost its job (last, nil when it has none) to where
 // its work stands, commenting body: Testing for a merged pull request, In review
 // for an open one, else back to work on the same branch, and Needs you only when
