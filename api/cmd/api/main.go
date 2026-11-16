@@ -39,7 +39,6 @@ import (
 	"tools.xdoubleu.com/internal/platform/reposignals"
 	platformrepositories "tools.xdoubleu.com/internal/platform/repositories"
 	"tools.xdoubleu.com/internal/platform/sentryapi"
-	"tools.xdoubleu.com/internal/platform/zitadel"
 )
 
 //go:embed migrations/*.sql
@@ -92,9 +91,7 @@ type Application struct {
 	weeklyDigestJob               *jobs.WeeklyDigestJob
 	logPruneJob                   *jobs.LogPruneJob
 	loginFailurePruneJob          *auth.LoginFailurePruneJob
-	// importJob is nil unless the provider's user API is configured.
-	importJob      *auth.ImportJob
-	globalJobQueue *jobqueue.JobQueue
+	globalJobQueue                *jobqueue.JobQueue
 }
 
 // accountDeps builds the account module's Deps from the wiring Application
@@ -442,19 +439,6 @@ func newWeeklyDigestJob(
 	)
 }
 
-// newImportJob is nil unless the provider's user API is configured.
-func newImportJob(
-	cfg config.Config,
-	repo *auth.Repository,
-	sealer *crypto.Sealer,
-) *auth.ImportJob {
-	client := zitadel.New(cfg)
-	if client == nil {
-		return nil
-	}
-	return auth.NewImportJob(repo, client, sealer)
-}
-
 // startCrossAppJobs registers the jobs on app.globalJobQueue.
 func startCrossAppJobs(app *Application) error {
 	noopCallback := func(_ string, _ bool, _ *time.Time) {}
@@ -473,13 +457,6 @@ func startCrossAppJobs(app *Application) error {
 		observability.NewTrackedJob(app.weeklyDigestJob, app.db), noopCallback,
 	); err != nil {
 		return err
-	}
-	if app.importJob != nil {
-		if err := app.globalJobQueue.AddJob(
-			observability.NewTrackedJob(app.importJob, app.db), noopCallback,
-		); err != nil {
-			return err
-		}
 	}
 	if err := app.globalJobQueue.AddJob(
 		observability.NewTrackedJob(app.logPruneJob, app.db), noopCallback,
@@ -530,9 +507,6 @@ func NewApplication(
 	) {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 	}
-
-	authSvc.OIDC = newOIDCProvider(config)
-	authSvc.Directory = newDirectory(config)
 
 	notificationsSvc := newNotificationsService(ctx, logger, config)
 	familySvc := family.New(
@@ -616,7 +590,6 @@ func NewApplication(
 	)
 	app.logPruneJob = jobs.NewLogPruneJob(logsRepo)
 	app.loginFailurePruneJob = auth.NewLoginFailurePruneJob(authRepo)
-	app.importJob = newImportJob(config, authRepo, authSealer)
 
 	err = app.ApplyMigrations(db)
 	if err != nil {
