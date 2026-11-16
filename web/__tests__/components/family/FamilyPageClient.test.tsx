@@ -5,12 +5,10 @@ const inviteToFamily = vi.fn().mockResolvedValue({})
 const acceptFamilyInvite = vi.fn().mockResolvedValue({})
 const declineFamilyInvite = vi.fn().mockResolvedValue({})
 const leaveFamily = vi.fn().mockResolvedValue({})
-const setFamilyDisplayName = vi.fn().mockResolvedValue({})
 
 let mockData: {
   members: { userId: string; email: string; displayName?: string }[]
   incomingInvite?: { id?: string; fromUserId: string; fromEmail: string } | undefined
-  selfDisplayName?: string
 } = { members: [], incomingInvite: undefined }
 let mockIsLoading = false
 let mockError: Error | undefined
@@ -24,7 +22,6 @@ vi.mock('@/hooks/useFamily', () => ({
   useInviteToFamily: () => inviteToFamily,
   useAcceptFamilyInvite: () => acceptFamilyInvite,
   useDeclineFamilyInvite: () => declineFamilyInvite,
-  useSetFamilyDisplayName: () => setFamilyDisplayName,
   useLeaveFamily: () => leaveFamily
 }))
 
@@ -115,30 +112,6 @@ describe('FamilyPageClient', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Decline' }))
     await waitFor(() => expect(declineFamilyInvite).toHaveBeenCalled())
-  })
-
-  it('saves your display name', async () => {
-    mockData = { members: [], incomingInvite: undefined, selfDisplayName: 'Old' }
-    render(<FamilyPageClient />)
-    fireEvent.change(screen.getByPlaceholderText('Your name'), {
-      target: { value: 'New name' }
-    })
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
-    await waitFor(() => expect(setFamilyDisplayName).toHaveBeenCalledWith('New name'))
-  })
-
-  it('locks the name save until the name changed, and shows progress while saving', async () => {
-    mockData = { members: [], incomingInvite: undefined, selfDisplayName: 'Old' }
-    let resolve!: () => void
-    setFamilyDisplayName.mockReturnValueOnce(new Promise<void>((r) => (resolve = r)))
-    render(<FamilyPageClient />)
-    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled()
-    fireEvent.change(screen.getByPlaceholderText('Your name'), { target: { value: ' Old ' } })
-    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled()
-    fireEvent.change(screen.getByPlaceholderText('Your name'), { target: { value: 'New' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
-    expect(await screen.findByRole('button', { name: 'Saving…' })).toBeDisabled()
-    await act(async () => resolve())
   })
 
   it('shows progress while an invite is sent', async () => {

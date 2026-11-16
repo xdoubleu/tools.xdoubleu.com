@@ -63,11 +63,21 @@ type Actor struct {
 	// Browser is true for a cookie session from the web app.
 	Browser bool
 	Admin   bool
+	// Via names the job an agent account runs for, for notices; empty otherwise.
+	Via string
 }
 
 // String is the "<kind>:<id>" form stored in created_by and author columns.
 func (a Actor) String() string {
 	return string(a.Kind) + ":" + a.ID
+}
+
+// Name is the actor for a notice: its id, and the job it acts for when it has one.
+func (a Actor) Name() string {
+	if a.Via == "" {
+		return a.String()
+	}
+	return a.String() + " (" + a.Via + ")"
 }
 
 // Channel is how the actor authenticated, stored beside edits.

@@ -31,7 +31,13 @@ func TestPriorityValid(t *testing.T) {
 }
 
 func TestActorString(t *testing.T) {
-	a := models.Actor{Kind: models.ActorHuman, ID: "u1", Browser: true, Admin: true}
+	a := models.Actor{
+		Kind:    models.ActorHuman,
+		ID:      "u1",
+		Browser: true,
+		Admin:   true,
+		Via:     "",
+	}
 	assert.Equal(t, "human:u1", a.String())
 }
 
@@ -39,17 +45,35 @@ func TestActorChannel(t *testing.T) {
 	assert.Equal(
 		t,
 		"browser",
-		models.Actor{Kind: "", ID: "", Browser: true, Admin: false}.Channel(),
+		models.Actor{
+			Kind:    "",
+			ID:      "",
+			Browser: true,
+			Admin:   false,
+			Via:     "",
+		}.Channel(),
 	)
 	assert.Equal(
 		t,
 		"other",
-		models.Actor{Kind: "", ID: "", Browser: false, Admin: false}.Channel(),
+		models.Actor{
+			Kind:    "",
+			ID:      "",
+			Browser: false,
+			Admin:   false,
+			Via:     "",
+		}.Channel(),
 	)
 }
 
 func TestCanMoveToReadyNeedsHumanAdminInBrowser(t *testing.T) {
-	ok := models.Actor{Kind: models.ActorHuman, ID: "u", Browser: true, Admin: true}
+	ok := models.Actor{
+		Kind:    models.ActorHuman,
+		ID:      "u",
+		Browser: true,
+		Admin:   true,
+		Via:     "",
+	}
 	assert.True(t, ok.CanMoveToReady())
 
 	noBrowser := ok
@@ -66,10 +90,22 @@ func TestCanMoveToReadyNeedsHumanAdminInBrowser(t *testing.T) {
 }
 
 func TestCanManageRoutinesAddsAgentsToWhoMayMoveToReady(t *testing.T) {
-	admin := models.Actor{Kind: models.ActorHuman, ID: "u", Browser: true, Admin: true}
+	admin := models.Actor{
+		Kind:    models.ActorHuman,
+		ID:      "u",
+		Browser: true,
+		Admin:   true,
+		Via:     "",
+	}
 	assert.True(t, admin.CanManageRoutines())
 
-	agent := models.Actor{Kind: models.ActorAgent, ID: "a", Browser: false, Admin: false}
+	agent := models.Actor{
+		Kind:    models.ActorAgent,
+		ID:      "a",
+		Browser: false,
+		Admin:   false,
+		Via:     "",
+	}
 	assert.True(t, agent.CanManageRoutines())
 	assert.False(t, agent.CanMoveToReady())
 

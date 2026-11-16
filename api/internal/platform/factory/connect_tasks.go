@@ -44,6 +44,7 @@ func actorFrom(ctx context.Context) (models.Actor, error) {
 		ID:      user.ID,
 		Browser: channel != nil && *channel == constants.ChannelBrowser,
 		Admin:   user.Role == sharedmodels.RoleAdmin,
+		Via:     "",
 	}, nil
 }
 

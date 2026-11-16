@@ -21,7 +21,8 @@ the opposite of what the board needs.
   `factory_get_task` (read) and `factory_create_task`, `factory_comment_task`,
   `factory_move_task`, `factory_move_tasks`, `factory_update_task` (write), plus the routine tools
   `factory_list_routines` (read), `factory_set_routine` and `factory_run_routine`
-  (write; [adr-0052](adr-0052-factory-scheduled-routines.md)).
+  (write; [adr-0052](adr-0052-factory-scheduled-routines.md)). A job's account may use them,
+  except on the routine its own job runs for.
   `factory_list_jobs` waits for jobs to exist (#2706).
 - `factory_update_task` edits title, body, priority and labels but never the
   column. It refuses a title or body change once a task is Ready, because a

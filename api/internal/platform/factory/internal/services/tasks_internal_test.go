@@ -100,9 +100,27 @@ func TestNormaliseComment(t *testing.T) {
 }
 
 func TestCheckMove(t *testing.T) {
-	human := models.Actor{Kind: models.ActorHuman, ID: "u", Browser: true, Admin: true}
-	mcp := models.Actor{Kind: models.ActorHuman, ID: "u", Browser: false, Admin: true}
-	agent := models.Actor{Kind: models.ActorAgent, ID: "a", Browser: false, Admin: false}
+	human := models.Actor{
+		Kind:    models.ActorHuman,
+		ID:      "u",
+		Browser: true,
+		Admin:   true,
+		Via:     "",
+	}
+	mcp := models.Actor{
+		Kind:    models.ActorHuman,
+		ID:      "u",
+		Browser: false,
+		Admin:   true,
+		Via:     "",
+	}
+	agent := models.Actor{
+		Kind:    models.ActorAgent,
+		ID:      "a",
+		Browser: false,
+		Admin:   false,
+		Via:     "",
+	}
 
 	assert.NoError(t, checkMove(human, models.StatusReady))
 	assert.NoError(t, checkMove(agent, models.StatusReady))

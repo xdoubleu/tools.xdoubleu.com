@@ -35,9 +35,6 @@ const (
 	// FamilyServiceDeclineFamilyInviteProcedure is the procedure name of the FamilyService's
 	// DeclineFamilyInvite RPC.
 	FamilyServiceDeclineFamilyInviteProcedure = "/family.v1.FamilyService/DeclineFamilyInvite"
-	// FamilyServiceSetFamilyDisplayNameProcedure is the procedure name of the FamilyService's
-	// SetFamilyDisplayName RPC.
-	FamilyServiceSetFamilyDisplayNameProcedure = "/family.v1.FamilyService/SetFamilyDisplayName"
 	// FamilyServiceLeaveFamilyProcedure is the procedure name of the FamilyService's LeaveFamily RPC.
 	FamilyServiceLeaveFamilyProcedure = "/family.v1.FamilyService/LeaveFamily"
 )
@@ -71,13 +68,6 @@ var (
 			Procedure:  FamilyServiceDeclineFamilyInviteProcedure,
 		}
 	})
-	familyServiceSetFamilyDisplayNameSpec = sync.OnceValue(func() connect.Spec {
-		return connect.Spec{
-			StreamType: connect.StreamTypeUnary,
-			Schema:     v1.File_family_v1_family_proto.Services().ByName("FamilyService").Methods().ByName("SetFamilyDisplayName"),
-			Procedure:  FamilyServiceSetFamilyDisplayNameProcedure,
-		}
-	})
 	familyServiceLeaveFamilySpec = sync.OnceValue(func() connect.Spec {
 		return connect.Spec{
 			StreamType: connect.StreamTypeUnary,
@@ -93,7 +83,6 @@ type FamilyServiceClient interface {
 	InviteToFamily(context.Context, *v1.InviteToFamilyRequest) (*v1.InviteToFamilyResponse, error)
 	AcceptFamilyInvite(context.Context, *v1.AcceptFamilyInviteRequest) (*v1.AcceptFamilyInviteResponse, error)
 	DeclineFamilyInvite(context.Context, *v1.DeclineFamilyInviteRequest) (*v1.DeclineFamilyInviteResponse, error)
-	SetFamilyDisplayName(context.Context, *v1.SetFamilyDisplayNameRequest) (*v1.SetFamilyDisplayNameResponse, error)
 	LeaveFamily(context.Context, *v1.LeaveFamilyRequest) (*v1.LeaveFamilyResponse, error)
 }
 
@@ -109,7 +98,6 @@ type FamilyServiceHandler interface {
 	InviteToFamily(context.Context, *v1.InviteToFamilyRequest) (*v1.InviteToFamilyResponse, error)
 	AcceptFamilyInvite(context.Context, *v1.AcceptFamilyInviteRequest) (*v1.AcceptFamilyInviteResponse, error)
 	DeclineFamilyInvite(context.Context, *v1.DeclineFamilyInviteRequest) (*v1.DeclineFamilyInviteResponse, error)
-	SetFamilyDisplayName(context.Context, *v1.SetFamilyDisplayNameRequest) (*v1.SetFamilyDisplayNameResponse, error)
 	LeaveFamily(context.Context, *v1.LeaveFamilyRequest) (*v1.LeaveFamilyResponse, error)
 }
 
@@ -122,7 +110,6 @@ func RegisterFamilyServiceHandler(server *connect.Server, svc FamilyServiceHandl
 		connect.Method{Spec: familyServiceInviteToFamilySpec(), Handler: adapter.inviteToFamily},
 		connect.Method{Spec: familyServiceAcceptFamilyInviteSpec(), Handler: adapter.acceptFamilyInvite},
 		connect.Method{Spec: familyServiceDeclineFamilyInviteSpec(), Handler: adapter.declineFamilyInvite},
-		connect.Method{Spec: familyServiceSetFamilyDisplayNameSpec(), Handler: adapter.setFamilyDisplayName},
 		connect.Method{Spec: familyServiceLeaveFamilySpec(), Handler: adapter.leaveFamily},
 	)
 }
@@ -144,10 +131,6 @@ func (UnimplementedFamilyServiceHandler) AcceptFamilyInvite(context.Context, *v1
 
 func (UnimplementedFamilyServiceHandler) DeclineFamilyInvite(context.Context, *v1.DeclineFamilyInviteRequest) (*v1.DeclineFamilyInviteResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "family.v1.FamilyService.DeclineFamilyInvite is not implemented")
-}
-
-func (UnimplementedFamilyServiceHandler) SetFamilyDisplayName(context.Context, *v1.SetFamilyDisplayNameRequest) (*v1.SetFamilyDisplayNameResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, "family.v1.FamilyService.SetFamilyDisplayName is not implemented")
 }
 
 func (UnimplementedFamilyServiceHandler) LeaveFamily(context.Context, *v1.LeaveFamilyRequest) (*v1.LeaveFamilyResponse, error) {
@@ -185,14 +168,6 @@ func (c *familyServiceClient) AcceptFamilyInvite(ctx context.Context, req *v1.Ac
 func (c *familyServiceClient) DeclineFamilyInvite(ctx context.Context, req *v1.DeclineFamilyInviteRequest) (*v1.DeclineFamilyInviteResponse, error) {
 	var res v1.DeclineFamilyInviteResponse
 	if err := c.client.CallUnary(ctx, familyServiceDeclineFamilyInviteSpec(), req, &res); err != nil {
-		return nil, err
-	}
-	return &res, nil
-}
-
-func (c *familyServiceClient) SetFamilyDisplayName(ctx context.Context, req *v1.SetFamilyDisplayNameRequest) (*v1.SetFamilyDisplayNameResponse, error) {
-	var res v1.SetFamilyDisplayNameResponse
-	if err := c.client.CallUnary(ctx, familyServiceSetFamilyDisplayNameSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -250,18 +225,6 @@ func (h familyServiceHandler) declineFamilyInvite(ctx context.Context, _ connect
 		return err
 	}
 	res, err := h.svc.DeclineFamilyInvite(ctx, &req)
-	if err != nil {
-		return err
-	}
-	return stream.Send(res)
-}
-
-func (h familyServiceHandler) setFamilyDisplayName(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
-	var req v1.SetFamilyDisplayNameRequest
-	if err := stream.Receive(&req); err != nil {
-		return err
-	}
-	res, err := h.svc.SetFamilyDisplayName(ctx, &req)
 	if err != nil {
 		return err
 	}

@@ -24,10 +24,9 @@ import (
 // Membership is the caller's family: the other members' IDs and their display
 // names (empty when unset). An implicit family-of-one has no members.
 type Membership struct {
-	FamilyID        uuid.UUID
-	Members         []string
-	DisplayNames    map[string]string
-	SelfDisplayName string
+	FamilyID     uuid.UUID
+	Members      []string
+	DisplayNames map[string]string
 }
 
 type Service interface {
@@ -45,8 +44,6 @@ type Service interface {
 	// when that invite is no longer pending for userID.
 	Accept(ctx context.Context, userID string, inviteID uuid.UUID) error
 	Decline(ctx context.Context, userID string) error
-	// SetDisplayName sets the caller's own display name within their family.
-	SetDisplayName(ctx context.Context, userID, displayName string) error
 	// Leave removes userID from their family; family-scoped data stays with the
 	// family.
 	Leave(ctx context.Context, userID string) error
@@ -102,18 +99,10 @@ func (s *familyService) GetMembership(
 		}
 	}
 	return Membership{
-		FamilyID:        familyID,
-		Members:         members,
-		DisplayNames:    names,
-		SelfDisplayName: names[userID],
+		FamilyID:     familyID,
+		Members:      members,
+		DisplayNames: names,
 	}, nil
-}
-
-func (s *familyService) SetDisplayName(
-	ctx context.Context,
-	userID, displayName string,
-) error {
-	return s.repo.SetDisplayName(ctx, userID, displayName)
 }
 
 func (s *familyService) InviteByEmail(

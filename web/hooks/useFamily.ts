@@ -24,11 +24,6 @@ export function useDeclineFamilyInvite() {
   return () => client.declineFamilyInvite({})
 }
 
-export function useSetFamilyDisplayName() {
-  const client = createServiceClient(FamilyService)
-  return (displayName: string) => client.setFamilyDisplayName({ displayName })
-}
-
 export function useLeaveFamily() {
   const client = createServiceClient(FamilyService)
   return () => client.leaveFamily({})
