@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -260,4 +261,23 @@ func TestEnsureImageErrorsWhenTagNotPresent(t *testing.T) {
 	err := e.Ensure(context.Background())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "did not appear")
+}
+
+func TestEnsureImageRetriesTransientManifestError(t *testing.T) {
+	srv, pubB64 := newImageServer("abc123 " + testDigest + "\n")
+	var fails atomic.Int32
+	ts := httptest.NewServer(http.HandlerFunc(func(
+		w http.ResponseWriter, r *http.Request,
+	) {
+		if fails.Add(1) == 1 {
+			w.WriteHeader(525)
+			return
+		}
+		srv.ServeHTTP(w, r)
+	}))
+	defer ts.Close()
+	var pulls, tags []string
+	inspect := `[{"digest":"sha256:` + testDigest + `"}]`
+	e := newImageEnsurer(t, ts, pubB64, imageAnswerScript(1, inspect, &pulls, &tags))
+	require.NoError(t, e.Ensure(context.Background()))
 }
