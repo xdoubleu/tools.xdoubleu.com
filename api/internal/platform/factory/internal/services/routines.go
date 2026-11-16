@@ -84,6 +84,33 @@ func (s *JobService) SaveRoutine(
 	return routine, nil
 }
 
+// DeleteRoutine removes a routine and cancels its queued or running job. Past jobs
+// keep their routine name. Only who may manage routines may.
+func (s *JobService) DeleteRoutine(
+	ctx context.Context,
+	actor models.Actor,
+	name string,
+) error {
+	if !actor.CanManageRoutines() {
+		return forbidden("only a browser admin or an agent can delete a routine")
+	}
+	if _, err := s.routines.Get(ctx, name); err != nil {
+		return err
+	}
+	job, err := s.jobs.CancelRoutine(ctx, name)
+	if err != nil && !errors.Is(err, database.ErrResourceNotFound) {
+		return err
+	}
+	if job != nil {
+		s.revokeAccount(ctx, job.ID)
+	}
+	if _, err = s.routines.Delete(ctx, name); err != nil {
+		return err
+	}
+	s.say.say(ctx, ":wastebasket: Routine "+name+" was deleted by "+actor.Name()+".")
+	return nil
+}
+
 // ListRoutines returns every routine with its newest job.
 func (s *JobService) ListRoutines(ctx context.Context) ([]models.Routine, error) {
 	list, err := s.routines.List(ctx)

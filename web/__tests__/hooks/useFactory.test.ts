@@ -31,6 +31,7 @@ const mockClient = {
   saveRoutine: vi.fn().mockResolvedValue({}),
   runRoutine: vi.fn().mockResolvedValue({}),
   stopRoutine: vi.fn().mockResolvedValue({}),
+  deleteRoutine: vi.fn().mockResolvedValue({}),
   setPickupPaused: vi.fn().mockResolvedValue({}),
   listRepos: vi.fn().mockResolvedValue({ repos: [] }),
   createRepo: vi.fn().mockResolvedValue({}),
@@ -286,7 +287,9 @@ describe('useFactoryActions', () => {
     expect(mockClient.runRoutine).toHaveBeenCalledWith({ name: 'noop' })
     await result.current.stopRoutine('noop')
     expect(mockClient.stopRoutine).toHaveBeenCalledWith({ name: 'noop' })
-    expect(mockMutate).toHaveBeenCalledTimes(3)
+    await result.current.deleteRoutine('noop')
+    expect(mockClient.deleteRoutine).toHaveBeenCalledWith({ name: 'noop' })
+    expect(mockMutate).toHaveBeenCalledTimes(4)
   })
 
   it('revalidates a refused routine run too', async () => {

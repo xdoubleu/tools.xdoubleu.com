@@ -57,6 +57,8 @@ const (
 	TaskServiceRunRoutineProcedure = "/factory.v1.TaskService/RunRoutine"
 	// TaskServiceStopRoutineProcedure is the procedure name of the TaskService's StopRoutine RPC.
 	TaskServiceStopRoutineProcedure = "/factory.v1.TaskService/StopRoutine"
+	// TaskServiceDeleteRoutineProcedure is the procedure name of the TaskService's DeleteRoutine RPC.
+	TaskServiceDeleteRoutineProcedure = "/factory.v1.TaskService/DeleteRoutine"
 	// RepoServiceListReposProcedure is the procedure name of the RepoService's ListRepos RPC.
 	RepoServiceListReposProcedure = "/factory.v1.RepoService/ListRepos"
 	// RepoServiceCreateRepoProcedure is the procedure name of the RepoService's CreateRepo RPC.
@@ -171,6 +173,13 @@ var (
 			Procedure:  TaskServiceStopRoutineProcedure,
 		}
 	})
+	taskServiceDeleteRoutineSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_factory_v1_factory_proto.Services().ByName("TaskService").Methods().ByName("DeleteRoutine"),
+			Procedure:  TaskServiceDeleteRoutineProcedure,
+		}
+	})
 )
 
 // TaskServiceClient is a client for the factory.v1.TaskService service.
@@ -190,6 +199,7 @@ type TaskServiceClient interface {
 	SaveRoutine(context.Context, *v1.SaveRoutineRequest) (*v1.SaveRoutineResponse, error)
 	RunRoutine(context.Context, *v1.RunRoutineRequest) (*v1.RunRoutineResponse, error)
 	StopRoutine(context.Context, *v1.StopRoutineRequest) (*v1.StopRoutineResponse, error)
+	DeleteRoutine(context.Context, *v1.DeleteRoutineRequest) (*v1.DeleteRoutineResponse, error)
 }
 
 // NewTaskServiceClient constructs a client for the factory.v1.TaskService service. Multiple service
@@ -215,6 +225,7 @@ type TaskServiceHandler interface {
 	SaveRoutine(context.Context, *v1.SaveRoutineRequest) (*v1.SaveRoutineResponse, error)
 	RunRoutine(context.Context, *v1.RunRoutineRequest) (*v1.RunRoutineResponse, error)
 	StopRoutine(context.Context, *v1.StopRoutineRequest) (*v1.StopRoutineResponse, error)
+	DeleteRoutine(context.Context, *v1.DeleteRoutineRequest) (*v1.DeleteRoutineResponse, error)
 }
 
 // RegisterTaskServiceHandler registers svc as the factory.v1.TaskService implementation on server.
@@ -236,6 +247,7 @@ func RegisterTaskServiceHandler(server *connect.Server, svc TaskServiceHandler) 
 		connect.Method{Spec: taskServiceSaveRoutineSpec(), Handler: adapter.saveRoutine},
 		connect.Method{Spec: taskServiceRunRoutineSpec(), Handler: adapter.runRoutine},
 		connect.Method{Spec: taskServiceStopRoutineSpec(), Handler: adapter.stopRoutine},
+		connect.Method{Spec: taskServiceDeleteRoutineSpec(), Handler: adapter.deleteRoutine},
 	)
 }
 
@@ -300,6 +312,10 @@ func (UnimplementedTaskServiceHandler) RunRoutine(context.Context, *v1.RunRoutin
 
 func (UnimplementedTaskServiceHandler) StopRoutine(context.Context, *v1.StopRoutineRequest) (*v1.StopRoutineResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "factory.v1.TaskService.StopRoutine is not implemented")
+}
+
+func (UnimplementedTaskServiceHandler) DeleteRoutine(context.Context, *v1.DeleteRoutineRequest) (*v1.DeleteRoutineResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "factory.v1.TaskService.DeleteRoutine is not implemented")
 }
 
 type taskServiceClient struct {
@@ -421,6 +437,14 @@ func (c *taskServiceClient) RunRoutine(ctx context.Context, req *v1.RunRoutineRe
 func (c *taskServiceClient) StopRoutine(ctx context.Context, req *v1.StopRoutineRequest) (*v1.StopRoutineResponse, error) {
 	var res v1.StopRoutineResponse
 	if err := c.client.CallUnary(ctx, taskServiceStopRoutineSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *taskServiceClient) DeleteRoutine(ctx context.Context, req *v1.DeleteRoutineRequest) (*v1.DeleteRoutineResponse, error) {
+	var res v1.DeleteRoutineResponse
+	if err := c.client.CallUnary(ctx, taskServiceDeleteRoutineSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -602,6 +626,18 @@ func (h taskServiceHandler) stopRoutine(ctx context.Context, _ connect.Spec, str
 		return err
 	}
 	res, err := h.svc.StopRoutine(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h taskServiceHandler) deleteRoutine(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.DeleteRoutineRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.DeleteRoutine(ctx, &req)
 	if err != nil {
 		return err
 	}

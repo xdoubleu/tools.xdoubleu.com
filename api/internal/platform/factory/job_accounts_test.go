@@ -404,9 +404,10 @@ func TestARoutineJobGetsAnAccountWithoutATaskScope(t *testing.T) {
 
 	// ...but doesn't move or edit tasks, nor run or change its own routine.
 	for name, args := range map[string]map[string]any{
-		"factory_move_task":   {"id": task.Id, "status": "done"},
-		"factory_update_task": {"id": task.Id, "title": "Renamed"},
-		"factory_run_routine": {"name": "sweep"},
+		"factory_move_task":      {"id": task.Id, "status": "done"},
+		"factory_update_task":    {"id": task.Id, "title": "Renamed"},
+		"factory_run_routine":    {"name": "sweep"},
+		"factory_delete_routine": {"name": "sweep"},
 		"factory_set_routine": {
 			"name": "sweep", "repo_id": seededRepoID(t), "enabled": true,
 		},
@@ -454,4 +455,8 @@ func TestARoutineJobManagesOtherRoutinesAndIsNamedInTheNotice(t *testing.T) {
 		map[string]any{"name": "other"})
 	require.NoError(t, err)
 	assert.Equal(t, "other", str(t, ran, "job", "routine"))
+
+	_, err = callTool(t, session, "factory_delete_routine",
+		map[string]any{"name": "other"})
+	require.NoError(t, err)
 }

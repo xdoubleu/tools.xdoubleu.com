@@ -84,6 +84,10 @@ type mcpSetRoutineArgs struct {
 	IntervalMinutes int    `json:"interval_minutes" jsonschema:"minutes between runs, 0 for manual only, at most a month"`
 }
 
+type mcpDeleteRoutineArgs struct {
+	Name string `json:"name" jsonschema:"routine name, from factory_list_routines"`
+}
+
 type mcpRunRoutineArgs struct {
 	Name string `json:"name" jsonschema:"routine name, from factory_list_routines"`
 }
@@ -130,6 +134,9 @@ func (a *Factory) RegisterMCPTools(srv *mcp.Server) {
 		"Create or change a routine: repo, enabled flag and interval. The change "+
 			"is announced as made by this agent. What a routine does is decided "+
 			"by the runner's own list, not here.", t.setRoutine)
+	mcptools.AddAgentWriteTool(srv, mcpAppName, "factory_delete_routine",
+		"Delete a routine and cancel its queued or running job. Its past jobs "+
+			"stay. A job can't delete the routine it runs for.", t.deleteRoutine)
 	mcptools.AddAgentWriteTool(srv, mcpAppName, "factory_run_routine",
 		"Queue a job for a routine now, even when it is disabled. One already "+
 			"queued or running is a conflict.", t.runRoutine)
@@ -558,6 +565,19 @@ func (t *mcpTools) setRoutine(
 		return nil, connecttools.MapError(err)
 	}
 	return &factoryv1.SaveRoutineResponse{Routine: protoRoutine(routine)}, nil
+}
+
+func (t *mcpTools) deleteRoutine(
+	ctx context.Context, args mcpDeleteRoutineArgs,
+) (proto.Message, error) {
+	actor, err := t.routineActor(ctx, args.Name)
+	if err != nil {
+		return nil, err
+	}
+	if err = t.app.services.Jobs.DeleteRoutine(ctx, actor, args.Name); err != nil {
+		return nil, connecttools.MapError(err)
+	}
+	return &factoryv1.DeleteRoutineResponse{}, nil
 }
 
 func (t *mcpTools) runRoutine(

@@ -77,6 +77,16 @@ func (r *RoutinesRepository) Save(
 		routine.UpdatedBy))
 }
 
+// Delete removes a routine and returns it; its jobs stay. An unknown name is not
+// found.
+func (r *RoutinesRepository) Delete(
+	ctx context.Context,
+	name string,
+) (*models.Routine, error) {
+	return scanRoutine(r.db.QueryRow(ctx,
+		`DELETE FROM factory.routines WHERE name = $1 RETURNING `+routineColumns, name))
+}
+
 // Due returns the enabled scheduled routines with no job queued or running and
 // none created within their interval.
 func (r *RoutinesRepository) Due(ctx context.Context) ([]models.Routine, error) {

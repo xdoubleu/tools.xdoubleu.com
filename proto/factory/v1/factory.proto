@@ -304,6 +304,12 @@ message StopRoutineResponse {
   Job job = 1;
 }
 
+// Deletes the routine. Its past jobs stay, with their routine name.
+message DeleteRoutineRequest {
+  string name = 1;
+}
+message DeleteRoutineResponse {}
+
 service TaskService {
   rpc ListTasks(ListTasksRequest) returns (ListTasksResponse);
   rpc SetPickupPaused(SetPickupPausedRequest) returns (SetPickupPausedResponse);
@@ -320,6 +326,7 @@ service TaskService {
   rpc SaveRoutine(SaveRoutineRequest) returns (SaveRoutineResponse);
   rpc RunRoutine(RunRoutineRequest) returns (RunRoutineResponse);
   rpc StopRoutine(StopRoutineRequest) returns (StopRoutineResponse);
+  rpc DeleteRoutine(DeleteRoutineRequest) returns (DeleteRoutineResponse);
 }
 
 message Repo {

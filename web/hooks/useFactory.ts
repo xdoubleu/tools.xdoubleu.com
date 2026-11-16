@@ -230,6 +230,11 @@ export function useFactoryActions() {
       await client.stopRoutine({ name })
       await refresh()
     },
+    /** Deletes the routine; its past jobs stay. */
+    deleteRoutine: async (name: string) => {
+      await client.deleteRoutine({ name })
+      await refresh()
+    },
     createRepo: async (repo: RepoFields) => {
       await repoClient.createRepo({ repo })
       await refresh()

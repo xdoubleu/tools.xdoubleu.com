@@ -94,7 +94,7 @@ func (a Actor) CanMoveToReady() bool {
 	return a.Kind == ActorHuman && a.Browser && a.Admin
 }
 
-// CanManageRoutines reports whether the actor may create, change, run and stop
+// CanManageRoutines reports whether the actor may create, change, run, stop and delete
 // routines: whoever may move a task to Ready (a human admin in a browser, or an
 // agent account). Resuming board-wide pickup stays with CanMoveToReady.
 func (a Actor) CanManageRoutines() bool {

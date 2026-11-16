@@ -11,6 +11,7 @@ import {
 import { formatDateTime } from '@/lib/dates'
 import { useFactoryActions, useFactoryRoutines } from '@/hooks/useFactory'
 import AppSections from '@/components/AppSections'
+import { ConfirmDialog } from '@/components/ui/dialog'
 import { Alert } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -23,8 +24,9 @@ import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
 /** The routines the server runs on a schedule: last run, status, and Run / Stop. */
 export default function RoutinesClient() {
   const { data, error, isLoading } = useFactoryRoutines()
-  const { saveRoutine, runRoutine, stopRoutine } = useFactoryActions()
+  const { saveRoutine, runRoutine, stopRoutine, deleteRoutine } = useFactoryActions()
   const [failure, setFailure] = useState('')
+  const [deleting, setDeleting] = useState<string | null>(null)
 
   const act = async (work: () => Promise<void>) => {
     setFailure('')
@@ -120,9 +122,30 @@ export default function RoutinesClient() {
                   Run
                 </Button>
               )}
+              <Button
+                variant="secondary"
+                aria-label={`Delete ${routine.name}`}
+                onClick={() => setDeleting(routine.name)}
+              >
+                Delete
+              </Button>
             </GroupedListItem>
           ))}
         </GroupedList>
+      )}
+      {deleting && (
+        <ConfirmDialog
+          open
+          onOpenChange={() => setDeleting(null)}
+          title={`Delete ${deleting}?`}
+          description="Its schedule and any queued or running job are removed. Past jobs stay on the board."
+          confirmLabel="Delete routine"
+          destructive
+          onConfirm={() => {
+            setDeleting(null)
+            void act(() => deleteRoutine(deleting))
+          }}
+        />
       )}
     </PageContainer>
   )
