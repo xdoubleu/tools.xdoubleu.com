@@ -3,7 +3,7 @@ module tools.xdoubleu.com
 go 1.27.4
 
 require (
-	authelia.com/provider/oauth2 v0.3.3
+	authelia.com/provider/oauth2 v0.4.3
 	codeberg.org/readeck/go-readability/v2 v2.1.3
 	connectrpc.com/connect/v2 v2.0.2
 	github.com/aws/aws-sdk-go-v2 v1.48.0
