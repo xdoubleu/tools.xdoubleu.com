@@ -4,12 +4,13 @@
 
 -- +goose Up
 -- +goose StatementBegin
-UPDATE global.app_users u
+UPDATE global.app_users AS u
 SET display_name = m.display_name
-FROM global.family_members m
-WHERE m.user_id = u.id
-  AND m.display_name <> ''
-  AND COALESCE(u.display_name, '') = '';
+FROM global.family_members AS m
+WHERE
+    m.user_id = u.id
+    AND m.display_name <> ''
+    AND COALESCE(u.display_name, '') = '';
 
 ALTER TABLE global.family_members DROP COLUMN IF EXISTS display_name;
 -- +goose StatementEnd
