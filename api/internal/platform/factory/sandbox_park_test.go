@@ -58,7 +58,7 @@ func TestASandboxBlockedTaskParksAndResumesOnANewImage(t *testing.T) {
 	id := env.blockedJob(t, "needs jq")
 
 	got := env.task(t, id)
-	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_IN_PROGRESS, got.Task.Status)
+	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_BACKLOG, got.Task.Status)
 	assert.Contains(t, got.Task.Labels, "waiting-on-sandbox")
 
 	// The same digest resumes nothing.

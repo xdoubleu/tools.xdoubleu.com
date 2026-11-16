@@ -115,24 +115,74 @@ func (s *JobService) ReportBlocked(
 	}
 	first, _, _ := strings.Cut(blocked, "\n")
 	title := "Sandbox: " + strings.TrimSpace(first)
+	who := "T-" + strconv.FormatInt(job.TaskNumber, 10)
+	if job.IsRoutine() {
+		// One task per routine, not one per run: the text of a run varies.
+		title = "Sandbox: routine " + job.Routine + " is blocked"
+		who = "routine " + job.Routine
+	}
 	if r := []rune(title); len(r) > maxBlockedTitle {
 		title = string(r[:maxBlockedTitle])
 	}
-	body := "Reported by the runner for T-" + strconv.FormatInt(
-		job.TaskNumber,
-		10,
-	) + " (job " +
+	body := "Reported by the runner for " + who + " (job " +
 		job.ID.String()[:shortJobIDLen] + "):\n\n" + blocked
 	actor := models.Actor{
 		Kind: models.ActorAgent, ID: "runner:" + runnerID.String(),
 		Browser: false, Admin: false,
 	}
-	sandbox, _, err := (&TaskService{repo: s.tasks}).ReportSandbox(
-		ctx, actor, job.RepoID, title, body)
-	if err == nil {
+	tasks := &TaskService{repo: s.tasks}
+	if noImageFix(blocked) {
+		// No new image can unblock it: a bug to fix, not a task to park on.
+		_, _, err = tasks.reportBug(ctx, actor, job.RepoID,
+			strings.TrimPrefix(title, "Sandbox: "), body)
+		return err
+	}
+	sandbox, _, err := tasks.ReportSandbox(ctx, actor, job.RepoID, title, body)
+	if err == nil && !job.IsRoutine() && sandbox.ID != job.TaskID {
 		err = s.park(ctx, job, sandbox)
 	}
 	return err
+}
+
+// noImagePattern matches an agent saying that no change to the job image fixes
+// its gap.
+var noImagePattern = regexp.MustCompile(
+	`(?i)\bno (containerfile|image|dockerfile) (fix|change)\b|` +
+		`\b(image|containerfile) (change|fix) (can't|cannot|won't|would not|will not)\b`)
+
+// noImageFix reports whether a Blocked line says no image change can fix its gap.
+func noImageFix(blocked string) bool {
+	return noImagePattern.MatchString(blocked)
+}
+
+// reportBug files a plain bug task (straight into Ready) unless an open task in
+// the repo already has the title. created is false for a repeat.
+func (s *TaskService) reportBug(
+	ctx context.Context,
+	actor models.Actor,
+	repoID uuid.UUID,
+	title, body string,
+) (*models.Task, bool, error) {
+	in, err := normalise(TaskInput{
+		Title: title, Body: body, Priority: models.PriorityP2,
+		Labels: []string{"bug"},
+	})
+	if err != nil {
+		return nil, false, err
+	}
+	all, err := s.repo.List(ctx, "")
+	if err != nil {
+		return nil, false, err
+	}
+	for i := range all {
+		t := &all[i]
+		if t.RepoID == repoID && t.Status != models.StatusDone &&
+			strings.EqualFold(t.Title, in.Title) {
+			return t, false, nil
+		}
+	}
+	task, err := s.Create(ctx, actor, repoID, in)
+	return task, err == nil, err
 }
 
 // backlogWaiting moves a task whose job found it depends on other tasks to

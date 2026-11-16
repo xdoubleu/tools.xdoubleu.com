@@ -579,8 +579,8 @@ func noteDropped(why string) string {
 	return "\n\n(The runner reported a pull request link, left out because " + why + ".)"
 }
 
-// ExpireLost marks running jobs that stopped checking in as lost and parks their
-// tasks in Needs you.
+// ExpireLost marks running jobs that stopped checking in as lost and settles their
+// tasks: by their pull request, else queued again, else Needs you.
 func (s *JobService) ExpireLost(ctx context.Context) error {
 	// Whatever else fails, no ended job keeps a working secret.
 	defer s.sweepAccounts(ctx)
@@ -596,9 +596,11 @@ func (s *JobService) ExpireLost(ctx context.Context) error {
 		}
 		body := "Job lost: the runner stopped checking in. Its branch `" +
 			lost[i].Branch + "` may hold partial work on the Mac."
-		if err = s.finishTask(
-			ctx, lost[i].TaskID, systemAuthor, body, models.StatusNeedsYou,
-		); err != nil {
+		task, getErr := s.tasks.Get(ctx, lost[i].TaskID)
+		if getErr != nil {
+			return getErr
+		}
+		if err = s.settle(ctx, task, &lost[i], body); err != nil {
 			return err
 		}
 		s.say.say(ctx, ":x: A job was lost on "+s.taskLink(ctx, lost[i].TaskID)+
