@@ -129,7 +129,7 @@ func TestAgentSeesTheBoardTools(t *testing.T) {
 		"factory_list_repos", "factory_list_tasks", "factory_get_task",
 		"factory_create_task", "factory_comment_task", "factory_move_task",
 		"factory_update_task", "factory_move_tasks", "factory_list_routines",
-		"factory_set_routine", "factory_run_routine",
+		"factory_set_routine", "factory_run_routine", "factory_delete_routine",
 	}, names)
 }
 
@@ -353,6 +353,9 @@ func TestRoutineToolsRefuseABadRepoAndAnUnknownRoutine(t *testing.T) {
 		map[string]any{"name": "sweep", "repo_id": "not-an-id"})
 	require.Error(t, err)
 	_, err = callTool(t, session, "factory_run_routine",
+		map[string]any{"name": "missing"})
+	require.Error(t, err)
+	_, err = callTool(t, session, "factory_delete_routine",
 		map[string]any{"name": "missing"})
 	require.Error(t, err)
 }

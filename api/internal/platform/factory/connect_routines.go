@@ -77,6 +77,20 @@ func (h *taskConnectHandler) RunRoutine(
 	return &factoryv1.RunRoutineResponse{Job: protoJob(job)}, nil
 }
 
+func (h *taskConnectHandler) DeleteRoutine(
+	ctx context.Context,
+	req *factoryv1.DeleteRoutineRequest,
+) (*factoryv1.DeleteRoutineResponse, error) {
+	actor, err := actorFrom(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err = h.app.services.Jobs.DeleteRoutine(ctx, actor, req.GetName()); err != nil {
+		return nil, mapError(err)
+	}
+	return &factoryv1.DeleteRoutineResponse{}, nil
+}
+
 func (h *taskConnectHandler) StopRoutine(
 	ctx context.Context,
 	req *factoryv1.StopRoutineRequest,

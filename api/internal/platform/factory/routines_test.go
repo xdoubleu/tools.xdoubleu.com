@@ -132,7 +132,32 @@ func TestOnlyAHumanAdminInABrowserChangesOrRunsARoutine(t *testing.T) {
 		_, err = other.StopRoutine(context.Background(),
 			&factoryv1.StopRoutineRequest{Name: "noop"})
 		assert.Equal(t, connect.CodePermissionDenied, code(err), name)
+		_, err = other.DeleteRoutine(context.Background(),
+			&factoryv1.DeleteRoutineRequest{Name: "noop"})
+		assert.Equal(t, connect.CodePermissionDenied, code(err), name)
 	}
+}
+
+func TestDeleteRoutineRemovesItAndCancelsItsJobButKeepsPastJobs(t *testing.T) {
+	env := routineEnv(t)
+	env.saveRoutine(t, "noop", false, 0)
+	_, err := env.tasks.RunRoutine(context.Background(),
+		&factoryv1.RunRoutineRequest{Name: "noop"})
+	require.NoError(t, err)
+
+	_, err = env.tasks.DeleteRoutine(context.Background(),
+		&factoryv1.DeleteRoutineRequest{Name: "noop"})
+	require.NoError(t, err)
+	assert.Empty(t, env.routines(t))
+
+	var status string
+	require.NoError(t, testDB.QueryRow(context.Background(),
+		`SELECT status FROM factory.jobs WHERE routine = 'noop'`).Scan(&status))
+	assert.Equal(t, "cancelled", status)
+
+	_, err = env.tasks.DeleteRoutine(context.Background(),
+		&factoryv1.DeleteRoutineRequest{Name: "noop"})
+	assert.Equal(t, connect.CodeNotFound, code(err))
 }
 
 func TestSaveRoutineRefusesABadNameOrInterval(t *testing.T) {

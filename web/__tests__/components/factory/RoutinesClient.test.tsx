@@ -6,12 +6,14 @@ import { Code, ConnectError } from '@connectrpc/connect'
 const mockSave = vi.fn()
 const mockRun = vi.fn()
 const mockStop = vi.fn()
+const mockDelete = vi.fn()
 vi.mock('@/hooks/useFactory', () => ({
   useFactoryRoutines: vi.fn(),
   useFactoryActions: vi.fn(() => ({
     saveRoutine: mockSave,
     runRoutine: mockRun,
-    stopRoutine: mockStop
+    stopRoutine: mockStop,
+    deleteRoutine: mockDelete
   }))
 }))
 
@@ -58,6 +60,7 @@ beforeEach(() => {
   mockSave.mockResolvedValue(undefined)
   mockRun.mockResolvedValue(undefined)
   mockStop.mockResolvedValue(undefined)
+  mockDelete.mockResolvedValue(undefined)
 })
 
 describe('RoutinesClient', () => {
@@ -101,6 +104,15 @@ describe('RoutinesClient', () => {
         intervalMinutes: 60
       })
     )
+  })
+
+  it('deletes a routine only after confirming', async () => {
+    mockRoutines({ data: list })
+    render(<RoutinesClient />)
+    fireEvent.click(screen.getByRole('button', { name: 'Delete noop' }))
+    expect(mockDelete).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Delete routine' }))
+    await waitFor(() => expect(mockDelete).toHaveBeenCalledWith('noop'))
   })
 
   it('says why a change was refused', async () => {
