@@ -2,6 +2,7 @@ package factory
 
 import (
 	"context"
+	"strings"
 
 	factoryv1 "tools.xdoubleu.com/gen/factory/v1"
 	"tools.xdoubleu.com/internal/platform/factory/internal/models"
@@ -18,8 +19,19 @@ func protoRoutine(r *models.Routine) *factoryv1.Routine {
 	}
 	if r.LastJob != nil {
 		out.LastJob = protoJob(r.LastJob)
+		out.LastJob.Outcome = truncateOutcome(r.LastJob.Outcome)
 	}
 	return out
+}
+
+// maxRoutineOutcome caps the outcome shown with a routine's last job.
+const maxRoutineOutcome = 2000
+
+func truncateOutcome(s string) string {
+	if len(s) <= maxRoutineOutcome {
+		return s
+	}
+	return strings.ToValidUTF8(s[:maxRoutineOutcome], "") + "…"
 }
 
 func (h *taskConnectHandler) ListRoutines(

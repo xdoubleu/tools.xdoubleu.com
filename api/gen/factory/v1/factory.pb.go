@@ -1387,7 +1387,10 @@ type Job struct {
 	Limited       bool   `protobuf:"varint,12,opt,name=limited,proto3" json:"limited,omitempty"`
 	LimitResetsAt string `protobuf:"bytes,13,opt,name=limit_resets_at,json=limitResetsAt,proto3" json:"limit_resets_at,omitempty"`
 	// The routine a task-less job runs; empty for a task's job, which sets task_id.
-	Routine       string `protobuf:"bytes,14,opt,name=routine,proto3" json:"routine,omitempty"`
+	Routine string `protobuf:"bytes,14,opt,name=routine,proto3" json:"routine,omitempty"`
+	// How the job ended, as the agent wrote it; set only on a routine's last_job,
+	// truncated.
+	Outcome       string `protobuf:"bytes,15,opt,name=outcome,proto3" json:"outcome,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1516,6 +1519,13 @@ func (x *Job) GetLimitResetsAt() string {
 func (x *Job) GetRoutine() string {
 	if x != nil {
 		return x.Routine
+	}
+	return ""
+}
+
+func (x *Job) GetOutcome() string {
+	if x != nil {
+		return x.Outcome
 	}
 	return ""
 }
@@ -2904,7 +2914,7 @@ const file_factory_v1_factory_proto_rawDesc = "" +
 	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12\x12\n" +
 	"\x04body\x18\x02 \x01(\tR\x04body\"C\n" +
 	"\x12AddCommentResponse\x12-\n" +
-	"\acomment\x18\x01 \x01(\v2\x13.factory.v1.CommentR\acomment\"\x99\x03\n" +
+	"\acomment\x18\x01 \x01(\v2\x13.factory.v1.CommentR\acomment\"\xb3\x03\n" +
 	"\x03Job\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\atask_id\x18\x02 \x01(\tR\x06taskId\x12-\n" +
@@ -2921,7 +2931,8 @@ const file_factory_v1_factory_proto_rawDesc = "" +
 	"\x05model\x18\v \x01(\tR\x05model\x12\x18\n" +
 	"\alimited\x18\f \x01(\bR\alimited\x12&\n" +
 	"\x0flimit_resets_at\x18\r \x01(\tR\rlimitResetsAt\x12\x18\n" +
-	"\aroutine\x18\x0e \x01(\tR\aroutine\"i\n" +
+	"\aroutine\x18\x0e \x01(\tR\aroutine\x12\x18\n" +
+	"\aoutcome\x18\x0f \x01(\tR\aoutcome\"i\n" +
 	"\bJobEvent\x12\x10\n" +
 	"\x03seq\x18\x01 \x01(\x05R\x03seq\x12\x12\n" +
 	"\x04kind\x18\x02 \x01(\tR\x04kind\x12\x18\n" +
