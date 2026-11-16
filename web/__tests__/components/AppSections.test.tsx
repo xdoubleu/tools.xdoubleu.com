@@ -27,8 +27,6 @@ describe('AppSections', () => {
     fireEvent.click(screen.getByRole('tab', { name: 'Grafana' }))
     expect(open).toHaveBeenCalledWith('/grafana', '_self')
     expect(push).not.toHaveBeenCalled()
-    fireEvent.click(screen.getByRole('tab', { name: 'Automated actions' }))
-    expect(push).toHaveBeenCalledWith('/monitoring/observability')
     expect(open).toHaveBeenCalledTimes(1)
     open.mockRestore()
   })

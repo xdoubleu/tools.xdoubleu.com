@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"log/slog"
-	"strings"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -72,34 +71,6 @@ var (
 			"Sentry isn't configured, the fetch failed, or none has run yet, so " +
 			"sentry_unresolved_issues is stale and its 0 can't be trusted.",
 	})
-	automatedActionOldestOpenAgeSeconds = promauto.NewGauge(prometheus.GaugeOpts{
-		Name: "automated_action_oldest_open_age_seconds",
-		Help: "Age in seconds of the longest-open global.automated_actions row " +
-			"(finished_at IS NULL) — a self-healing routine that fired but never " +
-			"closed out. 0 when none are open.",
-	})
-	automatedActionSecondsSinceLastOpen = promauto.NewGaugeVec(prometheus.GaugeOpts{
-		Name: "automated_action_seconds_since_last_open",
-		Help: "Seconds since routine last opened a global.automated_actions row " +
-			"via record_action(mode=open), by routine name — detects a scheduled " +
-			"routine that never even started (e.g. its claude.ai trigger itself " +
-			"failed to fire), which a stalled-but-opened row can't catch. A " +
-			"routine that has never opened a row at all reports a very large " +
-			"value rather than 0, so it reads as overdue rather than healthy.",
-	}, []string{routineLabel})
-	automatedActionRoutinePaused = promauto.NewGaugeVec(prometheus.GaugeOpts{
-		Name: "automated_action_routine_paused",
-		Help: "1 when a routine's ROUTINE_*_ENABLED repo variable isn't \"true\" " +
-			"(scheduled runs are skipped), 0 when enabled.",
-	}, []string{routineLabel})
-	automatedActionLastRun = promauto.NewGaugeVec(prometheus.GaugeOpts{
-		Name: "automated_action_last_run",
-		Help: "The latest measured run of each routine in the last " +
-			"14 days, by metric: requests, input_tokens, output_tokens, " +
-			"reasoning_tokens, cache_read_tokens, cost_usd (the agent's " +
-			"estimate), duration_seconds, tool_calls, tool_errors, " +
-			"repeated_tool_calls.",
-	}, []string{routineLabel, "metric"})
 	transactionP95Seconds = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "transaction_p95_seconds",
 		Help: "Average daily p95 of each regressing Sentry transaction, by " +
@@ -107,27 +78,6 @@ var (
 			"transactions get_slow_transactions lists as trending are set.",
 	}, []string{"project", "transaction", "window"})
 )
-
-// runMetricsWindow bounds automated_action_last_run so a retired routine's
-// last run eventually drops out.
-const runMetricsWindow = 14 * 24 * time.Hour
-
-// routineLabel is the label named for both per-routine gauges.
-const routineLabel = "routine"
-
-// knownRoutines are the scheduled agent routines tracked by
-// automated_action_seconds_since_last_open. Keep in sync by hand with
-// .github/workflows/routine-*.yml and the AutomatedRoutineMissed thresholds.
-//
-//nolint:gochecknoglobals //small fixed list, read-only, mirrors the collectors above
-var knownRoutines = []string{
-	"nightly-maintenance-sweep",
-	"red-pr-repair",
-}
-
-// neverOpenedSentinelSeconds is reported for a routine that never opened a
-// row; it's far past every threshold because "never started" is unhealthy.
-const neverOpenedSentinelSeconds = 1 << 30
 
 const mainBranch = "main"
 
@@ -155,26 +105,6 @@ type schemaSizer interface {
 	SchemaSizes(ctx context.Context) ([]models.SchemaStats, error)
 }
 
-type oldestOpenAutomatedActionGetter interface {
-	OldestOpenFiredAt(ctx context.Context) (time.Time, error)
-}
-
-type mostRecentOpenedAtGetter interface {
-	MostRecentOpenedAt(ctx context.Context, routineName string) (time.Time, error)
-}
-
-type latestRunMetricsGetter interface {
-	LatestRunMetrics(
-		ctx context.Context, since time.Time,
-	) (map[string]models.RunMetrics, error)
-}
-
-type automatedActionGetter interface {
-	oldestOpenAutomatedActionGetter
-	mostRecentOpenedAtGetter
-	latestRunMetricsGetter
-}
-
 type latencyTrendsGetter interface {
 	Trends(ctx context.Context) ([]models.TransactionTrend, error)
 }
@@ -187,11 +117,6 @@ type issueSignalGithubClient interface {
 	failingPRLister
 	securityAlertLister
 	workflowRunsLister
-	repositoryVariablesLister
-}
-
-type repositoryVariablesLister interface {
-	ListRepositoryVariables(ctx context.Context) (map[string]string, error)
 }
 
 type unresolvedIssueLister interface {
@@ -209,7 +134,6 @@ type IssueSignalCollectorJob struct {
 	sentry          unresolvedIssueLister
 	storageSnapshot latestStorageSnapshotGetter
 	schemaSizes     schemaSizer
-	automatedAction automatedActionGetter
 	latencyTrends   latencyTrendsGetter
 	repos           reposignals.Source
 }
@@ -246,7 +170,6 @@ func NewIssueSignalCollectorJob(
 	sentry unresolvedIssueLister,
 	storageSnapshot latestStorageSnapshotGetter,
 	schemaSizes schemaSizer,
-	automatedAction automatedActionGetter,
 	latencyTrends latencyTrendsGetter,
 ) *IssueSignalCollectorJob {
 	// Seed the fetch-ok gauge to 1: a fresh process has no fetch to have
@@ -258,7 +181,6 @@ func NewIssueSignalCollectorJob(
 		sentry:          sentry,
 		storageSnapshot: storageSnapshot,
 		schemaSizes:     schemaSizes,
-		automatedAction: automatedAction,
 		latencyTrends:   latencyTrends,
 		repos:           nil,
 	}
@@ -294,10 +216,6 @@ func (j *IssueSignalCollectorJob) Run(
 	j.collectSentryIssues(ctx, logger)
 	j.collectStorage(ctx, logger)
 	j.collectSchemaSizes(ctx, logger)
-	j.collectAutomatedActionAge(ctx, logger)
-	j.collectRoutinePaused(ctx, logger)
-	j.collectRoutineLiveness(ctx, logger)
-	j.collectRoutineRunMetrics(ctx, logger)
 	j.collectLatencyTrends(ctx, logger)
 	return nil
 }
@@ -477,121 +395,6 @@ func (j *IssueSignalCollectorJob) collectSchemaSizes(
 	postgresSchemaSizeBytes.Reset()
 	for _, s := range sizes {
 		postgresSchemaSizeBytes.WithLabelValues(s.Name).Set(float64(s.SizeBytes))
-	}
-}
-
-// collectAutomatedActionAge sets the gauge to 0 when no row is open.
-func (j *IssueSignalCollectorJob) collectAutomatedActionAge(
-	ctx context.Context,
-	logger *slog.Logger,
-) {
-	firedAt, err := j.automatedAction.OldestOpenFiredAt(ctx)
-	if errors.Is(err, database.ErrResourceNotFound) {
-		automatedActionOldestOpenAgeSeconds.Set(0)
-		return
-	}
-	if err != nil {
-		logger.ErrorContext(ctx,
-			"issue-signal-collector: failed to load oldest open automated action",
-			essentialogger.ErrAttr(err))
-		return
-	}
-	automatedActionOldestOpenAgeSeconds.Set(time.Since(firedAt).Seconds())
-}
-
-// collectRoutineRunMetrics sets automated_action_last_run from each
-// routine's latest measured run.
-func (j *IssueSignalCollectorJob) collectRoutineRunMetrics(
-	ctx context.Context,
-	logger *slog.Logger,
-) {
-	latest, err := j.automatedAction.LatestRunMetrics(
-		ctx, time.Now().Add(-runMetricsWindow),
-	)
-	if err != nil {
-		logger.ErrorContext(ctx,
-			"issue-signal-collector: failed to load routine run metrics",
-			essentialogger.ErrAttr(err))
-		return
-	}
-	automatedActionLastRun.Reset()
-	for routine, m := range latest {
-		for metric, v := range map[string]float64{
-			"requests":            float64(m.Requests),
-			"input_tokens":        float64(m.InputTokens),
-			"output_tokens":       float64(m.OutputTokens),
-			"reasoning_tokens":    float64(m.ReasoningTokens),
-			"cache_read_tokens":   float64(m.CacheReadTokens),
-			"cost_usd":            m.CostUSD,
-			"duration_seconds":    m.DurationSeconds,
-			"tool_calls":          float64(m.ToolCalls),
-			"tool_errors":         float64(m.ToolErrors),
-			"repeated_tool_calls": float64(m.RepeatedToolCalls),
-		} {
-			automatedActionLastRun.WithLabelValues(routine, metric).Set(v)
-		}
-	}
-}
-
-// collectRoutinePaused marks routines whose ROUTINE_*_ENABLED repo variable
-// isn't "true", so AutomatedRoutineMissed can ignore a deliberately disabled
-// routine. A fetch error leaves the gauge untouched — the alert keeps firing
-// until the enabled state is known.
-func (j *IssueSignalCollectorJob) collectRoutinePaused(
-	ctx context.Context,
-	logger *slog.Logger,
-) {
-	vars, err := j.gh.ListRepositoryVariables(ctx)
-	if errors.Is(err, github.ErrNotConfigured) {
-		return
-	}
-	if err != nil {
-		logAPIErr(ctx, logger,
-			"issue-signal-collector: failed to list repository variables",
-			err, github.IsTransientAPIError(err))
-		return
-	}
-
-	automatedActionRoutinePaused.Reset()
-	for _, routine := range knownRoutines {
-		paused := 0.0
-		if vars[routineEnabledVariable(routine)] != "true" {
-			paused = 1
-		}
-		automatedActionRoutinePaused.WithLabelValues(routine).Set(paused)
-	}
-}
-
-// routineEnabledVariable is the workflow gate variable for a routine; keep in
-// sync with the `vars.ROUTINE_*_ENABLED == 'true'` job conditions in
-// .github/workflows/routine-*.yml.
-func routineEnabledVariable(routine string) string {
-	return "ROUTINE_" +
-		strings.ToUpper(strings.ReplaceAll(routine, "-", "_")) + "_ENABLED"
-}
-
-// collectRoutineLiveness sets automated_action_seconds_since_last_open per
-// routine; neverOpenedSentinelSeconds when it never opened a row.
-func (j *IssueSignalCollectorJob) collectRoutineLiveness(
-	ctx context.Context,
-	logger *slog.Logger,
-) {
-	for _, routine := range knownRoutines {
-		firedAt, err := j.automatedAction.MostRecentOpenedAt(ctx, routine)
-		if errors.Is(err, database.ErrResourceNotFound) {
-			automatedActionSecondsSinceLastOpen.
-				WithLabelValues(routine).Set(neverOpenedSentinelSeconds)
-			continue
-		}
-		if err != nil {
-			logger.ErrorContext(ctx,
-				"issue-signal-collector: failed to load most recent open "+
-					"automated action",
-				slog.String("routine", routine), essentialogger.ErrAttr(err))
-			continue
-		}
-		automatedActionSecondsSinceLastOpen.
-			WithLabelValues(routine).Set(time.Since(firedAt).Seconds())
 	}
 }
 

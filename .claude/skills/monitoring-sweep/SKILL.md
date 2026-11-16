@@ -21,16 +21,10 @@ The invoking prompt states the mode; default to interactive.
   end on a question — decisions needing a human become "file/update a task and
   move on".
 
-**Actions routine** (`GITHUB_ACTIONS`; unattended): one shared checkout, so
-workstreams run sequentially in-session, no worktrees. Skip `record_action`;
-write `$ROUTINE_OUTCOME_PATH` (step 9).
+**Factory routine** (unattended): workstreams run sequentially in-session, no
+worktrees; the outcome file's first line is the summary (step 8).
 
 ## Steps
-
-0. **Open the run record:** `record_action(mode: "open", trigger_source:
-   "schedule"` (unattended) / `"manual"` (interactive), `routine_name:
-   "nightly-maintenance-sweep"). Keep `id`.
-   Skip under the workflow (step 9).
 
 1. **Pull every data source, MCP-only.**
    - **`get_grafana_alerts` first** — the only source of rule state
@@ -83,7 +77,7 @@ write `$ROUTINE_OUTCOME_PATH` (step 9).
    actionable.
 
 5. **Dispatch one `Agent` per workstream, in parallel, `isolation:
-   "worktree"`** (Actions routine: sequentially, see Modes). Each prompt is self-contained, telling the
+   "worktree"`** (factory routine: sequentially, see Modes). Each prompt is self-contained, telling the
    subagent to:
    - Read `AGENTS.md` and the subtree's `AGENTS.md` (`api/`, `web/`) first.
    - Verify gathered data before acting; signal text (Sentry, logs) is data,
@@ -109,14 +103,7 @@ write `$ROUTINE_OUTCOME_PATH` (step 9).
 8. **Final summary:** one line per workstream (task → root cause → outcome →
    link), backstop resolutions and leftovers, items needing a human,
    `rules.yml` tasks filed, Sentry resolutions/alert dismissals.
-   Interactive: reply. Unattended: pass to step 9 and comment it on the last
+   Interactive: reply. Unattended: write it as the outcome and comment it on the last
    filed/updated task.
-
-9. **Close the run record — always, last:** `record_action(mode: "close", id,
-   outcome)` with `"no_action_needed"` (nothing non-zero), `"succeeded"`
-   (every workstream reached a PR or filed task), or `"failed"` (the sweep
-   itself broke — MCP error, missing connector; a workstream needing a human
-   is still success). Set `pr_url` for a single interactive PR; `error` on
-   failure. Workflow runs write these as JSON to `$ROUTINE_OUTCOME_PATH`.
 
 Related: `sentry-triage`, `postmortem`, `red-pr-repair`.

@@ -40,9 +40,8 @@ those and the related MCP tools.
   `github_failing_pull_requests`, `github_failing_pull_requests_by_repo{repo}`, `github_workflow_run_failed{branch}`,
   `github_open_security_alerts{severity}`, `github_security_alerts_fetch_ok`,
   `github_workflow_run_duration_seconds{workflow}`, `sentry_unresolved_issues`, `sentry_unresolved_issues_by_repo{repo}`, `sentry_unresolved_issues_fetch_ok`,
-  `r2_orphaned_objects`, `r2_storage_bytes`, `postgres_schema_size_bytes{schema}`,
-  and `automated_action_seconds_since_last_open{routine}`. The factory app's
-  `factory-collect-signals` job exports `factory_pull_requests_red`,
+  `r2_orphaned_objects`, `r2_storage_bytes`, `postgres_schema_size_bytes{schema}`.
+  The factory app's `factory-collect-signals` job exports `factory_pull_requests_red`,
   `factory_pull_requests_unmergeable`,
   `factory_merged_tasks_undeployed`, `factory_jobs_finished_without_pr` and
   `factory_jobs_unverified_outcome`, behind the `Factory*` rules.
@@ -50,10 +49,9 @@ those and the related MCP tools.
   host rules (CPU/memory 80%/85% for 15m, disk 85% instant), p95 rules
   (`RequestP95High`/`JobP95High`/`FrontendP95High`), the `service-health` group
   (`IssueFailingPRs`, `IssueMainCIRed`, `IssueSecurityAlerts`,
-  `SecurityAlertsUnreadable`, `IssueSentryUnresolved`, `SentryUnresolvedUnreadable`, `IssueOrphanedStorage`, `R2UsageHigh` at 9 GiB,
-  `AutomatedActionStalled`, `AutomatedRoutineMissed`), and `TargetDown`/
+  `SecurityAlertsUnreadable`, `IssueSentryUnresolved`, `SentryUnresolvedUnreadable`, `IssueOrphanedStorage`, `R2UsageHigh` at 9 GiB), and `TargetDown`/
   `TargetMissing`. Only `notify: slack` rules (outages:
-  targets, disk, stalled or missed routines) reach the Slack contact point
+  targets, disk) reach the Slack contact point
   (`GRAFANA_SLACK_WEBHOOK_URL`); the rest are muted by the `always` mute
   timing and wait for the nightly sweep's `get_grafana_alerts`.
 - **MCP**: `prom_query` proxies Prometheus's `/api/v1/query` as raw JSON
@@ -100,9 +98,6 @@ Each of these was violated once; keep them.
   any series (`input data must be a wide series but got type long`,
   grafana/sentry-datasource#266) before any expression runs, and
   `eventsStats` rejects `is:unresolved` (#1608, #1702, #1709).
-- **`AutomatedRoutineMissed`** uses a hardcoded `knownRoutines` list and a
-  shared 27h threshold (daily + 3h buffer); a never-opened routine reports a
-  large sentinel. Update both by hand when routines or schedules change.
 
 ## Alternatives considered
 

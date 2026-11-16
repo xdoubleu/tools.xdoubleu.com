@@ -14,29 +14,28 @@ import (
 	"tools.xdoubleu.com/internal/platform/jobqueue"
 )
 
-// duplicateSweepJob collides with the sweep job's ID to reach its AddJob
+// duplicateCollectorJob collides with the collector job's ID to reach its AddJob
 // error branch.
-type duplicateSweepJob struct{}
+type duplicateCollectorJob struct{}
 
-func (duplicateSweepJob) ID() string { return "sweep-automated-actions" }
+func (duplicateCollectorJob) ID() string { return "collect-issue-signals" }
 
-func (duplicateSweepJob) Run(context.Context, *slog.Logger) error {
+func (duplicateCollectorJob) Run(context.Context, *slog.Logger) error {
 	return nil
 }
 
-func TestStartCrossAppJobsDuplicateSweepJobIDErrors(t *testing.T) {
+func TestStartCrossAppJobsDuplicateCollectorJobIDErrors(t *testing.T) {
 	queue := jobqueue.NewJobQueue(
 		t.Context(), logging.NewNopLogger(), 1, 8, testApp.db,
 	)
 	require.NoError(t, queue.AddJob(
-		duplicateSweepJob{}, func(string, bool, *time.Time) {},
+		duplicateCollectorJob{}, func(string, bool, *time.Time) {},
 	))
 
 	//nolint:exhaustruct //only the fields startCrossAppJobs reads are set
 	app := &Application{
 		db:                            testApp.db,
 		issueSignalCollectorJob:       testApp.issueSignalCollectorJob,
-		automatedActionSweepJob:       testApp.automatedActionSweepJob,
 		transactionLatencySnapshotJob: testApp.transactionLatencySnapshotJob,
 		weeklyDigestJob:               testApp.weeklyDigestJob,
 		globalJobQueue:                queue,
@@ -68,7 +67,6 @@ func TestStartCrossAppJobsDuplicateLaterJobIDsError(t *testing.T) {
 			app := &Application{
 				db:                            testApp.db,
 				issueSignalCollectorJob:       testApp.issueSignalCollectorJob,
-				automatedActionSweepJob:       testApp.automatedActionSweepJob,
 				transactionLatencySnapshotJob: testApp.transactionLatencySnapshotJob,
 				weeklyDigestJob:               testApp.weeklyDigestJob,
 				logPruneJob:                   testApp.logPruneJob,
@@ -121,7 +119,6 @@ func crossAppJobsApp(queue *jobqueue.JobQueue) *Application {
 	return &Application{
 		db:                            testApp.db,
 		issueSignalCollectorJob:       testApp.issueSignalCollectorJob,
-		automatedActionSweepJob:       testApp.automatedActionSweepJob,
 		transactionLatencySnapshotJob: testApp.transactionLatencySnapshotJob,
 		weeklyDigestJob:               testApp.weeklyDigestJob,
 		logPruneJob:                   testApp.logPruneJob,

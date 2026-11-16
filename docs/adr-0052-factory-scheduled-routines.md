@@ -2,8 +2,8 @@
 
 - Status: Accepted
 - Issues: T-4, epic T-3
-- Affects: `api/internal/platform/factory/`, `factory-runner/`, `api/internal/platform/agentaccounts/`, `.github/workflows/routine-*.yml`, `docs/convention-unattended-agent-trust.md`
-- Changes: [adr-0025](adr-0025-machine-client-credentials-service-role.md) (routines stop using the `service` client), the Actions routine runner (retired per routine at cut-over)
+- Affects: `api/internal/platform/factory/`, `factory-runner/`, `api/internal/platform/agentaccounts/`, `docs/convention-unattended-agent-trust.md`
+- Changes: [adr-0025](adr-0025-machine-client-credentials-service-role.md) (routines stop using the `service` client), the Actions routine runner and its `automated_actions` ledger (retired)
 
 ## Context
 
@@ -18,8 +18,8 @@ The routines run on Actions with a GitHub App token in the agent's shell. The fa
 - **No GitHub access in the VM.** GitHub reads go through the MCP tools. Third-party keys (PostHog) get a proxy route that swaps in the real key, like OpenRouter's.
 - **Red-PR repair pushes through the host** (ADR-0045), narrowed: only to the head branch of an open, same-repo PR opened by Dependabot, Renovate, the owner or the factory App, never forced. Those PRs keep auto-merge. For a red `main` it opens a new PR **without** auto-merge and posts to Slack.
 - **The ready-issues executor retires.** Auto pickup already runs Ready tasks.
-- **The Mac may sleep.** A due routine stays queued until a runner claims it; the existing "no runner for ten minutes" Slack notice covers it. A `pmset repeat wakeorpoweron` before the nightly run is optional. `AutomatedRoutineMissed` reads each routine's last job, alerting after 48 hours.
-- **Cut-over one routine at a time.** Each routine is enabled on exactly one side: the `ROUTINE_<NAME>_ENABLED` variable on Actions or the board toggle, never both. Flipping back to Actions is the fallback while the Mac is away; the Actions routines are deleted after 30 days without a fallback.
+- **The Mac may sleep.** A due routine stays queued until a runner claims it; the existing "no runner for ten minutes" Slack notice covers it. A `pmset repeat wakeorpoweron` before the nightly run is optional.
+- **No Actions fallback.** Every routine runs only as a factory routine: the Actions workflows, their `ROUTINE_<NAME>_ENABLED` variables and the `automated_actions` ledger with its `record_action`/`get_automated_actions` tools are gone, because factory jobs record their own runs. A red `main` is caught by the `red-pr-repair` routine's schedule, not by a CI-triggered run.
 - **Harness:** the runner's own setting decides (epic T-269). On Claude Code, routines spend the Pro window, so schedule them outside working hours.
 
 ## Alternatives considered
@@ -32,7 +32,7 @@ The routines run on Actions with a GitHub App token in the agent's shell. The fa
 ## Consequences
 
 - The factory gains a task-less job type, and job accounts a routine scope beside `JobID`/`TaskID`. Until the standing routine account lands, a routine's job gets no agent account.
-- The watchdog, transcript upload and `record_action` ledger of `agent-routine.yml` are replaced by job check-ins, job events and Slack notices, not ported.
+- The watchdog, transcript upload and run ledger of the Actions runner are replaced by job check-ins, job events and Slack notices, not ported.
 
 ## Revisit when
 

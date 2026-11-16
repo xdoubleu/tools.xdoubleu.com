@@ -37,11 +37,6 @@ Run the steps in order. Opening the PR is pre-authorized; a branch without a PR 
 - Web: `npm run test:cov` in `web/`.
 - `factory-runner/`, `selfupdate/`: same target.
 
-**Sandboxed (routine) runs:** `routine-sandbox` points `GOLANGCI_LINT_CACHE`
-and the coverage profile at the sandbox home; run lint read-only and
-hand-apply golines/gci diffs. Skip `make grafana/verify` (needs Docker; CI's
-Build Grafana job covers it).
-
 ## 3. Build (web changes)
 
 `cd web && npm run build` checks the server/client boundary.

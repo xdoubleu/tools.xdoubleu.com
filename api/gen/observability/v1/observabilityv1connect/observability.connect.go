@@ -90,15 +90,6 @@ const (
 	// ObservabilityServiceUpdateNotificationSettingsProcedure is the procedure name of the
 	// ObservabilityService's UpdateNotificationSettings RPC.
 	ObservabilityServiceUpdateNotificationSettingsProcedure = "/observability.v1.ObservabilityService/UpdateNotificationSettings"
-	// ObservabilityServiceOpenAutomatedActionProcedure is the procedure name of the
-	// ObservabilityService's OpenAutomatedAction RPC.
-	ObservabilityServiceOpenAutomatedActionProcedure = "/observability.v1.ObservabilityService/OpenAutomatedAction"
-	// ObservabilityServiceCloseAutomatedActionProcedure is the procedure name of the
-	// ObservabilityService's CloseAutomatedAction RPC.
-	ObservabilityServiceCloseAutomatedActionProcedure = "/observability.v1.ObservabilityService/CloseAutomatedAction"
-	// ObservabilityServiceGetAutomatedActionsProcedure is the procedure name of the
-	// ObservabilityService's GetAutomatedActions RPC.
-	ObservabilityServiceGetAutomatedActionsProcedure = "/observability.v1.ObservabilityService/GetAutomatedActions"
 )
 
 var (
@@ -256,27 +247,6 @@ var (
 			Procedure:  ObservabilityServiceUpdateNotificationSettingsProcedure,
 		}
 	})
-	observabilityServiceOpenAutomatedActionSpec = sync.OnceValue(func() connect.Spec {
-		return connect.Spec{
-			StreamType: connect.StreamTypeUnary,
-			Schema:     v1.File_observability_v1_observability_proto.Services().ByName("ObservabilityService").Methods().ByName("OpenAutomatedAction"),
-			Procedure:  ObservabilityServiceOpenAutomatedActionProcedure,
-		}
-	})
-	observabilityServiceCloseAutomatedActionSpec = sync.OnceValue(func() connect.Spec {
-		return connect.Spec{
-			StreamType: connect.StreamTypeUnary,
-			Schema:     v1.File_observability_v1_observability_proto.Services().ByName("ObservabilityService").Methods().ByName("CloseAutomatedAction"),
-			Procedure:  ObservabilityServiceCloseAutomatedActionProcedure,
-		}
-	})
-	observabilityServiceGetAutomatedActionsSpec = sync.OnceValue(func() connect.Spec {
-		return connect.Spec{
-			StreamType: connect.StreamTypeUnary,
-			Schema:     v1.File_observability_v1_observability_proto.Services().ByName("ObservabilityService").Methods().ByName("GetAutomatedActions"),
-			Procedure:  ObservabilityServiceGetAutomatedActionsProcedure,
-		}
-	})
 )
 
 // ObservabilityServiceClient is a client for the observability.v1.ObservabilityService service.
@@ -303,9 +273,6 @@ type ObservabilityServiceClient interface {
 	SetProviderConfig(context.Context, *v1.SetProviderConfigRequest) (*v1.SetProviderConfigResponse, error)
 	GetNotificationSettings(context.Context, *v1.GetNotificationSettingsRequest) (*v1.GetNotificationSettingsResponse, error)
 	UpdateNotificationSettings(context.Context, *v1.UpdateNotificationSettingsRequest) (*v1.UpdateNotificationSettingsResponse, error)
-	OpenAutomatedAction(context.Context, *v1.OpenAutomatedActionRequest) (*v1.OpenAutomatedActionResponse, error)
-	CloseAutomatedAction(context.Context, *v1.CloseAutomatedActionRequest) (*v1.CloseAutomatedActionResponse, error)
-	GetAutomatedActions(context.Context, *v1.GetAutomatedActionsRequest) (*v1.GetAutomatedActionsResponse, error)
 }
 
 // NewObservabilityServiceClient constructs a client for the observability.v1.ObservabilityService
@@ -339,9 +306,6 @@ type ObservabilityServiceHandler interface {
 	SetProviderConfig(context.Context, *v1.SetProviderConfigRequest) (*v1.SetProviderConfigResponse, error)
 	GetNotificationSettings(context.Context, *v1.GetNotificationSettingsRequest) (*v1.GetNotificationSettingsResponse, error)
 	UpdateNotificationSettings(context.Context, *v1.UpdateNotificationSettingsRequest) (*v1.UpdateNotificationSettingsResponse, error)
-	OpenAutomatedAction(context.Context, *v1.OpenAutomatedActionRequest) (*v1.OpenAutomatedActionResponse, error)
-	CloseAutomatedAction(context.Context, *v1.CloseAutomatedActionRequest) (*v1.CloseAutomatedActionResponse, error)
-	GetAutomatedActions(context.Context, *v1.GetAutomatedActionsRequest) (*v1.GetAutomatedActionsResponse, error)
 }
 
 // RegisterObservabilityServiceHandler registers svc as the observability.v1.ObservabilityService
@@ -371,9 +335,6 @@ func RegisterObservabilityServiceHandler(server *connect.Server, svc Observabili
 		connect.Method{Spec: observabilityServiceSetProviderConfigSpec(), Handler: adapter.setProviderConfig},
 		connect.Method{Spec: observabilityServiceGetNotificationSettingsSpec(), Handler: adapter.getNotificationSettings},
 		connect.Method{Spec: observabilityServiceUpdateNotificationSettingsSpec(), Handler: adapter.updateNotificationSettings},
-		connect.Method{Spec: observabilityServiceOpenAutomatedActionSpec(), Handler: adapter.openAutomatedAction},
-		connect.Method{Spec: observabilityServiceCloseAutomatedActionSpec(), Handler: adapter.closeAutomatedAction},
-		connect.Method{Spec: observabilityServiceGetAutomatedActionsSpec(), Handler: adapter.getAutomatedActions},
 	)
 }
 
@@ -466,18 +427,6 @@ func (UnimplementedObservabilityServiceHandler) GetNotificationSettings(context.
 
 func (UnimplementedObservabilityServiceHandler) UpdateNotificationSettings(context.Context, *v1.UpdateNotificationSettingsRequest) (*v1.UpdateNotificationSettingsResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "observability.v1.ObservabilityService.UpdateNotificationSettings is not implemented")
-}
-
-func (UnimplementedObservabilityServiceHandler) OpenAutomatedAction(context.Context, *v1.OpenAutomatedActionRequest) (*v1.OpenAutomatedActionResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, "observability.v1.ObservabilityService.OpenAutomatedAction is not implemented")
-}
-
-func (UnimplementedObservabilityServiceHandler) CloseAutomatedAction(context.Context, *v1.CloseAutomatedActionRequest) (*v1.CloseAutomatedActionResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, "observability.v1.ObservabilityService.CloseAutomatedAction is not implemented")
-}
-
-func (UnimplementedObservabilityServiceHandler) GetAutomatedActions(context.Context, *v1.GetAutomatedActionsRequest) (*v1.GetAutomatedActionsResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, "observability.v1.ObservabilityService.GetAutomatedActions is not implemented")
 }
 
 type observabilityServiceClient struct {
@@ -655,30 +604,6 @@ func (c *observabilityServiceClient) GetNotificationSettings(ctx context.Context
 func (c *observabilityServiceClient) UpdateNotificationSettings(ctx context.Context, req *v1.UpdateNotificationSettingsRequest) (*v1.UpdateNotificationSettingsResponse, error) {
 	var res v1.UpdateNotificationSettingsResponse
 	if err := c.client.CallUnary(ctx, observabilityServiceUpdateNotificationSettingsSpec(), req, &res); err != nil {
-		return nil, err
-	}
-	return &res, nil
-}
-
-func (c *observabilityServiceClient) OpenAutomatedAction(ctx context.Context, req *v1.OpenAutomatedActionRequest) (*v1.OpenAutomatedActionResponse, error) {
-	var res v1.OpenAutomatedActionResponse
-	if err := c.client.CallUnary(ctx, observabilityServiceOpenAutomatedActionSpec(), req, &res); err != nil {
-		return nil, err
-	}
-	return &res, nil
-}
-
-func (c *observabilityServiceClient) CloseAutomatedAction(ctx context.Context, req *v1.CloseAutomatedActionRequest) (*v1.CloseAutomatedActionResponse, error) {
-	var res v1.CloseAutomatedActionResponse
-	if err := c.client.CallUnary(ctx, observabilityServiceCloseAutomatedActionSpec(), req, &res); err != nil {
-		return nil, err
-	}
-	return &res, nil
-}
-
-func (c *observabilityServiceClient) GetAutomatedActions(ctx context.Context, req *v1.GetAutomatedActionsRequest) (*v1.GetAutomatedActionsResponse, error) {
-	var res v1.GetAutomatedActionsResponse
-	if err := c.client.CallUnary(ctx, observabilityServiceGetAutomatedActionsSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -944,42 +869,6 @@ func (h observabilityServiceHandler) updateNotificationSettings(ctx context.Cont
 		return err
 	}
 	res, err := h.svc.UpdateNotificationSettings(ctx, &req)
-	if err != nil {
-		return err
-	}
-	return stream.Send(res)
-}
-
-func (h observabilityServiceHandler) openAutomatedAction(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
-	var req v1.OpenAutomatedActionRequest
-	if err := stream.Receive(&req); err != nil {
-		return err
-	}
-	res, err := h.svc.OpenAutomatedAction(ctx, &req)
-	if err != nil {
-		return err
-	}
-	return stream.Send(res)
-}
-
-func (h observabilityServiceHandler) closeAutomatedAction(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
-	var req v1.CloseAutomatedActionRequest
-	if err := stream.Receive(&req); err != nil {
-		return err
-	}
-	res, err := h.svc.CloseAutomatedAction(ctx, &req)
-	if err != nil {
-		return err
-	}
-	return stream.Send(res)
-}
-
-func (h observabilityServiceHandler) getAutomatedActions(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
-	var req v1.GetAutomatedActionsRequest
-	if err := stream.Receive(&req); err != nil {
-		return err
-	}
-	res, err := h.svc.GetAutomatedActions(ctx, &req)
 	if err != nil {
 		return err
 	}

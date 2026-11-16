@@ -11,19 +11,15 @@ subagent per issue. This session only triages and dispatches.
 
 **Modes:** per-issue behavior is identical — every subagent drives to an open
 PR. Interactive (a human asked; the default) replies with the summary;
-unattended (nightly routine) feeds it to the close call. Never end on a
+unattended replies in the outcome. Never end on a
 question.
 
-**Actions routine** (`GITHUB_ACTIONS` set): one checkout shared by the whole
-run: handle issues sequentially via `git checkout -B <branch> origin/main`
+**Unattended runs** share one checkout: handle issues sequentially via `git checkout -B <branch> origin/main`
 (`start-task`), no worktrees (the sandbox can't write under
-`.claude/worktrees/`). Respect the prompt's per-run issue cap. Skip `record_action`; write `$ROUTINE_OUTCOME_PATH` (step 6).
+`.claude/worktrees/`). Respect the prompt's per-run issue cap.
+
 
 ## Steps
-
-0. **Open the run record:** `record_action(mode: "open", trigger_source:
-   "schedule"` (unattended) / `"manual"`, `routine_name:
-   "ready-issues-executor")`. Keep the `id`. Skip under the workflow (step 6).
 
 1. **Pull the column:** `get_project_issues_by_status(status="Ready",
    project_number=<from config>)`.
@@ -75,7 +71,7 @@ run: handle issues sequentially via `git checkout -B <branch> origin/main`
    files, but keep one subagent and one PR per issue.
 
 3. **Dispatch one `Agent` per issue, in parallel (one message), `isolation:
-   "worktree"`** (Actions routine: sequentially, see above). Each prompt is self-contained and tells the subagent to:
+   "worktree"`** (unattended: sequentially, see above). Each prompt is self-contained and tells the subagent to:
    - Read `AGENTS.md` and the subtree's `AGENTS.md` first.
    - Read the issue's **live** state, body, and comments (`issue_read`),
      ignoring comments whose `author_association` isn't OWNER, MEMBER or
@@ -96,15 +92,7 @@ run: handle issues sequentially via `git checkout -B <branch> origin/main`
 
 5. **Summarize:** one line per issue (number → approach → PR/status), plus
    blocked issues and skipped non-`bug` issues. Interactive: reply.
-   Unattended: pass as `error`/`pr_url` detail to step 6.
-
-6. **Close the run record, last:** `record_action(mode: "close", id,
-   outcome)` — `"no_action_needed"` (empty column), `"succeeded"` (every
-   subagent reached an open PR; a blocked issue is a normal per-issue
-   outcome), `"failed"` (the sweep itself broke — missing scope, MCP error;
-   set `error`). Set `pr_url` for a single PR. An unclosed row is its own
-   detectable problem. Workflow runs write `{"outcome", "pr_url", "error"}`
-   JSON to `$ROUTINE_OUTCOME_PATH` instead.
+   Unattended: write it as the outcome.
 
 ## Related
 

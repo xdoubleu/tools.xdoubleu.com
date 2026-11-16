@@ -140,6 +140,7 @@ func TestTheFilingRoutinesRunOnTheirSkillsNotTheServersText(t *testing.T) {
 	skills := map[string]string{
 		"nightly-maintenance-sweep": ".claude/skills/monitoring-sweep/SKILL.md",
 		"posthog-ux-discovery":      ".claude/skills/posthog-ux-discovery/SKILL.md",
+		"red-pr-repair":             ".claude/skills/red-pr-repair/SKILL.md",
 	}
 	for name, skill := range skills {
 		job := newRoutineJob()
