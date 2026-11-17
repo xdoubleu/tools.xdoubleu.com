@@ -66,20 +66,40 @@ func TestAnOpenCodeJobDoesNotGetTheClaudeToken(t *testing.T) {
 	assert.NotContains(t, env.sandbox.specs[0].Env, "CLAUDE_CODE_OAUTH_TOKEN")
 }
 
-func TestAMissingClaudeTokenFailsTheJobBeforeTheSandboxStarts(t *testing.T) {
+func TestAMissingClaudeTokenRefusesTheClaim(t *testing.T) {
 	env := newEnv(t, writes("Done.", 0), newJob())
 	env.runner.ClaudeToken = func() (string, error) {
 		return "", errors.New("secret not stored: claude")
 	}
 
-	_, err := env.runner.Next(context.Background())
-	require.NoError(t, err)
-
-	got := env.api.done()[0]
-	assert.False(t, got.succeeded)
-	assert.Contains(t, got.outcome, "Could not prepare the job")
-	assert.Contains(t, got.outcome, "secret not stored: claude")
+	claimed, err := env.runner.Next(context.Background())
+	require.ErrorContains(t, err, "secret not stored: claude")
+	assert.False(t, claimed)
+	assert.Empty(t, env.api.done(), "the task was not used up")
 	assert.Empty(t, env.sandbox.specs, "nothing started")
+}
+
+func TestAMissingOpenRouterKeyRefusesAnOpenCodeClaim(t *testing.T) {
+	env := newEnv(t, writesOpenCode("Done."), newJob())
+	env.runner.Harness = runner.OpenCode{Model: "vendor/model"}
+	env.runner.OpenRouterKey = func() (string, error) {
+		return "", errors.New("secret not stored: openrouter")
+	}
+
+	claimed, err := env.runner.Next(context.Background())
+	require.ErrorContains(t, err, "secret not stored: openrouter")
+	assert.False(t, claimed)
+	assert.Empty(t, env.api.done())
+}
+
+func TestAStoredOpenRouterKeyLetsAnOpenCodeJobClaim(t *testing.T) {
+	env := newEnv(t, writesOpenCode("Done."), newJob())
+	env.runner.Harness = runner.OpenCode{Model: "vendor/model"}
+	env.runner.OpenRouterKey = func() (string, error) { return "sk-or-key", nil }
+
+	claimed, err := env.runner.Next(context.Background())
+	require.NoError(t, err)
+	assert.True(t, claimed)
 }
 
 func TestAProxyThatCannotBeBuiltFailsTheJob(t *testing.T) {
