@@ -238,9 +238,10 @@ func (s *JobService) PullRequestClosed(ctx context.Context, pr PullRequestRef) e
 	return errors.Join(failures...)
 }
 
-// afterMergeStatus is Done for work the agents found and fixed themselves, or
-// whose merged pull request only changes files CI or the board checks (see
-// selfCheckedBy), which need no person's check, and Testing for everything else.
+// afterMergeStatus is Done for work the agents found and fixed themselves (the
+// routine-found, factory-retro, factory-sandbox and routine-feedback labels),
+// or whose merged pull request only changes files CI or the board checks (see
+// pathRule), which need no person's check, and Testing for everything else.
 func (s *JobService) afterMergeStatus(
 	ctx context.Context,
 	task *models.Task,
@@ -248,7 +249,7 @@ func (s *JobService) afterMergeStatus(
 ) models.Status {
 	for _, label := range task.Labels {
 		switch strings.ToLower(label) {
-		case "factory-retro", "factory-sandbox", "routine-feedback":
+		case "routine-found", "factory-retro", "factory-sandbox", "routine-feedback":
 			return models.StatusDone
 		}
 	}

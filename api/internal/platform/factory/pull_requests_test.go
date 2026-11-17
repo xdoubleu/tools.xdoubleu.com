@@ -524,7 +524,9 @@ func TestAnArmedPullRequestThatCannotMergeIsFlaggedOnItsTaskAndCounted(t *testin
 }
 
 func TestAMergedPullRequestSendsSelfCheckedWorkStraightToDone(t *testing.T) {
-	labels := []string{"factory-retro", "factory-sandbox", "routine-feedback"}
+	labels := []string{
+		"routine-found", "factory-retro", "factory-sandbox", "routine-feedback",
+	}
 	for _, label := range labels {
 		t.Run("poll "+label, func(t *testing.T) {
 			env, gh := githubEnv(t)
