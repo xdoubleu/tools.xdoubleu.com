@@ -30,8 +30,9 @@ func TestTheClaudeTokenIsReadOnceAndThatValueIsWhatIsRedacted(t *testing.T) {
 	env := newEnv(t, writes("Used "+claudeToken+" there.", 0), newJob())
 	env.runner.ClaudeToken = func() (string, error) {
 		reads++
-		if reads > 1 {
-			// A later read that fails must not let the first value slip through.
+		// The first read is the claim's presence check.
+		if reads > 2 {
+			// A later read that fails must not let the job's value slip through.
 			return "", assert.AnError
 		}
 		return claudeToken, nil
@@ -41,7 +42,7 @@ func TestTheClaudeTokenIsReadOnceAndThatValueIsWhatIsRedacted(t *testing.T) {
 	_, err := env.runner.Next(context.Background())
 	require.NoError(t, err)
 
-	assert.Equal(t, 1, reads)
+	assert.Equal(t, 2, reads)
 	got := env.api.done()[0]
 	assert.Contains(t, got.outcome, "the outcome contains a credential value")
 	assert.NotContains(t, got.outcome, claudeToken)

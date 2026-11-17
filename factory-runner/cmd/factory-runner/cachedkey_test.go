@@ -67,3 +67,15 @@ func TestSecretFromAPipeSaysNothingExtra(t *testing.T) {
 	require.Equal(t, 0, e.do("config", "secret", "claude"))
 	assert.Empty(t, e.errs.String())
 }
+func TestStoredSecretReadsTheCurrentValueEachCall(t *testing.T) {
+	store := newMemSecrets()
+	read := storedSecret(store, runner.SecretOpenRouter)
+
+	_, err := read()
+	require.Error(t, err)
+
+	store.values[runner.SecretOpenRouter] = "sk-or-1"
+	got, err := read()
+	require.NoError(t, err)
+	assert.Equal(t, "sk-or-1", got)
+}
