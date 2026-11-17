@@ -238,25 +238,32 @@ func (s *JobService) PullRequestClosed(ctx context.Context, pr PullRequestRef) e
 	return errors.Join(failures...)
 }
 
-// afterMergeStatus is Done for work the agents found and fixed themselves (the
-// routine-found, factory-retro, factory-sandbox and routine-feedback labels),
-// or whose merged pull request only changes files CI or the board checks (see
-// pathRule), which need no person's check, and Testing for everything else.
+// afterMergeStatus is Testing when the merged pull request adds or changes a
+// decision record, whatever the labels, for the owner to review. Otherwise it is
+// Done for work the agents found and fixed themselves (the routine-found,
+// factory-retro, factory-sandbox and routine-feedback labels), or whose files only
+// CI or the board checks (see selfCheckedBy), and Testing for everything else.
+// The note names the decision records, or is "".
 func (s *JobService) afterMergeStatus(
 	ctx context.Context,
 	task *models.Task,
 	prURL string,
-) models.Status {
+) (models.Status, string) {
+	files := s.mergedFiles(ctx, prURL)
+	if adrs := adrFiles(files); len(adrs) > 0 {
+		return models.StatusTesting, "It adds or changes " + strings.Join(adrs, ", ") +
+			": review the decision."
+	}
 	for _, label := range task.Labels {
 		switch strings.ToLower(label) {
 		case "routine-found", "factory-retro", "factory-sandbox", "routine-feedback":
-			return models.StatusDone
+			return models.StatusDone, ""
 		}
 	}
-	if s.pathRule(ctx, prURL) != "" {
-		return models.StatusDone
+	if selfCheckedBy(files) != "" {
+		return models.StatusDone, ""
 	}
-	return models.StatusTesting
+	return models.StatusTesting, ""
 }
 
 // TestingAfterMerge moves each task a merged pull request links in its
@@ -316,12 +323,20 @@ func (s *JobService) testingAfterMerge(
 	if len(jobs) > 0 {
 		return false, nil
 	}
-	if _, err = s.tasks.Move(ctx, id, s.afterMergeStatus(ctx, task, prURL)); err != nil {
+	to, note := s.afterMergeStatus(ctx, task, prURL)
+	if _, err = s.tasks.Move(ctx, id, to); err != nil {
 		return false, err
 	}
-	body := "The pull request was merged: " + prURL
+	body := "The pull request was merged: " + prURL + withNote(note)
 	_, err = s.tasks.AddComment(ctx, id, systemAuthor, body)
 	return true, err
+}
+
+func withNote(note string) string {
+	if note == "" {
+		return ""
+	}
+	return " " + note
 }
 
 func (s *JobService) pollPullRequest(ctx context.Context, job *models.Job) error {
@@ -372,9 +387,13 @@ func (s *JobService) pullRequestEnded(
 	if len(jobs) > 0 && jobs[0].ID != job.ID {
 		return nil
 	}
-	to, body := models.StatusNeedsYou, "The pull request was closed without merging: "
+	to, suffix := models.StatusNeedsYou, ""
+	body := "The pull request was closed without merging: "
 	if status.State == githubapp.StateMerged {
-		to, body = s.afterMergeStatus(ctx, task, job.PRURL), "The pull request was merged: "
+		var note string
+		to, note = s.afterMergeStatus(ctx, task, job.PRURL)
+		body = "The pull request was merged: "
+		suffix = withNote(note)
 		err = s.tasks.SetMergeSHA(ctx, job.TaskID, status.MergeSHA)
 	}
 	// Move first: a failure after it loses a comment, where a failure before it
@@ -385,7 +404,7 @@ func (s *JobService) pullRequestEnded(
 	if err != nil {
 		return err
 	}
-	_, err = s.tasks.AddComment(ctx, job.TaskID, systemAuthor, body+job.PRURL)
+	_, err = s.tasks.AddComment(ctx, job.TaskID, systemAuthor, body+job.PRURL+suffix)
 	return err
 }
 
