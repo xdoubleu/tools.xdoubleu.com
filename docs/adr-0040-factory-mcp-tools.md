@@ -40,8 +40,7 @@ the opposite of what the board needs.
   the task it filed earlier by a stable key (a Sentry permalink) without
   reading every body.
 - A new task always starts in Backlog. `factory_list_repos` returns id, owner,
-  name and default branch only: the setup commands and instructions are for the
-  sandbox, not the agent. List results leave out task bodies.
+  name and default branch only. List results leave out task bodies.
 
 ## Alternatives considered
 

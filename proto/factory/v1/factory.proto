@@ -331,16 +331,12 @@ service TaskService {
 
 message Repo {
   // The harness and model are the runner's Mac's choice, not the repo's.
-  reserved 5, 9;
-  reserved "default_harness", "default_model";
+  reserved 5, 6, 7, 9;
+  reserved "default_harness", "default_model", "setup_commands", "agent_instructions";
   string id = 1;
   string owner = 2;
   string name = 3;
   string default_branch = 4;
-  // Free text, run in the sandbox before the agent.
-  string setup_commands = 6;
-  // Free text added to every prompt for this repo.
-  string agent_instructions = 7;
   int32 time_limit_minutes = 8;
   // Lets the runner take this repo's Ready tasks without a press of Run, as the
   // human approved them at the Ready move. Off by default.

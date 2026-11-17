@@ -33,8 +33,6 @@ describe('RepoDialog', () => {
     expect(screen.queryByLabelText('Default harness')).not.toBeInTheDocument()
     expect(screen.queryByLabelText('Default model')).not.toBeInTheDocument()
     expect(screen.getByLabelText('Time limit (minutes)')).toHaveValue(60)
-    expect(screen.getByLabelText('Setup commands')).toHaveValue('')
-    expect(screen.getByLabelText('Agent instructions')).toHaveValue('')
     expect(screen.getByLabelText('Sentry project')).toHaveValue('')
     expect(screen.getByLabelText('Red PR label')).toHaveValue('dependencies')
     expect(screen.getByLabelText('Red PR branch prefix')).toHaveValue('claude/')
@@ -47,8 +45,6 @@ describe('RepoDialog', () => {
     expect(screen.getByLabelText('Pick up Ready tasks automatically')).not.toBeChecked()
     fireEvent.click(screen.getByLabelText('Pick up Ready tasks automatically'))
     fill('Time limit (minutes)', '15')
-    fill('Setup commands', 'npm ci')
-    fill('Agent instructions', 'Be careful.')
     fill('Sentry project', 'check-in')
     fill('Red PR label', 'deps')
     fill('Red PR branch prefix', 'agent/')
@@ -60,8 +56,6 @@ describe('RepoDialog', () => {
         name: 'cat',
         defaultBranch: 'dev',
         autoPickup: true,
-        setupCommands: 'npm ci',
-        agentInstructions: 'Be careful.',
         timeLimitMinutes: 15,
         sentryProject: 'check-in',
         redPrLabel: 'deps',
@@ -79,8 +73,6 @@ describe('RepoDialog', () => {
       name: 'cat',
       defaultBranch: 'trunk',
       autoPickup: true,
-      setupCommands: 'make deps',
-      agentInstructions: 'Follow AGENTS.md.',
       timeLimitMinutes: 90,
       sentryProject: 'cat-web',
       redPrLabel: '',
@@ -95,8 +87,6 @@ describe('RepoDialog', () => {
     expect(screen.getByLabelText('Default branch')).toHaveValue('trunk')
     expect(screen.getByLabelText('Pick up Ready tasks automatically')).toBeChecked()
     expect(screen.getByLabelText('Time limit (minutes)')).toHaveValue(90)
-    expect(screen.getByLabelText('Setup commands')).toHaveValue('make deps')
-    expect(screen.getByLabelText('Agent instructions')).toHaveValue('Follow AGENTS.md.')
     expect(screen.getByLabelText('Sentry project')).toHaveValue('cat-web')
     expect(screen.getByLabelText('Red PR label')).toHaveValue('')
     expect(screen.getByLabelText('Red PR branch prefix')).toHaveValue('bot/')

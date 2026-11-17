@@ -19,7 +19,6 @@ type ClaimedJob struct {
 	DefaultBranch    string `json:"defaultBranch"`
 	Prompt           string `json:"prompt"`
 	Branch           string `json:"branch"`
-	SetupCommands    string `json:"setupCommands"`
 	TimeLimitMinutes int    `json:"timeLimitMinutes"`
 	// MCPClientID and MCPClientSecret are the job's own agent account for the board
 	// (empty if the server made none). The secret is a credential like any other.

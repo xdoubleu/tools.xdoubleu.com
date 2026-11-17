@@ -287,7 +287,7 @@ func newJob() *runner.ClaimedJob {
 		Routine: "",
 		ID:      jobID, TaskID: taskID, RepoOwner: "xdoubleu", RepoName: "tools.xdoubleu.com",
 		DefaultBranch: "main", Prompt: "# Task: Fix it",
-		Branch: branch, SetupCommands: "make setup", TimeLimitMinutes: 1,
+		Branch: branch, TimeLimitMinutes: 1,
 		MCPClientID: "", MCPClientSecret: "", ResumeSessionID: "",
 	}
 }
@@ -362,7 +362,6 @@ func TestAJobRunsInACloneOnItsBranchAndReportsItsOutcome(t *testing.T) {
 	assert.Equal(t, filepath.Join(env.dir, "jobs", jobID, "clone"), spec.CloneDir)
 	assert.Equal(t, jobID, spec.Env["FACTORY_JOB"])
 	assert.Equal(t, runner.SandboxOutcomePath, spec.Env["FACTORY_OUTCOME_PATH"])
-	assert.Equal(t, "make setup", spec.SetupCommands)
 	assert.Equal(t, runner.ClaudeCode{}.Command(), spec.Command)
 	assert.Contains(
 		t,

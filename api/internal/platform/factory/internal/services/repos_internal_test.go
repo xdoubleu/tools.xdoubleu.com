@@ -17,8 +17,6 @@ func repoInput(mod func(*RepoInput)) RepoInput {
 		Owner:             "octo",
 		Name:              "repo",
 		DefaultBranch:     "main",
-		SetupCommands:     "",
-		AgentInstructions: "",
 		TimeLimitMinutes:  60,
 		AutoPickup:        false,
 		SentryProject:     "",
@@ -103,15 +101,6 @@ func TestNormaliseRepoBounds(t *testing.T) {
 	ok(func(r *RepoInput) { r.TimeLimitMinutes = maxTimeLimit })
 	bad(func(r *RepoInput) { r.TimeLimitMinutes = -1 })
 	bad(func(r *RepoInput) { r.TimeLimitMinutes = maxTimeLimit + 1 })
-
-	ok(func(r *RepoInput) { r.SetupCommands = strings.Repeat("a", maxSetupLen) })
-	bad(func(r *RepoInput) { r.SetupCommands = strings.Repeat("a", maxSetupLen+1) })
-	ok(
-		func(r *RepoInput) { r.AgentInstructions = strings.Repeat("a", maxInstructionsLen) },
-	)
-	bad(func(r *RepoInput) {
-		r.AgentInstructions = strings.Repeat("a", maxInstructionsLen+1)
-	})
 
 	bad(func(r *RepoInput) { r.DefaultBranch = "-x" })
 }

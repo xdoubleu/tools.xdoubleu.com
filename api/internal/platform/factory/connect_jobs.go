@@ -183,7 +183,6 @@ func claimedJobToProto(c *services.ClaimedJob) *factoryv1.ClaimedJob {
 		DefaultBranch:    c.Repo.DefaultBranch,
 		Prompt:           c.Job.Prompt,
 		Branch:           c.Job.Branch,
-		SetupCommands:    c.Repo.SetupCommands,
 		TimeLimitMinutes: timeLimit,
 		McpClientId:      c.MCPClientID,
 		McpClientSecret:  c.MCPClientSecret,

@@ -113,15 +113,14 @@ func sandboxWith(t *testing.T, exec *scriptedExec) *runner.ContainerSandbox {
 func spec(t *testing.T, log io.Writer) runner.SandboxSpec {
 	t.Helper()
 	return runner.SandboxSpec{
-		CloneDir:      "/data/jobs/j1/clone",
-		OutcomeDir:    "/data/jobs/j1/outcome",
-		SessionDir:    "/data/sessions/t1",
-		Env:           map[string]string{"FACTORY_JOB": "0a1b2c3d-4e5f", "SECRET": "s3cret"},
-		SetupCommands: "npm ci",
-		Command:       []string{"claude", "-p"},
-		Proxy:         nil,
-		Stdin:         "do the thing",
-		Log:           log,
+		CloneDir:   "/data/jobs/j1/clone",
+		OutcomeDir: "/data/jobs/j1/outcome",
+		SessionDir: "/data/sessions/t1",
+		Env:        map[string]string{"FACTORY_JOB": "0a1b2c3d-4e5f", "SECRET": "s3cret"},
+		Command:    []string{"claude", "-p"},
+		Proxy:      nil,
+		Stdin:      "do the thing",
+		Log:        log,
 	}
 }
 
@@ -447,14 +446,6 @@ func TestAVPNHoldingTenSlashEightMovesTheJobNetworkToAnotherRange(t *testing.T) 
 	_, err := box.Run(context.Background(), spec(t, io.Discard))
 	require.NoError(t, err)
 	assert.Equal(t, "172.29.7.1", gateway)
-}
-
-func TestSetupCommandsReadNoStdinSoThePromptReachesTheAgent(t *testing.T) {
-	exec := newExecScript(routesAnswer)
-	_, err := sandboxWith(t, exec).Run(context.Background(), spec(t, io.Discard))
-	require.NoError(t, err)
-	script := exec.find("exec")[0][len(exec.find("exec")[0])-4]
-	assert.Contains(t, script, "(\nnpm ci\n) </dev/null\nexec \"$@\"")
 }
 
 func TestASpecTheVMCannotCarryFaithfullyIsRefusedBeforeAnythingStarts(t *testing.T) {

@@ -14,12 +14,10 @@ import (
 )
 
 const (
-	maxSetupLen        = 10000
-	maxInstructionsLen = 20000
-	maxBranchLen       = 255
-	maxRepoLabelLen    = 50
-	minTimeLimit       = 1
-	maxTimeLimit       = 1440
+	maxBranchLen    = 255
+	maxRepoLabelLen = 50
+	minTimeLimit    = 1
+	maxTimeLimit    = 1440
 )
 
 var (
@@ -39,8 +37,6 @@ type RepoInput struct {
 	Owner             string
 	Name              string
 	DefaultBranch     string
-	SetupCommands     string
-	AgentInstructions string
 	TimeLimitMinutes  int
 	AutoPickup        bool
 	SentryProject     string
@@ -100,12 +96,6 @@ func normaliseRepo(in RepoInput) (RepoInput, error) {
 		!branchPattern.MatchString(in.RedPRBranchPrefix)):
 		return in, badRequest("invalid red PR branch prefix")
 	}
-	switch {
-	case utf8.RuneCountInString(in.SetupCommands) > maxSetupLen:
-		return in, badRequest("setup commands are too long")
-	case utf8.RuneCountInString(in.AgentInstructions) > maxInstructionsLen:
-		return in, badRequest("agent instructions are too long")
-	}
 	if in.TimeLimitMinutes == 0 {
 		in.TimeLimitMinutes = defaultTimeLimit
 	}
@@ -123,8 +113,6 @@ func repoFrom(id uuid.UUID, in RepoInput) models.Repo {
 		Owner:             in.Owner,
 		Name:              in.Name,
 		DefaultBranch:     in.DefaultBranch,
-		SetupCommands:     in.SetupCommands,
-		AgentInstructions: in.AgentInstructions,
 		TimeLimitMinutes:  in.TimeLimitMinutes,
 		AutoPickup:        in.AutoPickup,
 		SentryProject:     in.SentryProject,

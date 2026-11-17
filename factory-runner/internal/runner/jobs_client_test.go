@@ -24,7 +24,7 @@ func TestClaimJobReadsAJobOrNone(t *testing.T) {
 		_, _ = w.Write(
 			[]byte(`{"job":{"id":"j1","taskId":"t1","repoOwner":"o","repoName":"n",` +
 				`"defaultBranch":"main","prompt":"p",` +
-				`"branch":"agent/x","setupCommands":"make","timeLimitMinutes":45,` +
+				`"branch":"agent/x","timeLimitMinutes":45,` +
 				`"mcpClientId":"agent-1","mcpClientSecret":"s3cret-value",` +
 				`"resumeSessionId":"sess-1"}}`),
 		)
@@ -37,8 +37,8 @@ func TestClaimJobReadsAJobOrNone(t *testing.T) {
 		Routine: "",
 		ID:      "j1", TaskID: "t1", RepoOwner: "o", RepoName: "n", DefaultBranch: "main",
 		Prompt: "p", Branch: "agent/x",
-		SetupCommands: "make", TimeLimitMinutes: 45,
-		MCPClientID: "agent-1", MCPClientSecret: "s3cret-value",
+		TimeLimitMinutes: 45,
+		MCPClientID:      "agent-1", MCPClientSecret: "s3cret-value",
 		ResumeSessionID: "sess-1",
 	}, job)
 

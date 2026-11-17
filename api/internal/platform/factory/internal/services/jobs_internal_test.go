@@ -41,32 +41,20 @@ func testTask(id uuid.UUID, title, body string) *models.Task {
 	}
 }
 
-func testRepo(instructions string) *models.Repo {
-	return &models.Repo{
-		ID: uuid.Nil, Owner: "", Name: "", DefaultBranch: "",
-		AutoPickup: false, SetupCommands: "",
-		AgentInstructions: instructions,
-		TimeLimitMinutes:  0,
-		SentryProject:     "", RedPRLabel: "", RedPRBranchPrefix: "",
-		CreatedAt: time.Time{}, UpdatedAt: time.Time{},
-	}
-}
-
 func TestBranchForIsAgentNumberSlug(t *testing.T) {
 	task := testTask(uuid.Nil, "Fix it", "")
 	task.Number = 142
 	assert.Equal(t, "agent/t142-fix-it", branchFor(task))
 }
 
-func TestPromptForJoinsInstructionsTaskAndRunText(t *testing.T) {
-	repo := testRepo("  Be careful.  ")
+func TestPromptForJoinsTaskAndRunText(t *testing.T) {
 	task := testTask(uuid.Nil, "T", "  body text  ")
 
 	assert.Equal(t,
-		"Be careful.\n\n# Task: T\n\nbody text\n\n# Instructions for this run\n\ngo",
-		promptFor(repo, task, "go"))
+		"# Task: T\n\nbody text\n\n# Instructions for this run\n\ngo",
+		promptFor(task, "go"))
 	assert.Equal(t, "# Task: T\n\nbody text",
-		promptFor(testRepo(""), task, ""), "no instructions, no run text")
+		promptFor(task, ""), "no run text")
 }
 
 func TestJobStatusFinished(t *testing.T) {

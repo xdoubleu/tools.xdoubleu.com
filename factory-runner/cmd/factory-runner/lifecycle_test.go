@@ -262,7 +262,7 @@ func lifeJob(n int) *runner.ClaimedJob {
 		TaskID:    fmt.Sprintf("T-%d", n),
 		RepoOwner: "xdoubleu", RepoName: "tools.xdoubleu.com", DefaultBranch: "main",
 		Prompt: "# Task: Fix it", Branch: fmt.Sprintf("agent/%d-work", n),
-		TimeLimitMinutes: 1, SetupCommands: "", MCPClientID: "", MCPClientSecret: "",
+		TimeLimitMinutes: 1, MCPClientID: "", MCPClientSecret: "",
 		ResumeSessionID: "", Routine: "",
 	}
 }

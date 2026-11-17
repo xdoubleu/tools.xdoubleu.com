@@ -42,8 +42,8 @@ func routineBranch(name string) string {
 
 // routinePrompt is what the server asks for; the runner builds its own from the
 // routine's name, so this only says what the job is on the board.
-func routinePrompt(repo *models.Repo, name string) string {
-	return repo.AgentInstructions + "\n\n# Routine: " + name
+func routinePrompt(name string) string {
+	return "# Routine: " + name
 }
 
 // SaveRoutine creates a routine or changes its repo, flag and interval. Enabling a
@@ -165,7 +165,7 @@ func (s *JobService) queueRoutine(
 	job, err := s.jobs.Create(ctx, models.Job{
 		ID: uuid.Nil, TaskID: uuid.Nil, TaskNumber: 0, Routine: routine.Name,
 		RepoID: repo.ID, Harness: "", Model: "",
-		Prompt: routinePrompt(repo, routine.Name), Status: "",
+		Prompt: routinePrompt(routine.Name), Status: "",
 		Branch: routineBranch(routine.Name), SessionID: "", Outcome: "",
 		ParentJobID: nil, PRURL: "", RunnerID: nil, PRState: "", PRCI: "",
 		PRReview: "", CreatedBy: createdBy, CreatedAt: time.Time{},

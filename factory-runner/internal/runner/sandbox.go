@@ -24,10 +24,9 @@ type SandboxSpec struct {
 	OutcomeDir string
 	// SessionDir is mounted read-write at SandboxSessionDir; it outlives the job,
 	// so a Reply can resume the session.
-	SessionDir    string
-	Env           map[string]string
-	SetupCommands string
-	Command       []string
+	SessionDir string
+	Env        map[string]string
+	Command    []string
 	// Proxy, when set, is this job's egress proxy (it holds the job's credentials);
 	// it replaces the sandbox's own.
 	Proxy ProxyListener

@@ -344,8 +344,8 @@ func TestPullRequestTextTakesTheTitleFromTheFirstLine(t *testing.T) {
 	job := &runner.ClaimedJob{
 		Routine: "",
 		ID:      "job-1", TaskID: "task-1", Branch: "agent/x",
-		RepoOwner: "", RepoName: "", DefaultBranch: "", Prompt: "",
-		SetupCommands: "", TimeLimitMinutes: 0, MCPClientID: "", MCPClientSecret: "",
+		RepoOwner: "", RepoName: "", DefaultBranch: "", Prompt: "", TimeLimitMinutes: 0,
+		MCPClientID: "", MCPClientSecret: "",
 		ResumeSessionID: "",
 	}
 	for name, tc := range map[string]struct{ outcome, title string }{
@@ -713,7 +713,7 @@ func TestAPullRequestTitleLabelWinsWhereverItIs(t *testing.T) {
 	job := &runner.ClaimedJob{
 		Routine: "",
 		ID:      "j", TaskID: "t", Branch: "agent/x", RepoOwner: "", RepoName: "",
-		DefaultBranch: "", Prompt: "", SetupCommands: "",
+		DefaultBranch: "", Prompt: "",
 		TimeLimitMinutes: 0, MCPClientID: "", MCPClientSecret: "",
 		ResumeSessionID: "",
 	}
@@ -754,7 +754,7 @@ func TestMentionsAndClosingKeywordsInAgentTextAreDefused(t *testing.T) {
 	job := &runner.ClaimedJob{
 		Routine: "",
 		ID:      "j", TaskID: "t", Branch: "agent/x", RepoOwner: "", RepoName: "",
-		DefaultBranch: "", Prompt: "", SetupCommands: "",
+		DefaultBranch: "", Prompt: "",
 		TimeLimitMinutes: 0, MCPClientID: "", MCPClientSecret: "",
 		ResumeSessionID: "",
 	}
