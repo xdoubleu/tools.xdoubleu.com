@@ -104,7 +104,10 @@ const preamble = `You are running unattended in a sandbox with no network ` +
 	`run because CI checks it. Code the sandbox cannot build or test, such as ` +
 	`darwin or cgo code, is not a blocker: CI's macOS jobs check it, so mark ` +
 	`that gate "not run (CI checks it)", for example "build-mac=not run (CI ` +
-	`checks it)". Your work continues until its pull request merges: the ` +
+	`checks it)". The same goes for the docker-only gates ` +
+	"`grafana/verify` and `lint/infra`" + `: the sandbox has no docker, so mark ` +
+	`them "not run (CI checks it)", never a bare "not run". ` +
+	`Your work continues until its pull request merges: the ` +
 	`runner opens the pull request, and when a gate, the push or CI fails it ` +
 	`resumes this session with what failed. Fix it, commit, and write the ` +
 	`outcome again. If the task depends on other tasks that are not done yet, ` +
