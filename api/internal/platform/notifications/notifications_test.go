@@ -22,9 +22,10 @@ type sentMail struct {
 }
 
 type fakeMailer struct {
-	mu   sync.Mutex
-	sent []sentMail
-	err  error
+	mu    sync.Mutex
+	sent  []sentMail
+	err   error
+	tries int
 }
 
 func (f *fakeMailer) Send(ctx context.Context, subject, body string) error {
@@ -37,6 +38,9 @@ func (f *fakeMailer) SendTo(ctx context.Context, to, subject, body string) error
 
 // record fails on a cancelled ctx, as the real HTTP client would.
 func (f *fakeMailer) record(ctx context.Context, to, subject, body string) error {
+	f.mu.Lock()
+	f.tries++
+	f.mu.Unlock()
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -221,4 +225,10 @@ func TestEnqueueSurvivesAPanickingOnResult(t *testing.T) {
 
 	require.Len(t, mail.sentMails(), 2)
 	assert.Equal(t, "second", mail.sentMails()[1].subject)
+}
+
+func (f *fakeMailer) attempts() int {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.tries
 }
