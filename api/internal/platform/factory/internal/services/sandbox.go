@@ -107,6 +107,9 @@ func (s *JobService) ReportBlocked(
 	if job.RunnerID == nil || *job.RunnerID != runnerID {
 		return conflict("the job belongs to another runner")
 	}
+	// A task never waits on itself: that would park it with nothing to wake it.
+	self := "T-" + strconv.FormatInt(job.TaskNumber, 10)
+	waiting = slices.DeleteFunc(waiting, func(r string) bool { return r == self })
 	if len(waiting) > 0 {
 		return s.backlogWaiting(ctx, job, waiting)
 	}
