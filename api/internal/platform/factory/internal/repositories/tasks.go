@@ -127,6 +127,31 @@ func (r *TasksRepository) Get(ctx context.Context, id uuid.UUID) (*models.Task, 
 // ErrInvalidTaskRef is a task reference that is neither a number nor a UUID.
 var ErrInvalidTaskRef = errors.New("invalid task reference")
 
+// ByKeys loads the tasks with the given keys or numbers in one query.
+func (r *TasksRepository) ByKeys(
+	ctx context.Context,
+	ids []uuid.UUID,
+	numbers []int64,
+) ([]models.Task, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT `+getColumns+` FROM factory.tasks t
+		WHERE id = ANY($1) OR number = ANY($2)`, ids, numbers)
+	if err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	defer rows.Close()
+
+	out := []models.Task{}
+	for rows.Next() {
+		t, scanErr := scanTask(rows)
+		if scanErr != nil {
+			return nil, scanErr
+		}
+		out = append(out, *t)
+	}
+	return out, postgres.PgxErrorToHTTPError(rows.Err())
+}
+
 // Resolve turns a task reference ("T-142", "142" or a legacy UUID) into its key.
 func (r *TasksRepository) Resolve(ctx context.Context, ref string) (uuid.UUID, error) {
 	if id, err := uuid.Parse(ref); err == nil {

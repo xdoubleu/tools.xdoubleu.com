@@ -4,13 +4,20 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	factoryv1 "tools.xdoubleu.com/gen/factory/v1"
+	"tools.xdoubleu.com/internal/kit/database/postgres"
+	"tools.xdoubleu.com/internal/kit/logging"
+	sharedmocks "tools.xdoubleu.com/internal/mocks"
+	"tools.xdoubleu.com/internal/platform/factory"
 	"tools.xdoubleu.com/internal/platform/factory/internal/services"
 	"tools.xdoubleu.com/internal/platform/githubapp"
 )
@@ -570,4 +577,66 @@ func TestARepoTheAppIsNotInstalledOnDoesNotFailThePoll(t *testing.T) {
 
 	gh.listErr = errors.New("boom")
 	require.Error(t, env.poll(t))
+}
+
+// countingDB counts the statements an app sends.
+type countingDB struct {
+	postgres.DB
+	n *atomic.Int64
+}
+
+func (c countingDB) Exec(
+	ctx context.Context, sql string, args ...any,
+) (pgconn.CommandTag, error) {
+	c.n.Add(1)
+	return c.DB.Exec(ctx, sql, args...)
+}
+
+func (c countingDB) Query(
+	ctx context.Context, sql string, args ...any,
+) (pgx.Rows, error) {
+	c.n.Add(1)
+	return c.DB.Query(ctx, sql, args...)
+}
+
+func (c countingDB) QueryRow(ctx context.Context, sql string, args ...any) pgx.Row {
+	c.n.Add(1)
+	return c.DB.QueryRow(ctx, sql, args...)
+}
+
+// pollQueries is how many statements one poll sends with n open pull requests,
+// each linking its own task.
+func pollQueries(t *testing.T, n int) int64 {
+	t.Helper()
+	env, gh := githubEnv(t)
+	_, err := testDB.Exec(context.Background(), "DELETE FROM factory.linked_pull_requests")
+	require.NoError(t, err)
+	tasks := make([]*factoryv1.Task, n)
+	for i := range tasks {
+		tasks[i] = env.newTask(t, fmt.Sprintf("linked %d", i))
+		number := 100 + i
+		gh.openLinked(pullURL(number), number, "Task: linked ("+tasks[i].Id+")")
+	}
+
+	var count atomic.Int64
+	app := factory.New(
+		context.Background(),
+		sharedmocks.NewMockedAdminAuthService(adminID),
+		logging.NewNopLogger(),
+		testCfg,
+		countingDB{DB: testDB, n: &count},
+		factory.WithGitHub(gh),
+	)
+	require.NoError(t, app.PollPullRequestsNow(context.Background()))
+
+	for _, task := range tasks {
+		require.Len(t, env.task(t, task.Id).PullRequests, 1)
+	}
+	return count.Load()
+}
+
+func TestPollingLinkedPullRequestsSendsAFixedNumberOfQueries(t *testing.T) {
+	few := pollQueries(t, 2)
+	many := pollQueries(t, 12)
+	assert.Equal(t, few, many)
 }

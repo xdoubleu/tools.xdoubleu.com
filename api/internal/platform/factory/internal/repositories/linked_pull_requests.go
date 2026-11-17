@@ -32,6 +32,42 @@ func (r *LinkedPullRequestsRepository) Upsert(
 	return postgres.PgxErrorToHTTPError(err)
 }
 
+// UpsertMany records several pull request reads in one statement. Each
+// (url, task) pair must appear once.
+func (r *LinkedPullRequestsRepository) UpsertMany(
+	ctx context.Context,
+	ps []models.LinkedPullRequest,
+) error {
+	if len(ps) == 0 {
+		return nil
+	}
+	urls := make([]string, len(ps))
+	taskIDs := make([]uuid.UUID, len(ps))
+	states := make([]string, len(ps))
+	cis := make([]string, len(ps))
+	reviews := make([]string, len(ps))
+	mergeables := make([]string, len(ps))
+	for i, p := range ps {
+		urls[i], taskIDs[i], states[i] = p.URL, p.TaskID, p.State
+		cis[i], reviews[i], mergeables[i] = p.CI, p.Review, p.Mergeable
+	}
+	_, err := r.db.Exec(ctx, `
+		INSERT INTO factory.linked_pull_requests
+			(url, task_id, state, ci, review, mergeable, unmergeable_since)
+		SELECT u.url, u.task_id, u.state, u.ci, u.review, u.mergeable,
+			CASE WHEN u.mergeable <> '' THEN now() END
+		FROM unnest($1::text[], $2::uuid[], $3::text[], $4::text[], $5::text[],
+			$6::text[]) AS u(url, task_id, state, ci, review, mergeable)
+		ON CONFLICT (url, task_id) DO UPDATE
+		SET state = EXCLUDED.state, ci = EXCLUDED.ci, review = EXCLUDED.review,
+			mergeable = EXCLUDED.mergeable,
+			unmergeable_since = CASE WHEN EXCLUDED.mergeable = '' THEN NULL
+				ELSE COALESCE(factory.linked_pull_requests.unmergeable_since, now()) END,
+			checked_at = now()`,
+		urls, taskIDs, states, cis, reviews, mergeables)
+	return postgres.PgxErrorToHTTPError(err)
+}
+
 // ByTask lists a task's linked pull requests, newest read first.
 func (r *LinkedPullRequestsRepository) ByTask(
 	ctx context.Context,
