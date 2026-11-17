@@ -46,3 +46,7 @@ boundary.
    until #2779) closes it with `Fixes #123` instead.
 6. **Never merge on red CI; never push to `main`.**
 7. **Watch CI to green** and fix what it finds.
+
+## CodeQL alerts
+
+CodeQL runs only in CI, and agents can't dismiss alerts. New SHA-1/MD5 near password data is flagged, even the protocol-mandated HIBP range key (`rangeDigest`), and renaming won't clear it. Avoid new uses. If one is unavoidable, comment why and file a board task for the owner to dismiss the alert as a false positive, instead of iterating on fixes.
