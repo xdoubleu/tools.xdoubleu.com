@@ -39,6 +39,10 @@ export default function ResetPasswordPage() {
       setError('Password must be at least 8 characters.')
       return
     }
+    if (new TextEncoder().encode(newPassword).length > 72) {
+      setError('Password must be at most 72 bytes.')
+      return
+    }
     setSubmitting(true)
     try {
       await resetPassword(token, newPassword)

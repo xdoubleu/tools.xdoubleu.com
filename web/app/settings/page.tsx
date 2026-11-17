@@ -77,6 +77,10 @@ export default function SettingsPage() {
       setPwError('Password must be at least 8 characters.')
       return
     }
+    if (new TextEncoder().encode(newPassword).length > 72) {
+      setPwError('Password must be at most 72 bytes.')
+      return
+    }
     setPwSaving(true)
     try {
       await updatePassword(currentPassword, newPassword)
