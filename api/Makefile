@@ -169,7 +169,7 @@ debug:
 # TZ=UTC: tests assert UTC timestamps (movies watch dates) while pgx scans
 # TIMESTAMPTZ into time.Local; CI hosts are UTC, so pin it locally too.
 test:
-	TZ=UTC go test -p 1 ./...
+	TZ=UTC go test -count=1 -p 1 ./...
 
 test/v:
 	TZ=UTC go test -p 1 ./... -v
