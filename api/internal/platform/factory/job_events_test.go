@@ -44,7 +44,7 @@ func (e jobEnv) events(t *testing.T, jobID string, after int32) []*factoryv1.Job
 // runningJob queues and claims a job for a fresh task.
 func (e jobEnv) runningJob(t *testing.T) *factoryv1.ClaimedJob {
 	t.Helper()
-	e.run(t, e.newTask(t, "logged").Id, "")
+	e.run(t, e.newTask(t, "logged").Id)
 	return e.claim(t)
 }
 

@@ -143,7 +143,7 @@ func (e jobEnv) pushToken(
 
 func TestARunningJobGetsATokenForItsRepoAlone(t *testing.T) {
 	env, gh := githubEnv(t)
-	env.run(t, env.newTask(t, "pushes").Id, "")
+	env.run(t, env.newTask(t, "pushes").Id)
 	job := env.claim(t)
 
 	got, err := env.pushToken(t, job.Id)
@@ -156,7 +156,7 @@ func TestARunningJobGetsATokenForItsRepoAlone(t *testing.T) {
 func TestAPushTokenIsRefusedForAJobThatIsNotRunning(t *testing.T) {
 	env, gh := githubEnv(t)
 	task := env.newTask(t, "ends")
-	env.run(t, task.Id, "")
+	env.run(t, task.Id)
 	job := env.claim(t)
 	_, err := env.stop(t, task.Id)
 	require.NoError(t, err)
@@ -177,7 +177,7 @@ func TestAPushTokenIsRefusedForAJobThatIsNotRunning(t *testing.T) {
 
 func TestWithoutAGitHubAppNothingCanPush(t *testing.T) {
 	env := browserJobEnv(t)
-	env.run(t, env.newTask(t, "stays on the mac").Id, "")
+	env.run(t, env.newTask(t, "stays on the mac").Id)
 	job := env.claim(t)
 	_, err := env.pushToken(t, job.Id)
 	assert.Equal(t, connect.CodeFailedPrecondition, code(err))
@@ -185,7 +185,7 @@ func TestWithoutAGitHubAppNothingCanPush(t *testing.T) {
 
 func TestGitHubTroubleIsToldApartFromEachOther(t *testing.T) {
 	env, gh := githubEnv(t)
-	env.run(t, env.newTask(t, "unlucky").Id, "")
+	env.run(t, env.newTask(t, "unlucky").Id)
 	job := env.claim(t)
 
 	gh.err = githubapp.ErrNotInstalled
@@ -209,7 +209,7 @@ func complete(t *testing.T, env jobEnv, jobID string, ok bool, prURL string) {
 func TestAJobThatOpenedAPullRequestMovesItsTaskToInReview(t *testing.T) {
 	env := browserJobEnv(t)
 	task := env.newTask(t, "gets a pr")
-	env.run(t, task.Id, "")
+	env.run(t, task.Id)
 	job := env.claim(t)
 
 	complete(t, env, job.Id, true, ownPull)
@@ -241,7 +241,7 @@ func TestAPullRequestLinkThatIsNotThisReposIsLeftOut(t *testing.T) {
 	} {
 		env := browserJobEnv(t)
 		task := env.newTask(t, "link "+name)
-		env.run(t, task.Id, "")
+		env.run(t, task.Id)
 		job := env.claim(t)
 
 		complete(t, env, job.Id, true, link)
@@ -257,7 +257,7 @@ func TestAPullRequestLinkThatIsNotThisReposIsLeftOut(t *testing.T) {
 func TestTheRepoNameInALinkIsMatchedIgnoringCase(t *testing.T) {
 	env := browserJobEnv(t)
 	task := env.newTask(t, "case")
-	env.run(t, task.Id, "")
+	env.run(t, task.Id)
 	job := env.claim(t)
 	complete(t, env, job.Id, true, "https://github.com/XDoubleu/Tools.XDoubleu.com/pull/7")
 	assert.Equal(
@@ -270,7 +270,7 @@ func TestTheRepoNameInALinkIsMatchedIgnoringCase(t *testing.T) {
 func TestAFailedJobKeepsItsPullRequestButStillGoesToNeedsYou(t *testing.T) {
 	env := browserJobEnv(t)
 	task := env.newTask(t, "failed")
-	env.run(t, task.Id, "")
+	env.run(t, task.Id)
 	job := env.claim(t)
 
 	complete(t, env, job.Id, false, ownPull)
@@ -297,7 +297,7 @@ func replacementRunner(t *testing.T, env jobEnv) string {
 func TestAReplacementRunnerCannotGetTheTokenOrFinishAnotherRunnersJob(t *testing.T) {
 	env, gh := githubEnv(t)
 	task := env.newTask(t, "mine")
-	env.run(t, task.Id, "")
+	env.run(t, task.Id)
 	job := env.claim(t)
 	other := replacementRunner(t, env)
 
@@ -325,7 +325,7 @@ func TestAReplacementRunnerCannotGetTheTokenOrFinishAnotherRunnersJob(t *testing
 func TestAJobClaimedBeforeRunnersWereRecordedCanStillBeCompleted(t *testing.T) {
 	env := browserJobEnv(t)
 	task := env.newTask(t, "old")
-	env.run(t, task.Id, "")
+	env.run(t, task.Id)
 	job := env.claim(t)
 	_, err := testDB.Exec(context.Background(),
 		`UPDATE factory.jobs SET runner_id = NULL WHERE id = $1`, job.Id)
@@ -342,7 +342,7 @@ func TestAJobClaimedBeforeRunnersWereRecordedCanStillBeCompleted(t *testing.T) {
 func TestAJobWithoutAPullRequestStillGoesToNeedsYou(t *testing.T) {
 	env := browserJobEnv(t)
 	task := env.newTask(t, "no pr")
-	env.run(t, task.Id, "")
+	env.run(t, task.Id)
 	job := env.claim(t)
 	complete(t, env, job.Id, true, "")
 	assert.Equal(
@@ -355,7 +355,7 @@ func TestAJobWithoutAPullRequestStillGoesToNeedsYou(t *testing.T) {
 func TestCompletingAJobThatIsGoneStaysAConflictWithALink(t *testing.T) {
 	env := browserJobEnv(t)
 	task := env.newTask(t, "gone")
-	env.run(t, task.Id, "")
+	env.run(t, task.Id)
 	job := env.claim(t)
 	_, err := testDB.Exec(
 		context.Background(),

@@ -184,19 +184,11 @@ export function useFactoryActions() {
       await refresh()
     },
     /** Queues a job for the task; refused unless the body was last edited in a browser. */
-    run: async (taskId: string, text: string) => {
+    run: async (taskId: string) => {
       try {
-        await client.runTask({ taskId, text })
+        await client.runTask({ taskId })
       } finally {
         // A refusal still comments on the task and moves it to Needs you.
-        await refresh()
-      }
-    },
-    /** Queues a job that resumes the last job's session with the reply as its prompt. */
-    reply: async (taskId: string, text: string) => {
-      try {
-        await client.replyTask({ taskId, text })
-      } finally {
         await refresh()
       }
     },

@@ -42,7 +42,7 @@ func (e jobEnv) claimConcurrently(t *testing.T, n int, maxJobs int32) []string {
 func TestARunnerRunsAsManyJobsAsItAsksFor(t *testing.T) {
 	env := browserJobEnv(t)
 	for _, title := range []string{"a", "b", "c"} {
-		env.run(t, env.newTask(t, title).Id, "")
+		env.run(t, env.newTask(t, title).Id)
 	}
 
 	first := env.claimUpTo(t, 2)
@@ -62,7 +62,7 @@ func TestConcurrentClaimsNeverTakeTheSameJob(t *testing.T) {
 	env := browserJobEnv(t)
 	const jobs = 6
 	for range jobs {
-		env.run(t, env.newTask(t, "race").Id, "")
+		env.run(t, env.newTask(t, "race").Id)
 	}
 
 	claimed := env.claimConcurrently(t, 12, jobs)
@@ -78,7 +78,7 @@ func TestConcurrentClaimsNeverTakeTheSameJob(t *testing.T) {
 func TestConcurrentClaimsRespectTheRunnersCap(t *testing.T) {
 	env := browserJobEnv(t)
 	for range 6 {
-		env.run(t, env.newTask(t, "cap").Id, "")
+		env.run(t, env.newTask(t, "cap").Id)
 	}
 	assert.Len(t, env.claimConcurrently(t, 10, 2), 2)
 }

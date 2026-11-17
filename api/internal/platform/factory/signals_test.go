@@ -51,7 +51,7 @@ func TestTheFailureGaugesCountWhatNobodyPointsAt(t *testing.T) {
 	// A job that finished with no pull request, and one that was not verified.
 	for _, outcome := range []string{"Did it.", "Changed it, not verified."} {
 		task := env.newTask(t, "no pr "+outcome)
-		env.run(t, task.Id, "")
+		env.run(t, task.Id)
 		job := env.claim(t)
 		_, err = env.runner.CompleteJob(bearer(env.token), &factoryv1.CompleteJobRequest{
 			JobId: job.Id, Succeeded: true, Outcome: outcome,

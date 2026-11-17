@@ -316,7 +316,7 @@ func TestPickupWaitsWhileAJobIsQueuedOrRunning(t *testing.T) {
 	env := browserJobEnv(t)
 	autoPickup(t, true)
 	manual := env.newTask(t, "manual")
-	env.run(t, manual.Id, "")
+	env.run(t, manual.Id)
 	auto := env.newTask(t, "automatic")
 	env.ready(t, auto.Id)
 

@@ -43,7 +43,7 @@ func parkEnv(t *testing.T) (jobEnv, *digestFeed) {
 func (e jobEnv) blockedJob(t *testing.T, title string) string {
 	t.Helper()
 	task := e.newTask(t, title)
-	e.run(t, task.Id, "")
+	e.run(t, task.Id)
 	claimed := e.claim(t)
 	_, err := e.runner.CompleteJob(bearer(e.token), &factoryv1.CompleteJobRequest{
 		JobId: claimed.Id, SessionId: "sess-" + claimed.Id,
@@ -98,7 +98,7 @@ func TestParkingIsCappedAtTwoImageResumes(t *testing.T) {
 func TestABlockedJobWithoutASessionIsNotParked(t *testing.T) {
 	env, _ := parkEnv(t)
 	noSession := env.newTask(t, "no session")
-	env.run(t, noSession.Id, "")
+	env.run(t, noSession.Id)
 	claimed := env.claim(t)
 	_, err := env.runner.CompleteJob(bearer(env.token), &factoryv1.CompleteJobRequest{
 		JobId: claimed.Id, Blocked: "no jq " + uuid.NewString(),
@@ -133,14 +133,13 @@ func TestTheFirstParkRecordsTheDigestSoTheNextImageResumesIt(t *testing.T) {
 func TestAParkedTaskWithAJobAlreadyQueuedIsOnlyUnparked(t *testing.T) {
 	env, feed := parkEnv(t)
 	id := env.blockedJob(t, "already requeued")
-	_, err := env.reply(t, id, "carry on")
-	require.NoError(t, err)
+	env.run(t, id)
 
 	feed.set(uuid.NewString())
 	require.NoError(t, env.app.ResumeParkedNow(context.Background()))
 	assert.NotContains(t, env.task(t, id).Task.Labels, "waiting-on-sandbox")
 	claimed := env.claim(t)
 	require.NotNil(t, claimed)
-	assert.Equal(t, "carry on", claimed.Prompt)
+	assert.Equal(t, id, claimed.TaskId)
 	assert.Nil(t, env.claim(t))
 }

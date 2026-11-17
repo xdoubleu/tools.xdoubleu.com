@@ -248,15 +248,15 @@ describe('useFactoryActions', () => {
 
   it('runs a task and revalidates', async () => {
     const { result } = renderHook(() => useFactoryActions())
-    await result.current.run('t-1', 'go')
-    expect(mockClient.runTask).toHaveBeenCalledWith({ taskId: 't-1', text: 'go' })
+    await result.current.run('t-1')
+    expect(mockClient.runTask).toHaveBeenCalledWith({ taskId: 't-1' })
     expect(mockMutate).toHaveBeenCalledTimes(1)
   })
 
   it('revalidates when a run is refused, since the server still moves the task', async () => {
     mockClient.runTask.mockRejectedValueOnce(new Error('Not run'))
     const { result } = renderHook(() => useFactoryActions())
-    await expect(result.current.run('t-1', '')).rejects.toThrow('Not run')
+    await expect(result.current.run('t-1')).rejects.toThrow('Not run')
     expect(mockMutate).toHaveBeenCalledTimes(1)
   })
 
