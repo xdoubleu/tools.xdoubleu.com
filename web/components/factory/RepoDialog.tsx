@@ -14,7 +14,6 @@ import {
 } from '@/components/ui/dialog'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
 
 const DEFAULT_LIMIT_MINUTES = 60
 const MIN_LIMIT_MINUTES = 1
@@ -44,8 +43,6 @@ export default function RepoDialog({ repo, onClose }: RepoDialogProps) {
   const [branch, setBranch] = useState(repo?.defaultBranch ?? 'main')
   const [autoPickup, setAutoPickup] = useState(repo?.autoPickup ?? false)
   const [limit, setLimit] = useState(String(repo?.timeLimitMinutes ?? DEFAULT_LIMIT_MINUTES))
-  const [setup, setSetup] = useState(repo?.setupCommands ?? '')
-  const [instructions, setInstructions] = useState(repo?.agentInstructions ?? '')
   const [sentryProject, setSentryProject] = useState(repo?.sentryProject ?? '')
   const [redPrLabel, setRedPrLabel] = useState(repo?.redPrLabel ?? DEFAULT_RED_PR_LABEL)
   const [redPrPrefix, setRedPrPrefix] = useState(repo?.redPrBranchPrefix ?? DEFAULT_RED_PR_PREFIX)
@@ -65,8 +62,6 @@ export default function RepoDialog({ repo, onClose }: RepoDialogProps) {
       name,
       defaultBranch: branch,
       autoPickup,
-      setupCommands: setup,
-      agentInstructions: instructions,
       timeLimitMinutes: minutes,
       sentryProject,
       redPrLabel,
@@ -144,31 +139,6 @@ export default function RepoDialog({ repo, onClose }: RepoDialogProps) {
               max={1440}
               value={limit}
               onChange={(e) => setLimit(e.target.value)}
-            />
-          </Field>
-          <Field
-            label="Setup commands"
-            htmlFor="repo-setup"
-            hint="Run in the sandbox before the agent."
-          >
-            <Textarea
-              id="repo-setup"
-              rows={4}
-              className="font-mono"
-              value={setup}
-              onChange={(e) => setSetup(e.target.value)}
-            />
-          </Field>
-          <Field
-            label="Agent instructions"
-            htmlFor="repo-instructions"
-            hint="Added to every prompt for this repo."
-          >
-            <Textarea
-              id="repo-instructions"
-              rows={4}
-              value={instructions}
-              onChange={(e) => setInstructions(e.target.value)}
             />
           </Field>
           <Field

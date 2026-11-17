@@ -601,17 +601,15 @@ func (x *HeartbeatResponse) GetQueuedJobs() int32 {
 // What the runner needs to run one job. The prompt is the frozen task part; the
 // runner adds its own preamble, and validates repo, branch and base itself.
 type ClaimedJob struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	TaskId        string                 `protobuf:"bytes,2,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
-	RepoOwner     string                 `protobuf:"bytes,3,opt,name=repo_owner,json=repoOwner,proto3" json:"repo_owner,omitempty"`
-	RepoName      string                 `protobuf:"bytes,4,opt,name=repo_name,json=repoName,proto3" json:"repo_name,omitempty"`
-	DefaultBranch string                 `protobuf:"bytes,5,opt,name=default_branch,json=defaultBranch,proto3" json:"default_branch,omitempty"`
-	Prompt        string                 `protobuf:"bytes,7,opt,name=prompt,proto3" json:"prompt,omitempty"`
-	Branch        string                 `protobuf:"bytes,8,opt,name=branch,proto3" json:"branch,omitempty"`
-	// Free text, run in the sandbox before the agent.
-	SetupCommands    string `protobuf:"bytes,9,opt,name=setup_commands,json=setupCommands,proto3" json:"setup_commands,omitempty"`
-	TimeLimitMinutes int32  `protobuf:"varint,10,opt,name=time_limit_minutes,json=timeLimitMinutes,proto3" json:"time_limit_minutes,omitempty"`
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	Id               string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	TaskId           string                 `protobuf:"bytes,2,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	RepoOwner        string                 `protobuf:"bytes,3,opt,name=repo_owner,json=repoOwner,proto3" json:"repo_owner,omitempty"`
+	RepoName         string                 `protobuf:"bytes,4,opt,name=repo_name,json=repoName,proto3" json:"repo_name,omitempty"`
+	DefaultBranch    string                 `protobuf:"bytes,5,opt,name=default_branch,json=defaultBranch,proto3" json:"default_branch,omitempty"`
+	Prompt           string                 `protobuf:"bytes,7,opt,name=prompt,proto3" json:"prompt,omitempty"`
+	Branch           string                 `protobuf:"bytes,8,opt,name=branch,proto3" json:"branch,omitempty"`
+	TimeLimitMinutes int32                  `protobuf:"varint,10,opt,name=time_limit_minutes,json=timeLimitMinutes,proto3" json:"time_limit_minutes,omitempty"`
 	// The job's own agent account: it may read and comment on this job's task only,
 	// and ends with the job. Empty when the server makes none.
 	McpClientId     string `protobuf:"bytes,11,opt,name=mcp_client_id,json=mcpClientId,proto3" json:"mcp_client_id,omitempty"`
@@ -700,13 +698,6 @@ func (x *ClaimedJob) GetPrompt() string {
 func (x *ClaimedJob) GetBranch() string {
 	if x != nil {
 		return x.Branch
-	}
-	return ""
-}
-
-func (x *ClaimedJob) GetSetupCommands() string {
-	if x != nil {
-		return x.SetupCommands
 	}
 	return ""
 }
@@ -1694,7 +1685,7 @@ const file_factory_v1_runners_proto_rawDesc = "" +
 	"\aversion\x18\x01 \x01(\tR\aversion\"4\n" +
 	"\x11HeartbeatResponse\x12\x1f\n" +
 	"\vqueued_jobs\x18\x01 \x01(\x05R\n" +
-	"queuedJobs\"\xcf\x03\n" +
+	"queuedJobs\"\xbe\x03\n" +
 	"\n" +
 	"ClaimedJob\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
@@ -1704,14 +1695,14 @@ const file_factory_v1_runners_proto_rawDesc = "" +
 	"\trepo_name\x18\x04 \x01(\tR\brepoName\x12%\n" +
 	"\x0edefault_branch\x18\x05 \x01(\tR\rdefaultBranch\x12\x16\n" +
 	"\x06prompt\x18\a \x01(\tR\x06prompt\x12\x16\n" +
-	"\x06branch\x18\b \x01(\tR\x06branch\x12%\n" +
-	"\x0esetup_commands\x18\t \x01(\tR\rsetupCommands\x12,\n" +
+	"\x06branch\x18\b \x01(\tR\x06branch\x12,\n" +
 	"\x12time_limit_minutes\x18\n" +
 	" \x01(\x05R\x10timeLimitMinutes\x12\"\n" +
 	"\rmcp_client_id\x18\v \x01(\tR\vmcpClientId\x12*\n" +
 	"\x11mcp_client_secret\x18\f \x01(\tR\x0fmcpClientSecret\x12*\n" +
 	"\x11resume_session_id\x18\r \x01(\tR\x0fresumeSessionId\x12\x18\n" +
-	"\aroutine\x18\x0f \x01(\tR\aroutineJ\x04\b\x06\x10\aJ\x04\b\x0e\x10\x0fR\aharnessR\x05model\"q\n" +
+	"\aroutine\x18\x0f \x01(\tR\aroutineJ\x04\b\x06\x10\aJ\x04\b\t\x10\n" +
+	"J\x04\b\x0e\x10\x0fR\aharnessR\x05modelR\x0esetup_commands\"q\n" +
 	"\x0fClaimJobRequest\x12\x19\n" +
 	"\bmax_jobs\x18\x01 \x01(\x05R\amaxJobs\x12-\n" +
 	"\aharness\x18\x02 \x01(\x0e2\x13.factory.v1.HarnessR\aharness\x12\x14\n" +

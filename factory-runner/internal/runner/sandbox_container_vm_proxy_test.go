@@ -57,8 +57,7 @@ curl -sS -m 4 -o /dev/null http://1.1.1.1 && echo NET=leak || echo NET=blocked
 	var log bytes.Buffer
 	code, err := box.Run(context.Background(), runner.SandboxSpec{
 		CloneDir: dirs[0], OutcomeDir: dirs[1], SessionDir: dirs[2],
-		Env:           map[string]string{"FACTORY_JOB": "realvm-proxy"},
-		SetupCommands: "", Command: []string{"sh", "-c", script}, Stdin: "", Log: &log,
+		Env: map[string]string{"FACTORY_JOB": "realvm-proxy"}, Command: []string{"sh", "-c", script}, Stdin: "", Log: &log,
 	})
 	require.NoError(t, err, log.String())
 	assert.Zero(t, code, log.String())

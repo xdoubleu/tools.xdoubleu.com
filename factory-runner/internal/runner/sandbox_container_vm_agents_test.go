@@ -90,8 +90,7 @@ func agentRun(
 	env["FACTORY_JOB"] = "realvm-agent"
 	var log bytes.Buffer
 	_, err = box.Run(context.Background(), runner.SandboxSpec{
-		CloneDir: dirs[0], OutcomeDir: dirs[1], SessionDir: dirs[2], Env: env,
-		SetupCommands: "", Command: append([]string{"timeout", "90"}, command...),
+		CloneDir: dirs[0], OutcomeDir: dirs[1], SessionDir: dirs[2], Env: env, Command: append([]string{"timeout", "90"}, command...),
 		Proxy: proxy, Stdin: "say ok\n", Log: &log,
 	})
 	require.NoError(t, err, log.String())

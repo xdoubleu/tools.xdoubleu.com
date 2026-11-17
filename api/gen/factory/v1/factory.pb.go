@@ -2414,16 +2414,12 @@ func (*DeleteRoutineResponse) Descriptor() ([]byte, []int) {
 }
 
 type Repo struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Owner         string                 `protobuf:"bytes,2,opt,name=owner,proto3" json:"owner,omitempty"`
-	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
-	DefaultBranch string                 `protobuf:"bytes,4,opt,name=default_branch,json=defaultBranch,proto3" json:"default_branch,omitempty"`
-	// Free text, run in the sandbox before the agent.
-	SetupCommands string `protobuf:"bytes,6,opt,name=setup_commands,json=setupCommands,proto3" json:"setup_commands,omitempty"`
-	// Free text added to every prompt for this repo.
-	AgentInstructions string `protobuf:"bytes,7,opt,name=agent_instructions,json=agentInstructions,proto3" json:"agent_instructions,omitempty"`
-	TimeLimitMinutes  int32  `protobuf:"varint,8,opt,name=time_limit_minutes,json=timeLimitMinutes,proto3" json:"time_limit_minutes,omitempty"`
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	Id               string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Owner            string                 `protobuf:"bytes,2,opt,name=owner,proto3" json:"owner,omitempty"`
+	Name             string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	DefaultBranch    string                 `protobuf:"bytes,4,opt,name=default_branch,json=defaultBranch,proto3" json:"default_branch,omitempty"`
+	TimeLimitMinutes int32                  `protobuf:"varint,8,opt,name=time_limit_minutes,json=timeLimitMinutes,proto3" json:"time_limit_minutes,omitempty"`
 	// Lets the runner take this repo's Ready tasks without a press of Run, as the
 	// human approved them at the Ready move. Off by default.
 	AutoPickup bool `protobuf:"varint,10,opt,name=auto_pickup,json=autoPickup,proto3" json:"auto_pickup,omitempty"`
@@ -2493,20 +2489,6 @@ func (x *Repo) GetName() string {
 func (x *Repo) GetDefaultBranch() string {
 	if x != nil {
 		return x.DefaultBranch
-	}
-	return ""
-}
-
-func (x *Repo) GetSetupCommands() string {
-	if x != nil {
-		return x.SetupCommands
-	}
-	return ""
-}
-
-func (x *Repo) GetAgentInstructions() string {
-	if x != nil {
-		return x.AgentInstructions
 	}
 	return ""
 }
@@ -2953,14 +2935,12 @@ const file_factory_v1_factory_proto_rawDesc = "" +
 	"\x03job\x18\x01 \x01(\v2\x0f.factory.v1.JobR\x03job\"*\n" +
 	"\x14DeleteRoutineRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\"\x17\n" +
-	"\x15DeleteRoutineResponse\"\xb2\x03\n" +
+	"\x15DeleteRoutineResponse\"\x8c\x03\n" +
 	"\x04Repo\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05owner\x18\x02 \x01(\tR\x05owner\x12\x12\n" +
 	"\x04name\x18\x03 \x01(\tR\x04name\x12%\n" +
-	"\x0edefault_branch\x18\x04 \x01(\tR\rdefaultBranch\x12%\n" +
-	"\x0esetup_commands\x18\x06 \x01(\tR\rsetupCommands\x12-\n" +
-	"\x12agent_instructions\x18\a \x01(\tR\x11agentInstructions\x12,\n" +
+	"\x0edefault_branch\x18\x04 \x01(\tR\rdefaultBranch\x12,\n" +
 	"\x12time_limit_minutes\x18\b \x01(\x05R\x10timeLimitMinutes\x12\x1f\n" +
 	"\vauto_pickup\x18\n" +
 	" \x01(\bR\n" +
@@ -2968,8 +2948,8 @@ const file_factory_v1_factory_proto_rawDesc = "" +
 	"\x0esentry_project\x18\v \x01(\tR\rsentryProject\x12 \n" +
 	"\fred_pr_label\x18\f \x01(\tR\n" +
 	"redPrLabel\x12/\n" +
-	"\x14red_pr_branch_prefix\x18\r \x01(\tR\x11redPrBranchPrefixJ\x04\b\x05\x10\x06J\x04\b\t\x10\n" +
-	"R\x0fdefault_harnessR\rdefault_model\"\x12\n" +
+	"\x14red_pr_branch_prefix\x18\r \x01(\tR\x11redPrBranchPrefixJ\x04\b\x05\x10\x06J\x04\b\x06\x10\aJ\x04\b\a\x10\bJ\x04\b\t\x10\n" +
+	"R\x0fdefault_harnessR\rdefault_modelR\x0esetup_commandsR\x12agent_instructions\"\x12\n" +
 	"\x10ListReposRequest\";\n" +
 	"\x11ListReposResponse\x12&\n" +
 	"\x05repos\x18\x01 \x03(\v2\x10.factory.v1.RepoR\x05repos\"9\n" +

@@ -97,13 +97,10 @@ func branchFor(task *models.Task) string {
 	return "agent/t" + strconv.FormatInt(task.Number, 10) + "-" + slug(task.Title)
 }
 
-// promptFor freezes what the agent is told: the repo's instructions, the task as
-// it stands. The runner adds its own preamble.
-func promptFor(repo *models.Repo, task *models.Task) string {
+// promptFor freezes what the agent is told: the task as it stands. The runner
+// adds its own preamble.
+func promptFor(task *models.Task) string {
 	var b strings.Builder
-	if in := strings.TrimSpace(repo.AgentInstructions); in != "" {
-		b.WriteString(in + "\n\n")
-	}
 	b.WriteString("# Task: " + task.Title + "\n\n" + strings.TrimSpace(task.Body))
 	return b.String()
 }
@@ -145,7 +142,7 @@ func (s *JobService) Run(
 	job, err := s.jobs.Create(ctx, models.Job{
 		ID: uuid.Nil, TaskID: taskID, TaskNumber: 0, Routine: "", RepoID: repo.ID,
 		Harness: "", Model: "",
-		Prompt: promptFor(repo, task), Status: "", Branch: branchFor(task),
+		Prompt: promptFor(task), Status: "", Branch: branchFor(task),
 		SessionID: "", Outcome: "", ParentJobID: nil, PRURL: "", RunnerID: nil,
 		PRState: "", PRCI: "", PRReview: "", CreatedBy: actor.String(),
 		CreatedAt: time.Time{}, Limited: false, LimitResetsAt: nil,
@@ -576,7 +573,7 @@ func (s *JobService) pickUp(ctx context.Context) error {
 	}
 	_, err = s.jobs.Create(ctx, models.Job{
 		ID: uuid.Nil, TaskID: next.TaskID, TaskNumber: 0, Routine: "", RepoID: repo.ID,
-		Harness: "", Model: "", Prompt: promptFor(repo, approved), Status: "",
+		Harness: "", Model: "", Prompt: promptFor(approved), Status: "",
 		Branch: branchFor(approved), SessionID: "", Outcome: "", ParentJobID: nil,
 		PRURL: "", RunnerID: nil, PRState: "", PRCI: "", PRReview: "",
 		CreatedBy: autoPickupAuthor, CreatedAt: time.Time{}, StartedAt: nil,

@@ -83,8 +83,6 @@ const repoFields = {
   name: 'n',
   defaultBranch: 'main',
   autoPickup: false,
-  setupCommands: 'make',
-  agentInstructions: 'be nice',
   timeLimitMinutes: 30,
   sentryProject: 'check-in',
   redPrLabel: 'deps',

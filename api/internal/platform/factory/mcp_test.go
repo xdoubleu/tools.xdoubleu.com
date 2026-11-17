@@ -445,7 +445,7 @@ func TestListTasksFindsATaskByLabelAndText(t *testing.T) {
 	assert.Len(t, titles(map[string]any{"label": "", "query": ""}), 2)
 }
 
-func TestListReposGivesAgentsNoSetupCommandsOrInstructions(t *testing.T) {
+func TestListReposGivesAgentsTheRepoBasics(t *testing.T) {
 	session := mcpSessionAs(t, asUser(models.RoleAgent))
 
 	out, err := callTool(t, session, "factory_list_repos", map[string]any{})
@@ -462,8 +462,6 @@ func TestListReposGivesAgentsNoSetupCommandsOrInstructions(t *testing.T) {
 		assert.Equal(t, seededRepoID(t), str(t, out, "repos", i, "id"))
 		assert.Equal(t, "xdoubleu", str(t, out, "repos", i, "owner"))
 		assert.Equal(t, "main", str(t, out, "repos", i, "defaultBranch"))
-		assert.Nil(t, at(t, out, "repos", i, "agentInstructions"))
-		assert.Nil(t, at(t, out, "repos", i, "setupCommands"))
 	}
 	assert.True(t, found)
 }

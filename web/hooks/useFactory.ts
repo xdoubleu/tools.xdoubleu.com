@@ -146,8 +146,6 @@ export interface RepoFields {
   name: string
   defaultBranch: string
   autoPickup: boolean
-  setupCommands: string
-  agentInstructions: string
   timeLimitMinutes: number
   sentryProject: string
   redPrLabel: string

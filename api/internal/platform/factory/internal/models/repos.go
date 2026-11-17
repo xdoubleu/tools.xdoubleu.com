@@ -23,13 +23,11 @@ func (h Harness) Valid() bool {
 // Repo is a GitHub repository the factory runs jobs for, with the settings
 // those jobs need.
 type Repo struct {
-	ID                uuid.UUID
-	Owner             string
-	Name              string
-	DefaultBranch     string
-	SetupCommands     string
-	AgentInstructions string
-	TimeLimitMinutes  int
+	ID               uuid.UUID
+	Owner            string
+	Name             string
+	DefaultBranch    string
+	TimeLimitMinutes int
 	// AutoPickup lets the runner take this repo's Ready tasks without a press of Run.
 	AutoPickup bool
 	// SentryProject is the Sentry project slug whose issues belong to this repo;

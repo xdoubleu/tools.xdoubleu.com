@@ -51,14 +51,13 @@ echo "STDIN=$(cat)"
 `
 	var log bytes.Buffer
 	code, err := box.Run(context.Background(), runner.SandboxSpec{
-		CloneDir:      clone,
-		OutcomeDir:    outcome,
-		SessionDir:    session,
-		Env:           map[string]string{"FACTORY_JOB": "realvm-test", "SECRET": "s3cret"},
-		SetupCommands: "",
-		Command:       []string{"sh", "-c", script},
-		Stdin:         "prompt text",
-		Log:           &log,
+		CloneDir:   clone,
+		OutcomeDir: outcome,
+		SessionDir: session,
+		Env:        map[string]string{"FACTORY_JOB": "realvm-test", "SECRET": "s3cret"},
+		Command:    []string{"sh", "-c", script},
+		Stdin:      "prompt text",
+		Log:        &log,
 	})
 	require.NoError(t, err, log.String())
 	out := log.String()
@@ -113,10 +112,9 @@ func TestRealVMSeedsClaudesConfigSoThePluginsAreVisible(t *testing.T) {
 			"CLAUDE_CONFIG_DIR":  runner.SandboxSessionDir,
 			"CLAUDE_CONFIG_SEED": runner.ClaudeConfigSeed,
 		},
-		SetupCommands: "",
-		Command:       command,
-		Stdin:         "",
-		Log:           &log,
+		Command: command,
+		Stdin:   "",
+		Log:     &log,
 	})
 	require.NoError(t, err, log.String())
 	assert.Zero(t, code, log.String())

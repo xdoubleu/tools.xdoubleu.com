@@ -76,8 +76,8 @@ message HeartbeatResponse {
 // runner adds its own preamble, and validates repo, branch and base itself.
 message ClaimedJob {
   // The runner's Mac picks the harness and model; the claim reports them instead.
-  reserved 6, 14;
-  reserved "harness", "model";
+  reserved 6, 9, 14;
+  reserved "harness", "model", "setup_commands";
   string id = 1;
   string task_id = 2;
   string repo_owner = 3;
@@ -85,8 +85,6 @@ message ClaimedJob {
   string default_branch = 5;
   string prompt = 7;
   string branch = 8;
-  // Free text, run in the sandbox before the agent.
-  string setup_commands = 9;
   int32 time_limit_minutes = 10;
   // The job's own agent account: it may read and comment on this job's task only,
   // and ends with the job. Empty when the server makes none.

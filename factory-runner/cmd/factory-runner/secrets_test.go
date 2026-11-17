@@ -48,7 +48,7 @@ func claimedJob(clientID, secret string) *runner.ClaimedJob {
 	return &runner.ClaimedJob{
 		Routine: "",
 		ID:      "", TaskID: "", RepoOwner: "", RepoName: "", DefaultBranch: "",
-		Prompt: "", Branch: "", SetupCommands: "", TimeLimitMinutes: 0,
+		Prompt: "", Branch: "", TimeLimitMinutes: 0,
 		MCPClientID: clientID, MCPClientSecret: secret, ResumeSessionID: "",
 	}
 }

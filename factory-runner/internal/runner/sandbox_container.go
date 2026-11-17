@@ -250,9 +250,6 @@ func (v *vmSession) Exec(
 ) (int, error) {
 	spec := v.spec
 	spec.Command, spec.Stdin, spec.Log = command, stdin, log
-	if v.ran {
-		spec.SetupCommands = ""
-	}
 	argv := execArgv(v.name, v.envFile, v.s.npmCacheSource(), !v.ran, spec)
 	code, err := v.s.Exec.Exec(ctx, argv, strings.NewReader(stdin), log)
 	// A first exec that never got going leaves setup to the next one.
@@ -396,9 +393,6 @@ func execArgv(name, envFile, npmCache string, first bool, spec SandboxSpec) []st
 		" 2>/dev/null || mkdir -p " + jobNPMCache + "\n" + postgresScript
 	if first {
 		script += npmInstallScript
-	}
-	if strings.TrimSpace(spec.SetupCommands) != "" {
-		script += "(\n" + spec.SetupCommands + "\n) </dev/null\n"
 	}
 	script += `exec "$@"`
 	argv := []string{
