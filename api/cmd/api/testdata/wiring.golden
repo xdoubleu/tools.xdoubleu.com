@@ -262,6 +262,7 @@ POST /observability.v1.ObservabilityService/GetSentryIssues: 401, 415
 POST /observability.v1.ObservabilityService/GetSlowTransactions: 401, 415
 POST /observability.v1.ObservabilityService/GetStorageStats: 401, 415
 POST /observability.v1.ObservabilityService/GetUsageStats: 401, 415
+POST /observability.v1.ObservabilityService/GetWorkflowRunLogs: 401, 415
 POST /observability.v1.ObservabilityService/GetWorkflowRuns: 401, 415
 POST /observability.v1.ObservabilityService/ListOAuthConnections: 401, 415
 POST /observability.v1.ObservabilityService/ResolveSentryIssue: 401, 415
@@ -366,6 +367,7 @@ get_sentry_issues
 get_slow_transactions
 get_storage_stats
 get_usage_stats
+get_workflow_run_logs
 get_workflow_runs
 learningpaths_create_path
 learningpaths_get_path

@@ -364,7 +364,8 @@ func TestAgentAccount_OnlyARoutineJobSeesTheObservabilityTools(t *testing.T) {
 
 	for _, name := range []string{
 		"get_grafana_alerts", "get_sentry_issues", "get_failing_pull_requests",
-		"get_workflow_runs", "get_security_alerts", "get_storage_stats",
+		"get_workflow_runs", "get_workflow_run_logs", "get_security_alerts",
+		"get_storage_stats",
 		"prom_query", "resolve_sentry_issue",
 	} {
 		assert.Contains(t, routineTools, name)
