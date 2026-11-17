@@ -46,7 +46,7 @@ task — never silently skipped.
      `false_positive`.
    - Looks real → **don't dismiss, don't treat as safe.** File a tracking
      task titled as a live credential exposure (rotation needs a human with
-     provider access) and move on.
+     provider access), with the `routine-found` label, and move on.
 
 5. **Report** a table: alert → fixed in PR #N / dismissed (number + reason) /
    tracked in task <id> awaiting a human / open pending PR merge.

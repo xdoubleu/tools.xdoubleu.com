@@ -65,16 +65,16 @@ worktrees; the outcome file's first line is the summary (step 8).
    - Each breaching perf alert / slow transaction = one workstream.
    - Security alerts: hand the whole batch to `dependabot-triage`.
 
-4. **Needs a human — never dispatch a fix** (file a task saying why, keep
-   going): secret-scanning alerts (rotation needs provider access; a
-   subagent may only classify real vs. false positive), CVEs with no upstream
-   fix, breaking major bumps, deleting production data, other
-   hard-to-reverse actions.
+4. **Needs a human — never dispatch a fix** (file a task saying why, with
+   the `routine-found` label, keep going): secret-scanning alerts (rotation
+   needs provider access; a subagent may only classify real vs. false
+   positive), CVEs with no upstream fix, breaking major bumps, deleting
+   production data, other hard-to-reverse actions.
 
    **Self-correcting rule:** a signal lacking context, or a false positive,
    is never skipped silently — file/update a task proposing a
    `rules.yml` change (threshold, label, annotation) that would make it
-   actionable.
+   actionable, with the `routine-found` label.
 
 5. **Dispatch one `Agent` per workstream, in parallel, `isolation:
    "worktree"`** (factory routine: sequentially, see Modes). Each prompt is self-contained, telling the
