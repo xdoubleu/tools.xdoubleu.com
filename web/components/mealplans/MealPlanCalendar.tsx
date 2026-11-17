@@ -47,6 +47,7 @@ export default function MealPlanCalendar({
     startFillDay,
     cancelForm,
     handleSaveAdd,
+    handleSaveAddMany,
     handleSaveEdit,
     handleSaveFillDay,
     handleDeleteMeal,
@@ -168,6 +169,7 @@ export default function MealPlanCalendar({
         initialServings={isEditing ? editingMeal!.servings : 1}
         initialExcludeFromShoppingList={isEditing ? editingMeal!.excludeFromShoppingList : false}
         saveLabel={isAdding ? 'Add' : isFilling ? 'Fill day' : 'Save'}
+        onSaveMany={isAdding ? handleSaveAddMany : undefined}
         onSave={isAdding ? handleSaveAdd : isFilling ? handleSaveFillDay : handleSaveEdit}
         onCancel={cancelForm}
       />

@@ -326,3 +326,63 @@ describe('MealPlanEntryForm category picker', () => {
     expect(screen.getByRole('tab', { name: 'Event' })).toHaveAttribute('aria-selected', 'true')
   })
 })
+
+describe('adding several recipes', () => {
+  const onSaveMany = vi.fn()
+  const renderMany = () =>
+    render(
+      <MealPlanEntryForm
+        open
+        title="Add"
+        recipes={[recipe('r1', 'Soep'), recipe('r2', 'Pasta')]}
+        suggestedRecipes={[suggestion('r1', 'Soep', 3), suggestion('r2', 'Pasta', 2)]}
+        onSave={onSave}
+        onSaveMany={onSaveMany}
+        saveLabel="Add"
+        onCancel={onCancel}
+      />
+    )
+
+  it('saves every staged recipe with its own servings', () => {
+    renderMany()
+    fireEvent.click(screen.getByRole('button', { name: 'Soep' }))
+    fireEvent.click(screen.getByRole('button', { name: '+ Add another recipe' }))
+    expect(screen.getByRole('list', { name: 'Recipes to add' })).toHaveTextContent('Soep × 3')
+    fireEvent.click(screen.getByRole('button', { name: 'Pasta' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+    expect(onSaveMany).toHaveBeenCalledWith([
+      { recipeId: 'r1', servings: 3 },
+      { recipeId: 'r2', servings: 2 }
+    ])
+    expect(onSave).not.toHaveBeenCalled()
+  })
+
+  it('saves only the staged recipes when nothing else is picked', () => {
+    renderMany()
+    fireEvent.click(screen.getByRole('button', { name: 'Soep' }))
+    fireEvent.click(screen.getByRole('button', { name: '+ Add another recipe' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+    expect(onSaveMany).toHaveBeenCalledWith([{ recipeId: 'r1', servings: 3 }])
+  })
+
+  it('removes a staged recipe', () => {
+    renderMany()
+    fireEvent.click(screen.getByRole('button', { name: 'Soep' }))
+    fireEvent.click(screen.getByRole('button', { name: '+ Add another recipe' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Remove Soep' }))
+    expect(screen.queryByRole('list', { name: 'Recipes to add' })).toBeNull()
+  })
+
+  it('asks for a recipe when staging with nothing picked', () => {
+    renderMany()
+    fireEvent.click(screen.getByRole('button', { name: '+ Add another recipe' }))
+    expect(screen.getByText('Pick a recipe.')).toBeInTheDocument()
+  })
+
+  it('saves a single pick through onSave', () => {
+    renderMany()
+    fireEvent.click(screen.getByRole('button', { name: 'Soep' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+    expect(onSave).toHaveBeenCalledWith('r1', '', 3, false)
+  })
+})
