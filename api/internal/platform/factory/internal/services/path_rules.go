@@ -33,6 +33,9 @@ func selfCheckedRule(file string) string {
 	if strings.HasPrefix(file, "migrations/") || strings.Contains(file, "/migrations/") {
 		return ""
 	}
+	if isADR(file) {
+		return ""
+	}
 	switch {
 	case strings.HasSuffix(file, ".md") || strings.HasPrefix(file, "docs/"):
 		return "docs"
@@ -50,6 +53,24 @@ func selfCheckedRule(file string) string {
 		return "agent tooling"
 	}
 	return ""
+}
+
+// isADR reports whether file is a decision record, which the owner reviews.
+func isADR(file string) bool {
+	dir, base := path.Split(strings.TrimPrefix(file, "/"))
+	return dir == "docs/" && strings.HasPrefix(base, "adr-") &&
+		strings.HasSuffix(base, ".md")
+}
+
+// adrFiles are the decision records among the changed files.
+func adrFiles(files []string) []string {
+	var adrs []string
+	for _, f := range files {
+		if isADR(f) {
+			adrs = append(adrs, path.Base(f))
+		}
+	}
+	return adrs
 }
 
 // isAgentTooling is agent instructions and the scripts only CI runs; other
@@ -118,17 +139,17 @@ func (s *JobService) changedFiles(ctx context.Context, prURL string) ([]string, 
 	return s.github.PullRequestFiles(ctx, m[1], m[2], number)
 }
 
-// pathRule is the rule that sends the task of a merged pull request to Done by its
-// changed files, or "" when it goes to Testing: also on a failed read.
-func (s *JobService) pathRule(ctx context.Context, prURL string) string {
+// mergedFiles are the changed files of a merged pull request, or nil when they
+// can't be read: the task then goes to Testing.
+func (s *JobService) mergedFiles(ctx context.Context, prURL string) []string {
 	if s.github == nil || prURL == "" {
-		return ""
+		return nil
 	}
 	files, err := s.changedFiles(ctx, prURL)
 	if err != nil {
-		return ""
+		return nil
 	}
-	return selfCheckedBy(files)
+	return files
 }
 
 // BackfillPathRules moves, once, each Testing task whose merged pull request
