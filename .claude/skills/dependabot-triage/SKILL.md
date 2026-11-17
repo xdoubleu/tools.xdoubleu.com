@@ -29,9 +29,9 @@ task — never silently skipped.
      run build`). Each goes through `start-task`/`finish-task`; list the
      alert numbers it resolves in the task/PR body.
    - **No upstream fix:** no workarounds. Collect into one task (via
-     `refine-task`) listing alert/package/reason; leave alerts open. Dismiss
-     as `tolerable_risk` only once a human accepted the risk in that task,
-     never during the sweep.
+     `refine-task`) listing alert/package/reason with the `routine-found`
+     label; leave alerts open. Dismiss as `tolerable_risk` only once a human
+     accepted the risk in that task, never during the sweep.
    - **Breaking major bump** as the only fix → flag for a human decision.
 
 3. **Code scanning** — read the flagged file and the rule's own semantics
