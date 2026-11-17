@@ -190,6 +190,15 @@ func (s *JobService) reviewOpen(ctx context.Context, id uuid.UUID, url string) e
 	if err != nil {
 		return nil //nolint:nilerr // a task that is gone is not a failure
 	}
+	return s.reviewOpenTask(ctx, task, url)
+}
+
+func (s *JobService) reviewOpenTask(
+	ctx context.Context,
+	task *models.Task,
+	url string,
+) error {
+	id := task.ID
 	if !early(task.Status) {
 		return nil
 	}
@@ -379,100 +388,235 @@ func (s *JobService) pullRequestEnded(
 	return err
 }
 
+// taskLookup finds the tasks a set of references (T-<number> or UUID) names with
+// one query. A reference to a task that is gone finds nothing.
+type taskLookup struct {
+	byID     map[uuid.UUID]*models.Task
+	byNumber map[int64]*models.Task
+}
+
+func (s *JobService) lookupTasks(
+	ctx context.Context,
+	refs []string,
+) (taskLookup, error) {
+	var ids []uuid.UUID
+	var numbers []int64
+	for _, ref := range refs {
+		if id, err := uuid.Parse(ref); err == nil {
+			ids = append(ids, id)
+		} else if n, ok := models.ParseTaskRef(ref); ok {
+			numbers = append(numbers, n)
+		}
+	}
+	l := taskLookup{
+		byID: map[uuid.UUID]*models.Task{}, byNumber: map[int64]*models.Task{},
+	}
+	if len(ids)+len(numbers) == 0 {
+		return l, nil
+	}
+	tasks, err := s.tasks.ByKeys(ctx, ids, numbers)
+	if err != nil {
+		return l, err
+	}
+	for i := range tasks {
+		l.byID[tasks[i].ID] = &tasks[i]
+		l.byNumber[tasks[i].Number] = &tasks[i]
+	}
+	return l, nil
+}
+
+func (l taskLookup) find(ref string) *models.Task {
+	if id, err := uuid.Parse(ref); err == nil {
+		return l.byID[id]
+	}
+	if n, ok := models.ParseTaskRef(ref); ok {
+		return l.byNumber[n]
+	}
+	return nil
+}
+
 // syncLinked keeps the status of the open pull requests that link a task in their
 // body, whoever opened them: those open now, then any it knew as open that have
-// left the list (merged or closed since).
+// left the list (merged or closed since). The task reads and the writes are one
+// query each, however many pull requests there are; only GitHub is asked per
+// pull request.
 func (s *JobService) syncLinked(ctx context.Context) error {
 	repos, err := s.repos.List(ctx)
 	if err != nil {
 		return err
 	}
-	var failures []error
-	seen := map[string]bool{}
-	for i := range repos {
-		pulls, listErr := skipNotInstalled(
-			s.github.OpenPullRequests(ctx, repos[i].Owner, repos[i].Name),
-		)
-		if listErr != nil {
-			failures = append(failures, fmt.Errorf("repo %s: %w", repos[i].Name, listErr))
-			continue
-		}
-		for _, p := range pulls {
-			pr := PullRequestRef{
-				URL: p.URL, Title: p.Title, Branch: p.Branch, Body: p.Body, MergeSHA: "",
-			}
-			for _, ref := range linkedTasks(pr) {
-				id, resolveErr := s.tasks.Resolve(ctx, ref)
-				if resolveErr != nil {
-					continue
-				}
-				seen[p.URL] = true
-				if err = s.recordLinked(ctx, repos[i], id, p.URL, p.Number); err != nil {
-					failures = append(failures, fmt.Errorf("pull request %s: %w", p.URL, err))
-				} else if err = s.reviewOpen(ctx, id, p.URL); err != nil {
-					failures = append(failures, fmt.Errorf("pull request %s: %w", p.URL, err))
-				}
-			}
-		}
+	open, failures := s.listOpenPulls(ctx, repos)
+	var allRefs []string
+	for _, o := range open {
+		allRefs = append(allRefs, o.refs...)
 	}
-	if err = s.refreshStale(ctx, seen); err != nil {
+	lookup, err := s.lookupTasks(ctx, allRefs)
+	if err != nil {
+		return errors.Join(append(failures, err)...)
+	}
+
+	seen := map[string]bool{}
+	var rows []models.LinkedPullRequest
+	var toReview []linkedReview
+	for _, o := range open {
+		oRows, oReview, readErr := s.readOpenPull(ctx, o, lookup)
+		if readErr != nil {
+			failures = append(failures, fmt.Errorf("pull request %s: %w", o.pull.URL, readErr))
+		}
+		if len(oRows) > 0 || readErr != nil {
+			seen[o.pull.URL] = true
+		}
+		rows = append(rows, oRows...)
+		toReview = append(toReview, oReview...)
+	}
+	staleRows, err := s.refreshStale(ctx, repos, seen)
+	if err != nil {
 		failures = append(failures, err)
+	}
+	if err = s.linked.UpsertMany(ctx, append(rows, staleRows...)); err != nil {
+		return errors.Join(append(failures, err)...)
+	}
+	for _, r := range toReview {
+		if err = s.reviewOpenTask(ctx, r.task, r.url); err != nil {
+			failures = append(failures, fmt.Errorf("pull request %s: %w", r.url, err))
+		}
 	}
 	return errors.Join(failures...)
 }
 
+// openPull is an open pull request and the tasks it names.
+type openPull struct {
+	repo models.Repo
+	pull githubapp.OpenPullRequest
+	refs []string
+}
+
+// listOpenPulls lists the open pull requests of every repo; a repo it cannot
+// list is a failure, not a stop.
+func (s *JobService) listOpenPulls(
+	ctx context.Context,
+	repos []models.Repo,
+) ([]openPull, []error) {
+	var open []openPull
+	var failures []error
+	for i := range repos {
+		pulls, err := skipNotInstalled(
+			s.github.OpenPullRequests(ctx, repos[i].Owner, repos[i].Name),
+		)
+		if err != nil {
+			failures = append(failures, fmt.Errorf("repo %s: %w", repos[i].Name, err))
+			continue
+		}
+		for _, p := range pulls {
+			refs := linkedTasks(PullRequestRef{
+				URL: p.URL, Title: p.Title, Branch: p.Branch, Body: p.Body, MergeSHA: "",
+			})
+			open = append(open, openPull{repo: repos[i], pull: p, refs: refs})
+		}
+	}
+	return open, failures
+}
+
+// readOpenPull reads an open pull request once from GitHub and returns a row
+// for each distinct task of it that exists.
+func (s *JobService) readOpenPull(
+	ctx context.Context,
+	o openPull,
+	lookup taskLookup,
+) ([]models.LinkedPullRequest, []linkedReview, error) {
+	var tasks []*models.Task
+	seen := map[uuid.UUID]bool{}
+	for _, ref := range o.refs {
+		if task := lookup.find(ref); task != nil && !seen[task.ID] {
+			seen[task.ID] = true
+			tasks = append(tasks, task)
+		}
+	}
+	if len(tasks) == 0 {
+		return nil, nil, nil
+	}
+	status, err := s.github.PullRequest(ctx, o.repo.Owner, o.repo.Name, o.pull.Number)
+	if err != nil {
+		return nil, nil, err
+	}
+	rows := make([]models.LinkedPullRequest, len(tasks))
+	reviews := make([]linkedReview, len(tasks))
+	for i, task := range tasks {
+		rows[i] = linkedRow(o.pull.URL, task.ID, status)
+		reviews[i] = linkedReview{task: task, url: o.pull.URL}
+	}
+	return rows, reviews, nil
+}
+
+type linkedReview struct {
+	task *models.Task
+	url  string
+}
+
+func linkedRow(
+	url string,
+	taskID uuid.UUID,
+	status githubapp.PullRequestStatus,
+) models.LinkedPullRequest {
+	return models.LinkedPullRequest{
+		URL: url, TaskID: taskID, State: status.State, CI: status.CI,
+		Review: status.Review, Mergeable: status.Mergeable, UnmergeableSince: nil,
+		CheckedAt: time.Time{},
+	}
+}
+
 // refreshStale re-reads the pull requests known as open that the open lists no
-// longer showed: they were merged or closed since.
-func (s *JobService) refreshStale(ctx context.Context, seen map[string]bool) error {
+// longer showed: they were merged or closed since. It returns their new rows.
+func (s *JobService) refreshStale(
+	ctx context.Context,
+	repos []models.Repo,
+	seen map[string]bool,
+) ([]models.LinkedPullRequest, error) {
 	stale, err := s.linked.Open(ctx, pollBatch)
 	if err != nil {
-		return err
+		return nil, err
+	}
+	var ids []uuid.UUID
+	for _, p := range stale {
+		if !seen[p.URL] {
+			ids = append(ids, p.TaskID)
+		}
+	}
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	tasks, err := s.tasks.ByKeys(ctx, ids, nil)
+	if err != nil {
+		return nil, err
+	}
+	taskByID := map[uuid.UUID]*models.Task{}
+	for i := range tasks {
+		taskByID[tasks[i].ID] = &tasks[i]
+	}
+	repoByID := map[uuid.UUID]*models.Repo{}
+	for i := range repos {
+		repoByID[repos[i].ID] = &repos[i]
 	}
 	var failures []error
+	var rows []models.LinkedPullRequest
 	for _, p := range stale {
-		if seen[p.URL] {
+		task := taskByID[p.TaskID]
+		if seen[p.URL] || task == nil || repoByID[task.RepoID] == nil {
 			continue
 		}
-		task, getErr := s.tasks.Get(ctx, p.TaskID)
-		if getErr != nil {
-			continue
-		}
-		repo, getErr := s.repos.Get(ctx, task.RepoID)
-		if getErr != nil {
-			failures = append(failures, getErr)
-			continue
-		}
+		repo := repoByID[task.RepoID]
 		number, ok := pullNumber(p.URL, repo)
 		if !ok {
 			continue
 		}
-		if err = s.recordLinked(ctx, *repo, p.TaskID, p.URL, number); err != nil {
-			failures = append(failures, fmt.Errorf("pull request %s: %w", p.URL, err))
+		status, readErr := s.github.PullRequest(ctx, repo.Owner, repo.Name, number)
+		if readErr != nil {
+			failures = append(failures, fmt.Errorf("pull request %s: %w", p.URL, readErr))
+			continue
 		}
+		rows = append(rows, linkedRow(p.URL, p.TaskID, status))
 	}
-	return errors.Join(failures...)
-}
-
-func (s *JobService) recordLinked(
-	ctx context.Context,
-	repo models.Repo,
-	taskID uuid.UUID,
-	url string,
-	number int,
-) error {
-	if _, err := s.tasks.Get(ctx, taskID); err != nil {
-		// A link to a task that is gone is not a failure.
-		return nil //nolint:nilerr // nothing to record
-	}
-	status, err := s.github.PullRequest(ctx, repo.Owner, repo.Name, number)
-	if err != nil {
-		return err
-	}
-	return s.linked.Upsert(ctx, models.LinkedPullRequest{
-		URL: url, TaskID: taskID, State: status.State, CI: status.CI,
-		Review: status.Review, Mergeable: status.Mergeable, UnmergeableSince: nil,
-		CheckedAt: time.Time{},
-	})
+	return rows, errors.Join(failures...)
 }
 
 // PullRequestsOf lists every pull request of a task: those its jobs opened, then
