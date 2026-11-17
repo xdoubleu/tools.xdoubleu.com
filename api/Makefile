@@ -6,6 +6,11 @@ export GOLANGCI_LINT_CACHE ?= $(CURDIR)/.golangci-cache
 
 # Recreate the local Postgres volume; use when a failure looks like test-order
 # pollution rather than a real regression.
+# Apply every migration to an empty database (cmd/api's TestMain does it);
+# other packages' tests fail with 42P01 until this has run.
+db/migrate:
+	TZ=UTC go test -count=1 ./cmd/api -run TestApplyMigrations_LockTimeout
+
 db/reset:
 	docker-compose down -v
 	docker-compose up -d

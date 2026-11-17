@@ -14,6 +14,7 @@ make lint/migrations               # duplicate version, or a new migration that 
 make lint/kamal-secrets            # deploy-secret lists agree; deploy.grafana.yml env names must be GF_-prefixed (Grafana ignores others)
 make lint/cross-schema             # SQL schema direction, adr-0038
 make lint/proto-local-versions     # proto/generate/local plugin versions match buf.gen.yaml's `remote:` pins
+make db/migrate                    # migrate an empty DB (else 42P01)
 make db/reset                      # recreate the Postgres volume — shared by every worktree, see Testing
 ```
 
@@ -103,19 +104,19 @@ Apps opt in via `MCPToolProvider` (`cmd/api/apps.go`) in `apps/<name>/mcp.go`; s
 
 - No DB mocking: integration tests hit real Postgres (17, as in production); other mocks: `internal/mocks/`.
 - `make test/cov/diff` (`scripts/diff_coverage.sh`) prints a gate; CI runs it on PRs → [`adr-0013`](../docs/adr-0013-diff-scoped-coverage.md). Offline it uses local `main`. Delete wrappers left unused.
-- **One Postgres container (`api-db-1`) is shared by every worktree.** `docker-compose down` and `make db/reset` hit all sessions; never stop it. `relation ... does not exist` may be leftover state, a teardown, or, in CI only, a `global.*` table a test assumed: `cmd/api` creates them and package order isn't fixed; fake the interface or create it (`feeds` does).
+- **One Postgres container (`api-db-1`) is shared by every worktree.** `docker-compose down` and `make db/reset` hit all sessions; never stop it. `relation ... does not exist` may be leftover state, teardown, or (CI only) a `global.*` table a test assumed: `cmd/api` creates them and package order isn't fixed; fake the interface or create it (`feeds` does).
 - **`relation "X" already exists` panic** = another worktree's DDL ran without its `goose_db_version` row (in `global`; check via `docker exec api-db-1 psql`). If the schema matches, insert the row.
-- **Concurrent `go test` runs from two worktrees race on shared fixtures**, e.g. `TestAppsMCPCallAllToolsAsAdmin`. Re-run alone first.
-- No Docker? Try `.claude/hooks/session-start.sh`, or in a job sandbox `scripts/sandbox_postgres.sh`. Modules resolve offline there; build before reporting a gap.
+- **Concurrent `go test` from two worktrees races on fixtures**, e.g. `TestAppsMCPCallAllToolsAsAdmin`. Re-run alone first.
+- No Docker? Try `.claude/hooks/session-start.sh`, or in a sandbox `scripts/sandbox_postgres.sh`, then `make db/migrate`. Modules resolve offline; build before reporting a gap.
 - Bug fixes: failing test first. Reproduce production state via the MCP read tools; commit external input's **real bytes** as gzipped `testdata/` from the app's own client (example: `apps/feeds/internal/services/scrape_live_internal_test.go`).
-- A bug closes on a production observation or user confirmation, not a green suite.
+- A bug closes on production observation or user confirmation, not a green suite.
 - `git stash` is repo-global: never blind-`pop`.
 - Backfill migrations: test against a row built to predate the migration, not only fresh rows.
 - Kobo firmware can't be verified server-side: say so in the PR; the user's retest is acceptance.
 
-- `make test/cov/report` failing with `go: no such tool "covdata"` is a sandbox artifact; rerun `.claude/hooks/session-start.sh`.
+- `go: no such tool "covdata"`: sandbox artifact; rerun `.claude/hooks/session-start.sh`.
 
-`ROLE=workers` runs only `StartWorkers()` jobs; `heapWatchThreshold` stays under the deploy caps.
+`ROLE=workers` runs only `StartWorkers()` jobs; `heapWatchThreshold` stays under deploy caps.
 
 ## File size
 
