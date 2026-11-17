@@ -559,3 +559,13 @@ func TestAMergedPullRequestOfAnOtherLabelledTaskStillGoesToTesting(t *testing.T)
 	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_TESTING,
 		env.task(t, task.Id).Task.Status)
 }
+
+func TestARepoTheAppIsNotInstalledOnDoesNotFailThePoll(t *testing.T) {
+	env, gh := githubEnv(t)
+	gh.listErr = githubapp.ErrNotInstalled
+
+	require.NoError(t, env.poll(t))
+
+	gh.listErr = errors.New("boom")
+	require.Error(t, env.poll(t))
+}

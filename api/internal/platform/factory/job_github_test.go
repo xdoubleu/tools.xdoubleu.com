@@ -29,6 +29,8 @@ type fakeGitHub struct {
 	polled []int
 	merged []githubapp.MergedPullRequest
 	open   []githubapp.OpenPullRequest
+	// listErr fails both listings.
+	listErr error
 	// live is the set of merge commits the release contains; deployErr fails the check.
 	live      map[string]bool
 	deployErr error
@@ -47,7 +49,7 @@ func (f *fakeGitHub) OpenPullRequests(
 ) ([]githubapp.OpenPullRequest, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	return f.open, nil
+	return f.open, f.listErr
 }
 
 func (f *fakeGitHub) Deployed(
@@ -81,7 +83,7 @@ func (f *fakeGitHub) MergedPullRequests(
 ) ([]githubapp.MergedPullRequest, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	return f.merged, nil
+	return f.merged, f.listErr
 }
 
 // pullAnswer is what the fake says about a pull request.
@@ -123,8 +125,8 @@ func githubEnv(t *testing.T, extra ...factory.Option) (jobEnv, *fakeGitHub) {
 	t.Helper()
 	gh := &fakeGitHub{
 		mu: sync.Mutex{}, asked: nil, err: nil, pulls: map[int]pullAnswer{},
-		polled: nil, merged: nil, open: nil, live: map[string]bool{}, deployErr: nil,
-		deployHangs: false, files: map[int][]string{}, filesErr: nil,
+		polled: nil, merged: nil, open: nil, listErr: nil, live: map[string]bool{},
+		deployErr: nil, deployHangs: false, files: map[int][]string{}, filesErr: nil,
 	}
 	opts := append([]factory.Option{factory.WithGitHub(gh)}, extra...)
 	return newJobEnvWith(t, true, "browser", opts...), gh
