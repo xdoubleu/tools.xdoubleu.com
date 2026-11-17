@@ -102,7 +102,7 @@ Apps opt in via `MCPToolProvider` (`cmd/api/apps.go`) in `apps/<name>/mcp.go`; s
 ## Testing
 
 - No DB mocking: integration tests hit real Postgres (17, as in production); other mocks: `internal/mocks/`.
-- `make test/cov/diff` (`scripts/diff_coverage.sh`) prints a gate and a conservative number per file; CI runs the same script on PRs → [`adr-0013`](../docs/adr-0013-diff-scoped-coverage.md).
+- `make test/cov/diff` (`scripts/diff_coverage.sh`) prints a gate; CI runs it on PRs → [`adr-0013`](../docs/adr-0013-diff-scoped-coverage.md). Offline it uses local `main`. Delete wrappers left unused.
 - **One Postgres container (`api-db-1`) is shared by every worktree.** `docker-compose down` and `make db/reset` hit all sessions; never stop it. `relation ... does not exist` may be leftover state, a teardown, or, in CI only, a `global.*` table a test assumed: `cmd/api` creates them and package order isn't fixed; fake the interface or create it (`feeds` does).
 - **`relation "X" already exists` panic** = another worktree's DDL ran without its `goose_db_version` row (in `global`; check via `docker exec api-db-1 psql`). If the schema matches, insert the row.
 - **Concurrent `go test` runs from two worktrees race on shared fixtures**, e.g. `TestAppsMCPCallAllToolsAsAdmin`. Re-run alone first.
