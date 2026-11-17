@@ -54,7 +54,7 @@ func proxyFor(
 		Transport:     nil,
 		Anthropic:     up.srv.URL,
 		OpenRouter:    up.srv.URL + "/api", PostHog: up.srv.URL + "/mcp",
-		GoProxy: "", NPM: "",
+		GoProxy: "", NPM: "", RubyGems: "",
 		Log: nil,
 	}
 	if mutate != nil {
@@ -230,7 +230,7 @@ func TestResponsesStreamAsTheyArrive(t *testing.T) {
 	p, err := runner.NewEgressProxy(runner.EgressConfig{
 		Server: "", MCPToken: nil, OpenRouterKey: nil, PostHogKey: nil, MCPRejected: nil,
 		Transport: nil, Anthropic: up.URL, OpenRouter: "", PostHog: "",
-		GoProxy: "", NPM: "", Log: nil,
+		GoProxy: "", NPM: "", RubyGems: "", Log: nil,
 	})
 	require.NoError(t, err)
 	front := httptest.NewServer(p)
@@ -253,7 +253,7 @@ func TestABadUpstreamBaseIsRejectedWhenBuildingTheProxy(t *testing.T) {
 	_, err := runner.NewEgressProxy(runner.EgressConfig{
 		Server: "", MCPToken: nil, OpenRouterKey: nil, PostHogKey: nil, MCPRejected: nil,
 		Transport: nil, Anthropic: "not a url", OpenRouter: "", PostHog: "", GoProxy: "",
-		NPM: "", Log: nil,
+		NPM: "", RubyGems: "", Log: nil,
 	})
 	require.ErrorContains(t, err, "bad upstream")
 }
@@ -326,11 +326,13 @@ func TestRegistriesAreReadOnlyRoutesToTheirFixedUpstreams(t *testing.T) {
 	p, up := proxyFor(t, func(c *runner.EgressConfig) {
 		c.GoProxy = c.Anthropic + "/gomod"
 		c.NPM = c.Anthropic + "/npmreg"
+		c.RubyGems = c.Anthropic + "/gems"
 	})
 
 	for _, tc := range []struct{ target, upstream string }{
 		{"/goproxy/github.com/x/@v/list", "/gomod/github.com/x/@v/list"},
 		{"/npm/left-pad", "/npmreg/left-pad"},
+		{"/rubygems/versions", "/gems/versions"},
 	} {
 		for _, m := range []string{http.MethodGet, http.MethodHead} {
 			up.got = nil

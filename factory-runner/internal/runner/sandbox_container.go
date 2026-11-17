@@ -481,6 +481,8 @@ func (s *ContainerSandbox) registryEnv(proxyURL string) map[string]string {
 	}
 	env["npm_config_registry"] = proxyURL + "/npm/"
 	env["npm_config_prefer_offline"] = "true"
+	// Bundler fetches the gem index and gems through the read-only rubygems route.
+	env["BUNDLE_MIRROR__HTTPS://RUBYGEMS__ORG/"] = proxyURL + "/rubygems/"
 	return env
 }
 
