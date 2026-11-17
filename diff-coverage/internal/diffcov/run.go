@@ -19,7 +19,7 @@ const usage = `Usage:
 Run in the module (go) or project (lcov) directory the report paths are
 relative to. Flags for go and lcov:
   --threshold N   minimum percentage on changed lines (default 80)
-  --base REF      diff against REF (default: merge-base of origin/main and HEAD)
+  --base REF      diff against REF (default: merge-base of origin/main, else main, and HEAD)
   --include GLOB  only gate matching files (repeatable)
   --exclude GLOB  skip matching files (repeatable; replaces the defaults)
 `

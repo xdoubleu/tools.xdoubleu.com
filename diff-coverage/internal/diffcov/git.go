@@ -25,13 +25,16 @@ func git(dir string, args ...string) (string, error) {
 }
 
 // resolveBase returns the ref to diff against: base when set, else the
-// merge-base of origin/main and HEAD, else origin/main.
+// merge-base of origin/main (else the local main, for offline sandboxes) and
+// HEAD, else origin/main.
 func resolveBase(dir, base string) string {
 	if base != "" {
 		return base
 	}
-	if out, err := git(dir, "merge-base", "origin/main", "HEAD"); err == nil && strings.TrimSpace(out) != "" {
-		return strings.TrimSpace(out)
+	for _, ref := range []string{"origin/main", "main"} {
+		if out, err := git(dir, "merge-base", ref, "HEAD"); err == nil && strings.TrimSpace(out) != "" {
+			return strings.TrimSpace(out)
+		}
 	}
 	return "origin/main"
 }
