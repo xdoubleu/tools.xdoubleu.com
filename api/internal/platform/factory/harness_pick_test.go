@@ -35,7 +35,7 @@ func (e jobEnv) jobOf(t *testing.T, taskID string) *factoryv1.Job {
 func TestAQueuedJobHasNoHarnessUntilARunnerClaimsIt(t *testing.T) {
 	env := browserJobEnv(t)
 	task := env.newTask(t, "unclaimed")
-	job := env.run(t, task.Id, "")
+	job := env.run(t, task.Id)
 	assert.Equal(t, factoryv1.Harness_HARNESS_UNSPECIFIED, job.Harness)
 	assert.Empty(t, job.Model)
 
@@ -53,7 +53,7 @@ func TestAQueuedJobHasNoHarnessUntilARunnerClaimsIt(t *testing.T) {
 func TestAClaimWithoutAHarnessIsClaudeCode(t *testing.T) {
 	env := browserJobEnv(t)
 	task := env.newTask(t, "default")
-	env.run(t, task.Id, "")
+	env.run(t, task.Id)
 	require.NotNil(t, env.claim(t))
 
 	ran := env.jobOf(t, task.Id)
@@ -64,7 +64,7 @@ func TestAClaimWithoutAHarnessIsClaudeCode(t *testing.T) {
 func TestAClaimWithABadHarnessOrModelIsRefused(t *testing.T) {
 	env := browserJobEnv(t)
 	task := env.newTask(t, "bad")
-	env.run(t, task.Id, "")
+	env.run(t, task.Id)
 
 	for name, tc := range map[string]struct {
 		harness factoryv1.Harness
@@ -83,13 +83,12 @@ func TestAClaimWithABadHarnessOrModelIsRefused(t *testing.T) {
 		"the job stays queued")
 }
 
-func TestAReplyRecordsTheHarnessOfTheRunnerThatClaimsIt(t *testing.T) {
+func TestASecondJobRecordsTheHarnessOfTheRunnerThatClaimsIt(t *testing.T) {
 	env := browserJobEnv(t)
 	task := env.newTask(t, "continues")
 	env.finishedJob(t, task.Id)
 
-	_, err := env.reply(t, task.Id, "more")
-	require.NoError(t, err)
+	env.run(t, task.Id)
 	second, err := env.claimOn(t, factoryv1.Harness_HARNESS_OPENCODE, "vendor/other")
 	require.NoError(t, err)
 	require.NotNil(t, second)

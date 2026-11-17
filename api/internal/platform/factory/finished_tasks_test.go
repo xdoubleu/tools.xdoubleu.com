@@ -60,7 +60,7 @@ func TestFinishedTasksRefusesABadOrOversizedQuery(t *testing.T) {
 func TestFinishedTasksIncludeTestingOnesOnlyWithAPullRequest(t *testing.T) {
 	env := browserJobEnv(t)
 	merged := env.newTask(t, "merged")
-	env.run(t, merged.Id, "")
+	env.run(t, merged.Id)
 	complete(t, env, env.claim(t).Id, true, ownPull)
 	bare := env.newTask(t, "no pr")
 	for _, id := range []string{merged.Id, bare.Id} {

@@ -139,7 +139,7 @@ func accountsEnv(t *testing.T) (jobEnv, *fakeAccounts) {
 func TestAClaimedJobGetsItsOwnAgentAccount(t *testing.T) {
 	env, accounts := accountsEnv(t)
 	task := env.newTask(t, "gets an identity")
-	env.run(t, task.Id, "")
+	env.run(t, task.Id)
 
 	claimed := env.claim(t)
 	assert.NotEmpty(t, claimed.McpClientId)
@@ -154,7 +154,7 @@ func TestAClaimedJobGetsItsOwnAgentAccount(t *testing.T) {
 
 func TestWithoutJobAccountsAClaimedJobHasNoIdentity(t *testing.T) {
 	env := browserJobEnv(t)
-	env.run(t, env.newTask(t, "no accounts").Id, "")
+	env.run(t, env.newTask(t, "no accounts").Id)
 	claimed := env.claim(t)
 	assert.Empty(t, claimed.McpClientId)
 	assert.Empty(t, claimed.McpClientSecret)
@@ -165,7 +165,7 @@ func TestAJobsAccountEndsWithTheJob(t *testing.T) {
 
 	// Completed.
 	done := env.newTask(t, "completes")
-	env.run(t, done.Id, "")
+	env.run(t, done.Id)
 	first := env.claim(t)
 	_, err := env.runner.CompleteJob(bearer(env.token),
 		&factoryv1.CompleteJobRequest{JobId: first.Id, Succeeded: true})
@@ -174,7 +174,7 @@ func TestAJobsAccountEndsWithTheJob(t *testing.T) {
 
 	// Stopped.
 	stopped := env.newTask(t, "stops")
-	env.run(t, stopped.Id, "")
+	env.run(t, stopped.Id)
 	second := env.claim(t)
 	_, err = env.stop(t, stopped.Id)
 	require.NoError(t, err)
@@ -182,7 +182,7 @@ func TestAJobsAccountEndsWithTheJob(t *testing.T) {
 
 	// Lost: noticed when the board is read.
 	lost := env.newTask(t, "vanishes")
-	env.run(t, lost.Id, "")
+	env.run(t, lost.Id)
 	third := env.claim(t)
 	_, err = testDB.Exec(context.Background(),
 		`UPDATE factory.jobs SET last_check_in = now() - interval '6 minutes'
@@ -200,7 +200,7 @@ func TestAJobsAccountEndsWithTheJob(t *testing.T) {
 func TestAnAccountThatWasNotRevokedIsSweptOnTheNextRead(t *testing.T) {
 	env, accounts := accountsEnv(t)
 	task := env.newTask(t, "leaks")
-	env.run(t, task.Id, "")
+	env.run(t, task.Id)
 	job := env.claim(t)
 
 	// The job ended without its account being revoked (a failed revoke).
@@ -215,7 +215,7 @@ func TestAnAccountThatWasNotRevokedIsSweptOnTheNextRead(t *testing.T) {
 
 	// And one whose job row is gone altogether.
 	other := env.newTask(t, "orphan")
-	env.run(t, other.Id, "")
+	env.run(t, other.Id)
 	orphan := env.claim(t)
 	_, err = testDB.Exec(context.Background(),
 		`DELETE FROM factory.jobs WHERE id = $1`, orphan.Id)
@@ -255,7 +255,7 @@ var _ services.JobAccounts = brokenAccounts{}
 func TestAJobThatCannotHaveAnAccountIsFailedNotRun(t *testing.T) {
 	env := newJobEnvWith(t, true, "browser", factory.WithJobAccounts(brokenAccounts{}))
 	task := env.newTask(t, "no identity")
-	env.run(t, task.Id, "")
+	env.run(t, task.Id)
 
 	_, err := env.runner.ClaimJob(bearer(env.token), &factoryv1.ClaimJobRequest{})
 	require.Error(t, err)
@@ -272,7 +272,7 @@ func TestAJobAccountSeesAndActsOnItsOwnTaskOnly(t *testing.T) {
 	env, accounts := accountsEnv(t)
 	mine := env.newTask(t, "my task")
 	other := env.newTask(t, "someone else's task")
-	env.run(t, mine.Id, "")
+	env.run(t, mine.Id)
 	claimed := env.claim(t)
 	acc := accounts.of(t, claimed.Id)
 	jobUser := &models.User{
@@ -360,7 +360,7 @@ func TestAJobAccountStaysConfinedAfterItsJobEnds(t *testing.T) {
 	env, accounts := accountsEnv(t)
 	mine := env.newTask(t, "mine")
 	other := env.newTask(t, "not mine")
-	env.run(t, mine.Id, "")
+	env.run(t, mine.Id)
 	claimed := env.claim(t)
 	acc := accounts.of(t, claimed.Id)
 	_, err := env.runner.CompleteJob(bearer(env.token),
@@ -491,7 +491,7 @@ func TestARoutineJobManagesOtherRoutinesAndIsNamedInTheNotice(t *testing.T) {
 
 func TestAJobsAccountIsOwnedByThePersonWhoStartedIt(t *testing.T) {
 	env, accounts := accountsEnv(t)
-	env.run(t, env.newTask(t, "owned").Id, "")
+	env.run(t, env.newTask(t, "owned").Id)
 
 	claimed := env.claim(t)
 	assert.Equal(t, "human:"+adminID, accounts.of(t, claimed.Id).owner)
@@ -500,7 +500,7 @@ func TestAJobsAccountIsOwnedByThePersonWhoStartedIt(t *testing.T) {
 func TestAnAgentsActionsShowTheirOwner(t *testing.T) {
 	env, accounts := accountsEnv(t)
 	task := env.newTask(t, "attributed")
-	env.run(t, task.Id, "")
+	env.run(t, task.Id)
 	claimed := env.claim(t)
 	jobAgent := "agent:" + accounts.of(t, claimed.Id).userID
 	stranger := "agent:" + uuid.NewString()

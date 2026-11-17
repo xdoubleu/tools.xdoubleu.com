@@ -94,10 +94,10 @@ func (e jobEnv) newLabelledTask(t *testing.T, title, label string) *factoryv1.Ta
 	return resp.Task
 }
 
-func (e jobEnv) run(t *testing.T, taskID, text string) *factoryv1.Job {
+func (e jobEnv) run(t *testing.T, taskID string) *factoryv1.Job {
 	t.Helper()
 	resp, err := e.tasks.RunTask(context.Background(),
-		&factoryv1.RunTaskRequest{TaskId: taskID, Text: text})
+		&factoryv1.RunTaskRequest{TaskId: taskID})
 	require.NoError(t, err)
 	return resp.Job
 }
@@ -120,7 +120,7 @@ func TestRunQueuesAJobFreezesThePromptAndStartsTheTask(t *testing.T) {
 	env := browserJobEnv(t)
 	task := env.newTask(t, "Fix the Login Page!")
 
-	job := env.run(t, task.Id, "  Mind the tests.  ")
+	job := env.run(t, task.Id)
 	assert.Equal(t, factoryv1.JobStatus_JOB_STATUS_QUEUED, job.Status)
 	assert.Equal(t, task.Id, job.TaskId)
 	branch := "agent/" + strings.ToLower(strings.ReplaceAll(task.Id, "-", ""))
@@ -132,7 +132,6 @@ func TestRunQueuesAJobFreezesThePromptAndStartsTheTask(t *testing.T) {
 	require.NotNil(t, claimed)
 	assert.Contains(t, claimed.Prompt, "# Task: Fix the Login Page!")
 	assert.Contains(t, claimed.Prompt, "Do the thing.")
-	assert.True(t, strings.HasSuffix(claimed.Prompt, "Mind the tests."))
 	assert.Equal(t, "xdoubleu", claimed.RepoOwner)
 	assert.Equal(t, "tools.xdoubleu.com", claimed.RepoName)
 	assert.Equal(t, job.Branch, claimed.Branch)
@@ -168,7 +167,7 @@ func TestRunAcceptsABodyAnAgentWrote(t *testing.T) {
 	require.NoError(t, err)
 
 	browser := browserJobEnv(t)
-	browser.run(t, created.Task.Id, "")
+	browser.run(t, created.Task.Id)
 	assert.NotNil(t, browser.claim(t), "no manual edit was needed")
 }
 
@@ -195,7 +194,7 @@ func TestRunRefusesATaskHoldingTextThatIsNotRendered(t *testing.T) {
 func TestRunRefusesASecondJobForATask(t *testing.T) {
 	env := browserJobEnv(t)
 	task := env.newTask(t, "once")
-	env.run(t, task.Id, "")
+	env.run(t, task.Id)
 	_, err := env.tasks.RunTask(context.Background(),
 		&factoryv1.RunTaskRequest{TaskId: task.Id})
 	assert.Equal(t, connect.CodeAlreadyExists, code(err))
@@ -203,19 +202,15 @@ func TestRunRefusesASecondJobForATask(t *testing.T) {
 	_, err = env.tasks.RunTask(context.Background(),
 		&factoryv1.RunTaskRequest{TaskId: "nope"})
 	assert.Equal(t, connect.CodeInvalidArgument, code(err))
-	_, err = env.tasks.RunTask(context.Background(), &factoryv1.RunTaskRequest{
-		TaskId: task.Id, Text: strings.Repeat("x", 10001),
-	})
-	assert.Equal(t, connect.CodeInvalidArgument, code(err))
 }
 
 func TestJobsRunOldestFirstAndOneAtATime(t *testing.T) {
 	env := browserJobEnv(t)
 	first := env.newTask(t, "first")
 	second := env.newTask(t, "second")
-	env.run(t, first.Id, "")
+	env.run(t, first.Id)
 	time.Sleep(5 * time.Millisecond)
-	env.run(t, second.Id, "")
+	env.run(t, second.Id)
 
 	one := env.claim(t)
 	require.NotNil(t, one)
@@ -233,7 +228,7 @@ func TestJobsRunOldestFirstAndOneAtATime(t *testing.T) {
 func TestCheckInKeepsTheSessionAndCompleteCommentsTheOutcome(t *testing.T) {
 	env := browserJobEnv(t)
 	task := env.newTask(t, "finishes")
-	env.run(t, task.Id, "")
+	env.run(t, task.Id)
 	claimed := env.claim(t)
 
 	resp, err := env.runner.CheckIn(bearer(env.token),
@@ -269,7 +264,7 @@ func TestCheckInKeepsTheSessionAndCompleteCommentsTheOutcome(t *testing.T) {
 func TestAFailedJobAndAnEmptyOutcome(t *testing.T) {
 	env := browserJobEnv(t)
 	task := env.newTask(t, "fails")
-	env.run(t, task.Id, "")
+	env.run(t, task.Id)
 	claimed := env.claim(t)
 	_, err := env.runner.CompleteJob(bearer(env.token),
 		&factoryv1.CompleteJobRequest{JobId: claimed.Id, Succeeded: false})
@@ -284,7 +279,7 @@ func TestAFailedJobAndAnEmptyOutcome(t *testing.T) {
 func TestAJobThatStopsCheckingInIsLost(t *testing.T) {
 	env := browserJobEnv(t)
 	task := env.newTask(t, "vanishes")
-	env.run(t, task.Id, "")
+	env.run(t, task.Id)
 	claimed := env.claim(t)
 
 	_, err := testDB.Exec(context.Background(),
@@ -315,7 +310,7 @@ func TestAJobThatStopsCheckingInIsLost(t *testing.T) {
 func TestAJobStillCheckingInIsNotLost(t *testing.T) {
 	env := browserJobEnv(t)
 	task := env.newTask(t, "alive")
-	env.run(t, task.Id, "")
+	env.run(t, task.Id)
 	claimed := env.claim(t)
 	_, err := testDB.Exec(context.Background(),
 		`UPDATE factory.jobs SET last_check_in = now() - interval '4 minutes'
@@ -379,7 +374,7 @@ func TestTheRunnerCallsNeedADeviceToken(t *testing.T) {
 func TestTheDatabaseKeepsOneUnfinishedJobPerTask(t *testing.T) {
 	env := browserJobEnv(t)
 	task := env.newTask(t, "raced")
-	env.run(t, task.Id, "")
+	env.run(t, task.Id)
 
 	_, err := testDB.Exec(context.Background(), `
 		INSERT INTO factory.jobs (task_id, repo_id, harness, prompt, branch, created_by)
@@ -407,12 +402,12 @@ func TestGetTaskListsItsJobsNewestFirst(t *testing.T) {
 	task := env.newTask(t, "has jobs")
 	assert.Empty(t, env.task(t, task.Id).Jobs)
 
-	first := env.run(t, task.Id, "")
+	first := env.run(t, task.Id)
 	claimed := env.claim(t)
 	_, err := env.runner.CompleteJob(bearer(env.token),
 		&factoryv1.CompleteJobRequest{JobId: claimed.Id, Succeeded: true, Outcome: "done"})
 	require.NoError(t, err)
-	second := env.run(t, task.Id, "again")
+	second := env.run(t, task.Id)
 
 	jobs := env.task(t, task.Id).Jobs
 	require.Len(t, jobs, 2)
@@ -425,7 +420,7 @@ func TestGetTaskListsItsJobsNewestFirst(t *testing.T) {
 func TestReadingATaskNoticesALostJob(t *testing.T) {
 	env := browserJobEnv(t)
 	task := env.newTask(t, "polled")
-	env.run(t, task.Id, "")
+	env.run(t, task.Id)
 	claimed := env.claim(t)
 	_, err := testDB.Exec(context.Background(),
 		`UPDATE factory.jobs SET last_check_in = now() - interval '6 minutes'
@@ -448,7 +443,7 @@ func (e jobEnv) stop(t *testing.T, taskID string) (*factoryv1.StopJobResponse, e
 func TestStopCancelsAQueuedJobAndParksTheTask(t *testing.T) {
 	env := browserJobEnv(t)
 	task := env.newTask(t, "never started")
-	queued := env.run(t, task.Id, "")
+	queued := env.run(t, task.Id)
 
 	stopped, err := env.stop(t, task.Id)
 	require.NoError(t, err)
@@ -466,7 +461,7 @@ func TestStopCancelsAQueuedJobAndParksTheTask(t *testing.T) {
 func TestStopTellsTheRunnerOnItsNextCheckIn(t *testing.T) {
 	env := browserJobEnv(t)
 	task := env.newTask(t, "running")
-	env.run(t, task.Id, "")
+	env.run(t, task.Id)
 	claimed := env.claim(t)
 
 	_, err := env.stop(t, task.Id)
@@ -482,7 +477,7 @@ func TestStopTellsTheRunnerOnItsNextCheckIn(t *testing.T) {
 	assert.Equal(t, connect.CodeAlreadyExists, code(err), "too late to complete")
 
 	// And the task can be run again.
-	env.run(t, task.Id, "again")
+	env.run(t, task.Id)
 }
 
 func TestStopNeedsAJobAndAHumanAdminInABrowser(t *testing.T) {
@@ -491,7 +486,7 @@ func TestStopNeedsAJobAndAHumanAdminInABrowser(t *testing.T) {
 	_, err := env.stop(t, task.Id)
 	assert.Equal(t, connect.CodeAlreadyExists, code(err))
 
-	env.run(t, task.Id, "")
+	env.run(t, task.Id)
 	for name, other := range map[string]factoryv1connect.TaskServiceClient{
 		"not an admin":  newClientKeepingBoard(t, false, constants.ChannelBrowser),
 		"not a browser": newClientKeepingBoard(t, true, constants.ChannelMCP),
@@ -511,7 +506,7 @@ func TestStopNeedsAJobAndAHumanAdminInABrowser(t *testing.T) {
 func TestStopSkipsFinishedJobs(t *testing.T) {
 	env := browserJobEnv(t)
 	task := env.newTask(t, "done already")
-	env.run(t, task.Id, "")
+	env.run(t, task.Id)
 	claimed := env.claim(t)
 	_, err := env.runner.CompleteJob(bearer(env.token),
 		&factoryv1.CompleteJobRequest{JobId: claimed.Id, Succeeded: true})

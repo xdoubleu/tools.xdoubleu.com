@@ -158,7 +158,6 @@ POST /factory.v1.TaskService/ListJobEvents: 401, 403
 POST /factory.v1.TaskService/ListRoutines: 401, 403
 POST /factory.v1.TaskService/ListTasks: 401, 403
 POST /factory.v1.TaskService/MoveTask: 401, 403
-POST /factory.v1.TaskService/ReplyTask: 401, 403
 POST /factory.v1.TaskService/RunRoutine: 401, 403
 POST /factory.v1.TaskService/RunTask: 401, 403
 POST /factory.v1.TaskService/SaveRoutine: 401, 403

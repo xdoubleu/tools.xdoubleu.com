@@ -28,7 +28,7 @@ func pullURL(number int) string {
 func inReview(t *testing.T, env jobEnv, title string, number int) *factoryv1.Task {
 	t.Helper()
 	task := env.newTask(t, title)
-	env.run(t, task.Id, "")
+	env.run(t, task.Id)
 	job := env.claim(t)
 	complete(t, env, job.Id, true, pullURL(number))
 	require.Equal(t, factoryv1.TaskStatus_TASK_STATUS_IN_REVIEW,
@@ -172,7 +172,7 @@ func TestAnOlderJobsPullRequestDoesNotMoveATaskALaterJobIsOn(t *testing.T) {
 	env, gh := githubEnv(t)
 	task := inReview(t, env, "again", 42)
 	// A second run on the same task, then put back in review by hand.
-	env.run(t, task.Id, "once more")
+	env.run(t, task.Id)
 	_, err := env.tasks.MoveTask(context.Background(), &factoryv1.MoveTaskRequest{
 		Id: task.Id, Status: factoryv1.TaskStatus_TASK_STATUS_IN_REVIEW,
 	})
@@ -216,7 +216,7 @@ func TestOnePullRequestFailingDoesNotStopTheOthers(t *testing.T) {
 func TestWithoutAGitHubAppNothingIsPolled(t *testing.T) {
 	env := browserJobEnv(t)
 	task := env.newTask(t, "no app")
-	env.run(t, task.Id, "")
+	env.run(t, task.Id)
 	complete(t, env, env.claim(t).Id, true, pullURL(42))
 
 	require.NoError(t, env.poll(t))
@@ -265,7 +265,7 @@ func TestATasksPullRequestStatusIsOnTheBoardAndTheTask(t *testing.T) {
 	assert.Equal(t, with.PrCi, env.task(t, task.Id).Task.PrCi, "GetTask says the same")
 
 	// A newer job that opened no pull request doesn't hide the older one's.
-	env.run(t, task.Id, "")
+	env.run(t, task.Id)
 	assert.Equal(t, pullURL(7), env.task(t, task.Id).Task.PrUrl)
 }
 
@@ -522,7 +522,7 @@ func TestAMergedPullRequestSendsSelfCheckedWorkStraightToDone(t *testing.T) {
 		t.Run("poll "+label, func(t *testing.T) {
 			env, gh := githubEnv(t)
 			task := env.newLabelledTask(t, "polled", label)
-			env.run(t, task.Id, "")
+			env.run(t, task.Id)
 			complete(t, env, env.claim(t).Id, true, pullURL(42))
 			gh.answer(42, ended(githubapp.StateMerged), nil)
 
@@ -550,7 +550,7 @@ func TestAMergedPullRequestSendsSelfCheckedWorkStraightToDone(t *testing.T) {
 func TestAMergedPullRequestOfAnOtherLabelledTaskStillGoesToTesting(t *testing.T) {
 	env, gh := githubEnv(t)
 	task := env.newLabelledTask(t, "feature", "feature")
-	env.run(t, task.Id, "")
+	env.run(t, task.Id)
 	complete(t, env, env.claim(t).Id, true, pullURL(42))
 	gh.answer(42, ended(githubapp.StateMerged), nil)
 

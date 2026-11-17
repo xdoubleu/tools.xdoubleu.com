@@ -53,7 +53,7 @@ func (e jobEnv) lose(t *testing.T, jobID string) {
 func (e jobEnv) lostTask(t *testing.T, state string) string {
 	t.Helper()
 	task := e.newTask(t, "lost "+uuid.NewString())
-	e.run(t, task.Id, "")
+	e.run(t, task.Id)
 	claimed := e.claim(t)
 	if state != "" {
 		linkPR(t, task.Id, state)
@@ -128,7 +128,7 @@ func TestATaskIsNeverParkedWaitingOnItself(t *testing.T) {
 			Labels: []string{"factory-sandbox", "bug"},
 		})
 	require.NoError(t, err)
-	env.run(t, created.Task.Id, "")
+	env.run(t, created.Task.Id)
 	claimed := env.claim(t)
 	_, err = env.runner.CompleteJob(bearer(env.token), &factoryv1.CompleteJobRequest{
 		JobId: claimed.Id, SessionId: "s", Blocked: problem,
@@ -146,7 +146,7 @@ func TestAGapNoImageChangeFixesIsABugTaskNotAParkedTask(t *testing.T) {
 	blocked := gap + ": no Containerfile fix applies"
 	for range 2 {
 		task := env.newTask(t, "work "+uuid.NewString())
-		env.run(t, task.Id, "")
+		env.run(t, task.Id)
 		claimed := env.claim(t)
 		_, err := env.runner.CompleteJob(bearer(env.token), &factoryv1.CompleteJobRequest{
 			JobId: claimed.Id, SessionId: "s", Blocked: blocked,
@@ -217,7 +217,7 @@ func TestTheReconcilerMovesInProgressTasksWithoutAJob(t *testing.T) {
 	require.NoError(t, err)
 
 	running := env.newTask(t, "running "+uuid.NewString())
-	env.run(t, running.Id, "")
+	env.run(t, running.Id)
 	require.NotNil(t, env.claim(t))
 	setStatus(t, running.Id, "in_progress")
 
@@ -254,7 +254,7 @@ func TestTheReconcilerMovesNeedsYouTasksWhosePullRequestMerged(t *testing.T) {
 func (e jobEnv) lostWithPull(t *testing.T) string {
 	t.Helper()
 	task := e.newTask(t, "polled late "+uuid.NewString())
-	e.run(t, task.Id, "")
+	e.run(t, task.Id)
 	claimed := e.claim(t)
 	_, err := testDB.Exec(context.Background(), `
 		UPDATE factory.jobs SET pr_url = $2, pr_state = 'open' WHERE id = $1`,

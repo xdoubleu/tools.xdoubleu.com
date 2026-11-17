@@ -66,7 +66,7 @@ func claudeLimitedUntil(t *testing.T, env jobEnv) string {
 func TestALimitedJobRequeuesItsTaskAndShowsWhenTheLimitLifts(t *testing.T) {
 	env := limitedBoard(t)
 	task := env.newTask(t, "hits the limit")
-	env.run(t, task.Id, "")
+	env.run(t, task.Id)
 	job := env.claim(t)
 	resets := time.Now().Add(3 * time.Hour).UTC().Truncate(time.Second)
 
@@ -93,7 +93,7 @@ func TestALimitedJobRequeuesItsTaskAndShowsWhenTheLimitLifts(t *testing.T) {
 func TestALimitedJobNeverCountsAsSucceededWhateverTheRunnerSays(t *testing.T) {
 	env := limitedBoard(t)
 	task := env.newTask(t, "claims success")
-	env.run(t, task.Id, "")
+	env.run(t, task.Id)
 	job := env.claim(t)
 
 	completeLimited(t, env, job.Id, "", true)
@@ -121,7 +121,7 @@ func TestAResetTimeThatCannotBeRightIsDropped(t *testing.T) {
 	} {
 		env := limitedBoard(t)
 		task := env.newTask(t, "odd reset "+name)
-		env.run(t, task.Id, "")
+		env.run(t, task.Id)
 		job := env.claim(t)
 
 		completeLimited(t, env, job.Id, at, false)
@@ -140,7 +140,7 @@ func TestOnlyTheLatestLimitStillInForceIsShown(t *testing.T) {
 	var jobs []*factoryv1.ClaimedJob
 	for _, at := range []time.Time{later, soon} {
 		task := env.newTask(t, "limited "+at.Format(time.RFC3339))
-		env.run(t, task.Id, "")
+		env.run(t, task.Id)
 		jobs = append(jobs, env.claimUpTo(t, 2))
 	}
 	for i, at := range []time.Time{later, soon} {
@@ -153,7 +153,7 @@ func TestOnlyTheLatestLimitStillInForceIsShown(t *testing.T) {
 func TestAPlainFailureLeavesTheBoardUnlimited(t *testing.T) {
 	env := limitedBoard(t)
 	task := env.newTask(t, "just fails")
-	env.run(t, task.Id, "")
+	env.run(t, task.Id)
 	_, err := env.runner.CompleteJob(bearer(env.token),
 		&factoryv1.CompleteJobRequest{JobId: env.claim(t).Id, Succeeded: false})
 	require.NoError(t, err)
@@ -168,7 +168,7 @@ func TestSlackSaysClaudesLimitStoppedAJobAndUntilWhen(t *testing.T) {
 	t.Cleanup(func() { clearLimits(t) })
 	env, slack := slackEnv(t)
 	task := env.newTask(t, "limit in slack")
-	env.run(t, task.Id, "")
+	env.run(t, task.Id)
 	job := env.claim(t)
 	resets := time.Now().Add(2 * time.Hour).UTC().Truncate(time.Minute)
 
@@ -186,7 +186,7 @@ func TestSlackSaysClaudesLimitStoppedAJobAndUntilWhen(t *testing.T) {
 func TestAClaudeLimitInForceHoldsBackAutoPickupOfAClaudeTask(t *testing.T) {
 	env := limitedBoard(t)
 	first := env.newTask(t, "hits the limit")
-	env.run(t, first.Id, "")
+	env.run(t, first.Id)
 	completeLimited(t, env, env.claim(t).Id,
 		time.Now().Add(2*time.Hour).UTC().Format(time.RFC3339), false)
 
@@ -222,7 +222,7 @@ func liftLimit(t *testing.T, taskID string) {
 func TestALimitedTaskContinuesOnItsSessionOnlyOnceTheLimitHasLifted(t *testing.T) {
 	env := limitedBoard(t)
 	task := env.newTask(t, "continues after the limit")
-	env.run(t, task.Id, "")
+	env.run(t, task.Id)
 	job := env.claim(t)
 	_, err := env.runner.CompleteJob(bearer(env.token), &factoryv1.CompleteJobRequest{
 		JobId: job.Id, Limited: true, SessionId: "sess-1",
@@ -245,7 +245,7 @@ func TestALimitedTaskContinuesOnItsSessionOnlyOnceTheLimitHasLifted(t *testing.T
 func TestALimitedJobWithoutASessionRestartsFromItsPrompt(t *testing.T) {
 	env := limitedBoard(t)
 	task := env.newTask(t, "limited before a session")
-	env.run(t, task.Id, "")
+	env.run(t, task.Id)
 	job := env.claim(t)
 	completeLimited(t, env, job.Id, time.Now().Add(time.Hour).UTC().Format(time.RFC3339),
 		false)
@@ -261,7 +261,7 @@ func TestALimitedJobWithoutASessionRestartsFromItsPrompt(t *testing.T) {
 func TestATaskLimitedTooManyTimesInARowGoesToNeedsYou(t *testing.T) {
 	env := limitedBoard(t)
 	task := env.newTask(t, "never gets through")
-	env.run(t, task.Id, "")
+	env.run(t, task.Id)
 	for range 10 {
 		job := env.claim(t)
 		require.NotNil(t, job)

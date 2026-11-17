@@ -24,7 +24,6 @@ const (
 	// LostAfter is how long a running job may stay silent before it is lost.
 	LostAfter = 5 * time.Minute
 
-	maxRunText = 10000
 	maxSlugLen = 30
 	// systemAuthor signs the comments the factory writes itself.
 	systemAuthor = "system:factory"
@@ -99,16 +98,13 @@ func branchFor(task *models.Task) string {
 }
 
 // promptFor freezes what the agent is told: the repo's instructions, the task as
-// it stands, and the Run text. The runner adds its own preamble.
-func promptFor(repo *models.Repo, task *models.Task, text string) string {
+// it stands. The runner adds its own preamble.
+func promptFor(repo *models.Repo, task *models.Task) string {
 	var b strings.Builder
 	if in := strings.TrimSpace(repo.AgentInstructions); in != "" {
 		b.WriteString(in + "\n\n")
 	}
 	b.WriteString("# Task: " + task.Title + "\n\n" + strings.TrimSpace(task.Body))
-	if text != "" {
-		b.WriteString("\n\n# Instructions for this run\n\n" + text)
-	}
 	return b.String()
 }
 
@@ -120,16 +116,10 @@ func (s *JobService) Run(
 	ctx context.Context,
 	actor models.Actor,
 	taskID uuid.UUID,
-	text string,
 ) (*models.Job, error) {
 	if !actor.CanMoveToReady() {
 		return nil, forbidden("only a human admin in a browser session can run a task")
 	}
-	text = strings.TrimSpace(text)
-	if utf8.RuneCountInString(text) > maxRunText {
-		return nil, badRequest("run text is too long")
-	}
-
 	task, err := s.tasks.Get(ctx, taskID)
 	if err != nil {
 		return nil, err
@@ -155,71 +145,10 @@ func (s *JobService) Run(
 	job, err := s.jobs.Create(ctx, models.Job{
 		ID: uuid.Nil, TaskID: taskID, TaskNumber: 0, Routine: "", RepoID: repo.ID,
 		Harness: "", Model: "",
-		Prompt: promptFor(repo, task, text), Status: "", Branch: branchFor(task),
+		Prompt: promptFor(repo, task), Status: "", Branch: branchFor(task),
 		SessionID: "", Outcome: "", ParentJobID: nil, PRURL: "", RunnerID: nil,
 		PRState: "", PRCI: "", PRReview: "", CreatedBy: actor.String(),
 		CreatedAt: time.Time{}, Limited: false, LimitResetsAt: nil,
-		StartedAt: nil, LastCheckIn: nil, FinishedAt: nil,
-	})
-	if err != nil {
-		return nil, err
-	}
-	if _, err = s.tasks.Move(ctx, taskID, models.StatusInProgress); err != nil {
-		return nil, err
-	}
-	return job, nil
-}
-
-// Reply queues a job that resumes the harness session of the task's newest job,
-// on the same branch, with the reply as its prompt: "CI is red, fix it", or an
-// answer to the agent's question. Only a human admin in a browser may reply, as
-// for Run. The reply is typed there, so it needs no check of the task's body.
-func (s *JobService) Reply(
-	ctx context.Context,
-	actor models.Actor,
-	taskID uuid.UUID,
-	text string,
-) (*models.Job, error) {
-	if !actor.CanMoveToReady() {
-		return nil, forbidden("only a human admin in a browser session can reply")
-	}
-	text = strings.TrimSpace(text)
-	if text == "" {
-		return nil, badRequest("a reply needs text")
-	}
-	if utf8.RuneCountInString(text) > maxRunText {
-		return nil, badRequest("reply is too long")
-	}
-	task, err := s.tasks.Get(ctx, taskID)
-	if err != nil {
-		return nil, err
-	}
-	if task.Status == models.StatusDone {
-		return nil, conflict("this task is done; its session is gone")
-	}
-	existing, err := s.jobs.ByTask(ctx, taskID)
-	if err != nil {
-		return nil, err
-	}
-	if len(existing) == 0 {
-		return nil, conflict("this task has no job to reply to")
-	}
-	for i := range existing {
-		if !existing[i].Status.Finished() {
-			return nil, conflict("this task already has a job queued or running")
-		}
-	}
-	last := existing[0]
-	if last.SessionID == "" {
-		return nil, conflict("the last job left no session to resume")
-	}
-	job, err := s.jobs.Create(ctx, models.Job{
-		ID: uuid.Nil, TaskID: taskID, TaskNumber: 0, Routine: "", RepoID: last.RepoID,
-		Harness: "", Model: "",
-		Prompt: text, Status: "", Branch: last.Branch, SessionID: "", Outcome: "",
-		ParentJobID: &last.ID, PRURL: "", RunnerID: nil, PRState: "", PRCI: "",
-		PRReview: "", CreatedBy: actor.String(), CreatedAt: time.Time{},
-		Limited: false, LimitResetsAt: nil,
 		StartedAt: nil, LastCheckIn: nil, FinishedAt: nil,
 	})
 	if err != nil {
@@ -647,7 +576,7 @@ func (s *JobService) pickUp(ctx context.Context) error {
 	}
 	_, err = s.jobs.Create(ctx, models.Job{
 		ID: uuid.Nil, TaskID: next.TaskID, TaskNumber: 0, Routine: "", RepoID: repo.ID,
-		Harness: "", Model: "", Prompt: promptFor(repo, approved, ""), Status: "",
+		Harness: "", Model: "", Prompt: promptFor(repo, approved), Status: "",
 		Branch: branchFor(approved), SessionID: "", Outcome: "", ParentJobID: nil,
 		PRURL: "", RunnerID: nil, PRState: "", PRCI: "", PRReview: "",
 		CreatedBy: autoPickupAuthor, CreatedAt: time.Time{}, StartedAt: nil,

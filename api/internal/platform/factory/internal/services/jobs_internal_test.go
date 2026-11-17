@@ -58,15 +58,15 @@ func TestBranchForIsAgentNumberSlug(t *testing.T) {
 	assert.Equal(t, "agent/t142-fix-it", branchFor(task))
 }
 
-func TestPromptForJoinsInstructionsTaskAndRunText(t *testing.T) {
+func TestPromptForJoinsInstructionsAndTask(t *testing.T) {
 	repo := testRepo("  Be careful.  ")
 	task := testTask(uuid.Nil, "T", "  body text  ")
 
 	assert.Equal(t,
-		"Be careful.\n\n# Task: T\n\nbody text\n\n# Instructions for this run\n\ngo",
-		promptFor(repo, task, "go"))
+		"Be careful.\n\n# Task: T\n\nbody text",
+		promptFor(repo, task))
 	assert.Equal(t, "# Task: T\n\nbody text",
-		promptFor(testRepo(""), task, ""), "no instructions, no run text")
+		promptFor(testRepo(""), task), "no instructions")
 }
 
 func TestJobStatusFinished(t *testing.T) {

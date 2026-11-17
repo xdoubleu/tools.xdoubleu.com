@@ -43,8 +43,6 @@ const (
 	TaskServiceAddCommentProcedure = "/factory.v1.TaskService/AddComment"
 	// TaskServiceRunTaskProcedure is the procedure name of the TaskService's RunTask RPC.
 	TaskServiceRunTaskProcedure = "/factory.v1.TaskService/RunTask"
-	// TaskServiceReplyTaskProcedure is the procedure name of the TaskService's ReplyTask RPC.
-	TaskServiceReplyTaskProcedure = "/factory.v1.TaskService/ReplyTask"
 	// TaskServiceStopJobProcedure is the procedure name of the TaskService's StopJob RPC.
 	TaskServiceStopJobProcedure = "/factory.v1.TaskService/StopJob"
 	// TaskServiceListJobEventsProcedure is the procedure name of the TaskService's ListJobEvents RPC.
@@ -124,13 +122,6 @@ var (
 			Procedure:  TaskServiceRunTaskProcedure,
 		}
 	})
-	taskServiceReplyTaskSpec = sync.OnceValue(func() connect.Spec {
-		return connect.Spec{
-			StreamType: connect.StreamTypeUnary,
-			Schema:     v1.File_factory_v1_factory_proto.Services().ByName("TaskService").Methods().ByName("ReplyTask"),
-			Procedure:  TaskServiceReplyTaskProcedure,
-		}
-	})
 	taskServiceStopJobSpec = sync.OnceValue(func() connect.Spec {
 		return connect.Spec{
 			StreamType: connect.StreamTypeUnary,
@@ -192,7 +183,6 @@ type TaskServiceClient interface {
 	MoveTask(context.Context, *v1.MoveTaskRequest) (*v1.MoveTaskResponse, error)
 	AddComment(context.Context, *v1.AddCommentRequest) (*v1.AddCommentResponse, error)
 	RunTask(context.Context, *v1.RunTaskRequest) (*v1.RunTaskResponse, error)
-	ReplyTask(context.Context, *v1.ReplyTaskRequest) (*v1.ReplyTaskResponse, error)
 	StopJob(context.Context, *v1.StopJobRequest) (*v1.StopJobResponse, error)
 	ListJobEvents(context.Context, *v1.ListJobEventsRequest) (*v1.ListJobEventsResponse, error)
 	ListRoutines(context.Context, *v1.ListRoutinesRequest) (*v1.ListRoutinesResponse, error)
@@ -218,7 +208,6 @@ type TaskServiceHandler interface {
 	MoveTask(context.Context, *v1.MoveTaskRequest) (*v1.MoveTaskResponse, error)
 	AddComment(context.Context, *v1.AddCommentRequest) (*v1.AddCommentResponse, error)
 	RunTask(context.Context, *v1.RunTaskRequest) (*v1.RunTaskResponse, error)
-	ReplyTask(context.Context, *v1.ReplyTaskRequest) (*v1.ReplyTaskResponse, error)
 	StopJob(context.Context, *v1.StopJobRequest) (*v1.StopJobResponse, error)
 	ListJobEvents(context.Context, *v1.ListJobEventsRequest) (*v1.ListJobEventsResponse, error)
 	ListRoutines(context.Context, *v1.ListRoutinesRequest) (*v1.ListRoutinesResponse, error)
@@ -240,7 +229,6 @@ func RegisterTaskServiceHandler(server *connect.Server, svc TaskServiceHandler) 
 		connect.Method{Spec: taskServiceMoveTaskSpec(), Handler: adapter.moveTask},
 		connect.Method{Spec: taskServiceAddCommentSpec(), Handler: adapter.addComment},
 		connect.Method{Spec: taskServiceRunTaskSpec(), Handler: adapter.runTask},
-		connect.Method{Spec: taskServiceReplyTaskSpec(), Handler: adapter.replyTask},
 		connect.Method{Spec: taskServiceStopJobSpec(), Handler: adapter.stopJob},
 		connect.Method{Spec: taskServiceListJobEventsSpec(), Handler: adapter.listJobEvents},
 		connect.Method{Spec: taskServiceListRoutinesSpec(), Handler: adapter.listRoutines},
@@ -284,10 +272,6 @@ func (UnimplementedTaskServiceHandler) AddComment(context.Context, *v1.AddCommen
 
 func (UnimplementedTaskServiceHandler) RunTask(context.Context, *v1.RunTaskRequest) (*v1.RunTaskResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "factory.v1.TaskService.RunTask is not implemented")
-}
-
-func (UnimplementedTaskServiceHandler) ReplyTask(context.Context, *v1.ReplyTaskRequest) (*v1.ReplyTaskResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, "factory.v1.TaskService.ReplyTask is not implemented")
 }
 
 func (UnimplementedTaskServiceHandler) StopJob(context.Context, *v1.StopJobRequest) (*v1.StopJobResponse, error) {
@@ -381,14 +365,6 @@ func (c *taskServiceClient) AddComment(ctx context.Context, req *v1.AddCommentRe
 func (c *taskServiceClient) RunTask(ctx context.Context, req *v1.RunTaskRequest) (*v1.RunTaskResponse, error) {
 	var res v1.RunTaskResponse
 	if err := c.client.CallUnary(ctx, taskServiceRunTaskSpec(), req, &res); err != nil {
-		return nil, err
-	}
-	return &res, nil
-}
-
-func (c *taskServiceClient) ReplyTask(ctx context.Context, req *v1.ReplyTaskRequest) (*v1.ReplyTaskResponse, error) {
-	var res v1.ReplyTaskResponse
-	if err := c.client.CallUnary(ctx, taskServiceReplyTaskSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -542,18 +518,6 @@ func (h taskServiceHandler) runTask(ctx context.Context, _ connect.Spec, stream 
 		return err
 	}
 	res, err := h.svc.RunTask(ctx, &req)
-	if err != nil {
-		return err
-	}
-	return stream.Send(res)
-}
-
-func (h taskServiceHandler) replyTask(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
-	var req v1.ReplyTaskRequest
-	if err := stream.Receive(&req); err != nil {
-		return err
-	}
-	res, err := h.svc.ReplyTask(ctx, &req)
 	if err != nil {
 		return err
 	}

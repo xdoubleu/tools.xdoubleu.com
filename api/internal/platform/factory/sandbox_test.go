@@ -36,7 +36,7 @@ func TestABlockedJobFilesASandboxTaskAndARepeatCommentsOnIt(t *testing.T) {
 	title := "Sandbox: " + problem
 	for range 2 {
 		task := env.newTask(t, "some work")
-		env.run(t, task.Id, "")
+		env.run(t, task.Id)
 		claimed := env.claim(t)
 		_, err := env.runner.CompleteJob(bearer(env.token), &factoryv1.CompleteJobRequest{
 			JobId: claimed.Id, Blocked: problem + "\nsecond line",
@@ -53,7 +53,7 @@ func TestABlockedJobFilesASandboxTaskAndARepeatCommentsOnIt(t *testing.T) {
 
 	// A job that is not blocked files nothing.
 	task := env.newTask(t, "more work")
-	env.run(t, task.Id, "")
+	env.run(t, task.Id)
 	claimed := env.claim(t)
 	_, err := env.runner.CompleteJob(bearer(env.token),
 		&factoryv1.CompleteJobRequest{JobId: claimed.Id})
@@ -66,7 +66,7 @@ func TestAJobAccountReportsToTheSandboxBoardOnly(t *testing.T) {
 	title := "Sandbox: no network " + uuid.NewString()
 	mine := env.newTask(t, "my task")
 	other := env.newTask(t, "unrelated task")
-	env.run(t, mine.Id, "")
+	env.run(t, mine.Id)
 	claimed := env.claim(t)
 	acc := accounts.of(t, claimed.Id)
 	session := mcpSessionOn(t, env.app, &models.User{
