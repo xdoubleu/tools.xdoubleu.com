@@ -14,7 +14,7 @@ make lint/migrations               # duplicate version, or a new migration that 
 make lint/kamal-secrets            # deploy-secret lists agree; deploy.grafana.yml env names must be GF_-prefixed (Grafana ignores others)
 make lint/cross-schema             # SQL schema direction, adr-0038
 make lint/proto-local-versions     # proto/generate/local plugin versions match buf.gen.yaml's `remote:` pins
-make db/migrate                    # migrate an empty DB (else 42P01)
+make db/migrate                    # apply migrations (make test* run it first)
 make db/reset                      # recreate the Postgres volume — shared by every worktree, see Testing
 ```
 
