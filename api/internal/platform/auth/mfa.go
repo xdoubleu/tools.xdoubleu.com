@@ -362,7 +362,7 @@ func (service *LocalService) GenerateRecoveryCodes(
 			return nil, genErr
 		}
 		hash, hashErr := bcrypt.GenerateFromPassword(
-			[]byte(code), bcrypt.DefaultCost,
+			[]byte(code), bcryptCost,
 		)
 		if hashErr != nil {
 			return nil, hashErr

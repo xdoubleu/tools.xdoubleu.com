@@ -12,6 +12,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/crypto/bcrypt"
 
 	"tools.xdoubleu.com/internal/config"
 	"tools.xdoubleu.com/internal/kit/crypto"
@@ -487,4 +488,22 @@ func TestDeactivateUser_UnknownUser(t *testing.T) {
 	service, _ := newTestService(t)
 	err := service.DeactivateUser(context.Background(), uuid.NewString())
 	require.ErrorIs(t, err, auth.ErrUserNotFound)
+}
+
+func TestSignInWithEmail_UpgradesOldCostHash(t *testing.T) {
+	service, db := newTestService(t)
+	ctx := context.Background()
+	userID := seedUser(t, db) // seeded at bcrypt.DefaultCost (10)
+
+	_, _, err := service.SignInWithEmail(ctx, userID+"@example.com", testPassword)
+	require.NoError(t, err)
+
+	var hash string
+	require.NoError(t, db.QueryRow(
+		ctx, `SELECT password_hash FROM auth.users WHERE id = $1`, userID,
+	).Scan(&hash))
+	cost, err := bcrypt.Cost([]byte(hash))
+	require.NoError(t, err)
+	assert.Equal(t, 12, cost)
+	require.NoError(t, bcrypt.CompareHashAndPassword([]byte(hash), []byte(testPassword)))
 }
