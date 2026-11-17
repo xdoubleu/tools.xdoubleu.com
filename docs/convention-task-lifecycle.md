@@ -33,7 +33,7 @@ boundary.
 
 ## Finishing
 
-1. **Lint** what changed (`AGENTS.md`'s Commands), plus `make lint/docs`.
+1. **Lint** what changed (`AGENTS.md`'s Commands), plus `make lint/docs`. Lint and test every Go module the diff touches (`api/`, `kobo-gateway/`, `factory-runner/`), not just `api/`: CI lints each one.
 2. **≥80% coverage on changed code** — the diff-scoped targets
    (`make test/cov/diff`, `npm run test:cov:diff`) approximate CI's gate.
 3. **`npm run build`** for any web change (only it builds the production
