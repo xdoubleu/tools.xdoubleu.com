@@ -4,13 +4,13 @@ UNAME_S := $(shell uname -s)
 # ?= lets a sandbox redirect it out of a read-only checkout.
 export GOLANGCI_LINT_CACHE ?= $(CURDIR)/.golangci-cache
 
-# Recreate the local Postgres volume; use when a failure looks like test-order
-# pollution rather than a real regression.
-# Apply every migration to an empty database (cmd/api's TestMain does it);
-# other packages' tests fail with 42P01 until this has run.
+# Apply every migration (cmd/api's TestMain does it; idempotent). Test targets
+# depend on it: other packages fail with 42P01 on an unmigrated database.
 db/migrate:
 	TZ=UTC go test -count=1 ./cmd/api -run TestApplyMigrations_LockTimeout
 
+# Recreate the local Postgres volume; use when a failure looks like test-order
+# pollution rather than a real regression.
 db/reset:
 	docker-compose down -v
 	docker-compose up -d
@@ -173,18 +173,18 @@ debug:
 
 # TZ=UTC: tests assert UTC timestamps (movies watch dates) while pgx scans
 # TIMESTAMPTZ into time.Local; CI hosts are UTC, so pin it locally too.
-test:
+test: db/migrate
 	TZ=UTC go test -count=1 -p 1 ./...
 
-test/v:
+test/v: db/migrate
 	TZ=UTC go test -p 1 ./... -v
 
 # Every read of an app on production-shaped data (one PR on several tasks, ...):
 # fails on any error. The seed lives in internal/platform/factory/messyseed.
-test/reads:
+test/reads: db/migrate
 	TZ=UTC go test -p 1 -count=1 -run TestMessyReads ./...
 
-test/race:
+test/race: db/migrate
 	TZ=UTC go test -p 1 ./... -race -v
 
 # Converts PDFs in testdata/pdf.local/ (gitignored) to EPUB for manual review.
@@ -233,7 +233,7 @@ test/mutation: tools/mutation
 COVERAGE ?= coverage.out
 
 # -count=1: a cached package result would leave stale blocks in the profile.
-test/cov/report:
+test/cov/report: db/migrate
 	TZ=UTC go test -p 1 -count=1 ./... -coverpkg=./cmd/api,./internal/...,./apps/... -covermode=set -coverprofile=$(COVERAGE).tmp
 	$(MAKE) test/cov/merge
 
@@ -253,6 +253,7 @@ test/cov: test/cov/report
 # existing profile without re-running the suite.
 test/cov/diff:
 ifndef COV_REUSE
+	@$(MAKE) --no-print-directory db/migrate > /dev/null
 	@TZ=UTC go test -p 1 -count=1 ./... -coverpkg=./cmd/api,./internal/...,./apps/... -covermode=set -coverprofile=$(COVERAGE).tmp > $(COVERAGE).log 2>&1 \
 		|| { grep -v -e '^ok ' -e 'no test files' -e '^coverage:' $(COVERAGE).log; echo "tests failed (full log: $(COVERAGE).log)"; exit 1; }
 	@$(MAKE) --no-print-directory test/cov/merge > /dev/null
