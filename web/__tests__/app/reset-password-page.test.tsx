@@ -77,6 +77,24 @@ describe('ResetPasswordPage', () => {
     expect(mockResetPassword).not.toHaveBeenCalled()
   })
 
+  it('rejects a password over 72 bytes', async () => {
+    mockGet.mockReturnValue('reset-token')
+    const mockResetPassword = vi.fn()
+    mockUseResetPassword.mockReturnValue(mockResetPassword)
+
+    render(<ResetPasswordPage />)
+
+    const long = 'a'.repeat(73)
+    fireEvent.change(screen.getByLabelText('New password'), { target: { value: long } })
+    fireEvent.change(screen.getByLabelText('Confirm new password'), { target: { value: long } })
+    fireEvent.click(screen.getByRole('button', { name: /Update password/ }))
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent('Password must be at most 72 bytes.')
+    })
+    expect(mockResetPassword).not.toHaveBeenCalled()
+  })
+
   it('resets the password and shows the done state on success', async () => {
     mockGet.mockReturnValue('reset-token')
     const mockResetPassword = vi.fn().mockResolvedValue({})

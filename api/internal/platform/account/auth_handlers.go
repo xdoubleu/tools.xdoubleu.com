@@ -2,7 +2,6 @@ package account
 
 import (
 	"context"
-	"errors"
 	"regexp"
 	"slices"
 
@@ -114,7 +113,7 @@ func (h *authConnectHandler) ResetPassword(
 		ctx, req.Token, req.NewPassword,
 	); err != nil {
 		code := connect.CodeUnauthenticated
-		if errors.Is(err, auth.ErrPasswordTooShort) {
+		if auth.IsPasswordPolicyError(err) {
 			code = connect.CodeInvalidArgument
 		}
 		return nil, connect.NewError(code, err.Error()).WithCause(err)

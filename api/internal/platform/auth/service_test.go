@@ -490,6 +490,22 @@ func TestDeactivateUser_UnknownUser(t *testing.T) {
 	require.ErrorIs(t, err, auth.ErrUserNotFound)
 }
 
+func TestUpdatePassword_TooLong(t *testing.T) {
+	service, _ := newTestService(t)
+	err := service.UpdatePassword(
+		context.Background(), "unused", testPassword, strings.Repeat("a", 73),
+	)
+	assert.ErrorIs(t, err, auth.ErrPasswordTooLong)
+}
+
+func TestResetPasswordWithToken_TooLong(t *testing.T) {
+	service, _ := newTestService(t)
+	err := service.ResetPasswordWithToken(
+		context.Background(), "unused", strings.Repeat("a", 73),
+	)
+	assert.ErrorIs(t, err, auth.ErrPasswordTooLong)
+}
+
 func TestSignInWithEmail_UpgradesOldCostHash(t *testing.T) {
 	service, db := newTestService(t)
 	ctx := context.Background()

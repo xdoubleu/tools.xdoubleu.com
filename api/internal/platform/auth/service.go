@@ -75,6 +75,8 @@ type LocalService struct {
 	SignInRenderer SignInRenderFunc
 	// OAuth2TokenResolver may be nil: then only local session JWTs resolve.
 	OAuth2TokenResolver OAuth2TokenResolver
+	// PwnedRangeURL is the breached-password range API; empty disables the check.
+	PwnedRangeURL string
 }
 
 var _ Service = (*LocalService)(nil)
@@ -107,7 +109,17 @@ func NewService(
 		resolveGroup:        singleflight.Group{},
 		SignInRenderer:      nil,
 		OAuth2TokenResolver: nil,
+		PwnedRangeURL:       pwnedURLFor(cfg.Env),
 	}
+}
+
+// pwnedURLFor leaves the breached-password check off in tests, which must not
+// call out.
+func pwnedURLFor(env string) string {
+	if env == config.TestEnv {
+		return ""
+	}
+	return defaultRangeEndpoint
 }
 
 // failureStoreFor persists lockouts in the users store when it can, so they
@@ -569,8 +581,11 @@ func (service *LocalService) UpdatePassword(
 	ctx context.Context,
 	accessToken, currentPassword, newPassword string,
 ) error {
-	if len(newPassword) < minPasswordLength {
-		return ErrPasswordTooShort
+	if err := checkPasswordLength(newPassword); err != nil {
+		return err
+	}
+	if err := service.checkPasswordBreached(ctx, newPassword); err != nil {
+		return err
 	}
 
 	c, _, err := service.parseSessionToken(ctx, accessToken)
@@ -641,8 +656,11 @@ func (service *LocalService) ResetPasswordWithToken(
 	ctx context.Context,
 	resetToken, newPassword string,
 ) error {
-	if len(newPassword) < minPasswordLength {
-		return ErrPasswordTooShort
+	if err := checkPasswordLength(newPassword); err != nil {
+		return err
+	}
+	if err := service.checkPasswordBreached(ctx, newPassword); err != nil {
+		return err
 	}
 
 	row, err := service.usersStore.GetPasswordResetTokenByHash(

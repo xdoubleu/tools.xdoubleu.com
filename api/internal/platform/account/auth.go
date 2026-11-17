@@ -49,7 +49,7 @@ func AuthErrorCode(err error) connect.Code {
 		return connect.CodeUnauthenticated
 	case errors.Is(err, auth.ErrWrongCredential):
 		return connect.CodePermissionDenied
-	case errors.Is(err, auth.ErrPasswordTooShort):
+	case auth.IsPasswordPolicyError(err):
 		return connect.CodeInvalidArgument
 	case errors.Is(err, auth.ErrTooManyAttempts):
 		return connect.CodeResourceExhausted
