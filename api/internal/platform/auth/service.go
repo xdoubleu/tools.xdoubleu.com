@@ -186,9 +186,12 @@ func (service *LocalService) ValidateAccessToken(accessToken string) error {
 	return err
 }
 
+// bcryptCost is the cost of every stored password and recovery-code hash.
+const bcryptCost = 12
+
 //nolint:gochecknoglobals //computed once, read-only
 var dummyPasswordHash = sync.OnceValue(func() []byte {
-	hash, _ := bcrypt.GenerateFromPassword([]byte("unused"), bcrypt.DefaultCost)
+	hash, _ := bcrypt.GenerateFromPassword([]byte("unused"), bcryptCost)
 	return hash
 })
 
@@ -311,6 +314,8 @@ func (service *LocalService) SignInWithEmail(
 	}
 	service.attempts.succeed(ctx, attemptKey)
 
+	service.upgradePasswordHash(ctx, user.ID, user.PasswordHash, password)
+
 	accessToken, err := service.mintAccessToken(user.ID, aal1)
 	if err != nil {
 		return nil, nil, err
@@ -321,6 +326,22 @@ func (service *LocalService) SignInWithEmail(
 	}
 
 	return &accessToken, &refreshToken, nil
+}
+
+// upgradePasswordHash rehashes a hash below bcryptCost after a successful
+// sign-in. Best effort: a failure keeps the old, still valid hash.
+func (service *LocalService) upgradePasswordHash(
+	ctx context.Context,
+	userID, hash, password string,
+) {
+	if cost, err := bcrypt.Cost([]byte(hash)); err != nil || cost >= bcryptCost {
+		return
+	}
+	upgraded, err := bcrypt.GenerateFromPassword([]byte(password), bcryptCost)
+	if err != nil {
+		return
+	}
+	_ = service.usersStore.SetPasswordHash(ctx, userID, string(upgraded))
 }
 
 func (service *LocalService) GetUser(
@@ -568,7 +589,7 @@ func (service *LocalService) UpdatePassword(
 	}
 
 	hash, err := bcrypt.GenerateFromPassword(
-		[]byte(newPassword), bcrypt.DefaultCost,
+		[]byte(newPassword), bcryptCost,
 	)
 	if err != nil {
 		return err
@@ -647,7 +668,7 @@ func (service *LocalService) ResetPasswordWithToken(
 	}
 
 	hash, err := bcrypt.GenerateFromPassword(
-		[]byte(newPassword), bcrypt.DefaultCost,
+		[]byte(newPassword), bcryptCost,
 	)
 	if err != nil {
 		return err
