@@ -516,8 +516,8 @@ func (l *jobLoop) conflict(res result, st PullStatus) (step, bool) {
 		st.HeadSHA, "The pull request "+res.prURL+" conflicts with "+base+
 			". The host fetched origin/"+base+" into the clone. Merge origin/"+base+
 			" into the current branch (a merge, not a rebase: the runner pushes a "+
-			"fast-forward), resolve the conflicts (re-run generators), "+
-			"run the gates, commit, and write the outcome "+
+			"fast-forward), resolve the conflicts, "+generatedAdvice+" "+
+			"Run the gates, commit, and write the outcome "+
 			"again. Your work continues until the pull request merges."), true
 }
 

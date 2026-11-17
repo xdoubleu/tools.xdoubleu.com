@@ -19,6 +19,13 @@ git -c user.name=factory-runner -c user.email=factory-runner@localhost \
 git merge --abort
 exit 3`
 
+// generatedAdvice tells the agent how to resolve conflicts in generated stubs:
+// buf.build is unreachable from the sandbox, so only the /local generators work.
+const generatedAdvice = "For conflicts in generated stubs (api/gen, web/lib/gen) " +
+	"take the base's version, then run `make proto/generate/local` in api/ and " +
+	"`npm run generate:local` in web/ instead of hand-resolving; the plain " +
+	"generators need buf.build, which the sandbox cannot reach."
+
 // syncBase brings the base branch's tip into a branch that is behind it, so the
 // gates run on a go.mod and toolchain pin that match the image. It returns the
 // agent's instructions when the merge conflicts, else "".
@@ -42,6 +49,7 @@ func (l *jobLoop) syncBase() string {
 			" conflicts. The host fetched origin/" + base + " into the clone.",
 		"Merge origin/" + base + " into the current branch (a merge, not a " +
 			"rebase: the runner pushes a fast-forward), resolve the conflicts " +
-			"(re-run generators), run the gates, commit, and write the outcome again.",
+			"run the gates, commit, and write the outcome again.",
+		generatedAdvice,
 	}, " ")
 }

@@ -59,7 +59,7 @@ make build | test | test/mutation/diff | lint/fix
 # repo root
 make lint/docs | lint/skills | lint/workflows | lint/ci-tools | lint/infra | lint/grafana | grafana/verify | hooks/test | lint/deploy-version
 
-# proto changes: run BOTH generators (…/local variants avoid buf.build)
+# proto changes: run BOTH generators (sandbox: …/local; gen/ conflicts: regenerate)
 cd api && make proto/generate    # check: make proto/check
 cd web && npm run generate       # check: npm run generate:check
 ```
