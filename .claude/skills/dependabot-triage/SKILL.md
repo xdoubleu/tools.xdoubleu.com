@@ -29,9 +29,9 @@ task — never silently skipped.
      run build`). Each goes through `start-task`/`finish-task`; list the
      alert numbers it resolves in the task/PR body.
    - **No upstream fix:** no workarounds. Collect into one task (via
-     `refine-task`) listing alert/package/reason; leave alerts open. Dismiss
-     as `tolerable_risk` only once a human accepted the risk in that task,
-     never during the sweep.
+     `refine-task`) listing alert/package/reason with the `routine-found`
+     label; leave alerts open. Dismiss as `tolerable_risk` only once a human
+     accepted the risk in that task, never during the sweep.
    - **Breaking major bump** as the only fix → flag for a human decision.
 
 3. **Code scanning** — read the flagged file and the rule's own semantics
@@ -46,7 +46,7 @@ task — never silently skipped.
      `false_positive`.
    - Looks real → **don't dismiss, don't treat as safe.** File a tracking
      task titled as a live credential exposure (rotation needs a human with
-     provider access) and move on.
+     provider access), with the `routine-found` label, and move on.
 
 5. **Report** a table: alert → fixed in PR #N / dismissed (number + reason) /
    tracked in task <id> awaiting a human / open pending PR merge.
