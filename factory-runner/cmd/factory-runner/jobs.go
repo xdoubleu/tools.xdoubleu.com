@@ -60,15 +60,14 @@ func newJobRunner(
 			Run:        nil,
 			RunWithEnv: nil,
 		},
-		Sandbox: box,
-		Paused:  a.holdClaims,
-		MaxJobs: a.maxJobs,
-		Mode:    a.mode,
-		Harness: runner.ClaudeCode{},
-		ClaudeToken: func() (string, error) {
-			return a.secrets.GetSecret(runner.SecretClaude)
-		},
-		AuthorEmail: cfg.BotEmail,
+		Sandbox:       box,
+		Paused:        a.holdClaims,
+		MaxJobs:       a.maxJobs,
+		Mode:          a.mode,
+		Harness:       runner.ClaudeCode{},
+		ClaudeToken:   storedSecret(a.secrets, runner.SecretClaude),
+		OpenRouterKey: storedSecret(a.secrets, runner.SecretOpenRouter),
+		AuthorEmail:   cfg.BotEmail,
 		Proxy: func(job *runner.ClaimedJob) (runner.ProxyListener, error) {
 			return newJobProxy(cfg, job, a.secrets, log)
 		},
@@ -199,4 +198,9 @@ func ensureImage(ctx context.Context, cfg runner.Config, exec runner.Execer) err
 		return fmt.Errorf("job image %s: %w", ensurer.Image, err)
 	}
 	return nil
+}
+
+// storedSecret reads a stored credential afresh on each call.
+func storedSecret(secrets runner.SecretStore, name string) func() (string, error) {
+	return func() (string, error) { return secrets.GetSecret(name) }
 }

@@ -177,6 +177,9 @@ type JobRunner struct {
 	// put in the VM's environment (adr-0043's conservative route) and kept out of
 	// commits and the outcome like any secret. Nil sets none.
 	ClaudeToken func() (string, error)
+	// OpenRouterKey returns the key an OpenCode job's model calls run on; it is
+	// only checked before a claim, the egress proxy adds it. Nil skips the check.
+	OpenRouterKey func() (string, error)
 	// AuthorEmail is the address commits carry; the name is the job's board account.
 	AuthorEmail string
 	// Proxy builds a job's egress proxy; nil gives the job none.
@@ -545,12 +548,37 @@ func (r *JobRunner) checkHarness(job *ClaimedJob) error {
 	return nil
 }
 
-// claimJob claims a job, reporting the harness and model this Mac runs.
+// claimJob claims a job, reporting the harness and model this Mac runs. It
+// claims nothing while that harness's credential is not stored: a job started
+// without it would fail after using up the task.
 func (r *JobRunner) claimJob(ctx context.Context, limit int) (*ClaimedJob, error) {
+	if err := r.checkCredential(); err != nil {
+		return nil, err
+	}
 	if oc, ok := r.Harness.(OpenCode); ok {
 		return r.API.ClaimJob(ctx, r.Token, limit, HarnessOpenCode, oc.Model)
 	}
 	return r.API.ClaimJob(ctx, r.Token, limit, HarnessClaudeCode, "")
+}
+
+// checkCredential reports an error when the harness's stored credential is missing.
+func (r *JobRunner) checkCredential() error {
+	if _, ok := r.Harness.(OpenCode); ok {
+		if r.OpenRouterKey == nil {
+			return nil
+		}
+		if _, err := r.OpenRouterKey(); err != nil {
+			return fmt.Errorf("the OpenRouter key: %w", err)
+		}
+		return nil
+	}
+	if r.ClaudeToken == nil {
+		return nil
+	}
+	if _, err := r.ClaudeToken(); err != nil {
+		return fmt.Errorf("the Claude token: %w", err)
+	}
+	return nil
 }
 
 // harnessFor is the harness a job runs on: this Mac's, not the job's.
