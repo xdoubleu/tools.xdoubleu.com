@@ -3,7 +3,8 @@ package auth
 import (
 	"bufio"
 	"context"
-	"crypto/sha1" //nolint:gosec //HIBP's range API is keyed by SHA-1
+	"crypto"
+	_ "crypto/sha1" //nolint:gosec //registers crypto.SHA1 for the range API key
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -80,7 +81,7 @@ func (service *LocalService) checkPasswordBreached(
 // rangeDigest is the uppercase SHA-1 hex the range API is keyed by. The
 // protocol mandates it; it is a lookup key, not password storage (bcrypt).
 func rangeDigest(candidate string) string {
-	hasher := sha1.New() //nolint:gosec //see import
+	hasher := crypto.SHA1.New()
 	_, _ = io.WriteString(hasher, candidate)
 	return strings.ToUpper(hex.EncodeToString(hasher.Sum(nil)))
 }
