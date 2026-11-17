@@ -13,7 +13,7 @@ import (
 func blockWith(t *testing.T, env jobEnv, blocked string) {
 	t.Helper()
 	task := env.newTask(t, "work "+uuid.NewString())
-	env.run(t, task.Id, "")
+	env.run(t, task.Id)
 	claimed := env.claim(t)
 	_, err := env.runner.CompleteJob(bearer(env.token), &factoryv1.CompleteJobRequest{
 		JobId: claimed.Id, Blocked: blocked,
@@ -33,7 +33,7 @@ func TestABlockedLineNamingATaskBacklogsTheTaskAndFilesNothing(t *testing.T) {
 func TestAWaitingOnJobMovesItsTaskToBacklogNamingTheDependencies(t *testing.T) {
 	env, _ := accountsEnv(t)
 	task := env.newTask(t, "work "+uuid.NewString())
-	env.run(t, task.Id, "")
+	env.run(t, task.Id)
 	claimed := env.claim(t)
 	_, err := env.runner.CompleteJob(bearer(env.token), &factoryv1.CompleteJobRequest{
 		JobId: claimed.Id, WaitingOn: []string{"T-6", "see T-8 and T-6"},

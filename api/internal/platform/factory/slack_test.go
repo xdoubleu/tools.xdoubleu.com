@@ -50,7 +50,7 @@ func TestPairingARunnerIsPosted(t *testing.T) {
 func TestAJobsPullRequestIsPostedWithALinkToItsTask(t *testing.T) {
 	env, slack := slackEnv(t)
 	task := env.newTask(t, "Fix the login")
-	env.run(t, task.Id, "")
+	env.run(t, task.Id)
 	job := env.claim(t)
 
 	complete(t, env, job.Id, true, pullURL(5))
@@ -62,7 +62,7 @@ func TestAJobsPullRequestIsPostedWithALinkToItsTask(t *testing.T) {
 func TestAFailedJobIsPostedWithOnlyTheFirstLineOfItsOutcome(t *testing.T) {
 	env, slack := slackEnv(t)
 	task := env.newTask(t, "Breaks")
-	env.run(t, task.Id, "")
+	env.run(t, task.Id)
 	job := env.claim(t)
 
 	_, err := env.runner.CompleteJob(bearer(env.token), &factoryv1.CompleteJobRequest{
@@ -82,7 +82,7 @@ func TestAFailedJobIsPostedWithOnlyTheFirstLineOfItsOutcome(t *testing.T) {
 func TestASucceededJobWithoutAPullRequestNeedsYou(t *testing.T) {
 	env, slack := slackEnv(t)
 	task := env.newTask(t, "No pr")
-	env.run(t, task.Id, "")
+	env.run(t, task.Id)
 	job := env.claim(t)
 
 	_, err := env.runner.CompleteJob(bearer(env.token), &factoryv1.CompleteJobRequest{
@@ -97,7 +97,7 @@ func TestASucceededJobWithoutAPullRequestNeedsYou(t *testing.T) {
 func TestALostJobIsPosted(t *testing.T) {
 	env, slack := slackEnv(t)
 	task := env.newTask(t, "vanishes")
-	env.run(t, task.Id, "")
+	env.run(t, task.Id)
 	claimed := env.claim(t)
 	_, err := testDB.Exec(context.Background(),
 		`UPDATE factory.jobs SET last_check_in = now() - interval '6 minutes'
@@ -118,7 +118,7 @@ func TestALostJobIsPosted(t *testing.T) {
 func TestATitleOrOutcomeCannotMentionTheChannel(t *testing.T) {
 	env, slack := slackEnv(t)
 	task := env.newTask(t, "<!channel> look")
-	env.run(t, task.Id, "")
+	env.run(t, task.Id)
 	job := env.claim(t)
 
 	_, err := env.runner.CompleteJob(bearer(env.token), &factoryv1.CompleteJobRequest{
@@ -140,7 +140,7 @@ func TestAWebhookAddressIsAcceptedOnlyOverHTTPS(t *testing.T) {
 	} {
 		env := newJobEnvWith(t, true, "browser", factory.WithSlack(url, boardURL))
 		task := env.newTask(t, "quiet")
-		env.run(t, task.Id, "")
+		env.run(t, task.Id)
 		job := env.claim(t)
 		complete(t, env, job.Id, true, pullURL(1))
 	}
@@ -151,7 +151,7 @@ func TestAWebhookAddressIsAcceptedOnlyOverHTTPS(t *testing.T) {
 func (e jobEnv) waiting(t *testing.T, title string, minutes int) string {
 	t.Helper()
 	task := e.newTask(t, title)
-	job := e.run(t, task.Id, "")
+	job := e.run(t, task.Id)
 	_, err := testDB.Exec(context.Background(),
 		`UPDATE factory.jobs SET created_at = now() - make_interval(mins => $2, secs => 30)
 		 WHERE id = $1`, job.Id, minutes)
@@ -202,7 +202,7 @@ func TestAYoungJobOrAnEmptyQueueIsNotPosted(t *testing.T) {
 func TestAnOnlineRunnerMeansNothingIsOffline(t *testing.T) {
 	env, slack := slackEnv(t)
 	busy := env.newTask(t, "Running")
-	env.run(t, busy.Id, "")
+	env.run(t, busy.Id)
 	env.claim(t)
 	before := slack.count()
 	env.waiting(t, "Waits its turn", 30)

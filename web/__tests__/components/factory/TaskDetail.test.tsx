@@ -5,7 +5,6 @@ import { create } from '@bufbuild/protobuf'
 const mockComment = vi.fn()
 const mockRun = vi.fn()
 const mockStop = vi.fn()
-const mockReply = vi.fn()
 const mockAgents = vi.fn()
 vi.mock('@/hooks/useFactory', () => ({
   useFactoryTask: vi.fn(),
@@ -14,7 +13,6 @@ vi.mock('@/hooks/useFactory', () => ({
     comment: mockComment,
     move: vi.fn(),
     run: mockRun,
-    reply: mockReply,
     stop: mockStop
   }))
 }))
@@ -72,7 +70,6 @@ beforeEach(() => {
   mockComment.mockResolvedValue(undefined)
   mockRun.mockResolvedValue(undefined)
   mockStop.mockResolvedValue(undefined)
-  mockReply.mockResolvedValue(undefined)
 })
 
 describe('TaskDetail', () => {
@@ -165,139 +162,6 @@ describe('TaskDetail', () => {
     expect(box).toHaveValue('Looks good')
   })
 
-  describe('replying to the agent', () => {
-    const finished = (job: object = {}, status = TaskStatus.IN_REVIEW) =>
-      create(GetTaskResponseSchema, {
-        task: create(TaskSchema, {
-          id: 't-1',
-          title: 'Fix login',
-          body: 'Steps to reproduce',
-          status,
-          priority: TaskPriority.P1,
-          labels: ['bug'],
-          createdBy: 'human:me'
-        }),
-        comments: [],
-        jobs: [
-          create(JobSchema, {
-            id: 'j-1',
-            status: JobStatus.SUCCEEDED,
-            branch: 'agent/t-1-fix-login',
-            ...job
-          })
-        ]
-      })
-
-    it('sends the reply and clears the box', async () => {
-      mockTask({ data: finished() })
-      render(<TaskDetail id="t-1" onClose={vi.fn()} />)
-      const box = screen.getByLabelText('Reply to the agent')
-      expect(screen.getByRole('button', { name: 'Reply' })).toBeDisabled()
-      fireEvent.change(box, { target: { value: 'Also cover the empty case' } })
-      fireEvent.click(screen.getByRole('button', { name: 'Reply' }))
-
-      await waitFor(() =>
-        expect(mockReply).toHaveBeenCalledWith('t-1', 'Also cover the empty case')
-      )
-      await waitFor(() => expect(box).toHaveValue(''))
-    })
-
-    it('is busy while sending, and a retry clears the earlier error', async () => {
-      let finish: () => void = () => {}
-      mockReply.mockRejectedValueOnce(new Error('nope'))
-      mockReply.mockReturnValueOnce(new Promise<void>((resolve) => (finish = resolve)))
-      mockTask({ data: finished({ prState: 'open', prCi: 'failing' }) })
-      render(<TaskDetail id="t-1" onClose={vi.fn()} />)
-      expect(screen.queryByRole('alert')).not.toBeInTheDocument()
-      const box = screen.getByLabelText('Reply to the agent')
-      fireEvent.change(box, { target: { value: '   ' } })
-      expect(screen.getByRole('button', { name: 'Reply' })).toBeDisabled()
-
-      fireEvent.change(box, { target: { value: 'Go' } })
-      fireEvent.click(screen.getByRole('button', { name: 'Reply' }))
-      expect(await screen.findByRole('alert')).toHaveTextContent('nope')
-
-      fireEvent.click(screen.getByRole('button', { name: 'Reply' }))
-      expect(await screen.findByRole('button', { name: 'Sending…' })).toBeDisabled()
-      expect(screen.getByRole('button', { name: 'Reply: fix CI' })).toBeDisabled()
-      expect(screen.queryByRole('alert')).not.toBeInTheDocument()
-      finish()
-      expect(await screen.findByRole('button', { name: 'Reply' })).toBeDisabled()
-      expect(box).toHaveValue('')
-    })
-
-    it('does not submit the page', async () => {
-      mockTask({ data: finished() })
-      render(<TaskDetail id="t-1" onClose={vi.fn()} />)
-      fireEvent.change(screen.getByLabelText('Reply to the agent'), {
-        target: { value: 'Go' }
-      })
-      const form = screen.getByRole('form', { name: 'Reply' })
-      expect(fireEvent.submit(form)).toBe(false)
-      await waitFor(() => expect(mockReply).toHaveBeenCalledWith('t-1', 'Go'))
-    })
-
-    it('keeps the text and shows why the reply was refused', async () => {
-      mockReply.mockRejectedValueOnce(new Error('the last job left no session to resume'))
-      mockTask({ data: finished() })
-      render(<TaskDetail id="t-1" onClose={vi.fn()} />)
-      const box = screen.getByLabelText('Reply to the agent')
-      fireEvent.change(box, { target: { value: 'Try again' } })
-      fireEvent.click(screen.getByRole('button', { name: 'Reply' }))
-
-      expect(await screen.findByRole('alert')).toHaveTextContent('no session to resume')
-      expect(box).toHaveValue('Try again')
-    })
-
-    it('says so when the reply fails without a message', async () => {
-      mockReply.mockRejectedValueOnce('boom')
-      mockTask({ data: finished() })
-      render(<TaskDetail id="t-1" onClose={vi.fn()} />)
-      fireEvent.change(screen.getByLabelText('Reply to the agent'), {
-        target: { value: 'Try again' }
-      })
-      fireEvent.click(screen.getByRole('button', { name: 'Reply' }))
-      expect(await screen.findByRole('alert')).toHaveTextContent(
-        'Couldn\u2019t send the reply. Try again.'
-      )
-    })
-
-    it('offers "fix CI" only for an open pull request with failing checks', async () => {
-      mockTask({ data: finished({ prState: 'open', prCi: 'passing' }) })
-      const { unmount } = render(<TaskDetail id="t-1" onClose={vi.fn()} />)
-      expect(screen.queryByRole('button', { name: 'Reply: fix CI' })).not.toBeInTheDocument()
-      unmount()
-
-      mockTask({ data: finished({ prState: 'merged', prCi: 'failing' }) })
-      const merged = render(<TaskDetail id="t-1" onClose={vi.fn()} />)
-      expect(screen.queryByRole('button', { name: 'Reply: fix CI' })).not.toBeInTheDocument()
-      merged.unmount()
-
-      mockTask({ data: finished({ prState: 'open', prCi: 'failing' }) })
-      render(<TaskDetail id="t-1" onClose={vi.fn()} />)
-      fireEvent.click(screen.getByRole('button', { name: 'Reply: fix CI' }))
-      await waitFor(() =>
-        expect(mockReply).toHaveBeenCalledWith('t-1', expect.stringContaining('CI is red'))
-      )
-    })
-
-    it('is not offered while a job is active, before any job, or once the task is done', () => {
-      mockTask({ data: finished({ status: JobStatus.RUNNING }) })
-      const running = render(<TaskDetail id="t-1" onClose={vi.fn()} />)
-      expect(screen.queryByLabelText('Reply to the agent')).not.toBeInTheDocument()
-      running.unmount()
-
-      mockTask({ data: detail })
-      const none = render(<TaskDetail id="t-1" onClose={vi.fn()} />)
-      expect(screen.queryByLabelText('Reply to the agent')).not.toBeInTheDocument()
-      none.unmount()
-
-      mockTask({ data: finished({}, TaskStatus.DONE) })
-      render(<TaskDetail id="t-1" onClose={vi.fn()} />)
-      expect(screen.queryByLabelText('Reply to the agent')).not.toBeInTheDocument()
-    })
-  })
-
   describe('running the task', () => {
     const withJob = (status: JobStatus) =>
       create(GetTaskResponseSchema, {
@@ -312,44 +176,33 @@ describe('TaskDetail', () => {
       expect(screen.queryByLabelText('Model')).not.toBeInTheDocument()
     })
 
-    it('queues a job with the optional instructions and clears the box', async () => {
+    it('queues a job from the task alone, with no per-run instructions', async () => {
       mockTask({ data: detail })
       render(<TaskDetail id="t-1" onClose={vi.fn()} />)
       expect(screen.queryByTestId('job-status')).not.toBeInTheDocument()
-      const box = screen.getByLabelText(/Instructions for this run/)
-      fireEvent.change(box, { target: { value: 'Mind the tests' } })
+      expect(screen.queryByLabelText(/Instructions for this run/)).not.toBeInTheDocument()
+      expect(screen.queryByLabelText('Reply to the agent')).not.toBeInTheDocument()
       fireEvent.click(screen.getByRole('button', { name: 'Run' }))
 
-      await waitFor(() => expect(mockRun).toHaveBeenCalledWith('t-1', 'Mind the tests'))
-      await waitFor(() => expect(box).toHaveValue(''))
+      await waitFor(() => expect(mockRun).toHaveBeenCalledWith('t-1'))
     })
 
     it('handles the submit itself instead of reloading the page', () => {
       mockTask({ data: detail })
       render(<TaskDetail id="t-1" onClose={vi.fn()} />)
-      const form = screen.getByLabelText(/Instructions for this run/).closest('form')
+      const form = screen.getByRole('button', { name: 'Run' }).closest('form')
       if (!form) throw new Error('no form')
       // fireEvent returns false when a handler called preventDefault.
       expect(fireEvent.submit(form)).toBe(false)
     })
 
-    it('can run with no instructions', async () => {
-      mockTask({ data: detail })
-      render(<TaskDetail id="t-1" onClose={vi.fn()} />)
-      fireEvent.click(screen.getByRole('button', { name: 'Run' }))
-      await waitFor(() => expect(mockRun).toHaveBeenCalledWith('t-1', ''))
-    })
-
-    it('shows the reason the server gives when the run is refused, and keeps the text', async () => {
+    it('shows the reason the server gives when the run is refused', async () => {
       mockRun.mockRejectedValue(new Error('Not run: the body was edited outside a browser'))
       mockTask({ data: detail })
       render(<TaskDetail id="t-1" onClose={vi.fn()} />)
-      const box = screen.getByLabelText(/Instructions for this run/)
-      fireEvent.change(box, { target: { value: 'go' } })
       fireEvent.click(screen.getByRole('button', { name: 'Run' }))
 
       expect(await screen.findByText(/edited outside a browser/)).toBeInTheDocument()
-      expect(box).toHaveValue('go')
     })
 
     it('clears an earlier refusal on the next try, and the button comes back', async () => {

@@ -369,15 +369,6 @@ export function pullRequestLabel(url: string): string {
   return m ? `#${m[1]}` : url
 }
 
-/** What "Reply: fix CI" sends. */
-export const FIX_CI_REPLY =
-  'CI is red on the pull request. Find out why the checks fail, fix it, and push.'
-
-/** Whether the job's pull request is open with failing checks, so a Reply can fix it. */
-export function canFixCi(job: PullRequestFields | undefined): boolean {
-  return job?.prState === 'open' && job.prCi === 'failing'
-}
-
 /** What a board card says about the task's pull request, most pressing first. */
 export function prBadge(
   task: PullRequestFields & Partial<Pick<Task, 'prMergeable'>>

@@ -232,22 +232,11 @@ message ListJobEventsResponse {
 // browser session only: running an agent is the approval Ready stands for.
 message RunTaskRequest {
   string task_id = 1;
-  // Added to the prompt after the task; optional.
-  string text = 2;
   // The Mac's config picks the harness and model.
-  reserved 3, 4;
-  reserved "harness", "model";
+  reserved 2, 3, 4;
+  reserved "text", "harness", "model";
 }
 message RunTaskResponse {
-  Job job = 1;
-}
-
-message ReplyTaskRequest {
-  string task_id = 1;
-  // The follow-up prompt for the task's last job's session; required.
-  string text = 2;
-}
-message ReplyTaskResponse {
   Job job = 1;
 }
 
@@ -319,7 +308,6 @@ service TaskService {
   rpc MoveTask(MoveTaskRequest) returns (MoveTaskResponse);
   rpc AddComment(AddCommentRequest) returns (AddCommentResponse);
   rpc RunTask(RunTaskRequest) returns (RunTaskResponse);
-  rpc ReplyTask(ReplyTaskRequest) returns (ReplyTaskResponse);
   rpc StopJob(StopJobRequest) returns (StopJobResponse);
   rpc ListJobEvents(ListJobEventsRequest) returns (ListJobEventsResponse);
   rpc ListRoutines(ListRoutinesRequest) returns (ListRoutinesResponse);
