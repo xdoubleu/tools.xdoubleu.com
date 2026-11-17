@@ -15,6 +15,9 @@ import (
 // message says why and becomes the job's outcome.
 var ErrHostCheck = errors.New("host check failed")
 
+// noCommitsWhy is the host check's reason for a branch without commits.
+const noCommitsWhy = "the agent made no commits on the branch"
+
 const (
 	// minSecretLen skips values too short to search for without false hits.
 	minSecretLen = 8
@@ -140,7 +143,7 @@ func (g *Git) hasChanges(ctx context.Context, review, span, net string) error {
 	}
 	n, convErr := strconv.Atoi(strings.TrimSpace(string(out)))
 	if convErr != nil || n == 0 {
-		return fmt.Errorf("%w: the agent made no commits on the branch", ErrHostCheck)
+		return fmt.Errorf("%w: %s", ErrHostCheck, noCommitsWhy)
 	}
 	out, err = g.git(ctx, review, "diff", "--name-only", "--no-ext-diff", net)
 	if err != nil {

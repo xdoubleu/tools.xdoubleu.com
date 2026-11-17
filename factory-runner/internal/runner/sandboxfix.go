@@ -214,20 +214,22 @@ func (r *Reviewed) CheckSandboxFix(ctx context.Context, base string) error {
 }
 
 // publishSandboxFix pushes the Containerfile-only branch the outcome names and
-// opens its own pull request. It returns a line for the outcome and never fails
-// the job: the job's own work is published either way.
+// opens its own pull request. It returns a line for the outcome and, when the
+// branch itself was refused (name, files or Containerfile), why, so the agent can
+// fix it. It never fails the job: the job's own work is published either way.
 func (r *JobRunner) publishSandboxFix(
 	ctx context.Context,
 	job *ClaimedJob,
 	cloneDir, text string,
 	secrets []string,
-) string {
+) (string, string) {
 	name, ok := findLine(text, "Sandbox-fix:")
 	if !ok {
-		return ""
+		return "", ""
 	}
 	if !sandboxBranchPattern.MatchString(name) {
-		return "Sandbox fix not published: the branch must be named agent/sandbox-<slug>."
+		why := "the branch must be named agent/sandbox-<slug>."
+		return "Sandbox fix not published: " + why, why
 	}
 	reviewed, err := r.Git.Inspect(ctx, job.RepoOwner, job.RepoName, job.DefaultBranch,
 		name, job.ID+"-sandbox", cloneDir, "", secrets)
@@ -239,7 +241,7 @@ func (r *JobRunner) publishSandboxFix(
 			reviewed.Close()
 		}
 		why := strings.TrimPrefix(err.Error(), ErrHostCheck.Error()+": ")
-		return "Sandbox fix not published: " + why
+		return "Sandbox fix not published: " + why, why
 	}
 	defer reviewed.Close()
 
@@ -247,13 +249,13 @@ func (r *JobRunner) publishSandboxFix(
 	defer cancel()
 	token, err := r.pushToken(ctx, job.ID)
 	if err != nil || token == "" {
-		return "Sandbox fix not published: could not get a push token."
+		return "Sandbox fix not published: could not get a push token.", ""
 	}
 	remote := r.Git.RemoteURL(job.RepoOwner, job.RepoName)
 	if err = reviewed.Push(ctx, remote, token); err != nil {
 		r.Log.Warn("sandbox fix push failed", "job", job.ID,
 			"error", scrub(err.Error(), token))
-		return "Sandbox fix not published: the branch could not be pushed."
+		return "Sandbox fix not published: the branch could not be pushed.", ""
 	}
 	problem, _ := findLine(text, "Blocked:")
 	body := neutralize("The sandbox lacked a tool while running task `" + job.TaskID +
@@ -271,7 +273,22 @@ func (r *JobRunner) publishSandboxFix(
 		r.Log.Warn("sandbox fix pull request failed", "job", job.ID,
 			"error", scrub(err.Error(), token))
 		return "Sandbox fix not published: the branch was pushed, but its pull request " +
-			"could not be opened."
+			"could not be opened.", ""
 	}
-	return "Sandbox fix opened: " + url
+	return "Sandbox fix opened: " + url, ""
 }
+
+// sandboxRefusedFeedback tells the agent why its sandbox-fix branch was refused.
+func sandboxRefusedFeedback(why string) string {
+	return "The runner refused your sandbox fix: " + why + "\n\n" + sandboxFixRules +
+		"\n\nFix the branch, commit, and write the outcome again."
+}
+
+// sandboxFixRules is what a sandbox-fix Containerfile may contain.
+const sandboxFixRules = "A sandbox fix changes only factory-runner/Containerfile. " +
+	"Allowed instructions: FROM (base image pinned to a version tag or digest), " +
+	"ARG, ENV, LABEL, WORKDIR, USER, EXPOSE, CMD, ENTRYPOINT and RUN. COPY and ADD " +
+	"are not allowed. Every package in a RUN install is pinned (apt pkg=ver, npm " +
+	"name@x.y.z, pip name==x.y.z, go module@vX.Y.Z), including ones already " +
+	"named in the instruction you edit (ca-certificates=ver too); a download URL " +
+	"carries an explicit version; no command substitution, no piping into sh."

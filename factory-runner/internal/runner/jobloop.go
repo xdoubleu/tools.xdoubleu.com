@@ -42,9 +42,11 @@ const (
 type jobLoop struct {
 	// sandboxFixed is set once the outcome's Sandbox-fix branch was handled.
 	sandboxFixed bool
-	r            *JobRunner
-	job          *ClaimedJob
-	dirs         jobDirs
+	// sandboxOpened is set once the sandbox fix has its own pull request.
+	sandboxOpened bool
+	r             *JobRunner
+	job           *ClaimedJob
+	dirs          jobDirs
 	// since is where host checks start on an existing branch.
 	since   string
 	launch  launch
@@ -291,13 +293,9 @@ func (l *jobLoop) attempt(command []string, prompt string) step {
 	}
 	began = l.now()
 	res = l.r.publishable(l.parent, l.job, l.dirs.clone, l.since, text, res, l.secrets)
-	if _, ok := findLine(text, "Sandbox-fix:"); ok && l.r.GitHub != nil &&
-		!l.sandboxFixed {
-		l.sandboxFixed = true
-		n := l.r.publishSandboxFix(l.parent, l.job, l.dirs.clone, text, l.secrets)
-		if n != "" {
-			l.note(n)
-		}
+	res, retry := l.sandboxFix(text, res)
+	if retry != nil {
+		return *retry
 	}
 	l.times.publish += l.now().Sub(began)
 	if res.head == "" {
@@ -327,6 +325,39 @@ func (l *jobLoop) attempt(command []string, prompt string) step {
 				"line). Your work continues until its pull request merges.")
 	}
 	return over(res)
+}
+
+// sandboxFix publishes the outcome's Sandbox-fix branch once. A fix that is the
+// job's only work ends it, or, when refused, goes back to the agent as a step.
+func (l *jobLoop) sandboxFix(text string, res result) (result, *step) {
+	noWork := res.retry && res.failure == noCommitsWhy
+	if _, ok := findLine(text, "Sandbox-fix:"); ok && l.r.GitHub != nil &&
+		!l.sandboxFixed {
+		n, refused := l.r.publishSandboxFix(l.parent, l.job, l.dirs.clone, text, l.secrets)
+		if n != "" {
+			l.note(n)
+		}
+		l.sandboxFixed = refused == ""
+		l.sandboxOpened = strings.HasPrefix(n, "Sandbox fix opened")
+		if refused != "" && noWork {
+			fixBranch, _ := findLine(text, "Sandbox-fix:")
+			var ref []byte
+			if sandboxBranchPattern.MatchString(fixBranch) {
+				ref, _ = os.ReadFile(filepath.Join(l.dirs.clone, ".git", "refs", "heads",
+					filepath.FromSlash(fixBranch)))
+			}
+			st := again(res, "sandbox fix refused: "+short(refused),
+				"sandbox:"+refused, strings.TrimSpace(string(ref)),
+				sandboxRefusedFeedback(refused))
+			return res, &st
+		}
+	}
+	if l.sandboxOpened && noWork {
+		// The Containerfile fix is the job's output; the job branch has none.
+		res.succeeded, res.retry, res.failure, res.cause = true, false, "", ""
+		res.outcome = text
+	}
+	return res, nil
 }
 
 func (l *jobLoop) baseResult() result {
