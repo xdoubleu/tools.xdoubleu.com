@@ -155,6 +155,10 @@ func TestFamilyRepository_DisplayName(t *testing.T) {
 		VALUES ($1, $1 || '@example.com', 'Robin')
 		ON CONFLICT (id) DO UPDATE SET display_name = 'Robin'`, inviteeID)
 	require.NoError(t, err)
+	t.Cleanup(func() {
+		_, _ = testDB.Exec(context.Background(),
+			"DELETE FROM global.app_users WHERE id = $1", inviteeID)
+	})
 
 	names, err = repo.MemberDisplayNames(t.Context(), familyID)
 	require.NoError(t, err)
