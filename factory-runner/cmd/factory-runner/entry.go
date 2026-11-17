@@ -36,7 +36,15 @@ func main() {
 		stdin:       os.Stdin,
 		interactive: isTerminal(os.Stdin),
 		newBeat: func(server string) pairHeartbeater {
-			return runner.NewClient(server, Release)
+			c := runner.NewClient(server, Release)
+			c.Repos = func() []string {
+				cfg, loadErr := runner.LoadConfig(runner.ConfigPath(home))
+				if loadErr != nil {
+					return nil
+				}
+				return cfg.Repos
+			}
+			return c
 		},
 		daemon: func(
 			ctx context.Context,

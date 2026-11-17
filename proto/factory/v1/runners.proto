@@ -65,6 +65,11 @@ message PairResponse {
 
 message HeartbeatRequest {
   string version = 1;
+  // The runner's local repo allowlist ("owner/name"), which the server can't
+  // change. Meaningful only with repos_reported, so an older runner's silence
+  // isn't read as an empty list.
+  repeated string repos = 2;
+  bool repos_reported = 3;
 }
 message HeartbeatResponse {
   // Jobs queued and unclaimed when the hold ended: work a runner with a free slot

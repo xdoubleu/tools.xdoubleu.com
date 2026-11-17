@@ -12,6 +12,9 @@ import (
 )
 
 // prFields is how many values prColumn holds.
+// pickupAuthor attributes the comments auto pickup leaves on a task it passes over.
+const pickupAuthor = "system:auto-pickup"
+
 const prFields = 5
 
 type TasksRepository struct {
@@ -328,6 +331,51 @@ type PickupCandidate struct {
 	Body   string
 }
 
+// repoBlock is the Ready task of a repo with auto pickup off.
+type repoBlock struct {
+	id   uuid.UUID
+	repo string
+}
+
+// NoteAutoPickupOff comments once on each approved Ready task whose repo has auto
+// pickup off, so it never waits silently. The skip prefix lets NextReady clear
+// the block, and pick the task up, once auto pickup is on.
+func (r *TasksRepository) NoteAutoPickupOff(ctx context.Context) error {
+	rows, err := r.db.Query(ctx, `
+		SELECT t.id, r.owner || '/' || r.name
+		FROM factory.tasks t
+		JOIN factory.repos r ON r.id = t.repo_id
+		WHERE t.status = 'ready' AND NOT r.auto_pickup
+			AND t.ready_body IS NOT NULL AND t.pickup_blocked = ''`)
+	if err != nil {
+		return postgres.PgxErrorToHTTPError(err)
+	}
+	var found []repoBlock
+	for rows.Next() {
+		var b repoBlock
+		if err = rows.Scan(&b.id, &b.repo); err != nil {
+			rows.Close()
+			return postgres.PgxErrorToHTTPError(err)
+		}
+		found = append(found, b)
+	}
+	rows.Close()
+	if err = rows.Err(); err != nil {
+		return postgres.PgxErrorToHTTPError(err)
+	}
+	for _, b := range found {
+		reason := "auto pickup is off for " + b.repo
+		if _, err = r.AddComment(ctx, b.id, pickupAuthor, "Not picked up: "+reason+
+			". Turn it on in the repo settings, or press Run."); err != nil {
+			return err
+		}
+		if _, err = r.BlockPickup(ctx, b.id, skipPrefix+reason); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // NextReady is the oldest highest-priority Ready task of a repo that has auto pickup
 // on, with its approved text. It finds none while the board is paused, a job is
 // queued, or the running jobs fill the max_jobs slots of the online runners, so it
@@ -338,7 +386,7 @@ type PickupCandidate struct {
 func (r *TasksRepository) NextReady(ctx context.Context) (*PickupCandidate, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT t.id, t.number, t.repo_id, t.ready_title, t.ready_body, t.labels,
-			t.pickup_blocked
+			t.pickup_blocked, r.owner || '/' || r.name
 		FROM factory.tasks t
 		JOIN factory.repos r ON r.id = t.repo_id
 		WHERE t.status = 'ready' AND r.auto_pickup AND t.ready_body IS NOT NULL
@@ -358,16 +406,11 @@ func (r *TasksRepository) NextReady(ctx context.Context) (*PickupCandidate, erro
 	if err != nil {
 		return nil, postgres.PgxErrorToHTTPError(err)
 	}
-	type row struct {
-		c       PickupCandidate
-		labels  []string
-		blocked string
-	}
-	var cands []row
+	var cands []readyRow
 	for rows.Next() {
-		var x row
+		var x readyRow
 		if err = rows.Scan(&x.c.TaskID, &x.c.Number, &x.c.RepoID, &x.c.Title,
-			&x.c.Body, &x.labels, &x.blocked); err != nil {
+			&x.c.Body, &x.labels, &x.blocked, &x.repo); err != nil {
 			rows.Close()
 			return nil, postgres.PgxErrorToHTTPError(err)
 		}
@@ -380,16 +423,11 @@ func (r *TasksRepository) NextReady(ctx context.Context) (*PickupCandidate, erro
 
 	for i := range cands {
 		x := cands[i]
-		reason, reasonErr := r.pickupSkipReason(
-			ctx, x.c.TaskID, x.c.Number, x.labels, x.c.Body,
-		)
-		if reasonErr != nil {
-			return nil, reasonErr
+		skip, vetErr := r.vet(ctx, x)
+		if vetErr != nil {
+			return nil, vetErr
 		}
-		if reason != "" {
-			if _, err = r.BlockPickup(ctx, x.c.TaskID, skipPrefix+reason); err != nil {
-				return nil, err
-			}
+		if skip {
 			continue
 		}
 		if x.blocked != "" {
@@ -401,4 +439,50 @@ func (r *TasksRepository) NextReady(ctx context.Context) (*PickupCandidate, erro
 		return &c, nil
 	}
 	return nil, postgres.PgxErrorToHTTPError(pgx.ErrNoRows)
+}
+
+// readyRow is a Ready task NextReady is still vetting.
+type readyRow struct {
+	c       PickupCandidate
+	labels  []string
+	blocked string
+	repo    string
+}
+
+// vet reports whether auto pickup must pass the task by, recording why.
+func (r *TasksRepository) vet(ctx context.Context, x readyRow) (bool, error) {
+	reason, err := r.pickupSkipReason(ctx, x.c.TaskID, x.c.Number, x.labels, x.c.Body)
+	if err != nil {
+		return false, err
+	}
+	if reason != "" {
+		_, err = r.BlockPickup(ctx, x.c.TaskID, skipPrefix+reason)
+		return true, err
+	}
+	noRunner, err := r.noRunnerReason(ctx, x.c.TaskID, x.repo, x.blocked)
+	return noRunner != "", err
+}
+
+// noRunnerReason blocks a task whose repo no online runner allows, with a comment
+// the first time, and returns the block; "" when some runner allows the repo.
+func (r *TasksRepository) noRunnerReason(
+	ctx context.Context,
+	id uuid.UUID,
+	repo, blocked string,
+) (string, error) {
+	ok, err := repoAllowed(ctx, r.db, repo)
+	if err != nil || ok {
+		return "", err
+	}
+	reason := skipPrefix + "no runner allows " + repo
+	if blocked == reason {
+		return reason, nil
+	}
+	body := "Not picked up: No runner allows " + repo + ". Allow it on the Mac with " +
+		"`factory-runner config repos add " + repo + "`."
+	if _, err = r.AddComment(ctx, id, pickupAuthor, body); err != nil {
+		return "", err
+	}
+	_, err = r.BlockPickup(ctx, id, reason)
+	return reason, err
 }

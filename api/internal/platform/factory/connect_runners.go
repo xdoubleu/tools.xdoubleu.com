@@ -223,7 +223,9 @@ func (h *runnerHandler) Heartbeat(
 		return nil, err
 	}
 	runners := h.app.services.Runners
-	if err = runners.Heartbeat(ctx, runner.ID, req.GetVersion()); err != nil {
+	if err = runners.Heartbeat(
+		ctx, runner.ID, req.GetVersion(), req.GetRepos(), req.GetReposReported(),
+	); err != nil {
 		return nil, mapError(err)
 	}
 
@@ -236,7 +238,9 @@ func (h *runnerHandler) Heartbeat(
 	case <-ctx.Done():
 		return &factoryv1.HeartbeatResponse{}, nil
 	}
-	if err = runners.Heartbeat(ctx, runner.ID, req.GetVersion()); err != nil {
+	if err = runners.Heartbeat(
+		ctx, runner.ID, req.GetVersion(), req.GetRepos(), req.GetReposReported(),
+	); err != nil {
 		return nil, mapError(err)
 	}
 	// A failed count must not fail the heartbeat that keeps the runner online; the

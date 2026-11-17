@@ -182,7 +182,7 @@ func (h *runnerHandler) ClaimJob(
 		return nil, err
 	}
 	// A claiming runner is a live one, whether or not its heartbeat is running.
-	if err = h.app.services.Runners.Heartbeat(ctx, runner.ID, ""); err != nil {
+	if err = h.app.services.Runners.Heartbeat(ctx, runner.ID, "", nil, false); err != nil {
 		return nil, mapError(err)
 	}
 	// Held open so the runner needs no inbound port and learns of a job within a

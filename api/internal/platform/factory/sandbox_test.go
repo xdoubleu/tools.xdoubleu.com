@@ -48,8 +48,9 @@ func TestABlockedJobFilesASandboxTaskAndARepeatCommentsOnIt(t *testing.T) {
 	assert.Equal(t, title, found[0].Title)
 	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_READY, found[0].Status)
 	got := env.task(t, found[0].Id)
-	require.Len(t, got.Comments, 2)
-	assert.Contains(t, got.Comments[1].Body, problem)
+	comments := withoutPickupNotes(got.Comments)
+	require.Len(t, comments, 2)
+	assert.Contains(t, comments[1].Body, problem)
 
 	// A job that is not blocked files nothing.
 	task := env.newTask(t, "more work")

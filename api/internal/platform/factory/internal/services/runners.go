@@ -157,13 +157,16 @@ func (s *RunnerService) Authenticate(
 	return s.repo.ByToken(ctx, hashSecret(token))
 }
 
-// Heartbeat records that the runner is alive.
+// Heartbeat records that the runner is alive and, when reported, its repo
+// allowlist.
 func (s *RunnerService) Heartbeat(
 	ctx context.Context,
 	id uuid.UUID,
 	version string,
+	repos []string,
+	reported bool,
 ) error {
-	return s.repo.Touch(ctx, id, version)
+	return s.repo.Touch(ctx, id, version, repos, reported)
 }
 
 // List returns every runner.

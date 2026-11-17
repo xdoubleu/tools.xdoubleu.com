@@ -50,6 +50,11 @@ from anyone else, and the runner must not trust what the server sends
 - Losing a pairing code or a device token means revoking and pairing again.
 - The runner side (`factory-runner pair`, the Keychain, its own repo allowlist and
   job validator) lands in the next slice.
+- The heartbeat reports the runner's repo allowlist, stored per runner as
+  information only: the server never writes it. `NextReady` passes over a task no
+  online runner allows, with a comment, and `Claim` never hands a runner a job
+  outside its list. A runner that reports none (an older one) is assumed to allow
+  every repo.
 
 ## Revisit when
 
