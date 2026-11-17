@@ -290,19 +290,25 @@ func newOAuthSealer(logger *slog.Logger, config config.Config) *crypto.Sealer {
 	return sealer
 }
 
-// newNotificationsService builds the shared Resend-backed FIFO notifications
-// queue, so mail never blocks a request.
+// newNotificationsService builds the shared Resend-backed notifications outbox,
+// so mail never blocks a request and survives a restart.
 func newNotificationsService(
 	ctx context.Context,
 	logger *slog.Logger,
 	config config.Config,
+	db *pgxpool.Pool,
 ) *notifications.Service {
 	mailClient := mailer.New(
 		config.ResendAPIKey,
 		config.EmailFrom,
 		config.NotifyEmailTo,
 	)
-	return notifications.New(ctx, logger, mailClient)
+	return notifications.NewDurable(
+		ctx,
+		logger,
+		mailClient,
+		platformrepositories.NewNotificationOutboxRepository(db),
+	)
 }
 
 // newObservabilityClients builds the external observability clients, each
@@ -463,8 +469,13 @@ func startCrossAppJobs(app *Application) error {
 	); err != nil {
 		return err
 	}
-	return app.globalJobQueue.AddJob(
+	if err := app.globalJobQueue.AddJob(
 		observability.NewTrackedJob(app.loginFailurePruneJob, app.db), noopCallback,
+	); err != nil {
+		return err
+	}
+	return app.globalJobQueue.AddJob(
+		observability.NewTrackedJob(app.notifications, app.db), noopCallback,
 	)
 }
 
@@ -508,7 +519,7 @@ func NewApplication(
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 	}
 
-	notificationsSvc := newNotificationsService(ctx, logger, config)
+	notificationsSvc := newNotificationsService(ctx, logger, config, db)
 	familySvc := family.New(
 		familyRepo,
 		authSvc,

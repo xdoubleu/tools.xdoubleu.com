@@ -109,6 +109,19 @@ func TestMain(m *testing.M) {
 			to_user_id TEXT NOT NULL UNIQUE,
 			created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 		)`,
+		`CREATE TABLE IF NOT EXISTS global.notification_outbox (
+			id BIGSERIAL PRIMARY KEY,
+			recipient TEXT NOT NULL DEFAULT '',
+			subject TEXT NOT NULL,
+			body TEXT NOT NULL,
+			status TEXT NOT NULL DEFAULT 'pending'
+				CHECK (status IN ('pending', 'sent', 'failed')),
+			attempts INT NOT NULL DEFAULT 0,
+			next_attempt_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+			last_error TEXT,
+			created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+			finished_at TIMESTAMPTZ
+		)`,
 	}
 	for _, stmt := range stmts {
 		if _, err := postgresDB.Exec(ctx, stmt); err != nil {
