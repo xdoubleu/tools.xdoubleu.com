@@ -184,6 +184,22 @@ describe('SettingsPage', () => {
     expect(await screen.findByText(/current password or code is incorrect/)).toBeInTheDocument()
   })
 
+  it.each([
+    ['too short', 'short', 'Password must be at least 8 characters.'],
+    ['over 72 bytes', 'a'.repeat(73), 'Password must be at most 72 bytes.']
+  ])('rejects a password that is %s', async (_label, value, message) => {
+    mockUpdatePassword.mockClear()
+    render(<SettingsPage />)
+
+    fireEvent.change(screen.getByLabelText('Current password'), { target: { value: 'old-pass' } })
+    fireEvent.change(screen.getByLabelText('New password'), { target: { value } })
+    fireEvent.change(screen.getByLabelText('Confirm new password'), { target: { value } })
+    fireEvent.click(screen.getByRole('button', { name: 'Update password' }))
+
+    expect(await screen.findByText(message)).toBeInTheDocument()
+    expect(mockUpdatePassword).not.toHaveBeenCalled()
+  })
+
   describe('regenerating recovery codes', () => {
     beforeEach(() => {
       mockUseCurrentUser.mockReturnValue({
