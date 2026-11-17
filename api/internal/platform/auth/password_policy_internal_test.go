@@ -11,6 +11,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"tools.xdoubleu.com/internal/config"
 )
 
 func rangeService(url string) *LocalService {
@@ -95,4 +97,33 @@ func TestCheckPasswordBreached_Slow(t *testing.T) {
 
 func TestCheckPasswordBreached_Disabled(t *testing.T) {
 	require.NoError(t, rangeService("").checkPasswordBreached(t.Context(), "password123"))
+}
+
+func TestPwnedURLFor(t *testing.T) {
+	assert.Empty(t, pwnedURLFor(config.TestEnv))
+	assert.Equal(t, defaultRangeEndpoint, pwnedURLFor(config.ProdEnv))
+}
+
+// The breach check runs before any store access, so no store is needed.
+func TestPasswordChangeRejectsBreachedPassword(t *testing.T) {
+	srv := pwnedServer(t, "password123", "9001")
+	service := rangeService(srv.URL + "/range/")
+
+	err := service.UpdatePassword(t.Context(), "unused", "current", "password123")
+	require.ErrorIs(t, err, ErrPasswordBreached)
+
+	err = service.ResetPasswordWithToken(t.Context(), "unused", "password123")
+	require.ErrorIs(t, err, ErrPasswordBreached)
+}
+
+func TestPasswordChangeRejectsBadLength(t *testing.T) {
+	service := rangeService("")
+
+	err := service.UpdatePassword(t.Context(), "unused", "current", "short")
+	require.ErrorIs(t, err, ErrPasswordTooShort)
+
+	err = service.ResetPasswordWithToken(
+		t.Context(), "unused", strings.Repeat("a", 73),
+	)
+	require.ErrorIs(t, err, ErrPasswordTooLong)
 }
