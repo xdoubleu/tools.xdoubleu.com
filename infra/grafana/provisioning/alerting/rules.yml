@@ -641,7 +641,7 @@ groups:
           severity: warning
         annotations:
           summary: A factory job finished without opening a pull request
-          description: "{{ $values.A }} job(s) succeeded in the last day with no PR."
+          description: "{{ $values.A }} non-routine job(s) succeeded in the last 6 hours with no PR. List them on the factory board job list (status succeeded, empty PR)."
         noDataState: OK
         execErrState: Alerting
         data:
@@ -672,7 +672,7 @@ groups:
           severity: warning
         annotations:
           summary: A factory job says its work was not verified or could not run
-          description: "{{ $values.A }} job outcome(s) in the last day admit that."
+          description: "{{ $values.A }} non-routine job outcome(s) in the last 6 hours admit that. Find them on the factory board job list (outcome says not verified / could not run)."
         noDataState: OK
         execErrState: Alerting
         data:

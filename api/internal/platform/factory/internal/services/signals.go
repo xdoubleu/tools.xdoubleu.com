@@ -12,7 +12,7 @@ import (
 
 const (
 	// signalWindow is how far back finished jobs count towards the gauges.
-	signalWindow = 24 * time.Hour
+	signalWindow = 6 * time.Hour
 	// undeployedAfter is how long a merged task may take to go live.
 	undeployedAfter = time.Hour
 	// unmergeableAfter is how long an armed pull request may be unable to merge.
@@ -36,11 +36,11 @@ var (
 	})
 	factoryJobsNoPR = promauto.NewGauge(prometheus.GaugeOpts{
 		Name: "factory_jobs_finished_without_pr",
-		Help: "Jobs that succeeded in the last day without opening a pull request.",
+		Help: "Jobs that succeeded in the last 6 hours without opening a pull request.",
 	})
 	factoryJobsUnverified = promauto.NewGauge(prometheus.GaugeOpts{
 		Name: "factory_jobs_unverified_outcome",
-		Help: "Jobs finished in the last day whose outcome says not verified " +
+		Help: "Jobs finished in the last 6 hours whose outcome says not verified " +
 			"or could not run.",
 	})
 )
