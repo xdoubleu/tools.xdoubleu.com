@@ -106,5 +106,5 @@ The routine's VM has no GitHub credential and pushes nothing
 entry point 1; a red `main` is in scope), work the candidates one at a time in
 this session, and for each file one refined board task through `refine-task`
 (or comment on the existing one): the failing job, root cause and a concrete
-suggested fix; a flake says so. Never push, branch or open a PR. The outcome
+suggested fix; a flake says so. No MCP tool returns job logs yet, so a diagnosis from the failing check names alone is marked unconfirmed in the task. Never push, branch or open a PR. The outcome
 file's first line is the one-line summary.
