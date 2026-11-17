@@ -65,3 +65,20 @@ func TestABlockedLineWithTheSameCauseReusesTheOpenSandboxTask(t *testing.T) {
 	require.Len(t, found, 1)
 	assert.Len(t, env.task(t, found[0].Id).Comments, 2)
 }
+
+func TestAWaitingOnJobNamingItsOwnTaskDoesNotParkIt(t *testing.T) {
+	env, _ := accountsEnv(t)
+	task := env.newTask(t, "work "+uuid.NewString())
+	env.run(t, task.Id)
+	claimed := env.claim(t)
+	_, err := env.runner.CompleteJob(bearer(env.token), &factoryv1.CompleteJobRequest{
+		JobId: claimed.Id, WaitingOn: []string{task.Id},
+	})
+	require.NoError(t, err)
+
+	got := env.task(t, task.Id)
+	assert.NotEqual(t, factoryv1.TaskStatus_TASK_STATUS_BACKLOG, got.Task.Status)
+	for _, c := range got.Comments {
+		assert.NotContains(t, c.Body, "moved to Backlog")
+	}
+}
