@@ -159,7 +159,10 @@ func (app *Application) middleware() alice.Chain {
 	}
 
 	handlers = append(
-		handlers, securityHeadersMiddleware, middleware.MaxBodyBytes(maxRequestBodyBytes),
+		handlers,
+		securityHeadersMiddleware,
+		originCheckMiddleware(allowedOrigins),
+		middleware.MaxBodyBytes(maxRequestBodyBytes),
 	)
 	// usageMiddleware runs after domainMiddleware so custom-domain requests
 	// are already rewritten to /<app>/… before their labels are derived.
