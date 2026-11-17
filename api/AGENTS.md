@@ -99,6 +99,7 @@ Apps opt in via `MCPToolProvider` (`cmd/api/apps.go`) in `apps/<name>/mcp.go`; s
 - Config: repo-root `.golangci.yml` (shared with `kobo-gateway/`). Limits: line length 88, `gci` order standard → default → `prefix(tools.xdoubleu.com)`, `funlen` 100 lines/50 statements, `cyclop` 30. `nolintlint` requires a reason except for `funlen`/`gocognit`/`lll`.
 - `depguard`: `apps/<name>/internal/...` is app-private; services can't import Connect, repositories `net/http`.
 - Run `make lint/fix` last; `GOLANGCI_LINT_CACHE` is per-checkout.
+- **CodeQL** runs only in CI, not in the sandbox, and agents can't dismiss alerts. Any SHA-1/MD5 near password data (e.g. the HIBP range key in `rangeDigest`) is flagged as "sensitive data hashed with weak algorithm", and renaming parameters won't clear it. Avoid new uses; if one is protocol-mandated, comment why and file a board task asking the owner to dismiss the alert as a false positive rather than iterating on fixes.
 
 ## Testing
 
