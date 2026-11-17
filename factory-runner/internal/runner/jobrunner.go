@@ -131,9 +131,14 @@ const preamble = `You are running unattended in a sandbox with no network ` +
 	`would carry its files), commit a change ` +
 	`to factory-runner/Containerfile only, pinning every install to an ` +
 	`explicit version (apt pkg=ver, npm name@x.y.z, pip name==x.y.z, or a ` +
-	`versioned download URL), switch back to your job branch, and add the ` +
+	`versioned download URL; every package of an install you edit, ` +
+	`ca-certificates too). Only these instructions are allowed: FROM (pinned ` +
+	`tag), ARG, ENV, LABEL, WORKDIR, USER, EXPOSE, CMD, ENTRYPOINT and RUN; ` +
+	`COPY and ADD are refused. Switch back to your job branch, and add the ` +
 	`line "Sandbox-fix: agent/sandbox-<slug>" to the outcome. The runner ` +
-	`opens that as its own pull request and refuses any other change. ` +
+	`opens that as its own pull request and refuses any other change; a ` +
+	`refused fix comes back to you with the reason. When the fix is the whole ` +
+	`task, the job branch needs no commit of its own. ` +
 	`For a task labelled feature, also run the feature-review gate ` +
 	`(docs/convention-feature-review-policy.md): diff-scoped mutation tests ` +
 	`and a code review with findings applied, then add the line ` +
@@ -604,7 +609,7 @@ func (r *JobRunner) execute(ctx context.Context, job *ClaimedJob) result {
 		session: nil, limit: r.limitFor(job), token: "", tokenAt: time.Time{},
 		times:   phaseTimes{agent: 0, gates: 0, publish: 0, ci: 0, merge: 0, retries: nil},
 		greenAt: time.Time{}, began: time.Time{}, causes: nil,
-		sandboxFixed: false,
+		sandboxFixed: false, sandboxOpened: false,
 	}
 	var res result
 	if prompt, ok := routinePrompt(job.Routine); ok {
