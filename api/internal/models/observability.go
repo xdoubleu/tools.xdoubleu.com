@@ -83,3 +83,20 @@ type TransactionTrend struct {
 	RecentAvgP95Ms float64
 	PctChange      float64
 }
+
+// OutboxMessage is one queued notification in global.notification_outbox.
+type OutboxMessage struct {
+	ID int64
+	// To is empty for the fixed recipient configured on the mailer.
+	To      string
+	Subject string
+	Body    string
+	// Attempts counts sends started, including the current one.
+	Attempts int
+}
+
+// OutboxDepth counts outbox rows by state.
+type OutboxDepth struct {
+	Pending int
+	Failed  int
+}
