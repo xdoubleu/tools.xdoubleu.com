@@ -352,8 +352,15 @@ func TestStore_RotateRefreshToken(t *testing.T) {
 	_, err = store.GetRefreshTokenSession(ctx, signature, &fakeSession{})
 	require.ErrorIs(t, err, fosite.ErrInactiveToken)
 
-	// A signature not matching requestID is a silent no-op.
-	require.NoError(t, store.RotateRefreshToken(ctx, "does-not-exist", signature))
+	// A replay past the grace period is reuse.
+	require.ErrorIs(
+		t, store.RotateRefreshToken(ctx, requestID, signature), fosite.ErrInactiveToken,
+	)
+
+	// A signature not matching requestID is not found.
+	require.ErrorIs(
+		t, store.RotateRefreshToken(ctx, "does-not-exist", signature), fosite.ErrNotFound,
+	)
 }
 
 func TestStore_RefreshTokenSession_ReuseGracePeriod(t *testing.T) {
@@ -447,8 +454,58 @@ func TestStore_ClientAssertionJWT_Stubs(t *testing.T) {
 	store, _ := newTestStore(t)
 	ctx := context.Background()
 
-	require.NoError(t, store.ClientAssertionJWTValid(ctx, "any-jti"))
-	require.NoError(t, store.SetClientAssertionJWT(ctx, "any-jti", time.Now()))
+	require.NoError(t, store.ClientAssertionJWTValid(ctx, "client", "any-jti"))
+	require.NoError(t, store.SetClientAssertionJWT(ctx, "client", "any-jti", time.Now()))
+}
+
+func TestStore_UsedValues(t *testing.T) {
+	store, _ := newTestStore(t)
+	ctx := context.Background()
+	exp := time.Now().Add(time.Minute)
+	challenge := uuid.NewString()
+	nonce := uuid.NewString()
+
+	require.NoError(t, store.SetPKCEChallengeUsed(ctx, "c1", challenge, exp))
+	require.ErrorIs(
+		t, store.SetPKCEChallengeUsed(ctx, "c1", challenge, exp),
+		fosite.ErrPKCEChallengeReused,
+	)
+	require.NoError(t, store.SetPKCEChallengeUsed(ctx, "c2", challenge, exp))
+
+	require.NoError(t, store.SetOpenIDConnectNonceUsed(ctx, "c1", nonce, exp))
+	require.ErrorIs(
+		t, store.SetOpenIDConnectNonceUsed(ctx, "c1", nonce, exp),
+		fosite.ErrOpenIDConnectNonceReused,
+	)
+
+	expired := uuid.NewString()
+	require.NoError(
+		t, store.SetPKCEChallengeUsed(ctx, "c1", expired, time.Now().Add(-time.Second)),
+	)
+	require.NoError(t, store.SetPKCEChallengeUsed(ctx, "c1", expired, exp))
+}
+
+func TestStore_UpdateRefreshTokenSession(t *testing.T) {
+	store, db := newTestStore(t)
+	ctx := context.Background()
+
+	//nolint:exhaustruct //ClientName is optional
+	client, err := oauth2as.RegisterClient(ctx, db, oauth2as.ClientMetadata{
+		RedirectURIs: []string{"https://example.com/callback"},
+	})
+	require.NoError(t, err)
+
+	requestID := uuid.NewString()
+	request := newTestRequest(t, client, requestID)
+	signature := uuid.NewString()
+	require.NoError(
+		t, store.CreateRefreshTokenSession(ctx, signature, "access-sig", request),
+	)
+
+	require.NoError(t, store.UpdateRefreshTokenSession(ctx, signature, request))
+	require.ErrorIs(
+		t, store.UpdateRefreshTokenSession(ctx, "missing", request), fosite.ErrNotFound,
+	)
 }
 
 func TestStore_ClientRegistrationManager_Refuses(t *testing.T) {

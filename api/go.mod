@@ -3,7 +3,8 @@ module tools.xdoubleu.com
 go 1.27.4
 
 require (
-	authelia.com/provider/oauth2 v0.3.3
+	authelia.com/provider/jose v0.2.1
+	authelia.com/provider/oauth2 v0.4.3
 	codeberg.org/readeck/go-readability/v2 v2.1.3
 	connectrpc.com/connect/v2 v2.0.2
 	github.com/aws/aws-sdk-go-v2 v1.48.0
@@ -55,6 +56,7 @@ require (
 	github.com/boombuler/barcode v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/dgraph-io/ristretto v0.2.0 // indirect
+	github.com/dgraph-io/ristretto/v2 v2.4.2 // indirect
 	github.com/dustin/go-humanize v1.1.0 // indirect
 	github.com/go-shiori/dom v0.0.0-20230515143342-73569d674e1c // indirect
 	github.com/gogs/chardet v0.0.0-20211120154057-b7413eaefb8f // indirect
