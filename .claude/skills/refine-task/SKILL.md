@@ -46,7 +46,8 @@ Labels, scopes and the priority rule live in `.claude/github-triage.config.json`
    - `priority`: `p0`, `p1` or `p2` by the config's `priorityRule`. When
      ambiguous take the lower one and add the label `needs-priority-review`.
    - `labels`: one type, one scope (the config's `fallbackScope` if unsure), plus
-     any the caller names (`routine-feedback`, `posthog-provisional`). At most 10.
+     any the caller names (`routine-feedback`, `routine-found`,
+     `posthog-provisional`). At most 10.
 5. **Don't move a task into Ready** unless the owner told you to (`bug` and `factory-retro` tasks start there already); agents may, and the actor is recorded ([convention-unattended-agent-trust](../../../docs/convention-unattended-agent-trust.md)).
    Don't move one out of Backlog either unless your skill says so.
 6. **Report** the task title and id, and whether it was created or commented on.
