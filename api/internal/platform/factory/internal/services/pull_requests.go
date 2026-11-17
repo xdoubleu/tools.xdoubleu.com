@@ -72,7 +72,9 @@ func (s *JobService) mergedLinked(ctx context.Context) (int, error) {
 	var failures []error
 	moved := 0
 	for i := range repos {
-		pulls, listErr := s.github.MergedPullRequests(ctx, repos[i].Owner, repos[i].Name)
+		pulls, listErr := skipNotInstalled(
+			s.github.MergedPullRequests(ctx, repos[i].Owner, repos[i].Name),
+		)
 		if listErr != nil {
 			failures = append(failures, fmt.Errorf("repo %s: %w", repos[i].Name, listErr))
 			continue
@@ -90,6 +92,15 @@ func (s *JobService) mergedLinked(ctx context.Context) (int, error) {
 		}
 	}
 	return moved, errors.Join(failures...)
+}
+
+// skipNotInstalled turns "the App is not installed on the repo" into an empty
+// listing: a repo it cannot reach is not a failure of the poll over the others.
+func skipNotInstalled[T any](pulls []T, err error) ([]T, error) {
+	if errors.Is(err, githubapp.ErrNotInstalled) {
+		return nil, nil
+	}
+	return pulls, err
 }
 
 // PullRequestRef is what a pull request offers to link tasks from.
@@ -379,7 +390,9 @@ func (s *JobService) syncLinked(ctx context.Context) error {
 	var failures []error
 	seen := map[string]bool{}
 	for i := range repos {
-		pulls, listErr := s.github.OpenPullRequests(ctx, repos[i].Owner, repos[i].Name)
+		pulls, listErr := skipNotInstalled(
+			s.github.OpenPullRequests(ctx, repos[i].Owner, repos[i].Name),
+		)
 		if listErr != nil {
 			failures = append(failures, fmt.Errorf("repo %s: %w", repos[i].Name, listErr))
 			continue
