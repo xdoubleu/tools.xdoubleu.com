@@ -16,8 +16,11 @@ ARG PLAYWRIGHT_VERSION=1.65.0
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         ca-certificates curl git jq make postgresql postgresql-client python3 python3-venv \
-        ruby ruby-bundler=2.4.20-2 \
+        ruby \
     && rm -rf /var/lib/apt/lists/*
+
+# bookworm has no apt bundler; `bundle update` needs it (gems come through the proxy).
+RUN gem install --no-document bundler -v 2.4.22
 
 # sqlfluff for `make lint/sql` and `make lint/migrations`; Chromium and its OS
 # libraries for mobile-review (root-owned, world-readable, as the job user is not root).
