@@ -24,6 +24,7 @@ const (
 	postHogURL    = "https://mcp.posthog.com/mcp"
 	goProxyURL    = "https://proxy.golang.org"
 	npmURL        = "https://registry.npmjs.org"
+	rubyGemsURL   = "https://rubygems.org"
 
 	maxProxyBody      = 64 << 20
 	proxyHeaderWait   = 15 * time.Second
@@ -52,6 +53,7 @@ type EgressConfig struct {
 	PostHog    string
 	GoProxy    string
 	NPM        string
+	RubyGems   string
 	Log        *slog.Logger
 }
 
@@ -146,6 +148,7 @@ func NewEgressProxy(cfg EgressConfig) (*EgressProxy, error) {
 	for _, reg := range []struct{ name, prefix, base string }{
 		{"goproxy", "/goproxy/", orDefault(cfg.GoProxy, goProxyURL)},
 		{"npm", "/npm/", orDefault(cfg.NPM, npmURL)},
+		{"rubygems", "/rubygems/", orDefault(cfg.RubyGems, rubyGemsURL)},
 	} {
 		if err := add(reg.name, reg.prefix, false, reg.base, nil, nil); err != nil {
 			return nil, err

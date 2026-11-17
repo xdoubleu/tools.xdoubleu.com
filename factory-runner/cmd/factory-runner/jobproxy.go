@@ -46,7 +46,7 @@ func newJobProxy(
 		MCPToken:      nil,
 		MCPRejected:   nil,
 		Anthropic:     "",
-		OpenRouter:    "", PostHog: "", GoProxy: "", NPM: "",
+		OpenRouter:    "", PostHog: "", GoProxy: "", NPM: "", RubyGems: "",
 		Log: log,
 	}
 	if job.MCPClientID != "" && job.MCPClientSecret != "" {

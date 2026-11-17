@@ -19,6 +19,9 @@ RUN apt-get update \
         ruby \
     && rm -rf /var/lib/apt/lists/*
 
+# bookworm has no apt bundler; `bundle update` needs it (gems come through the proxy).
+RUN gem install --no-document bundler -v 2.4.22
+
 # sqlfluff for `make lint/sql` and `make lint/migrations`; Chromium and its OS
 # libraries for mobile-review (root-owned, world-readable, as the job user is not root).
 ENV PLAYWRIGHT_BROWSERS_PATH=/opt/ms-playwright
