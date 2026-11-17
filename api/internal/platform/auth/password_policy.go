@@ -52,19 +52,18 @@ func checkPasswordLength(password string) error {
 	return nil
 }
 
-// checkPasswordBreached asks the range API whether password is known breached.
+// checkPasswordBreached asks the range API whether candidate is known breached.
 // Only the first five hex characters of its SHA-1 leave the server. An
 // unreachable or slow API allows the password.
 func (service *LocalService) checkPasswordBreached(
 	ctx context.Context,
-	password string,
+	candidate string,
 ) error {
 	if service.PwnedRangeURL == "" {
 		return nil
 	}
 
-	sum := sha1.Sum([]byte(password)) //nolint:gosec //see import
-	digest := strings.ToUpper(hex.EncodeToString(sum[:]))
+	digest := rangeDigest(candidate)
 	prefix, suffix := digest[:pwnedPrefixLen], digest[pwnedPrefixLen:]
 
 	breached, err := service.pwnedHasSuffix(ctx, prefix, suffix)
@@ -76,6 +75,14 @@ func (service *LocalService) checkPasswordBreached(
 		return ErrPasswordBreached
 	}
 	return nil
+}
+
+// rangeDigest is the uppercase SHA-1 hex the range API is keyed by. The
+// protocol mandates it; it is a lookup key, not password storage (bcrypt).
+func rangeDigest(candidate string) string {
+	hasher := sha1.New() //nolint:gosec //see import
+	_, _ = io.WriteString(hasher, candidate)
+	return strings.ToUpper(hex.EncodeToString(hasher.Sum(nil)))
 }
 
 func (service *LocalService) pwnedHasSuffix(
