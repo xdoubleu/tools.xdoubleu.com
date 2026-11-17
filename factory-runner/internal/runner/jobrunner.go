@@ -146,6 +146,10 @@ const preamble = `You are running unattended in a sandbox with no network ` +
 	`done with factory_move_task, and end the outcome with one line ` +
 	`"Already-fixed: <evidence>" instead of a Checks: line; no gate runs ` +
 	`and no pull request opens. ` +
+	`A task labelled spike (or one whose deliverable is a board comment) ` +
+	`still needs a commit, or the runner refuses the branch: record the ` +
+	`result in a docs ADR (see AGENTS.md) and commit it, and post the ` +
+	`comment as well. ` +
 	`Nobody can answer questions while you run.`
 
 // JobRunner claims jobs from the server and runs each one in a sandbox.
