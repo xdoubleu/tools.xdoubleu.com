@@ -32,6 +32,8 @@ type Client interface {
 	ListWorkflowRuns(ctx context.Context) ([]WorkflowRun, error)
 	// ListWorkflowRunJobs returns a workflow run's jobs.
 	ListWorkflowRunJobs(ctx context.Context, runID int64) ([]WorkflowJob, error)
+	// GetJobLogs returns one job's full plain-text log.
+	GetJobLogs(ctx context.Context, jobID int64) (string, error)
 	// DismissSecurityAlert dismisses one alert; reason must be valid for alertType
 	// (ErrInvalidDismissReason otherwise).
 	DismissSecurityAlert(

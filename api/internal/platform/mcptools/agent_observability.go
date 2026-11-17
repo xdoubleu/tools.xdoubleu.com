@@ -24,7 +24,8 @@ var agentObservabilityTools = []string{
 	"get_oauth_connections", "get_project_issues_by_status",
 	"get_security_alerts", "get_sentry_issue_event", "get_sentry_issues",
 	"get_slow_transactions", "get_storage_stats", "get_usage_stats",
-	"get_workflow_runs", "prom_query", "resolve_sentry_issue",
+	"get_workflow_run_logs", "get_workflow_runs", "prom_query",
+	"resolve_sentry_issue",
 }
 
 // agentMayObserve reports whether an agent holding apps may call the tool.

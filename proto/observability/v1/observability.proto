@@ -13,6 +13,8 @@ service ObservabilityService {
   rpc GetFailingPullRequests(GetFailingPullRequestsRequest)
       returns (GetFailingPullRequestsResponse);
   rpc GetWorkflowRuns(GetWorkflowRunsRequest) returns (GetWorkflowRunsResponse);
+  rpc GetWorkflowRunLogs(GetWorkflowRunLogsRequest)
+      returns (GetWorkflowRunLogsResponse);
   rpc GetSecurityAlerts(GetSecurityAlertsRequest)
       returns (GetSecurityAlertsResponse);
   rpc DismissSecurityAlert(DismissSecurityAlertRequest)
@@ -200,7 +202,7 @@ message GetProjectIssuesByStatusResponse {
 
 // WorkflowRun is one GitHub Actions run from a PR or a default-branch push.
 // duration_ms is zero until completed. failed_jobs is populated only for
-// failed pushes to main.
+// failed PR runs and failed pushes to main.
 message WorkflowRun {
   int64 id = 1;
   string name = 2;
@@ -221,6 +223,32 @@ message GetWorkflowRunsRequest {}
 message GetWorkflowRunsResponse {
   repeated WorkflowRun runs = 1;
   bool configured = 2;
+}
+
+// GetWorkflowRunLogsRequest names a run by run_id or by pr_number (the PR's
+// failed runs); job narrows to jobs whose name contains it, case-insensitively.
+message GetWorkflowRunLogsRequest {
+  int64 run_id = 1;
+  int32 pr_number = 2;
+  string job = 3;
+}
+
+// WorkflowJobLog is the tail of one failed job's log, ANSI-stripped.
+// truncated means earlier lines were dropped.
+message WorkflowJobLog {
+  int64 run_id = 1;
+  string job = 2;
+  string conclusion = 3;
+  string log = 4;
+  bool truncated = 5;
+}
+
+// GetWorkflowRunLogsResponse: configured is false without a GitHub token/repo.
+// error is set when some job logs could not be fetched.
+message GetWorkflowRunLogsResponse {
+  repeated WorkflowJobLog jobs = 1;
+  bool configured = 2;
+  string error = 3;
 }
 
 enum SecurityAlertType {

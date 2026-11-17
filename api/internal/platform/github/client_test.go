@@ -625,3 +625,45 @@ func jsonHandler(status int, body string) http.Handler {
 		_, _ = w.Write([]byte(body))
 	})
 }
+
+func TestGetJobLogs_ReturnsPlainText(t *testing.T) {
+	var path string
+	cleanup := buildServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			path = r.URL.Path
+			_, _ = w.Write([]byte("line1\nFAIL\n"))
+		}))
+	defer cleanup()
+
+	text, err := newClient().GetJobLogs(context.Background(), 77)
+	require.NoError(t, err)
+	assert.Equal(t, "line1\nFAIL\n", text)
+	assert.Contains(t, path, "/actions/jobs/77/logs")
+}
+
+func TestGetJobLogs_AccessDenied(t *testing.T) {
+	cleanup := buildServer(jsonHandler(http.StatusForbidden, `{"message":"no"}`))
+	defer cleanup()
+
+	_, err := newClient().GetJobLogs(context.Background(), 1)
+	require.ErrorIs(t, err, github.ErrAccessDenied)
+}
+
+func TestGetJobLogs_NotConfigured_NoConnection(t *testing.T) {
+	c := github.New(logging.NewNopLogger(), stubToken("unused"), configNotConnected())
+	_, err := c.GetJobLogs(context.Background(), 1)
+	require.ErrorIs(t, err, github.ErrNotConfigured)
+}
+
+func TestListWorkflowRuns_ReportsPullRequestNumber(t *testing.T) {
+	cleanup := buildServer(jsonHandler(http.StatusOK, `{"workflow_runs":[
+		{"id":1,"event":"pull_request","status":"completed","conclusion":"failure",
+		 "pull_requests":[{"number":42}],"run_started_at":"2026-07-01T10:00:00Z"}
+	]}`))
+	defer cleanup()
+
+	runs, err := newClient().ListWorkflowRuns(context.Background())
+	require.NoError(t, err)
+	require.NotEmpty(t, runs)
+	assert.Equal(t, int64(42), runs[0].PRNumber)
+}

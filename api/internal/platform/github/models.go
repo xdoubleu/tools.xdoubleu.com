@@ -175,6 +175,7 @@ type WorkflowRun struct {
 	URL        string
 	StartedAt  time.Time
 	DurationMs int64
+	PRNumber   int64 // zero unless a pull_request run
 }
 
 type workflowRunsWire struct {
@@ -191,10 +192,14 @@ type workflowRunWire struct {
 	HTMLURL      string    `json:"html_url"`
 	RunStartedAt time.Time `json:"run_started_at"`
 	UpdatedAt    time.Time `json:"updated_at"`
+	PullRequests []struct {
+		Number int64 `json:"number"`
+	} `json:"pull_requests"`
 }
 
 // WorkflowJob is a job in a workflow run; DurationMs is zero until completed.
 type WorkflowJob struct {
+	ID          int64
 	Name        string
 	Status      string
 	Conclusion  string
@@ -208,6 +213,7 @@ type workflowJobsWire struct {
 }
 
 type workflowJobWire struct {
+	ID          int64     `json:"id"`
 	Name        string    `json:"name"`
 	Status      string    `json:"status"`
 	Conclusion  string    `json:"conclusion"`
