@@ -139,8 +139,14 @@ func (r *JobsRepository) Claim(
 			status = 'running', started_at = now(), last_check_in = now(),
 			runner_id = $1, harness = $2, model = $3
 		WHERE id = (
-			SELECT id FROM factory.jobs WHERE status = 'queued'
-			ORDER BY created_at, id LIMIT 1 FOR UPDATE SKIP LOCKED
+			SELECT j.id FROM factory.jobs j WHERE j.status = 'queued'
+				AND EXISTS (
+					SELECT 1 FROM factory.repos rp, factory.runners rn
+					WHERE rp.id = j.repo_id AND rn.id = $1
+						AND (rn.repos IS NULL OR lower(rp.owner || '/' || rp.name) = ANY(
+							SELECT lower(x) FROM unnest(rn.repos) x))
+				)
+			ORDER BY j.created_at, j.id LIMIT 1 FOR UPDATE SKIP LOCKED
 		)
 		RETURNING `+jobColumns, runnerID, harness, model))
 	if err != nil {

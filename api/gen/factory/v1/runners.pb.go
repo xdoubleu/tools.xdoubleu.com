@@ -509,8 +509,13 @@ func (x *PairResponse) GetRunnerName() string {
 }
 
 type HeartbeatRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Version       string                 `protobuf:"bytes,1,opt,name=version,proto3" json:"version,omitempty"`
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Version string                 `protobuf:"bytes,1,opt,name=version,proto3" json:"version,omitempty"`
+	// The runner's local repo allowlist ("owner/name"), which the server can't
+	// change. Meaningful only with repos_reported, so an older runner's silence
+	// isn't read as an empty list.
+	Repos         []string `protobuf:"bytes,2,rep,name=repos,proto3" json:"repos,omitempty"`
+	ReposReported bool     `protobuf:"varint,3,opt,name=repos_reported,json=reposReported,proto3" json:"repos_reported,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -550,6 +555,20 @@ func (x *HeartbeatRequest) GetVersion() string {
 		return x.Version
 	}
 	return ""
+}
+
+func (x *HeartbeatRequest) GetRepos() []string {
+	if x != nil {
+		return x.Repos
+	}
+	return nil
+}
+
+func (x *HeartbeatRequest) GetReposReported() bool {
+	if x != nil {
+		return x.ReposReported
+	}
+	return false
 }
 
 type HeartbeatResponse struct {
@@ -1680,9 +1699,11 @@ const file_factory_v1_runners_proto_rawDesc = "" +
 	"\fPairResponse\x12!\n" +
 	"\fdevice_token\x18\x01 \x01(\tR\vdeviceToken\x12\x1f\n" +
 	"\vrunner_name\x18\x02 \x01(\tR\n" +
-	"runnerName\",\n" +
+	"runnerName\"i\n" +
 	"\x10HeartbeatRequest\x12\x18\n" +
-	"\aversion\x18\x01 \x01(\tR\aversion\"4\n" +
+	"\aversion\x18\x01 \x01(\tR\aversion\x12\x14\n" +
+	"\x05repos\x18\x02 \x03(\tR\x05repos\x12%\n" +
+	"\x0erepos_reported\x18\x03 \x01(\bR\rreposReported\"4\n" +
 	"\x11HeartbeatResponse\x12\x1f\n" +
 	"\vqueued_jobs\x18\x01 \x01(\x05R\n" +
 	"queuedJobs\"\xbe\x03\n" +

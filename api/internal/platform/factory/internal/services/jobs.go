@@ -551,6 +551,8 @@ const autoPickupAuthor = "system:auto-pickup"
 // then, not the task's current text. The runner calling Claim is the online runner
 // the job is for.
 func (s *JobService) pickUp(ctx context.Context) error {
+	// Best effort: the next claim looks again.
+	_ = s.tasks.NoteAutoPickupOff(ctx)
 	next, err := s.tasks.NextReady(ctx)
 	if errors.Is(err, database.ErrResourceNotFound) {
 		return nil

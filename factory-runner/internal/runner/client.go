@@ -44,6 +44,9 @@ type Client struct {
 	BaseURL string
 	HTTP    *http.Client
 	Version string
+	// Repos reads the local allowlist the heartbeat reports, so the board can show
+	// which runners allow a repo. The server can't change it; nil reports nothing.
+	Repos func() []string
 
 	queued atomic.Int32
 }
@@ -54,6 +57,7 @@ func NewClient(server, version string) *Client {
 		BaseURL: strings.TrimRight(server, "/"),
 		HTTP:    http.DefaultClient,
 		Version: version,
+		Repos:   nil,
 		queued:  atomic.Int32{},
 	}
 }
@@ -73,7 +77,9 @@ type heartbeatResponse struct {
 }
 
 type heartbeatRequest struct {
-	Version string `json:"version"`
+	Version       string   `json:"version"`
+	Repos         []string `json:"repos,omitempty"`
+	ReposReported bool     `json:"reposReported,omitempty"`
 }
 
 // Pair trades a pairing code for the device token and the runner's name.
@@ -100,8 +106,11 @@ func (c *Client) Pair(ctx context.Context, code string) (string, string, error) 
 // 20 seconds before answering.
 func (c *Client) Heartbeat(ctx context.Context, token string) error {
 	var resp heartbeatResponse
-	err := c.call(ctx, "Heartbeat", token, heartbeatTimeout,
-		heartbeatRequest{Version: c.Version}, &resp)
+	req := heartbeatRequest{Version: c.Version, Repos: nil, ReposReported: false}
+	if c.Repos != nil {
+		req.Repos, req.ReposReported = c.Repos(), true
+	}
+	err := c.call(ctx, "Heartbeat", token, heartbeatTimeout, req, &resp)
 	if err == nil {
 		n := min(max(resp.QueuedJobs, 0), math.MaxInt32)
 		c.queued.Store(int32(n))

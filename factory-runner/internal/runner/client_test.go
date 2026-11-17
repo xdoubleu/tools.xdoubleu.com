@@ -102,3 +102,20 @@ func TestHeartbeatKeepsTheQueuedCountTheServerReports(t *testing.T) {
 	require.NoError(t, c.Heartbeat(context.Background(), "frt_x"))
 	assert.Equal(t, 3, c.Queued())
 }
+
+func TestHeartbeatReportsTheLocalAllowlist(t *testing.T) {
+	var got string
+	c := serve(t, func(w http.ResponseWriter, r *http.Request) {
+		body := make([]byte, 300)
+		n, _ := r.Body.Read(body)
+		got = string(body[:n])
+		_, _ = w.Write([]byte(`{}`))
+	})
+	c.Repos = func() []string { return []string{"a/b"} }
+	require.NoError(t, c.Heartbeat(context.Background(), "frt_x"))
+	assert.JSONEq(t, `{"version":"1.2.3","repos":["a/b"],"reposReported":true}`, got)
+
+	c.Repos = func() []string { return nil }
+	require.NoError(t, c.Heartbeat(context.Background(), "frt_x"))
+	assert.JSONEq(t, `{"version":"1.2.3","reposReported":true}`, got)
+}

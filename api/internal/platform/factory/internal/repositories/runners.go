@@ -82,16 +82,23 @@ func (r *RunnersRepository) ByToken(
 }
 
 // Touch records that the runner was heard from; a runner revoked meanwhile is
-// not found. An empty version keeps the last one.
+// not found. An empty version keeps the last one; the repo allowlist is replaced
+// only when the runner reported one.
 func (r *RunnersRepository) Touch(
 	ctx context.Context,
 	id uuid.UUID,
 	version string,
+	repos []string,
+	reported bool,
 ) error {
+	if repos == nil {
+		repos = []string{}
+	}
 	tag, err := r.db.Exec(ctx, `
 		UPDATE factory.runners
-		SET last_seen = now(), version = COALESCE(NULLIF($2, ''), version)
-		WHERE id = $1 AND revoked_at IS NULL`, id, version)
+		SET last_seen = now(), version = COALESCE(NULLIF($2, ''), version),
+			repos = CASE WHEN $4 THEN $3::text[] ELSE repos END
+		WHERE id = $1 AND revoked_at IS NULL`, id, version, repos, reported)
 	if err != nil {
 		return err
 	}
@@ -99,6 +106,28 @@ func (r *RunnersRepository) Touch(
 		return postgres.PgxErrorToHTTPError(pgx.ErrNoRows)
 	}
 	return nil
+}
+
+// RepoAllowed reports whether an online runner allows the repo ("owner/name"). A
+// runner that never reported an allowlist is assumed to allow every repo.
+func (r *RunnersRepository) RepoAllowed(
+	ctx context.Context,
+	repo string,
+) (bool, error) {
+	return repoAllowed(ctx, r.db, repo)
+}
+
+func repoAllowed(ctx context.Context, db postgres.DB, repo string) (bool, error) {
+	var ok bool
+	err := db.QueryRow(ctx, `
+		SELECT EXISTS (
+			SELECT 1 FROM factory.runners
+			WHERE paired_at IS NOT NULL AND revoked_at IS NULL
+				AND last_seen > now() - make_interval(secs => $2)
+				AND (repos IS NULL OR lower($1) = ANY(
+					SELECT lower(x) FROM unnest(repos) x))
+		)`, repo, models.OnlineWindow.Seconds()).Scan(&ok)
+	return ok, postgres.PgxErrorToHTTPError(err)
 }
 
 // SetMaxJobs records how many jobs the runner runs at once.
