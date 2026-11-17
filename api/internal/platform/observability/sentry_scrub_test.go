@@ -37,3 +37,21 @@ func TestScrubSentryEvent_NoRequest(t *testing.T) {
 	event := &sentry.Event{Transaction: "GET /health"} //nolint:exhaustruct // no request
 	assert.Equal(t, "GET /health", observability.ScrubSentryEvent(event, nil).Transaction)
 }
+
+func TestScrubSentryEvent_DropsSpansOfPollPullRequests(t *testing.T) {
+	//nolint:exhaustruct // description only
+	span := &sentry.Span{Description: "GET github"}
+	//nolint:exhaustruct // only the scrubbed fields matter
+	poll := &sentry.Event{
+		Transaction: "factory-poll-pull-requests",
+		Spans:       []*sentry.Span{span},
+	}
+	assert.Empty(t, observability.ScrubSentryEvent(poll, nil).Spans)
+
+	//nolint:exhaustruct // only the scrubbed fields matter
+	other := &sentry.Event{
+		Transaction: "other-job",
+		Spans:       []*sentry.Span{span},
+	}
+	assert.Len(t, observability.ScrubSentryEvent(other, nil).Spans, 1)
+}
