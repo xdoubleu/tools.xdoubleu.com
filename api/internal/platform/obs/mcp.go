@@ -29,6 +29,15 @@ type repoArgs struct {
 	Repo string `json:"repo,omitempty" jsonschema:"owner/name of a repo; omit for all"`
 }
 
+// workflowRunLogsArgs is the input for get_workflow_run_logs.
+type workflowRunLogsArgs struct {
+	RunID int64 `json:"run_id,omitempty"    jsonschema:"run id, from get_workflow_runs"`
+	//nolint:lll // jsonschema description
+	PRNumber int64 `json:"pr_number,omitempty" jsonschema:"PR number, used when run_id is omitted"`
+	//nolint:lll // jsonschema description
+	Job string `json:"job,omitempty"       jsonschema:"only jobs whose name contains this, case-insensitive"`
+}
+
 // getSentryIssueEventArgs is the input for get_sentry_issue_event.
 type getSentryIssueEventArgs struct {
 	IssueID string `json:"issue_id" jsonschema:"Sentry issue ID, from get_sentry_issues"`
@@ -109,6 +118,13 @@ func RegisterMCPTools(srv *mcp.Server, deps *Deps) {
 			"runs, with duration for each completed run.",
 		func(ctx context.Context, _ NoArgs) (proto.Message, error) {
 			return h.workflowRuns(ctx), nil
+		})
+	addObsToolWithDefaults(srv, "get_workflow_run_logs",
+		"Tail of the log of each failed job in a workflow run (run_id) or in "+
+			"a pull request's failed runs (pr_number), ANSI-stripped and "+
+			"size-capped; job filters by name. Use it to see why CI failed.",
+		func(ctx context.Context, a workflowRunLogsArgs) (proto.Message, error) {
+			return h.workflowRunLogs(ctx, a.RunID, a.PRNumber, a.Job)
 		})
 	addObsToolWithDefaults(srv, "get_security_alerts",
 		"Open GitHub security alerts: Dependabot (dependencies), code "+

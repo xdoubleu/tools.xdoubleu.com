@@ -102,9 +102,9 @@ Per PR, as in step 2:
 
 The routine's VM has no GitHub credential and pushes nothing
 ([adr-0052](../../../docs/adr-0052-factory-scheduled-routines.md)). Use
-`get_failing_pull_requests` and `get_workflow_runs` (scope and trust rules of
+`get_failing_pull_requests`, `get_workflow_runs` and `get_workflow_run_logs` (scope and trust rules of
 entry point 1; a red `main` is in scope), work the candidates one at a time in
 this session, and for each file one refined board task through `refine-task`
 (or comment on the existing one): the failing job, root cause and a concrete
-suggested fix; a flake says so. No MCP tool returns job logs yet, so a diagnosis from the failing check names alone is marked unconfirmed in the task. Never push, branch or open a PR. The outcome
+suggested fix; a flake says so. Read the failing job's log with `get_workflow_run_logs` (`pr_number` or `run_id`, optional `job`); only a diagnosis without a log is marked unconfirmed in the task. Never push, branch or open a PR. The outcome
 file's first line is the one-line summary.

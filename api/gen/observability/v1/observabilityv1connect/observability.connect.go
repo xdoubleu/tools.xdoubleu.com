@@ -45,6 +45,9 @@ const (
 	// ObservabilityServiceGetWorkflowRunsProcedure is the procedure name of the ObservabilityService's
 	// GetWorkflowRuns RPC.
 	ObservabilityServiceGetWorkflowRunsProcedure = "/observability.v1.ObservabilityService/GetWorkflowRuns"
+	// ObservabilityServiceGetWorkflowRunLogsProcedure is the procedure name of the
+	// ObservabilityService's GetWorkflowRunLogs RPC.
+	ObservabilityServiceGetWorkflowRunLogsProcedure = "/observability.v1.ObservabilityService/GetWorkflowRunLogs"
 	// ObservabilityServiceGetSecurityAlertsProcedure is the procedure name of the
 	// ObservabilityService's GetSecurityAlerts RPC.
 	ObservabilityServiceGetSecurityAlertsProcedure = "/observability.v1.ObservabilityService/GetSecurityAlerts"
@@ -140,6 +143,13 @@ var (
 			StreamType: connect.StreamTypeUnary,
 			Schema:     v1.File_observability_v1_observability_proto.Services().ByName("ObservabilityService").Methods().ByName("GetWorkflowRuns"),
 			Procedure:  ObservabilityServiceGetWorkflowRunsProcedure,
+		}
+	})
+	observabilityServiceGetWorkflowRunLogsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_observability_v1_observability_proto.Services().ByName("ObservabilityService").Methods().ByName("GetWorkflowRunLogs"),
+			Procedure:  ObservabilityServiceGetWorkflowRunLogsProcedure,
 		}
 	})
 	observabilityServiceGetSecurityAlertsSpec = sync.OnceValue(func() connect.Spec {
@@ -258,6 +268,7 @@ type ObservabilityServiceClient interface {
 	GetDatabaseStats(context.Context, *v1.GetDatabaseStatsRequest) (*v1.GetDatabaseStatsResponse, error)
 	GetFailingPullRequests(context.Context, *v1.GetFailingPullRequestsRequest) (*v1.GetFailingPullRequestsResponse, error)
 	GetWorkflowRuns(context.Context, *v1.GetWorkflowRunsRequest) (*v1.GetWorkflowRunsResponse, error)
+	GetWorkflowRunLogs(context.Context, *v1.GetWorkflowRunLogsRequest) (*v1.GetWorkflowRunLogsResponse, error)
 	GetSecurityAlerts(context.Context, *v1.GetSecurityAlertsRequest) (*v1.GetSecurityAlertsResponse, error)
 	DismissSecurityAlert(context.Context, *v1.DismissSecurityAlertRequest) (*v1.DismissSecurityAlertResponse, error)
 	GetProjectIssuesByStatus(context.Context, *v1.GetProjectIssuesByStatusRequest) (*v1.GetProjectIssuesByStatusResponse, error)
@@ -291,6 +302,7 @@ type ObservabilityServiceHandler interface {
 	GetDatabaseStats(context.Context, *v1.GetDatabaseStatsRequest) (*v1.GetDatabaseStatsResponse, error)
 	GetFailingPullRequests(context.Context, *v1.GetFailingPullRequestsRequest) (*v1.GetFailingPullRequestsResponse, error)
 	GetWorkflowRuns(context.Context, *v1.GetWorkflowRunsRequest) (*v1.GetWorkflowRunsResponse, error)
+	GetWorkflowRunLogs(context.Context, *v1.GetWorkflowRunLogsRequest) (*v1.GetWorkflowRunLogsResponse, error)
 	GetSecurityAlerts(context.Context, *v1.GetSecurityAlertsRequest) (*v1.GetSecurityAlertsResponse, error)
 	DismissSecurityAlert(context.Context, *v1.DismissSecurityAlertRequest) (*v1.DismissSecurityAlertResponse, error)
 	GetProjectIssuesByStatus(context.Context, *v1.GetProjectIssuesByStatusRequest) (*v1.GetProjectIssuesByStatusResponse, error)
@@ -320,6 +332,7 @@ func RegisterObservabilityServiceHandler(server *connect.Server, svc Observabili
 		connect.Method{Spec: observabilityServiceGetDatabaseStatsSpec(), Handler: adapter.getDatabaseStats},
 		connect.Method{Spec: observabilityServiceGetFailingPullRequestsSpec(), Handler: adapter.getFailingPullRequests},
 		connect.Method{Spec: observabilityServiceGetWorkflowRunsSpec(), Handler: adapter.getWorkflowRuns},
+		connect.Method{Spec: observabilityServiceGetWorkflowRunLogsSpec(), Handler: adapter.getWorkflowRunLogs},
 		connect.Method{Spec: observabilityServiceGetSecurityAlertsSpec(), Handler: adapter.getSecurityAlerts},
 		connect.Method{Spec: observabilityServiceDismissSecurityAlertSpec(), Handler: adapter.dismissSecurityAlert},
 		connect.Method{Spec: observabilityServiceGetProjectIssuesByStatusSpec(), Handler: adapter.getProjectIssuesByStatus},
@@ -367,6 +380,10 @@ func (UnimplementedObservabilityServiceHandler) GetFailingPullRequests(context.C
 
 func (UnimplementedObservabilityServiceHandler) GetWorkflowRuns(context.Context, *v1.GetWorkflowRunsRequest) (*v1.GetWorkflowRunsResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "observability.v1.ObservabilityService.GetWorkflowRuns is not implemented")
+}
+
+func (UnimplementedObservabilityServiceHandler) GetWorkflowRunLogs(context.Context, *v1.GetWorkflowRunLogsRequest) (*v1.GetWorkflowRunLogsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "observability.v1.ObservabilityService.GetWorkflowRunLogs is not implemented")
 }
 
 func (UnimplementedObservabilityServiceHandler) GetSecurityAlerts(context.Context, *v1.GetSecurityAlertsRequest) (*v1.GetSecurityAlertsResponse, error) {
@@ -484,6 +501,14 @@ func (c *observabilityServiceClient) GetFailingPullRequests(ctx context.Context,
 func (c *observabilityServiceClient) GetWorkflowRuns(ctx context.Context, req *v1.GetWorkflowRunsRequest) (*v1.GetWorkflowRunsResponse, error) {
 	var res v1.GetWorkflowRunsResponse
 	if err := c.client.CallUnary(ctx, observabilityServiceGetWorkflowRunsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *observabilityServiceClient) GetWorkflowRunLogs(ctx context.Context, req *v1.GetWorkflowRunLogsRequest) (*v1.GetWorkflowRunLogsResponse, error) {
+	var res v1.GetWorkflowRunLogsResponse
+	if err := c.client.CallUnary(ctx, observabilityServiceGetWorkflowRunLogsSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -689,6 +714,18 @@ func (h observabilityServiceHandler) getWorkflowRuns(ctx context.Context, _ conn
 		return err
 	}
 	res, err := h.svc.GetWorkflowRuns(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h observabilityServiceHandler) getWorkflowRunLogs(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetWorkflowRunLogsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetWorkflowRunLogs(ctx, &req)
 	if err != nil {
 		return err
 	}

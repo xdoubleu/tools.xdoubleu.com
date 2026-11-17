@@ -362,6 +362,64 @@ func callWorkflowRuns(
 	).GetWorkflowRuns(withCookies(context.Background(), accessToken), req)
 }
 
+func TestObservabilityGetWorkflowRunLogs_AsAdmin(t *testing.T) {
+	promoteToAdmin(t)
+	t.Cleanup(func() { demoteToUser(t) })
+
+	srv := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			switch r.URL.Path {
+			case "/repos/o/r/actions/runs/9/jobs":
+				w.Header().Set("Content-Type", "application/json")
+				_, _ = w.Write([]byte(`{"jobs":[
+					{"id":5,"name":"lint","status":"completed","conclusion":"failure"}
+				]}`))
+			case "/repos/o/r/actions/jobs/5/logs":
+				_, _ = w.Write([]byte("\x1b[31mFAIL\x1b[0m\n"))
+			default:
+				w.WriteHeader(http.StatusNotFound)
+			}
+		}))
+	t.Cleanup(srv.Close)
+	github.SetBaseURL(srv.URL)
+	t.Cleanup(func() { github.SetBaseURL("https://api.github.com") })
+	testApp.githubClient = github.New(
+		logging.NewNopLogger(),
+		stubTok("tok"),
+		testConfigJSON(t, map[string]string{"repo": "o/r"}),
+	)
+
+	resp, err := callWorkflowRunLogs(t, 9)
+	require.NoError(t, err)
+	require.Len(t, resp.Jobs, 1)
+	assert.Equal(t, "FAIL", resp.Jobs[0].Log)
+}
+
+func TestObservabilityGetWorkflowRunLogs_NoTarget(t *testing.T) {
+	promoteToAdmin(t)
+	t.Cleanup(func() { demoteToUser(t) })
+
+	_, err := callWorkflowRunLogs(t, 0)
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+}
+
+func TestObservabilityGetWorkflowRunLogs_NonAdmin(t *testing.T) {
+	demoteToUser(t)
+	_, err := callWorkflowRunLogs(t, 9)
+	requirePermissionDenied(t, err)
+}
+
+func callWorkflowRunLogs(
+	t *testing.T, runID int64,
+) (*observabilityv1.GetWorkflowRunLogsResponse, error) {
+	t.Helper()
+	req := &observabilityv1.GetWorkflowRunLogsRequest{RunId: runID}
+	return observabilityClient(
+		t,
+	).GetWorkflowRunLogs(withCookies(context.Background(), accessToken), req)
+}
+
 // --- Security alerts ---
 
 func TestObservabilityGetSecurityAlerts_AsAdmin(t *testing.T) {

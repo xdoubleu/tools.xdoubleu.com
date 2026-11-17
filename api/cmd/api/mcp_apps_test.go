@@ -69,9 +69,9 @@ var appsToolNames = []string{
 	"taste_list_recommendations",
 	"taste_list_favourite_shows", "taste_add_favourite_show",
 	"taste_remove_favourite_show",
-	// observability (18, admin-gated)
+	// observability (19, admin-gated)
 	"get_job_stats", "get_usage_stats", "get_storage_stats", "get_database_stats",
-	"get_failing_pull_requests", "get_workflow_runs",
+	"get_failing_pull_requests", "get_workflow_runs", "get_workflow_run_logs",
 	"get_security_alerts", "dismiss_security_alert",
 	"get_sentry_issues", "get_sentry_issue_event", "resolve_sentry_issue",
 	"get_logs",
@@ -90,6 +90,7 @@ var appsNetworkTools = map[string]bool{
 	"taste_add_favourite_show":     true,
 	"get_failing_pull_requests":    true,
 	"get_workflow_runs":            true,
+	"get_workflow_run_logs":        true,
 	"get_security_alerts":          true,
 	"get_sentry_issues":            true,
 	"get_sentry_issue_event":       true,

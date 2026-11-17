@@ -200,6 +200,7 @@ func (c *client) ListWorkflowRunJobs(
 	jobs := make([]WorkflowJob, 0, len(wire.Jobs))
 	for _, w := range wire.Jobs {
 		job := WorkflowJob{
+			ID:          w.ID,
 			Name:        w.Name,
 			Status:      w.Status,
 			Conclusion:  w.Conclusion,
@@ -213,6 +214,40 @@ func (c *client) ListWorkflowRunJobs(
 		jobs = append(jobs, job)
 	}
 	return jobs, nil
+}
+
+// GetJobLogs returns a job's plain-text log (GitHub redirects to the blob).
+func (c *client) GetJobLogs(ctx context.Context, jobID int64) (string, error) {
+	repo, err := c.resolveRepo(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	token, err := c.tokenFn(ctx)
+	if errors.Is(err, oauthconn.ErrNotConnected) {
+		return "", ErrNotConfigured
+	}
+	if err != nil {
+		return "", err
+	}
+
+	endpoint := fmt.Sprintf(
+		"%s/repos/%s/actions/jobs/%d/logs", baseURL, repo, jobID,
+	)
+	resp, err := c.http.Do(ctx, c.newRequest(http.MethodGet, endpoint, token))
+	if err != nil {
+		return "", err
+	}
+	switch resp.StatusCode {
+	case http.StatusUnauthorized, http.StatusForbidden:
+		return "", fmt.Errorf(
+			"%w (%d): %s", ErrAccessDenied, resp.StatusCode, resp.Snippet(),
+		)
+	}
+	if err = statusError(resp); err != nil {
+		return "", err
+	}
+	return string(resp.Body), nil
 }
 
 // DismissSecurityAlert dismisses one alert and clears the security-alerts cache.
@@ -500,9 +535,13 @@ func (c *client) fetchWorkflowRunsByEvent(
 			URL:        w.HTMLURL,
 			StartedAt:  w.RunStartedAt,
 			DurationMs: 0,
+			PRNumber:   0,
 		}
 		if w.Status == statusCompleted {
 			run.DurationMs = w.UpdatedAt.Sub(w.RunStartedAt).Milliseconds()
+		}
+		if len(w.PullRequests) > 0 {
+			run.PRNumber = w.PullRequests[0].Number
 		}
 		runs = append(runs, run)
 	}

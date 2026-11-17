@@ -197,18 +197,15 @@ func (h *obsConnectHandler) workflowRuns(
 	return resp
 }
 
-// failedJobNames fetches failed job names only for a failed push-to-main run.
-// Fetch errors are logged and swallowed.
+// failedJobNames fetches failed job names for a failed PR run or a failed
+// push-to-main run. Fetch errors are logged and swallowed.
 func (h *obsConnectHandler) failedJobNames(
 	ctx context.Context, run github.WorkflowRun,
 ) []string {
-	if run.Event != "push" {
+	if run.Conclusion != conclusionFailure {
 		return nil
 	}
-	if run.Branch != "main" {
-		return nil
-	}
-	if run.Conclusion != "failure" {
+	if run.Event != "pull_request" && (run.Event != "push" || run.Branch != "main") {
 		return nil
 	}
 
@@ -221,7 +218,7 @@ func (h *obsConnectHandler) failedJobNames(
 
 	names := make([]string, 0, len(jobs))
 	for _, job := range jobs {
-		if job.Conclusion == "failure" {
+		if jobFailed(job) {
 			names = append(names, job.Name)
 		}
 	}
