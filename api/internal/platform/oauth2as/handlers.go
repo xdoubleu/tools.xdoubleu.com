@@ -140,10 +140,9 @@ func (d authorizeDeps) complete(
 	grantRequestedScopes(ar)
 
 	if !remembered && r.URL.Query().Get(AgentAccountParam) == "" {
-		if err = rememberApproval(ctx, grants, user.ID, ar); err != nil {
-			logOAuthError(ctx, logger, endpointAuthorize, ar, err)
-			provider.WriteAuthorizeError(ctx, w, ar, err)
-			return
+		// Best effort: failing only means consent shows again next time.
+		if rErr := rememberApproval(ctx, grants, user.ID, ar); rErr != nil {
+			logger.WarnContext(ctx, "oauth2 consent grant not stored", "error", rErr)
 		}
 	}
 
