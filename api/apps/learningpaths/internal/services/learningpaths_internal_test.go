@@ -59,6 +59,17 @@ type fakeLearningPathsStore struct {
 	// pausedWrites records SetPaused, which fails with setPausedErr.
 	pausedWrites []bool
 	setPausedErr error
+
+	// SyncUser fixtures: paths (else lp alone) is ListForSync, failing with
+	// listErr; modulesByPath overrides modules per path.
+	paths         []*models.LearningPath
+	modulesByPath map[uuid.UUID][]models.Module
+	listErr       error
+	// userProjectID is the shared project; its writes and SetTodoistSectionID
+	// are recorded.
+	userProjectID     string
+	userProjectWrites []string
+	sectionIDWrites   []string
 }
 
 func (f *fakeLearningPathsStore) ListForUser(
@@ -78,12 +89,53 @@ func (f *fakeLearningPathsStore) GetByID(
 }
 
 func (f *fakeLearningPathsStore) GetModules(
-	_ context.Context, _ uuid.UUID,
+	_ context.Context, id uuid.UUID,
 ) ([]models.Module, error) {
 	if f.getModulesErr != nil {
 		return nil, f.getModulesErr
 	}
+	if modules, ok := f.modulesByPath[id]; ok {
+		return modules, nil
+	}
 	return f.modules, nil
+}
+
+func (f *fakeLearningPathsStore) ListForSync(
+	_ context.Context, _ string,
+) ([]models.LearningPath, error) {
+	if f.listErr != nil {
+		return nil, f.listErr
+	}
+	paths := f.paths
+	if paths == nil && f.lp != nil {
+		paths = []*models.LearningPath{f.lp}
+	}
+	out := make([]models.LearningPath, len(paths))
+	for i, lp := range paths {
+		out[i] = *lp
+	}
+	return out, nil
+}
+
+func (f *fakeLearningPathsStore) SetTodoistSectionID(
+	_ context.Context, _ uuid.UUID, sectionID string,
+) error {
+	f.sectionIDWrites = append(f.sectionIDWrites, sectionID)
+	return nil
+}
+
+func (f *fakeLearningPathsStore) GetUserTodoistProjectID(
+	_ context.Context, _ string,
+) (string, error) {
+	return f.userProjectID, nil
+}
+
+func (f *fakeLearningPathsStore) SetUserTodoistProjectID(
+	_ context.Context, _, projectID string,
+) error {
+	f.userProjectID = projectID
+	f.userProjectWrites = append(f.userProjectWrites, projectID)
+	return nil
 }
 
 func (f *fakeLearningPathsStore) GetResources(
@@ -203,7 +255,7 @@ func newFixture() *models.LearningPath {
 // newTestService builds a service with no books/feeds lookup; these tests use
 // no linked resources (resource_links_test.go covers those). The Todoist
 // service is a real one with a mock client and a not-connected fake store, so
-// Create/RecordItemProgress can call SyncPath harmlessly against the fake.
+// Create/RecordItemProgress can call SyncUser harmlessly against the fake.
 func newTestService(store learningPathsStore) *LearningPathService {
 	//nolint:exhaustruct //endpoint URLs, not credentials
 	conf := &oauth2.Config{ClientID: "id", ClientSecret: "secret"}

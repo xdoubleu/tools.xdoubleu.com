@@ -67,7 +67,7 @@ func TestGetTodoistSyncState_ReportsProjectAndTasks(t *testing.T) {
 	require.NoError(t, err)
 	repo := repositories.New(testDB, testSealer).LearningPaths
 	pathID, itemID := seedPath(t, userID)
-	require.NoError(t, repo.SetTodoistProjectID(t.Context(), pathID, "proj-1"))
+	require.NoError(t, repo.SetUserTodoistProjectID(t.Context(), userID, "proj-1"))
 	require.NoError(t, repo.SetItemTodoistTaskID(t.Context(), itemID, "task-1"))
 
 	client := setupTodoistClient(getRoutes())

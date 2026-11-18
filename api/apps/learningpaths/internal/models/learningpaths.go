@@ -32,9 +32,12 @@ type LearningPath struct {
 	// Totals loaded by ListForUser, which leaves Modules empty.
 	ModuleCount, ItemCount, CompletedItemCount int32
 
-	// TodoistProjectID is the path's own Todoist project, created on first
-	// sync. Never sent over the wire.
+	// TodoistProjectID is a legacy per-path project, deleted on the next sync.
+	// Never sent over the wire.
 	TodoistProjectID *string
+	// TodoistSectionID is the path's section in the user's shared project.
+	// Never sent over the wire.
+	TodoistSectionID *string
 }
 
 type Module struct {

@@ -48,7 +48,7 @@ export default function LearningPathsSettingsClient() {
       <SettingsSections>
         <SettingsSection
           title="Todoist"
-          description="Connect your own Todoist account for reminders: each path gets its own Todoist project holding the current week’s items as scheduled tasks. This is one-way — completing a task there doesn’t check the item off here."
+          description="Connect your own Todoist account for reminders: every path gets a section in one “Learning paths” project, holding only its next step as a scheduled task, and only one task of each type is open across paths, so you read one book at a time. This is one-way — completing a task there doesn’t check the item off here."
         >
           {todoistError && (
             <Alert tone="danger">Connecting Todoist failed. Please try again.</Alert>
@@ -103,7 +103,7 @@ export default function LearningPathsSettingsClient() {
             open={confirmingDisconnect}
             onOpenChange={setConfirmingDisconnect}
             title="Disconnect Todoist?"
-            description="Reminders stop, and the projects already created in Todoist stay there."
+            description="Reminders stop, and the project already created in Todoist stays there."
             confirmLabel="Disconnect"
             pendingLabel="Disconnecting…"
             destructive

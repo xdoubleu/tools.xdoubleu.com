@@ -36,8 +36,8 @@ const mcpUpdatePathDescription = "Wholesale-replaces a learning path's " +
 	"checkpoint item (quiz on the module: prompt, options, correct_answer_index). " +
 	"Read the current path first with learningpaths_get_path and pass the " +
 	"complete desired tree. Suggest whole books only — never a partial-book " +
-	"checkpoint; link books via linked_book_id or external_book. Recreates the " +
-	"active module's Todoist reminders. Mutating — see this app's ADR for why."
+	"checkpoint; link books via linked_book_id or external_book. Resyncs the " +
+	"user's Todoist reminders. Mutating — see this app's ADR for why."
 
 // mcpRecordProgressDescription is the description for
 // learningpaths_record_progress.
@@ -144,13 +144,17 @@ Everything operates only on the calling user's own paths (scoped server-side).
   completes the checkpoint (and thus the module). A module without a quiz
   still completes on its items.
 - Suggest whole books only — never a partial-book checkpoint.
-- Reminders: when Todoist is connected, the active module's items become
-  tasks in the path's own Todoist project, due per reminder_schedules[type]
-  unless the item sets its own due. Derive reminder_schedules from the
-  routine: read/study recurring daily ("every day at 20:00"), do on the
-  routine's practice days ("every wed at 19:00"), checkpoint on its review
-  day ("every sun at 18:00"). Confirm times with the user. A paused path
-  (paused=true) has no reminders until the user resumes it on the web.
+- Reminders: when Todoist is connected, each path's next incomplete item
+  becomes a task in its section of the user's "Learning paths" project, due
+  per reminder_schedules[type] unless the item sets its own due. Only one
+  task per item type is open across all paths (one book at a time), so
+  order items so each next step stands alone, and keep item types consistent
+  (read, do, checkpoint) since they decide the balancing. Derive
+  reminder_schedules from the routine: read/study recurring daily ("every
+  day at 20:00"), do on the routine's practice days ("every wed at 19:00"),
+  checkpoint on its review day ("every sun at 18:00"). Confirm times with
+  the user. A paused path (paused=true) has no reminders until the user
+  resumes it on the web.
 - Resource curation: link a real books library entry or feeds item when one
   matches, else a freeform URL/description.
 
@@ -162,8 +166,8 @@ Everything operates only on the calling user's own paths (scoped server-side).
   only for structural changes.
 - update_path replaces: pass the full title/goal/routine AND the full
   modules/resources arrays read from get_path, or you'll drop what you omit.
-- update_path deletes and recreates the active module's Todoist reminders,
-  except on a paused path, which it leaves paused.
+- update_path deletes the path's Todoist tasks and resyncs the user's, except
+  on a paused path, which it leaves paused.
 - Scoping is automatic: these tools can only touch the calling user's own
   paths.
 `

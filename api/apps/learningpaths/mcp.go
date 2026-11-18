@@ -93,8 +93,8 @@ func (a *LearningPaths) RegisterMCPTools(srv *mcp.Server) {
 
 	mcptools.AddReadTool(srv, mcpAppName, "learningpaths_get_todoist_status",
 		"A path's Todoist reminder state as stored (no Todoist call): connection, "+
-			"requested scope and whether it needs a reconnect, the path's project "+
-			"id, and the active module's items with their task ids.",
+			"requested scope and whether it needs a reconnect, the user's shared "+
+			"project id, and the active module's items with their task ids.",
 		th.mcpGetTodoistStatus)
 	mcptools.AddReadTool(srv, mcpAppName, "learningpaths_list_paths",
 		"All learning paths owned by the calling user.", h.mcpListPaths)

@@ -51,6 +51,12 @@ type createTaskRequest struct {
 	Content   string `json:"content"`
 	DueString string `json:"due_string,omitempty"`
 	ProjectID string `json:"project_id,omitempty"`
+	SectionID string `json:"section_id,omitempty"`
+}
+
+type createSectionRequest struct {
+	Name      string `json:"name"`
+	ProjectID string `json:"project_id"`
 }
 
 type createProjectRequest struct {
@@ -62,13 +68,14 @@ type idResponse struct {
 }
 
 func (c *client) CreateTask(
-	ctx context.Context, content, dueString, projectID string,
+	ctx context.Context, content, dueString, projectID, sectionID string,
 ) (string, error) {
 	var out idResponse
 	err := c.send(ctx, http.MethodPost, "/tasks", createTaskRequest{
 		Content:   content,
 		DueString: dueString,
 		ProjectID: projectID,
+		SectionID: sectionID,
 	}, &out)
 	return out.ID, err
 }
@@ -98,6 +105,30 @@ func (c *client) ProjectExists(ctx context.Context, projectID string) (bool, err
 func (c *client) DeleteProject(ctx context.Context, projectID string) error {
 	return ignoreNotFound(
 		c.send(ctx, http.MethodDelete, "/projects/"+projectID, nil, nil),
+	)
+}
+
+func (c *client) CreateSection(
+	ctx context.Context, projectID, name string,
+) (string, error) {
+	var out idResponse
+	err := c.send(ctx, http.MethodPost, "/sections", createSectionRequest{
+		Name: name, ProjectID: projectID,
+	}, &out)
+	return out.ID, err
+}
+
+func (c *client) SectionExists(ctx context.Context, sectionID string) (bool, error) {
+	err := c.send(ctx, http.MethodGet, "/sections/"+sectionID, nil, nil)
+	if errors.Is(err, errNotFound) {
+		return false, nil
+	}
+	return err == nil, err
+}
+
+func (c *client) DeleteSection(ctx context.Context, sectionID string) error {
+	return ignoreNotFound(
+		c.send(ctx, http.MethodDelete, "/sections/"+sectionID, nil, nil),
 	)
 }
 

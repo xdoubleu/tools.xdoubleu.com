@@ -164,8 +164,8 @@ message RecordItemProgressRequest {
 }
 message RecordItemProgressResponse {}
 
-// SetLearningPathPaused pausing deletes the path's Todoist tasks, and resuming
-// recreates the active module's tasks.
+// SetLearningPathPaused pausing deletes the path's Todoist task, and resuming
+// offers its next item again.
 message SetLearningPathPausedRequest {
   string id = 1;
   bool paused = 2;
@@ -249,7 +249,8 @@ message GetTodoistSyncStateResponse {
   bool connected = 1;
   bool needs_reconnect = 2;
   string requested_scope = 3;
-  // todoist_project_id is empty until the first successful sync.
+  // todoist_project_id is the user's shared project, empty until the first
+  // successful sync.
   string todoist_project_id = 4;
   // active_module is empty when every module is complete or the path is
   // paused.
