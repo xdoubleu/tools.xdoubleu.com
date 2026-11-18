@@ -12,13 +12,13 @@ import (
 	"tools.xdoubleu.com/internal/kit/database"
 )
 
-func TestSyncPath_StaleScopeIsNoOp(t *testing.T) {
+func TestSyncUser_StaleScopeIsNoOp(t *testing.T) {
 	store := projectFixture(nil, nextItem("read"))
 	svc, mock := newTestTodoistService(store)
 	//nolint:exhaustruct //fixture connections
 	svc.oauthRepo = &fakeConnections{connected: true, requestedScope: "task:add"}
 
-	require.NoError(t, svc.SyncPath(t.Context(), "user-1", store.lp.ID))
+	require.NoError(t, svc.SyncUser(t.Context(), "user-1"))
 	assert.Zero(t, mock.CreatedProjects)
 	assert.Empty(t, store.taskIDWrites)
 }

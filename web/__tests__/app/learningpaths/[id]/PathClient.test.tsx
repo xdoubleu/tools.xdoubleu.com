@@ -368,7 +368,9 @@ describe('PathClient', () => {
 
     it('says reminders are automatic when connected', () => {
       renderWithTodoist({ connected: true, needsReconnect: false })
-      expect(screen.getByText(/created automatically in your Todoist project/)).toBeInTheDocument()
+      expect(
+        screen.getByText(/next step appears in your “Learning paths” Todoist project/)
+      ).toBeInTheDocument()
       expect(screen.queryByRole('link', { name: /Todoist/ })).not.toBeInTheDocument()
     })
 

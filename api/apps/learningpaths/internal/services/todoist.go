@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -35,10 +36,12 @@ type todoistConnections interface {
 		provider sharedmodels.OAuthProvider,
 	) error
 	ForUser(userID string) repositories.UserScopedOAuthStore
+	TodoistUserIDs(ctx context.Context) ([]string, error)
 }
 
 // TodoistService connects a user's own Todoist account and mirrors learning
-// path items to it as tasks, one-way. Strictly per-user; no admin bypass.
+// path items to it as tasks in one shared project, one-way. Strictly
+// per-user; no admin bypass.
 type TodoistService struct {
 	oauthRepo     todoistConnections
 	learningPaths learningPathsStore
@@ -49,6 +52,9 @@ type TodoistService struct {
 	// resolveItems derives book-linked items' Completed before the active
 	// module is picked; nil leaves the stored flags.
 	resolveItems func(ctx context.Context, userID string, modules []models.Module) error
+	// syncMu serializes syncs so a request and the resync job never both
+	// create a path's task.
+	syncMu sync.Mutex
 }
 
 func NewTodoistService(
@@ -64,6 +70,7 @@ func NewTodoistService(
 		state:         state,
 		newClient:     todoist.NewClient,
 		resolveItems:  nil,
+		syncMu:        sync.Mutex{},
 	}
 }
 
@@ -145,6 +152,9 @@ func (s *TodoistService) syncable(ctx context.Context, userID string) (bool, err
 	return st.Connected && !st.NeedsReconnect, err
 }
 
+// ProjectName is the user's shared Todoist project holding every path.
+const ProjectName = "Learning paths"
+
 // SyncState is a path's Todoist state, for diagnosing reminders: the items
 // of the active module plus any other item still carrying a task.
 type SyncState struct {
@@ -170,30 +180,27 @@ func (s *TodoistService) SyncState(
 	if lp.UserID != userID {
 		return nil, database.ErrResourceNotFound
 	}
-	modules, err := s.learningPaths.GetModules(ctx, pathID)
+	modules, err := s.loadModules(ctx, userID, pathID)
 	if err != nil {
 		return nil, err
 	}
-	if s.resolveItems != nil {
-		if err = s.resolveItems(ctx, userID, modules); err != nil {
-			return nil, err
-		}
+	projectID, err := s.learningPaths.GetUserTodoistProjectID(ctx, userID)
+	if err != nil {
+		return nil, err
 	}
 
 	//nolint:exhaustruct // filled below
-	out := &SyncState{Status: st}
-	if lp.TodoistProjectID != nil {
-		out.ProjectID = *lp.TodoistProjectID
+	out := &SyncState{Status: st, ProjectID: projectID, Paused: lp.Paused}
+	active := -1
+	if !lp.Paused {
+		active = activeModule(modules)
 	}
-	out.Paused = lp.Paused
-	active := s.reminderModule(lp, modules)
 	if active >= 0 {
 		out.ActiveModule = modules[active].Title
 	}
 	for i, m := range modules {
 		for _, it := range m.Items {
-			hasTask := it.TodoistTaskID != nil && *it.TodoistTaskID != ""
-			if i == active || hasTask {
+			if i == active || hasTask(it) {
 				out.Items = append(out.Items, it)
 			}
 		}
@@ -201,52 +208,68 @@ func (s *TodoistService) SyncState(
 	return out, nil
 }
 
-// SyncPath reconciles userID's tasks to a strictly linear reminder pipeline:
-// only the active module (the first with an incomplete item, in sort order)
-// has tasks. On path creation that is the first module; completing module N
-// removes its tasks and activates N+1. A paused path has no active module, so
-// all its tasks are removed while its project is kept. Idempotent — a task
-// already completed or deleted in Todoist is ignored — and a graceful no-op
-// when Todoist is disconnected. Completion is one-way: Todoist never flips a path item.
-func (s *TodoistService) SyncPath(
-	ctx context.Context, userID string, pathID uuid.UUID,
-) error {
-	connected, err := s.syncable(ctx, userID)
-	if err != nil {
-		return err
-	}
-	if !connected {
-		return nil
-	}
-
-	lp, err := s.learningPaths.GetByID(ctx, pathID)
-	if err != nil {
-		return err
-	}
-	if lp.UserID != userID {
-		return database.ErrResourceNotFound
-	}
-
-	modules, err := s.learningPaths.GetModules(ctx, pathID)
-	if err != nil {
-		return err
-	}
-	if s.resolveItems != nil {
-		if err = s.resolveItems(ctx, userID, modules); err != nil {
-			return err
-		}
-	}
-
-	active := s.reminderModule(lp, modules)
-	client := s.userClient(userID)
-	if err = s.clearNonActiveTasks(ctx, client, modules, active); err != nil {
-		return err
-	}
-	return s.createActiveTasks(ctx, client, lp, modules, active)
+// pathPlan is one path with its modules, loaded for a sync.
+type pathPlan struct {
+	lp      *models.LearningPath
+	modules []models.Module
 }
 
-// DeletePath removes every task of a path being deleted, then its project;
-// a no-op when Todoist is disconnected.
+// SyncUser reconciles userID's Todoist project with every path: each unpaused
+// path offers its next incomplete item, and at most one task per item type is
+// open across paths (never two books at once). A path holding a type keeps
+// it; free types go to the oldest path. Other tasks are removed. Idempotent,
+// a no-op when disconnected, and one-way: Todoist never flips an item.
+func (s *TodoistService) SyncUser(ctx context.Context, userID string) error {
+	s.syncMu.Lock()
+	defer s.syncMu.Unlock()
+
+	connected, err := s.syncable(ctx, userID)
+	if err != nil || !connected {
+		return err
+	}
+
+	paths, err := s.learningPaths.ListForSync(ctx, userID)
+	if err != nil {
+		return err
+	}
+	plans := make([]pathPlan, len(paths))
+	for i := range paths {
+		modules, loadErr := s.loadModules(ctx, userID, paths[i].ID)
+		if loadErr != nil {
+			return loadErr
+		}
+		plans[i] = pathPlan{lp: &paths[i], modules: modules}
+	}
+
+	client := s.userClient(userID)
+	if err = s.dropLegacyProjects(ctx, client, plans); err != nil {
+		return err
+	}
+	next := selectNextItems(plans)
+	if err = s.clearUnselected(ctx, client, plans, next); err != nil {
+		return err
+	}
+	return s.createSelected(ctx, client, userID, plans, next)
+}
+
+// ResyncAll runs SyncUser for every connected user, continuing past one
+// user's failure.
+func (s *TodoistService) ResyncAll(ctx context.Context) error {
+	userIDs, err := s.oauthRepo.TodoistUserIDs(ctx)
+	if err != nil {
+		return err
+	}
+	errs := make([]error, 0, len(userIDs))
+	for _, userID := range userIDs {
+		if syncErr := s.SyncUser(ctx, userID); syncErr != nil {
+			errs = append(errs, fmt.Errorf("user %s: %w", userID, syncErr))
+		}
+	}
+	return errors.Join(errs...)
+}
+
+// DeletePath removes every task and the section of a path being deleted; a
+// no-op when Todoist is disconnected.
 func (s *TodoistService) DeletePath(
 	ctx context.Context,
 	userID string,
@@ -258,13 +281,18 @@ func (s *TodoistService) DeletePath(
 		return err
 	}
 	client := s.userClient(userID)
-	if err = s.clearNonActiveTasks(ctx, client, modules, -1); err != nil {
+	if err = s.clearTasks(ctx, client, modules); err != nil {
 		return err
 	}
-	if lp.TodoistProjectID == nil || *lp.TodoistProjectID == "" {
-		return nil
+	if lp.TodoistSectionID != nil && *lp.TodoistSectionID != "" {
+		if err = client.DeleteSection(ctx, *lp.TodoistSectionID); err != nil {
+			return err
+		}
 	}
-	return client.DeleteProject(ctx, *lp.TodoistProjectID)
+	if lp.TodoistProjectID != nil && *lp.TodoistProjectID != "" {
+		return client.DeleteProject(ctx, *lp.TodoistProjectID)
+	}
+	return nil
 }
 
 // ClearTasks deletes every task modules' items carry; a no-op when Todoist
@@ -276,7 +304,7 @@ func (s *TodoistService) ClearTasks(
 	if err != nil || !connected {
 		return err
 	}
-	return s.clearNonActiveTasks(ctx, s.userClient(userID), modules, -1)
+	return s.clearTasks(ctx, s.userClient(userID), modules)
 }
 
 func (s *TodoistService) userClient(userID string) todoist.Client {
@@ -285,20 +313,24 @@ func (s *TodoistService) userClient(userID string) todoist.Client {
 	))
 }
 
-// reminderModule is the module that should carry tasks: none while lp is
-// paused, else the active one.
-func (s *TodoistService) reminderModule(
-	lp *models.LearningPath, modules []models.Module,
-) int {
-	if lp.Paused {
-		return -1
+func (s *TodoistService) loadModules(
+	ctx context.Context, userID string, pathID uuid.UUID,
+) ([]models.Module, error) {
+	modules, err := s.learningPaths.GetModules(ctx, pathID)
+	if err != nil {
+		return nil, err
 	}
-	return s.activeModule(modules)
+	if s.resolveItems != nil {
+		if err = s.resolveItems(ctx, userID, modules); err != nil {
+			return nil, err
+		}
+	}
+	return modules, nil
 }
 
 // activeModule returns the index of the first module with an incomplete item,
-// or -1 when every module is done (so no module should carry tasks).
-func (s *TodoistService) activeModule(modules []models.Module) int {
+// or -1 when every module is done.
+func activeModule(modules []models.Module) int {
 	for i := range modules {
 		for _, it := range modules[i].Items {
 			if !it.Completed {
@@ -309,76 +341,181 @@ func (s *TodoistService) activeModule(modules []models.Module) int {
 	return -1
 }
 
-// clearNonActiveTasks removes (and forgets) the stored task of every item
-// whose module is not active. Deleting a task Todoist no longer knows is not
-// an error, so retries stay idempotent.
-func (s *TodoistService) clearNonActiveTasks(
-	ctx context.Context,
-	client todoist.Client,
-	modules []models.Module,
-	active int,
-) error {
-	for i := range modules {
-		if i == active {
-			continue
-		}
-		if err := s.clearModuleTasks(ctx, client, modules[i]); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (s *TodoistService) clearModuleTasks(
-	ctx context.Context, client todoist.Client, module models.Module,
-) error {
-	for _, it := range module.Items {
-		if it.TodoistTaskID == nil || *it.TodoistTaskID == "" {
-			continue
-		}
-		if err := client.DeleteTask(ctx, *it.TodoistTaskID); err != nil {
-			return err
-		}
-		if err := s.learningPaths.SetItemTodoistTaskID(ctx, it.ID, ""); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// createActiveTasks creates a task in the path's project for each item of
-// the active module that does not already carry one, persisting the new task
-// id on the item. When the project had to be (re)created, the module's
-// existing tasks live elsewhere (the Inbox, or a deleted project), so they
-// are replaced.
-func (s *TodoistService) createActiveTasks(
-	ctx context.Context,
-	client todoist.Client,
-	lp *models.LearningPath,
-	modules []models.Module,
-	active int,
-) error {
-	if active < 0 {
+// pathNextItem is a path's first incomplete item, or nil when paused or done.
+func pathNextItem(p pathPlan) *models.Item {
+	if p.lp.Paused {
 		return nil
 	}
-	projectID, created, err := s.ensureProject(ctx, client, lp)
+	for i := range p.modules {
+		for j := range p.modules[i].Items {
+			if !p.modules[i].Items[j].Completed {
+				return &p.modules[i].Items[j]
+			}
+		}
+	}
+	return nil
+}
+
+func hasTask(it models.Item) bool {
+	return it.TodoistTaskID != nil && *it.TodoistTaskID != ""
+}
+
+// selectNextItems picks, per item type, the one path whose next item gets a
+// task: the path already holding a task of that type, else the oldest.
+func selectNextItems(plans []pathPlan) map[uuid.UUID]bool {
+	selected := map[uuid.UUID]bool{}
+	taken := map[string]bool{}
+	for _, holders := range []bool{true, false} {
+		for i := range plans {
+			it := pathNextItem(plans[i])
+			if it == nil || hasTask(*it) != holders {
+				continue
+			}
+			itemType := models.NormalizeItemType(it.Type)
+			if taken[itemType] {
+				continue
+			}
+			taken[itemType] = true
+			selected[it.ID] = true
+		}
+	}
+	return selected
+}
+
+// dropLegacyProjects deletes each path's pre-shared-project Todoist project,
+// taking its tasks with it, so the next steps recreate them in the shared one.
+func (s *TodoistService) dropLegacyProjects(
+	ctx context.Context, client todoist.Client, plans []pathPlan,
+) error {
+	for _, p := range plans {
+		if p.lp.TodoistProjectID == nil || *p.lp.TodoistProjectID == "" {
+			continue
+		}
+		if err := client.DeleteProject(ctx, *p.lp.TodoistProjectID); err != nil {
+			return err
+		}
+		if err := s.forgetTasks(ctx, p.modules); err != nil {
+			return err
+		}
+		if err := s.learningPaths.SetTodoistProjectID(ctx, p.lp.ID, ""); err != nil {
+			return err
+		}
+		p.lp.TodoistProjectID = nil
+	}
+	return nil
+}
+
+// forgetTasks clears stored task ids without calling Todoist.
+func (s *TodoistService) forgetTasks(
+	ctx context.Context, modules []models.Module,
+) error {
+	for i := range modules {
+		for j := range modules[i].Items {
+			it := &modules[i].Items[j]
+			if !hasTask(*it) {
+				continue
+			}
+			if err := s.learningPaths.SetItemTodoistTaskID(ctx, it.ID, ""); err != nil {
+				return err
+			}
+			it.TodoistTaskID = nil
+		}
+	}
+	return nil
+}
+
+// clearUnselected removes (and forgets) every task not of a selected item.
+func (s *TodoistService) clearUnselected(
+	ctx context.Context,
+	client todoist.Client,
+	plans []pathPlan,
+	selected map[uuid.UUID]bool,
+) error {
+	for _, p := range plans {
+		for i := range p.modules {
+			for j := range p.modules[i].Items {
+				it := &p.modules[i].Items[j]
+				if selected[it.ID] {
+					continue
+				}
+				if err := s.deleteTask(ctx, client, it); err != nil {
+					return err
+				}
+			}
+		}
+	}
+	return nil
+}
+
+// clearTasks removes (and forgets) every task modules' items carry.
+func (s *TodoistService) clearTasks(
+	ctx context.Context, client todoist.Client, modules []models.Module,
+) error {
+	for i := range modules {
+		for j := range modules[i].Items {
+			if err := s.deleteTask(ctx, client, &modules[i].Items[j]); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// deleteTask removes it's task, if any. Deleting a task Todoist no longer
+// knows is not an error, so retries stay idempotent.
+func (s *TodoistService) deleteTask(
+	ctx context.Context, client todoist.Client, it *models.Item,
+) error {
+	if !hasTask(*it) {
+		return nil
+	}
+	if err := client.DeleteTask(ctx, *it.TodoistTaskID); err != nil {
+		return err
+	}
+	if err := s.learningPaths.SetItemTodoistTaskID(ctx, it.ID, ""); err != nil {
+		return err
+	}
+	it.TodoistTaskID = nil
+	return nil
+}
+
+// createSelected creates a task, in its path's section of the shared
+// project, for each selected item without one. When the project had to be
+// (re)created, existing tasks live in a deleted project and are replaced.
+func (s *TodoistService) createSelected(
+	ctx context.Context,
+	client todoist.Client,
+	userID string,
+	plans []pathPlan,
+	selected map[uuid.UUID]bool,
+) error {
+	if len(selected) == 0 {
+		return nil
+	}
+	projectID, created, err := s.ensureProject(ctx, client, userID)
 	if err != nil {
 		return err
 	}
-	items := modules[active].Items
-	if created {
-		if err = s.clearModuleTasks(ctx, client, modules[active]); err != nil {
-			return err
-		}
-		for i := range items {
-			items[i].TodoistTaskID = nil
-		}
-	}
-	for _, it := range items {
-		if it.TodoistTaskID != nil && *it.TodoistTaskID != "" {
+	for _, p := range plans {
+		it := pathNextItem(p)
+		if it == nil || !selected[it.ID] {
 			continue
 		}
-		taskID, createErr := client.CreateTask(ctx, it.Description, lp.ItemDue(it), projectID)
+		if created {
+			if err = s.forgetTasks(ctx, p.modules); err != nil {
+				return err
+			}
+		}
+		if hasTask(*it) {
+			continue
+		}
+		sectionID, sectionErr := s.ensureSection(ctx, client, p.lp, projectID, created)
+		if sectionErr != nil {
+			return sectionErr
+		}
+		taskID, createErr := client.CreateTask(
+			ctx, it.Description, p.lp.ItemDue(*it), projectID, sectionID,
+		)
 		if createErr != nil {
 			return createErr
 		}
@@ -389,28 +526,61 @@ func (s *TodoistService) createActiveTasks(
 	return nil
 }
 
-// ensureProject returns lp's Todoist project id, creating the project (named
-// after the path) when it was never created or was deleted in Todoist.
+// ensureProject returns userID's shared project id, creating the project
+// when it was never created or was deleted in Todoist.
 func (s *TodoistService) ensureProject(
-	ctx context.Context, client todoist.Client, lp *models.LearningPath,
+	ctx context.Context, client todoist.Client, userID string,
 ) (string, bool, error) {
-	if lp.TodoistProjectID != nil && *lp.TodoistProjectID != "" {
-		exists, err := client.ProjectExists(ctx, *lp.TodoistProjectID)
-		if err != nil {
-			return "", false, err
-		}
-		if exists {
-			return *lp.TodoistProjectID, false, nil
-		}
-	}
-	projectID, err := client.CreateProject(ctx, lp.Title)
+	projectID, err := s.learningPaths.GetUserTodoistProjectID(ctx, userID)
 	if err != nil {
 		return "", false, err
 	}
-	if err = s.learningPaths.SetTodoistProjectID(ctx, lp.ID, projectID); err != nil {
+	if projectID != "" {
+		exists, existsErr := client.ProjectExists(ctx, projectID)
+		if existsErr != nil {
+			return "", false, existsErr
+		}
+		if exists {
+			return projectID, false, nil
+		}
+	}
+	projectID, err = client.CreateProject(ctx, ProjectName)
+	if err != nil {
+		return "", false, err
+	}
+	if err = s.learningPaths.SetUserTodoistProjectID(ctx, userID, projectID); err != nil {
 		return "", false, err
 	}
 	return projectID, true, nil
+}
+
+// ensureSection returns lp's section id, creating the section (named after
+// the path) when missing; projectCreated means any stored one is gone.
+func (s *TodoistService) ensureSection(
+	ctx context.Context,
+	client todoist.Client,
+	lp *models.LearningPath,
+	projectID string,
+	projectCreated bool,
+) (string, error) {
+	if !projectCreated && lp.TodoistSectionID != nil && *lp.TodoistSectionID != "" {
+		exists, err := client.SectionExists(ctx, *lp.TodoistSectionID)
+		if err != nil {
+			return "", err
+		}
+		if exists {
+			return *lp.TodoistSectionID, nil
+		}
+	}
+	sectionID, err := client.CreateSection(ctx, projectID, lp.Title)
+	if err != nil {
+		return "", err
+	}
+	if err = s.learningPaths.SetTodoistSectionID(ctx, lp.ID, sectionID); err != nil {
+		return "", err
+	}
+	lp.TodoistSectionID = &sectionID
+	return sectionID, nil
 }
 
 // SetOAuthConfigForTest overrides the Todoist OAuth2 config, e.g. to point

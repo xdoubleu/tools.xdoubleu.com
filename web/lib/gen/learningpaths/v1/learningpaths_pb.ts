@@ -679,8 +679,8 @@ export const RecordItemProgressResponseSchema: GenMessage<RecordItemProgressResp
   messageDesc(file_learningpaths_v1_learningpaths, 19);
 
 /**
- * SetLearningPathPaused pausing deletes the path's Todoist tasks, and resuming
- * recreates the active module's tasks.
+ * SetLearningPathPaused pausing deletes the path's Todoist task, and resuming
+ * offers its next item again.
  *
  * @generated from message learningpaths.v1.SetLearningPathPausedRequest
  */
@@ -999,7 +999,8 @@ export type GetTodoistSyncStateResponse = Message<"learningpaths.v1.GetTodoistSy
   requestedScope: string;
 
   /**
-   * todoist_project_id is empty until the first successful sync.
+   * todoist_project_id is the user's shared project, empty until the first
+   * successful sync.
    *
    * @generated from field: string todoist_project_id = 4;
    */

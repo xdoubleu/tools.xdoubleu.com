@@ -38,7 +38,7 @@ func externalBookPath() models.LearningPath {
 }
 
 // newConnectedService wires a LearningPathService to a connected Todoist
-// mock, with SyncPath deriving book completion like services.New does.
+// mock, with SyncUser deriving book completion like services.New does.
 func newConnectedService(
 	store *fakeLearningPathsStore, bookLookup *fakeBookLookup,
 ) (*LearningPathService, *mocks.MockTodoistClient) {
@@ -164,9 +164,9 @@ func TestUpdate_ModuleLoadErrorSkipsTodoistButSucceeds(t *testing.T) {
 	assert.Contains(t, logs.String(), "todoist sync failed")
 }
 
-// TestSyncPath_FinishedBookCompletesModule: a book-linked item's stored flag
+// TestSyncUser_FinishedBookCompletesModule: a book-linked item's stored flag
 // stays false, so the pipeline must derive completion from the book.
-func TestSyncPath_FinishedBookCompletesModule(t *testing.T) {
+func TestSyncUser_FinishedBookCompletesModule(t *testing.T) {
 	lp := newFixture()
 	lp.Title = "Architecture"
 	bookID := uuid.New()
@@ -187,12 +187,12 @@ func TestSyncPath_FinishedBookCompletesModule(t *testing.T) {
 		book: &booksv1.UserBook{ProgressPercent: 100},
 	})
 
-	require.NoError(t, svc.todoist.SyncPath(t.Context(), lp.UserID, lp.ID))
+	require.NoError(t, svc.todoist.SyncUser(t.Context(), lp.UserID))
 	assert.Equal(t, "book-task", mock.LastDeletedID)
 	assert.Equal(t, "apply it", mock.LastContent)
 }
 
-func TestSyncPath_PropagatesResolveError(t *testing.T) {
+func TestSyncUser_PropagatesResolveError(t *testing.T) {
 	lookupErr := errors.New("books down")
 	lp := newFixture()
 	bookID := uuid.New()
@@ -208,7 +208,7 @@ func TestSyncPath_PropagatesResolveError(t *testing.T) {
 		genericErr: lookupErr, errAfterCall: 1,
 	})
 
-	err := svc.todoist.SyncPath(t.Context(), lp.UserID, lp.ID)
+	err := svc.todoist.SyncUser(t.Context(), lp.UserID)
 	assert.ErrorIs(t, err, lookupErr)
 }
 

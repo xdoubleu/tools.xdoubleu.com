@@ -14,6 +14,9 @@ type MockTodoistClient struct {
 	LastContent   string
 	LastDueString string
 	LastProjectID string
+	LastSectionID string
+	// Contents records every CreateTask's content, in call order.
+	Contents      []string
 	LastDeletedID string
 	// DueStrings records every CreateTask's due string, in call order.
 	DueStrings []string
@@ -24,6 +27,13 @@ type MockTodoistClient struct {
 	ProjectMissing       bool
 	CreatedProjects      int
 	LastDeletedProjectID string
+
+	// SectionID is returned by CreateSection; SectionMissing makes
+	// SectionExists report false.
+	SectionID            string
+	SectionMissing       bool
+	CreatedSections      []string
+	LastDeletedSectionID string
 }
 
 func NewMockTodoistClient(taskID string) *MockTodoistClient {
@@ -31,9 +41,11 @@ func NewMockTodoistClient(taskID string) *MockTodoistClient {
 }
 
 func (m *MockTodoistClient) CreateTask(
-	_ context.Context, content, dueString, projectID string,
+	_ context.Context, content, dueString, projectID, sectionID string,
 ) (string, error) {
 	m.LastContent = content
+	m.Contents = append(m.Contents, content)
+	m.LastSectionID = sectionID
 	m.LastDueString = dueString
 	m.DueStrings = append(m.DueStrings, dueString)
 	m.LastProjectID = projectID
@@ -62,5 +74,21 @@ func (m *MockTodoistClient) ProjectExists(_ context.Context, _ string) (bool, er
 
 func (m *MockTodoistClient) DeleteProject(_ context.Context, projectID string) error {
 	m.LastDeletedProjectID = projectID
+	return m.Err
+}
+
+func (m *MockTodoistClient) CreateSection(
+	_ context.Context, _, name string,
+) (string, error) {
+	m.CreatedSections = append(m.CreatedSections, name)
+	return m.SectionID, m.Err
+}
+
+func (m *MockTodoistClient) SectionExists(_ context.Context, _ string) (bool, error) {
+	return !m.SectionMissing, m.Err
+}
+
+func (m *MockTodoistClient) DeleteSection(_ context.Context, sectionID string) error {
+	m.LastDeletedSectionID = sectionID
 	return m.Err
 }

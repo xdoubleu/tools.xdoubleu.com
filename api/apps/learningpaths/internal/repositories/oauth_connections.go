@@ -151,6 +151,32 @@ func (r *OAuthConnectionsRepository) Status(
 	return r.GetStatus(ctx, userID, sharedmodels.OAuthProviderTodoist)
 }
 
+// TodoistUserIDs lists every user with a Todoist connection.
+func (r *OAuthConnectionsRepository) TodoistUserIDs(
+	ctx context.Context,
+) ([]string, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT user_id FROM learningpaths.oauth_connections
+		WHERE provider = $1
+		ORDER BY user_id`,
+		sharedmodels.OAuthProviderTodoist,
+	)
+	if err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	defer rows.Close()
+
+	var userIDs []string
+	for rows.Next() {
+		var userID string
+		if err = rows.Scan(&userID); err != nil {
+			return nil, postgres.PgxErrorToHTTPError(err)
+		}
+		userIDs = append(userIDs, userID)
+	}
+	return userIDs, postgres.PgxErrorToHTTPError(rows.Err())
+}
+
 // ForUser binds userID so the repository structurally satisfies oauthconn's
 // provider-only connectionStore interface for that user.
 func (r *OAuthConnectionsRepository) ForUser(userID string) UserScopedOAuthStore {

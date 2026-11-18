@@ -126,7 +126,7 @@ export default function PathClient({ id }: { id: string }) {
               <p className="text-sm text-muted mb-4">
                 {todoistStatus.needsReconnect
                   ? 'Todoist reminders are paused until you reconnect Todoist.'
-                  : 'Reminders for the current week are created automatically in your Todoist project.'}
+                  : 'This path’s next step appears in your “Learning paths” Todoist project once no other path has a step of the same type open.'}
               </p>
             )
           )}
