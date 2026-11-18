@@ -74,6 +74,7 @@ migration/new:
 	printf -- '-- +goose Up\n\n-- +goose Down\n' > "$$f"; echo "$$f"
 
 lint/migrations:
+	./scripts/test_check_migration_versions.sh
 	./scripts/check_migration_versions.sh
 	sqlfluff lint --dialect postgres apps/*/migrations internal/platform/*/migrations
 

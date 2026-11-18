@@ -38,10 +38,10 @@ if [ "$status" -ne 0 ]; then
 	echo "goose refuses duplicate versions and the API won't start — rename the newer file."
 fi
 
-# Format check: any migration added since the branch point must use a
-# timestamp version. Requires enough git history to resolve BASE_REF (default
-# origin/main) — a shallow local clone without that remote-tracking ref just
-# skips this part.
+# Format check: any migration added since the branch point, committed or
+# not, must use a timestamp version. Requires enough git history to resolve
+# BASE_REF (default origin/main) — a shallow local clone without that
+# remote-tracking ref just skips this part.
 base_ref="${BASE_REF:-origin/main}"
 
 if merge_base=$(git merge-base "$base_ref" HEAD 2>/dev/null); then
@@ -50,9 +50,13 @@ if merge_base=$(git merge-base "$base_ref" HEAD 2>/dev/null); then
 	for dir in cmd/api/migrations apps/*/migrations internal/platform/*/migrations; do
 		[ -d "$dir" ] || continue
 
+		# Committed, staged, unstaged and untracked additions all count, so
+		# a local run catches what CI would.
 		added_files=$(
-			git diff --name-only --diff-filter=A "$merge_base" HEAD -- "$dir" |
-				xargs -r -n1 basename
+			{
+				git diff --name-only --diff-filter=A "$merge_base" -- "$dir"
+				git ls-files --others --exclude-standard -- "$dir"
+			} | xargs -r -n1 basename | sort -u
 		)
 
 		for file in $added_files; do
