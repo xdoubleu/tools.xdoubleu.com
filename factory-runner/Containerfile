@@ -33,15 +33,6 @@ RUN python3 -m venv /opt/sqlfluff \
     && chmod -R a+rX /opt/ms-playwright \
     && rm -rf /var/lib/apt/lists/* /root/.npm
 
-# Nix (single-user, /nix owned by the job user) for the flake dev shell (docs/adr-0054).
-ARG NIX_VERSION=2.24.10
-RUN arch="$(uname -m)" \
-    && curl -fsSL "https://releases.nixos.org/nix/nix-${NIX_VERSION}/nix-${NIX_VERSION}-${arch}-linux.tar.xz" \
-        | tar -xJ -C /tmp \
-    && mkdir -m 0755 /nix && chown node:node /nix \
-    && su node -c "/tmp/nix-${NIX_VERSION}-${arch}-linux/install --no-daemon" \
-    && rm -rf /tmp/nix-${NIX_VERSION}-*
-
 COPY --from=go /usr/local/go /usr/local/go
 ENV PATH=/usr/local/go/bin:/home/node/go/bin:$PATH
 
@@ -51,7 +42,8 @@ RUN npm install -g "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}" \
 # Claude's config (marketplaces and the plugins .claude/settings.json enables) lives
 # here; the runner copies it into a new session directory, because CLAUDE_CONFIG_DIR
 # replaces the whole config directory.
-RUN mkdir -p /opt/claude-config /opt/gomodcache /opt/npmcache /deps \
+RUN mkdir -m 0755 /nix && chown node:node /nix \
+    && mkdir -p /opt/claude-config /opt/gomodcache /opt/npmcache /deps \
     && chown node:node /opt/claude-config /opt/gomodcache /opt/npmcache /deps
 USER node
 ENV CLAUDE_CONFIG_DIR=/opt/claude-config
@@ -62,6 +54,15 @@ RUN claude plugin marketplace add xdoubleu/skills \
         skill-lifecycle; do claude plugin install "$p@xdoubleu-skills"; done \
     && claude plugin install claude-md-management@claude-plugins-official \
     && claude plugin install mattpocock-skills@mattpocock
+# Nix (single-user, /nix owned by the job user) for the flake dev shell (docs/adr-0054).
+ARG NIX_VERSION=2.24.10
+ARG TARGETARCH
+RUN case "${TARGETARCH}" in amd64) a=x86_64 ;; arm64) a=aarch64 ;; *) exit 1 ;; esac \
+    && d="nix-${NIX_VERSION}-${a}-linux" \
+    && curl -fsSL -o "/tmp/${d}.tar.xz" "https://releases.nixos.org/nix/nix-${NIX_VERSION}/${d}.tar.xz" \
+    && tar -xJf "/tmp/${d}.tar.xz" -C /tmp \
+    && "/tmp/${d}/install" --no-daemon \
+    && rm -rf /tmp/nix-*
 # Tools go through the module cache the VM uses as its file:// GOPROXY, so the
 # Makefile's own `go install tool@version` resolves offline. GOTOOLCHAIN=local keeps
 # Go at the image's version (api/go.mod's).
