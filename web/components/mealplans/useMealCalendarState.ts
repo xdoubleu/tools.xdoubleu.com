@@ -23,6 +23,13 @@ export interface MealSuggestion {
   fresh: boolean
 }
 
+interface CellEntry {
+  recipeId: string
+  customName: string
+  servings: number
+  excludeFromShoppingList: boolean
+}
+
 export type PickMode = 'move' | 'swap'
 
 // useMealCalendarState owns the calendar's add/move/swap/edit state so the
@@ -90,24 +97,16 @@ export function useMealCalendarState(plan: Plan, recipes: Recipe[], onMutate?: (
     setSwappingMeal(null)
   }
 
-  const handleSaveAdd = async (
-    recipeId: string,
-    customName: string,
-    servings: number,
-    excludeFromShoppingList: boolean
-  ) => {
+  // Each entry becomes its own meal in the selected cell.
+  const addToCell = async (entries: CellEntry[]) => {
     if (!selectedSlot || !selectedDate) return
     try {
-      const req: AddMealInput = {
-        planId: plan.id,
-        mealDate: selectedDate,
-        mealSlot: selectedSlot,
-        recipeId,
-        customName,
-        servings,
-        excludeFromShoppingList
+      for (const entry of entries) {
+        await createMeal(
+          { planId: plan.id, mealDate: selectedDate, mealSlot: selectedSlot, ...entry },
+          recipeName(entry.recipeId)
+        )
       }
-      await createMeal(req, recipeName(recipeId))
       setSelectedSlot(null)
       setSelectedDate(null)
       onMutate?.()
@@ -115,6 +114,16 @@ export function useMealCalendarState(plan: Plan, recipes: Recipe[], onMutate?: (
       console.error('Failed to add meal:', err)
     }
   }
+
+  const handleSaveAdd = (
+    recipeId: string,
+    customName: string,
+    servings: number,
+    excludeFromShoppingList: boolean
+  ) => addToCell([{ recipeId, customName, servings, excludeFromShoppingList }])
+
+  const handleSaveAddMany = (entries: { recipeId: string; servings: number }[]) =>
+    addToCell(entries.map((e) => ({ ...e, customName: '', excludeFromShoppingList: false })))
 
   const handleDeleteMeal = async (mealId: string) => {
     try {
@@ -269,6 +278,7 @@ export function useMealCalendarState(plan: Plan, recipes: Recipe[], onMutate?: (
     startFillDay,
     cancelForm,
     handleSaveAdd,
+    handleSaveAddMany,
     handleSaveEdit,
     handleSaveFillDay,
     handleDeleteMeal,

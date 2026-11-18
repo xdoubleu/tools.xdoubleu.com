@@ -24,6 +24,8 @@ import {
   DialogFooter
 } from '@/components/ui/dialog'
 
+const NO_MATCH_ERROR = 'No recipe with that name. Pick one from the list, or use the Custom tab.'
+
 type Tab = 'recipe' | 'custom' | 'event'
 
 interface MealPlanEntryFormProps {
@@ -42,7 +44,14 @@ interface MealPlanEntryFormProps {
     servings: number,
     excludeFromShoppingList: boolean
   ) => void
+  /** Enables stacking several recipes before saving (add mode only). */
+  onSaveMany?: (entries: StagedRecipe[]) => void
   onCancel: () => void
+}
+
+export interface StagedRecipe {
+  recipeId: string
+  servings: number
 }
 
 export default function MealPlanEntryForm({
@@ -56,6 +65,7 @@ export default function MealPlanEntryForm({
   initialExcludeFromShoppingList = false,
   saveLabel = 'Save',
   onSave,
+  onSaveMany,
   onCancel
 }: MealPlanEntryFormProps) {
   const initialTab: Tab = !initialCustomName
@@ -79,6 +89,7 @@ export default function MealPlanEntryForm({
     return parsed.length > 0 ? parsed : [{ name: '', amount: '', unit: '' }]
   })
   const [saving, setSaving] = useState(false)
+  const [staged, setStaged] = useState<StagedRecipe[]>([])
 
   const { data: categoriesData } = useCategories()
   const { data: itemCategoriesData } = useItemCategories()
@@ -110,19 +121,46 @@ export default function MealPlanEntryForm({
     }
   }
 
+  // A tap on Add can land before the combobox's blur snap, so resolve the typed name here.
+  const resolveRecipeId = () => {
+    const name = typedName.trim().toLowerCase()
+    return recipeId || recipes.find((r) => r.name.trim().toLowerCase() === name)?.id || ''
+  }
+
+  const resetPick = () => {
+    setRecipeId('')
+    setServings(1)
+    setServingsText('1')
+    setTypedName('')
+    setRecipeError('')
+    setComboboxKey((k) => k + 1)
+  }
+
+  const stageCurrent = () => {
+    const resolvedId = resolveRecipeId()
+    if (!resolvedId) {
+      setRecipeError(typedName.trim() ? NO_MATCH_ERROR : 'Pick a recipe.')
+      return
+    }
+    setStaged((prev) => [...prev, { recipeId: resolvedId, servings }])
+    resetPick()
+  }
+
   const handleSave = async () => {
     if (saving) return
     if (tab === 'recipe') {
-      // A tap on Add can land before the combobox's blur snap, so resolve the typed name here.
       const name = typedName.trim().toLowerCase()
-      const resolvedId =
-        recipeId || recipes.find((r) => r.name.trim().toLowerCase() === name)?.id || ''
+      const resolvedId = resolveRecipeId()
+      if (!resolvedId && staged.length > 0 && !name) {
+        onSaveMany?.(staged)
+        return
+      }
       if (!resolvedId) {
-        setRecipeError(
-          name
-            ? 'No recipe with that name. Pick one from the list, or use the Custom tab.'
-            : 'Pick a recipe.'
-        )
+        setRecipeError(name ? NO_MATCH_ERROR : 'Pick a recipe.')
+        return
+      }
+      if (staged.length > 0) {
+        onSaveMany?.([...staged, { recipeId: resolvedId, servings }])
         return
       }
       onSave(resolvedId, '', servings, false)
@@ -247,6 +285,28 @@ export default function MealPlanEntryForm({
                 onKeyDown={(e) => e.key === 'Enter' && handleSave()}
               />
             </Field>
+            {onSaveMany && (
+              <div className="space-y-2">
+                {staged.length > 0 && (
+                  <ul aria-label="Recipes to add" className="space-y-1">
+                    {staged.map((entry, i) => (
+                      <li key={i} className="flex items-center justify-between gap-2 text-sm">
+                        <span className="min-w-0 truncate">
+                          {recipes.find((r) => r.id === entry.recipeId)?.name} × {entry.servings}
+                        </span>
+                        <RemoveButton
+                          aria-label={`Remove ${recipes.find((r) => r.id === entry.recipeId)?.name ?? 'recipe'}`}
+                          onClick={() => setStaged((prev) => prev.filter((_, idx) => idx !== i))}
+                        />
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <Button variant="link" size="sm" onClick={stageCurrent}>
+                  + Add another recipe
+                </Button>
+              </div>
+            )}
             {draftRecipe && (
               <Alert tone="warn">
                 {draftRecipe.name} is a draft. Double-check its ingredients and steps before

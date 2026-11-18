@@ -1090,6 +1090,93 @@ describe('MealPlanCalendar', () => {
     }
   })
 
+  it('adds several recipes from one sheet as separate meals in the cell', async () => {
+    vi.mocked(useMealSuggestions).mockReturnValue({
+      data: create(SuggestRecipesResponseSchema, {
+        suggestions: [
+          { recipeId: 'r1', servings: 2 },
+          { recipeId: 'r2', servings: 4 }
+        ]
+      }),
+      error: undefined,
+      isLoading: false,
+      isValidating: false,
+      mutate: vi.fn(async () => undefined)
+    })
+    const onMutate = vi.fn()
+    try {
+      const recipes = [...baseRecipes, create(RecipeSchema, { id: 'r2', name: 'Soep' })]
+      render(
+        <MealPlanCalendar
+          plan={basePlan}
+          recipes={recipes}
+          {...defaultNavProps}
+          onMutate={onMutate}
+        />
+      )
+      openAddDialog()
+      fireEvent.click(screen.getByRole('button', { name: 'Pasta' }))
+      fireEvent.click(screen.getByRole('button', { name: '+ Add another recipe' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Soep' }))
+      fireEvent.click(screen.getByRole('button', { name: /^Add$/i }))
+      await waitFor(() => expect(mockAddMeal).toHaveBeenCalledTimes(2))
+      const [first, second] = mockAddMeal.mock.calls.map((c) => c[0])
+      expect(first).toMatchObject({ recipeId: 'r1', servings: 2 })
+      expect(second).toMatchObject({ recipeId: 'r2', servings: 4 })
+      expect(second.mealDate).toBe(first.mealDate)
+      expect(second.mealSlot).toBe(first.mealSlot)
+      await waitFor(() => expect(onMutate).toHaveBeenCalledTimes(1))
+    } finally {
+      vi.mocked(useMealSuggestions).mockReturnValue({
+        data: undefined,
+        error: undefined,
+        isLoading: false,
+        isValidating: false,
+        mutate: vi.fn(async () => undefined)
+      })
+    }
+  })
+
+  it('keeps the sheet open and skips onMutate when adding several recipes fails', async () => {
+    vi.mocked(useMealSuggestions).mockReturnValue({
+      data: create(SuggestRecipesResponseSchema, {
+        suggestions: [{ recipeId: 'r1', servings: 2 }]
+      }),
+      error: undefined,
+      isLoading: false,
+      isValidating: false,
+      mutate: vi.fn(async () => undefined)
+    })
+    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    mockAddMeal.mockRejectedValueOnce(new Error('boom'))
+    const onMutate = vi.fn()
+    try {
+      render(
+        <MealPlanCalendar
+          plan={basePlan}
+          recipes={baseRecipes}
+          {...defaultNavProps}
+          onMutate={onMutate}
+        />
+      )
+      openAddDialog()
+      fireEvent.click(screen.getByRole('button', { name: 'Pasta' }))
+      fireEvent.click(screen.getByRole('button', { name: '+ Add another recipe' }))
+      fireEvent.click(screen.getByRole('button', { name: /^Add$/i }))
+      await waitFor(() => expect(errSpy).toHaveBeenCalled())
+      expect(onMutate).not.toHaveBeenCalled()
+    } finally {
+      errSpy.mockRestore()
+      vi.mocked(useMealSuggestions).mockReturnValue({
+        data: undefined,
+        error: undefined,
+        isLoading: false,
+        isValidating: false,
+        mutate: vi.fn(async () => undefined)
+      })
+    }
+  })
+
   it('renders every meal in a slot as its own chip', () => {
     const planWithTwo = {
       ...basePlan,
