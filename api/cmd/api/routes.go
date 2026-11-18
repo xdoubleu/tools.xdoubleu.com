@@ -67,7 +67,7 @@ func (app *Application) mux() *http.ServeMux {
 		"GET "+oauth2as.AuthorizePath,
 		oauth2as.AuthorizeHandler(
 			app.oauth2as.Provider, app.config,
-			sessionUser, delegator,
+			sessionUser, delegator, app.oauth2as.Store,
 			app.oauth2as.OIDCKeyID(), app.logger,
 		),
 	)
@@ -75,7 +75,7 @@ func (app *Application) mux() *http.ServeMux {
 		"POST "+oauth2as.AuthorizePath,
 		oauth2as.AuthorizeHandler(
 			app.oauth2as.Provider, app.config,
-			sessionUser, delegator,
+			sessionUser, delegator, app.oauth2as.Store,
 			app.oauth2as.OIDCKeyID(), app.logger,
 		),
 	)
