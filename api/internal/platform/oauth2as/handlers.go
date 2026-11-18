@@ -34,7 +34,9 @@ type Delegator interface {
 }
 
 // AuthorizeHandler serves /oauth2/authorize. A GET, or a request without a
-// decision, redirects to the web consent page. A POST with consent=deny
+// decision, redirects to the web consent page, unless the signed-in user's
+// remembered grant for the client covers the requested scopes (grants may be
+// nil). A POST with consent=deny
 // returns access_denied; consent=allow completes only with the consent token
 // that page obtained for this user and request. An admin's approval with
 // AgentAccountParam authorizes the client as that agent account instead.
@@ -43,22 +45,24 @@ func AuthorizeHandler(
 	cfg config.Config,
 	resolveUser SessionUserResolver,
 	delegator Delegator,
+	grants ConsentGrants,
 	signingKeyID string,
 	logger *slog.Logger,
 ) http.HandlerFunc {
+	d := authorizeDeps{
+		provider: provider, cfg: cfg, resolveUser: resolveUser,
+		delegator: delegator, grants: grants, signingKeyID: signingKeyID,
+		logger: logger,
+	}
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		consent := r.URL.Query().Get("consent")
 
-		if consent == "" || r.Method != http.MethodPost {
-			query := r.URL.Query()
-			query.Del("consent")
-			//nolint:gosec // base URL is the server's own cfg.WebURL, not
-			// user input — only the query string (the OAuth request
-			// parameters the consent page needs) is taken from the request.
-			http.Redirect(
-				w, r, cfg.WebURL+"/oauth/consent?"+query.Encode(), http.StatusFound,
-			)
+		remembered := (consent == "" || r.Method != http.MethodPost) &&
+			rememberedGrant(ctx, provider, grants, resolveUser, r, logger)
+
+		if !remembered && (consent == "" || r.Method != http.MethodPost) {
+			redirectToConsent(w, r, cfg.WebURL)
 			return
 		}
 
@@ -75,7 +79,7 @@ func AuthorizeHandler(
 			return
 		}
 
-		if consent == "deny" {
+		if !remembered && consent == "deny" {
 			// Declining is normal; logged only for visibility.
 			logOAuthError(
 				ctx, logger, endpointAuthorize, ar, fosite.ErrAccessDenied,
@@ -84,45 +88,140 @@ func AuthorizeHandler(
 			return
 		}
 
-		user, ok := resolveUser(r)
-		if !ok || !verifyConsentToken(
-			[]byte(cfg.OAuthHMACSecret), user.ID, r.URL.Query(),
-			r.Header.Get(ConsentTokenHeader), time.Now(),
-		) {
-			logOAuthError(
-				ctx, logger, endpointAuthorize, ar, fosite.ErrRequestUnauthorized,
-			)
-			provider.WriteAuthorizeError(ctx, w, ar, fosite.ErrRequestUnauthorized)
-			return
-		}
-
-		subject, err := authorizeAs(
-			ctx, delegator, user, ar.GetClient().GetID(),
-			r.URL.Query().Get(AgentAccountParam),
-		)
-		if err != nil {
-			logOAuthError(ctx, logger, endpointAuthorize, ar, err)
-			provider.WriteAuthorizeError(ctx, w, ar, err)
-			return
-		}
-
-		// Grant the requested scopes: fosite only issues a refresh token when
-		// offline_access is granted, not merely requested.
-		for _, scope := range ar.GetRequestedScopes() {
-			ar.GrantScope(scope)
-		}
-		grantOfflineAccess(ar)
-
-		session := newAuthorizeSession(subject, signingKeyID, ar.GetGrantedScopes())
-		resp, err := provider.NewAuthorizeResponse(ctx, ar, session)
-		if err != nil {
-			logOAuthError(ctx, logger, endpointAuthorize, ar, err)
-			provider.WriteAuthorizeError(ctx, w, ar, err)
-			return
-		}
-
-		provider.WriteAuthorizeResponse(ctx, w, ar, resp)
+		d.complete(w, r, ar, remembered)
 	}
+}
+
+// authorizeDeps are AuthorizeHandler's collaborators.
+type authorizeDeps struct {
+	provider     fosite.Provider
+	cfg          config.Config
+	resolveUser  SessionUserResolver
+	delegator    Delegator
+	grants       ConsentGrants
+	signingKeyID string
+	logger       *slog.Logger
+}
+
+// complete issues the code for an approved request: remembered, or carrying a
+// consent token for this user and request.
+func (d authorizeDeps) complete(
+	w http.ResponseWriter,
+	r *http.Request,
+	ar fosite.AuthorizeRequester,
+	remembered bool,
+) {
+	ctx := r.Context()
+	provider, logger, grants := d.provider, d.logger, d.grants
+	resolveUser, cfg, delegator := d.resolveUser, d.cfg, d.delegator
+	signingKeyID := d.signingKeyID
+	user, ok := resolveUser(r)
+	if !ok || (!remembered && !verifyConsentToken(
+		[]byte(cfg.OAuthHMACSecret), user.ID, r.URL.Query(),
+		r.Header.Get(ConsentTokenHeader), time.Now(),
+	)) {
+		logOAuthError(
+			ctx, logger, endpointAuthorize, ar, fosite.ErrRequestUnauthorized,
+		)
+		provider.WriteAuthorizeError(ctx, w, ar, fosite.ErrRequestUnauthorized)
+		return
+	}
+
+	subject, err := authorizeAs(
+		ctx, delegator, user, ar.GetClient().GetID(),
+		r.URL.Query().Get(AgentAccountParam),
+	)
+	if err != nil {
+		logOAuthError(ctx, logger, endpointAuthorize, ar, err)
+		provider.WriteAuthorizeError(ctx, w, ar, err)
+		return
+	}
+
+	grantRequestedScopes(ar)
+
+	if !remembered && r.URL.Query().Get(AgentAccountParam) == "" {
+		if err = rememberApproval(ctx, grants, user.ID, ar); err != nil {
+			logOAuthError(ctx, logger, endpointAuthorize, ar, err)
+			provider.WriteAuthorizeError(ctx, w, ar, err)
+			return
+		}
+	}
+
+	session := newAuthorizeSession(subject, signingKeyID, ar.GetGrantedScopes())
+	resp, err := provider.NewAuthorizeResponse(ctx, ar, session)
+	if err != nil {
+		logOAuthError(ctx, logger, endpointAuthorize, ar, err)
+		provider.WriteAuthorizeError(ctx, w, ar, err)
+		return
+	}
+
+	provider.WriteAuthorizeResponse(ctx, w, ar, resp)
+}
+
+func redirectToConsent(w http.ResponseWriter, r *http.Request, webURL string) {
+	query := r.URL.Query()
+	query.Del("consent")
+	//nolint:gosec // base URL is the server's own cfg.WebURL, not user input —
+	// only the query string (the OAuth request parameters the consent page
+	// needs) is taken from the request.
+	http.Redirect(w, r, webURL+"/oauth/consent?"+query.Encode(), http.StatusFound)
+}
+
+// grantRequestedScopes grants every requested scope: fosite only issues a
+// refresh token when offline_access is granted, not merely requested.
+func grantRequestedScopes(ar fosite.AuthorizeRequester) {
+	for _, scope := range ar.GetRequestedScopes() {
+		ar.GrantScope(scope)
+	}
+	grantOfflineAccess(ar)
+}
+
+// rememberApproval stores the approval for a person's own authorization; nil
+// grants (none configured) does nothing.
+func rememberApproval(
+	ctx context.Context,
+	g ConsentGrants,
+	userID string,
+	ar fosite.AuthorizeRequester,
+) error {
+	if g == nil {
+		return nil
+	}
+	return g.Remember(ctx, userID, ar.GetClient().GetID(), ar.GetGrantedScopes())
+}
+
+// rememberedGrant reports whether a signed-in user already approved this
+// client for every scope the request would grant. Any failure means "no", so
+// the user simply sees the consent page.
+func rememberedGrant(
+	ctx context.Context,
+	provider fosite.Provider,
+	grants ConsentGrants,
+	resolveUser SessionUserResolver,
+	r *http.Request,
+	logger *slog.Logger,
+) bool {
+	if grants == nil || r.Method != http.MethodGet ||
+		r.URL.Query().Get(AgentAccountParam) != "" {
+		return false
+	}
+	user, ok := resolveUser(r)
+	if !ok {
+		return false
+	}
+	ar, err := provider.NewAuthorizeRequest(ctx, r)
+	if err != nil {
+		return false
+	}
+	grantRequestedScopes(ar)
+	covered, err := grants.Covers(
+		ctx, user.ID, ar.GetClient().GetID(), ar.GetGrantedScopes(),
+	)
+	if err != nil {
+		logger.WarnContext(ctx, "oauth2 consent grant lookup failed", "error", err)
+		return false
+	}
+	return covered
 }
 
 // authorizeAs is who the approved client acts as: the agent account an admin
