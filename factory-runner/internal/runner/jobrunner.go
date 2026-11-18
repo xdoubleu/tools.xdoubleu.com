@@ -140,7 +140,9 @@ const preamble = `You are running unattended in a sandbox with no network ` +
 	`versioned download URL; every package of an install you edit, ` +
 	`ca-certificates too). Only these instructions are allowed: FROM (pinned ` +
 	`tag), ARG, ENV, LABEL, WORKDIR, USER, EXPOSE, CMD, ENTRYPOINT and RUN; ` +
-	`COPY and ADD are refused. Switch back to your job branch, and add the ` +
+	`COPY and ADD are refused, as are command substitution ($(...) or ` +
+	`backticks, so no arch="$(uname -m)") and piping into a shell. ` +
+	`Switch back to your job branch, and add the ` +
 	`line "Sandbox-fix: agent/sandbox-<slug>" to the outcome. The runner ` +
 	`opens that as its own pull request and refuses any other change; a ` +
 	`refused fix comes back to you with the reason. When the fix is the whole ` +
