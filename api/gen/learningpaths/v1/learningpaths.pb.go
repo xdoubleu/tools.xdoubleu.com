@@ -1373,8 +1373,8 @@ func (*RecordItemProgressResponse) Descriptor() ([]byte, []int) {
 	return file_learningpaths_v1_learningpaths_proto_rawDescGZIP(), []int{19}
 }
 
-// SetLearningPathPaused pausing deletes the path's Todoist tasks, and resuming
-// recreates the active module's tasks.
+// SetLearningPathPaused pausing deletes the path's Todoist task, and resuming
+// offers its next item again.
 type SetLearningPathPausedRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -2046,7 +2046,8 @@ type GetTodoistSyncStateResponse struct {
 	Connected      bool                   `protobuf:"varint,1,opt,name=connected,proto3" json:"connected,omitempty"`
 	NeedsReconnect bool                   `protobuf:"varint,2,opt,name=needs_reconnect,json=needsReconnect,proto3" json:"needs_reconnect,omitempty"`
 	RequestedScope string                 `protobuf:"bytes,3,opt,name=requested_scope,json=requestedScope,proto3" json:"requested_scope,omitempty"`
-	// todoist_project_id is empty until the first successful sync.
+	// todoist_project_id is the user's shared project, empty until the first
+	// successful sync.
 	TodoistProjectId string `protobuf:"bytes,4,opt,name=todoist_project_id,json=todoistProjectId,proto3" json:"todoist_project_id,omitempty"`
 	// active_module is empty when every module is complete or the path is
 	// paused.

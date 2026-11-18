@@ -38,6 +38,10 @@ registration, and RFC 8414 metadata. `mcpAuthServerIssuer` is `cfg.AuthIssuer`
 - **Never log credentials** — the form carries code, verifier, and refresh
   token. `TestObserve_NeverLogsCredentials` guards this.
 - A new scope means revisiting `grantOfflineAccess` (ADR-0021 did).
+- A client with `remember_consent` (Grafana) skips the consent page while the
+  user's stored grant (`auth.oauth2_consent_grants`) covers the requested
+  scopes; a widened scope, a new user or delegation (`agent_account_id`)
+  still shows it.
 
 ## Revisit when
 

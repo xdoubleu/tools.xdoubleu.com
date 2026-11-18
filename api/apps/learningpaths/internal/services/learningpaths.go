@@ -45,6 +45,10 @@ type learningPathsStore interface {
 	) (uuid.UUID, error)
 	SetItemTodoistTaskID(ctx context.Context, itemID uuid.UUID, taskID string) error
 	SetTodoistProjectID(ctx context.Context, pathID uuid.UUID, projectID string) error
+	ListForSync(ctx context.Context, userID string) ([]models.LearningPath, error)
+	SetTodoistSectionID(ctx context.Context, pathID uuid.UUID, sectionID string) error
+	GetUserTodoistProjectID(ctx context.Context, userID string) (string, error)
+	SetUserTodoistProjectID(ctx context.Context, userID, projectID string) error
 	SetPaused(ctx context.Context, id uuid.UUID, userID string, paused bool) error
 }
 
@@ -313,11 +317,9 @@ func (s *LearningPathService) Create(
 	created.Modules = lp.Modules
 	created.Resources = lp.Resources
 
-	// Activate the first module's items as Todoist tasks on path creation.
 	// Todoist is a best-effort reminder outbox: a failure here must not fail
 	// creating the path, and an absent connection is a graceful no-op.
-	s.logTodoistErr(ctx, "sync", userID, created.ID,
-		s.todoist.SyncPath(ctx, userID, created.ID))
+	s.logTodoistErr(ctx, "sync", userID, created.ID, s.todoist.SyncUser(ctx, userID))
 	return created, nil
 }
 
@@ -342,7 +344,7 @@ func (s *LearningPathService) Update(
 	}
 
 	// Replacing modules reinserts every item, so their tasks would orphan:
-	// clear them first and let the sync below recreate the active module's.
+	// clear them first and let the sync below recreate the next item's.
 	// Best-effort, like every Todoist call.
 	if oldModules, modErr := s.repo.GetModules(ctx, lp.ID); modErr == nil {
 		s.logTodoistErr(ctx, "clear", userID, lp.ID,
@@ -360,7 +362,7 @@ func (s *LearningPathService) Update(
 	if err = s.repo.ReplaceResources(ctx, lp.ID, lp.Resources); err != nil {
 		return err
 	}
-	s.logTodoistErr(ctx, "sync", userID, lp.ID, s.todoist.SyncPath(ctx, userID, lp.ID))
+	s.logTodoistErr(ctx, "sync", userID, lp.ID, s.todoist.SyncUser(ctx, userID))
 	return nil
 }
 
@@ -418,15 +420,19 @@ func (s *LearningPathService) Delete(
 		s.logTodoistErr(ctx, "delete", userID, id,
 			s.todoist.DeletePath(ctx, userID, existing, modules))
 	}
-	return s.repo.Delete(ctx, id, userID)
+	if err = s.repo.Delete(ctx, id, userID); err != nil {
+		return err
+	}
+	// The freed item types may unblock another path's next item.
+	s.logTodoistErr(ctx, "sync", userID, id, s.todoist.SyncUser(ctx, userID))
+	return nil
 }
 
 // RecordItemProgress toggles a non-book-linked item's completion; ownership is
 // enforced in the repository query. Book-linked items derive completion from
 // the book and can't be toggled — returning ErrResourceNotFound-equivalent
-// would mislead, so reject with a 400. When a non-book item completes, the
-// Todoist pipeline is reconciled (module N done → its tasks removed, module
-// N+1 activated).
+// would mislead, so reject with a 400. Todoist is then reconciled, since the
+// toggle moves the path's next item.
 func (s *LearningPathService) RecordItemProgress(
 	ctx context.Context,
 	userID string,
@@ -446,20 +452,17 @@ func (s *LearningPathService) RecordItemProgress(
 	if err = s.repo.RecordItemProgress(ctx, itemID, userID, completed); err != nil {
 		return err
 	}
-	if !completed {
-		return nil
-	}
 
 	pathID, err := s.repo.GetPathIDForItem(ctx, itemID, userID)
 	if err != nil {
 		return err
 	}
-	s.logTodoistErr(ctx, "sync", userID, pathID, s.todoist.SyncPath(ctx, userID, pathID))
+	s.logTodoistErr(ctx, "sync", userID, pathID, s.todoist.SyncUser(ctx, userID))
 	return nil
 }
 
 // SetPaused pauses or resumes userID's path, then reconciles Todoist: pausing
-// removes the path's tasks, resuming recreates the active module's.
+// removes the path's task, resuming offers its next item again.
 func (s *LearningPathService) SetPaused(
 	ctx context.Context,
 	id uuid.UUID,
@@ -476,7 +479,7 @@ func (s *LearningPathService) SetPaused(
 	if err = s.repo.SetPaused(ctx, id, userID, paused); err != nil {
 		return err
 	}
-	s.logTodoistErr(ctx, "sync", userID, id, s.todoist.SyncPath(ctx, userID, id))
+	s.logTodoistErr(ctx, "sync", userID, id, s.todoist.SyncUser(ctx, userID))
 	return nil
 }
 

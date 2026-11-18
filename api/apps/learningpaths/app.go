@@ -6,10 +6,13 @@ package learningpaths
 import (
 	"context"
 	"embed"
+	"errors"
 	"log/slog"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"tools.xdoubleu.com/apps/learningpaths/internal/jobs"
 	"tools.xdoubleu.com/apps/learningpaths/internal/repositories"
 	"tools.xdoubleu.com/apps/learningpaths/internal/services"
 	"tools.xdoubleu.com/apps/learningpaths/internal/todoist"
@@ -18,6 +21,8 @@ import (
 	"tools.xdoubleu.com/internal/kit/crypto"
 	"tools.xdoubleu.com/internal/kit/database/postgres"
 	"tools.xdoubleu.com/internal/platform/auth"
+	"tools.xdoubleu.com/internal/platform/jobqueue"
+	"tools.xdoubleu.com/internal/platform/observability"
 )
 
 //go:embed migrations/*.sql
@@ -25,7 +30,10 @@ var embedMigrations embed.FS
 
 type LearningPaths struct {
 	app.Base
-	services *services.Services
+	db        postgres.DB
+	services  *services.Services
+	jobQueue  *jobqueue.JobQueue
+	resyncJob *jobs.TodoistResyncJob
 }
 
 // New builds the app. sealer encrypts per-user Todoist tokens. books and
@@ -42,7 +50,7 @@ func New(
 	books services.BookLookup,
 	feeds services.FeedItemLookup,
 ) *LearningPaths {
-	//nolint:exhaustruct //services initialised below
+	//nolint:exhaustruct //services and jobs initialised below
 	a := &LearningPaths{
 		Base: app.NewBase(
 			ctx,
@@ -50,6 +58,7 @@ func New(
 			logger,
 			cfg,
 		),
+		db: db,
 	}
 	todoistConf := todoist.OAuthConfig(
 		cfg.TodoistOAuthClientID, cfg.TodoistOAuthClientSecret, cfg.APIURL,
@@ -63,6 +72,11 @@ func New(
 		feeds,
 	)
 
+	const amountOfWorkers = 1
+	const jobQueueSize = 2
+	a.jobQueue = jobqueue.NewJobQueue(a.Ctx, logger, amountOfWorkers, jobQueueSize, db)
+	a.resyncJob = jobs.NewTodoistResyncJob(a.services.Todoist)
+
 	return a
 }
 
@@ -71,7 +85,15 @@ func (a *LearningPaths) ApplyMigrations(ctx context.Context, db *pgxpool.Pool) e
 }
 
 func (a *LearningPaths) Start() error {
-	return nil
+	return a.jobQueue.AddJob(
+		observability.NewTrackedJob(a.resyncJob, a.db),
+		func(_ string, _ bool, _ *time.Time) {},
+	)
+}
+
+// Shutdown drains background tasks, then the job queue.
+func (a *LearningPaths) Shutdown(ctx context.Context) error {
+	return errors.Join(a.Base.Shutdown(ctx), a.jobQueue.Wait(ctx))
 }
 
 func (a *LearningPaths) GetName() string {

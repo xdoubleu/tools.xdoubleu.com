@@ -123,7 +123,7 @@ func newOAuth2asTestServerWithConfig(
 	mux.HandleFunc(
 		"/oauth2/authorize",
 		oauth2as.AuthorizeHandler(
-			provider, cfg, resolveUser, srv.delegator, oauth2as.OIDCKeyID(key),
+			provider, cfg, resolveUser, srv.delegator, store, oauth2as.OIDCKeyID(key),
 			logger,
 		),
 	)
@@ -641,7 +641,8 @@ func TestAuthorize_WithoutDelegatorSignsInAsTheUser(t *testing.T) {
 	}
 	resolve := func(_ *http.Request) (oauth2as.ResolvedUser, bool) { return user, true }
 	handler := oauth2as.AuthorizeHandler(
-		provider, cfg, resolve, nil, oauth2as.OIDCKeyID(key), slog.New(newRecordCapture()),
+		provider, cfg, resolve, nil, store, oauth2as.OIDCKeyID(key),
+		slog.New(newRecordCapture()),
 	)
 	//nolint:exhaustruct // only registerClient and approve are used
 	srv := &oauth2asTestServer{store: store}
@@ -762,7 +763,7 @@ func TestOAuth2Authorize_AcceptJSONReturnsApprovalLocation(t *testing.T) {
 	loc, err := url.Parse(body["location"])
 	require.NoError(t, err)
 	assert.Equal(t, "json-state-abcdefgh", loc.Query().Get("state"))
-	assert.NotEmpty(t, loc.Query().Get("code"))
+	assert.NotEmpty(t, loc.Query().Get("code"), resp.Header.Get("Location"))
 }
 
 func TestOAuth2Authorize_AcceptJSONReturnsDenialLocation(t *testing.T) {
@@ -796,4 +797,78 @@ func TestOAuth2Authorize_AcceptJSONLeavesUnredirectableErrorsAlone(t *testing.T)
 
 	assert.GreaterOrEqual(t, resp.StatusCode, http.StatusBadRequest)
 	assert.Empty(t, resp.Header.Get("Location"))
+}
+
+func TestAuthorize_RememberedConsentSkipsConsentPage(t *testing.T) {
+	srv := newOAuth2asTestServer(t)
+	client := srv.registerClient(t)
+	_, approveChallenge := pkcePair(t)
+	ctx := context.Background()
+
+	_, err := srv.db.Exec(ctx, `
+		INSERT INTO auth.users (id, email, password_hash)
+		VALUES ($1, $2, 'x')`, srv.userID, srv.userID+"@example.com")
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		_, _ = srv.db.Exec(ctx, `DELETE FROM auth.users WHERE id = $1`, srv.userID)
+		_, _ = srv.db.Exec(ctx, `DELETE FROM auth.oauth2_clients WHERE id = $1`, client.ID)
+	})
+
+	authorize := func(scope string) *http.Response {
+		_, freshChallenge := pkcePair(t)
+		q := url.Values{
+			"response_type":         {"code"},
+			"client_id":             {client.ID},
+			"redirect_uri":          {client.RedirectURIs[0]},
+			"code_challenge":        {freshChallenge},
+			"code_challenge_method": {"S256"},
+			"state":                 {"remember-state-1"},
+			"scope":                 {scope},
+		}
+		resp, gErr := noRedirectClient().Get(srv.ts.URL + "/oauth2/authorize?" + q.Encode())
+		require.NoError(t, gErr)
+		t.Cleanup(func() { _ = resp.Body.Close() })
+		return resp
+	}
+	consentRedirect := func(resp *http.Response) bool {
+		return strings.Contains(resp.Header.Get("Location"), "/oauth/consent")
+	}
+
+	// A client that has not opted in always shows consent.
+	require.True(t, consentRedirect(authorize("openid")))
+
+	_, err = srv.db.Exec(ctx,
+		`UPDATE auth.oauth2_clients SET remember_consent = TRUE WHERE id = $1`, client.ID)
+	require.NoError(t, err)
+	require.True(t, consentRedirect(authorize("openid")), "no grant yet")
+
+	q := url.Values{
+		"response_type": {"code"}, "client_id": {client.ID},
+		"redirect_uri":   {client.RedirectURIs[0]},
+		"code_challenge": {approveChallenge}, "code_challenge_method": {"S256"},
+		"state": {"remember-state-1"}, "scope": {"openid"},
+	}
+	token := srv.consentToken(t, q)
+	q.Set("consent", "allow")
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost,
+		srv.ts.URL+"/oauth2/authorize?"+q.Encode(), nil)
+	require.NoError(t, err)
+	req.Header.Set(oauth2as.ConsentTokenHeader, token)
+	approved, err := noRedirectClient().Do(req)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = approved.Body.Close() })
+	require.Equal(t, http.StatusSeeOther, approved.StatusCode)
+
+	resp := authorize("openid")
+	assert.False(t, consentRedirect(resp))
+	loc, err := url.Parse(resp.Header.Get("Location"))
+	require.NoError(t, err)
+	assert.NotEmpty(t, loc.Query().Get("code"), resp.Header.Get("Location"))
+
+	covered, err := srv.store.Covers(
+		ctx, srv.userID, client.ID, []string{"openid", "profile"},
+	)
+	require.NoError(t, err)
+	assert.False(t, covered)
+	assert.True(t, consentRedirect(authorize("openid profile")), "widened scope")
 }

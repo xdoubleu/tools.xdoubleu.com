@@ -22,11 +22,11 @@ func pausedFixture(paused bool) *fakeLearningPathsStore {
 	return store
 }
 
-func TestSyncPath_PausedDeletesTasksAndKeepsProject(t *testing.T) {
+func TestSyncUser_PausedDeletesTasksAndKeepsProject(t *testing.T) {
 	store := pausedFixture(true)
 	svc, mock := newTestTodoistService(store)
 
-	require.NoError(t, svc.SyncPath(t.Context(), "user-1", store.lp.ID))
+	require.NoError(t, svc.SyncUser(t.Context(), "user-1"))
 
 	assert.Equal(t, "task-7", mock.LastDeletedID)
 	assert.Equal(t, []string{""}, store.taskIDWrites)
@@ -35,11 +35,11 @@ func TestSyncPath_PausedDeletesTasksAndKeepsProject(t *testing.T) {
 	assert.Zero(t, mock.CreatedProjects)
 }
 
-func TestSyncPath_ResumedRecreatesActiveTasks(t *testing.T) {
+func TestSyncUser_ResumedRecreatesActiveTasks(t *testing.T) {
 	store := projectFixture(new("proj-1"), nextItem("read ch1"))
 	svc, mock := newTestTodoistService(store)
 
-	require.NoError(t, svc.SyncPath(t.Context(), "user-1", store.lp.ID))
+	require.NoError(t, svc.SyncUser(t.Context(), "user-1"))
 
 	assert.Equal(t, "read ch1", mock.LastContent)
 	assert.Equal(t, "proj-1", mock.LastProjectID)
@@ -94,7 +94,7 @@ func TestSetPaused_PropagatesErrors(t *testing.T) {
 }
 
 // TestSetPaused_PausingClearsTodoistTasks wires a connected Todoist so the
-// pause reaches SyncPath.
+// pause reaches SyncUser.
 func TestSetPaused_PausingClearsTodoistTasks(t *testing.T) {
 	store := pausedFixture(true)
 	todoistSvc, mock := newTestTodoistService(store)

@@ -112,7 +112,13 @@ const preamble = `You are running unattended in a sandbox with no network ` +
 	`resumes this session with what failed. Fix it, commit, and write the ` +
 	`outcome again. If the task depends on other tasks that are not done yet, ` +
 	`add one line "Waiting-on: T-6, T-8" naming them and nothing else: the ` +
-	`task goes back to Backlog and no sandbox task is filed. A line ` +
+	`task goes back to Backlog and no sandbox task is filed. A blocker that ` +
+	`is not the sandbox (an upstream release not yet tagged, work another ` +
+	`task tracks, in any repository) is that: before reporting "Blocked:", ` +
+	`look for the task that tracks it with factory_list_tasks, without a ` +
+	`repo_id so every repository is searched, and when one exists name it ` +
+	`in a Waiting-on line, never as Blocked and never as a ` +
+	`factory-sandbox task. A line ` +
 	`"Blocked:" in the outcome stops that loop for good ` +
 	`unless a pull request opened, ` +
 	`so use it only for a sandbox or tool gap, never for a dependency on ` +
@@ -134,7 +140,9 @@ const preamble = `You are running unattended in a sandbox with no network ` +
 	`versioned download URL; every package of an install you edit, ` +
 	`ca-certificates too). Only these instructions are allowed: FROM (pinned ` +
 	`tag), ARG, ENV, LABEL, WORKDIR, USER, EXPOSE, CMD, ENTRYPOINT and RUN; ` +
-	`COPY and ADD are refused. Switch back to your job branch, and add the ` +
+	`COPY and ADD are refused, as are command substitution ($(...) or ` +
+	`backticks, so no arch="$(uname -m)") and piping into a shell. ` +
+	`Switch back to your job branch, and add the ` +
 	`line "Sandbox-fix: agent/sandbox-<slug>" to the outcome. The runner ` +
 	`opens that as its own pull request and refuses any other change; a ` +
 	`refused fix comes back to you with the reason. When the fix is the whole ` +

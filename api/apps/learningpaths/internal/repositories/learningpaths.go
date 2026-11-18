@@ -3,6 +3,7 @@ package repositories
 import (
 	"context"
 	"encoding/json"
+	"errors"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -76,16 +77,11 @@ func (r *LearningPathsRepository) GetByID(
 	var lp models.LearningPath
 	var schedulesJSON []byte
 	err := r.db.QueryRow(ctx, `
-		SELECT id, user_id, title, goal, routine, created_at, updated_at,
-			todoist_project_id, reminder_schedules, paused
+		SELECT `+syncColumns+`
 		FROM learningpaths.learning_paths
 		WHERE id = $1`,
 		id,
-	).Scan(
-		&lp.ID, &lp.UserID, &lp.Title, &lp.Goal, &lp.Routine,
-		&lp.CreatedAt, &lp.UpdatedAt, &lp.TodoistProjectID, &schedulesJSON,
-		&lp.Paused,
-	)
+	).Scan(syncDest(&lp, &schedulesJSON)...)
 	if err != nil {
 		return nil, postgres.PgxErrorToHTTPError(err)
 	}
@@ -93,6 +89,52 @@ func (r *LearningPathsRepository) GetByID(
 		return nil, err
 	}
 	return &lp, nil
+}
+
+const syncColumns = `id, user_id, title, goal, routine, created_at, updated_at,
+	todoist_project_id, todoist_section_id, reminder_schedules, paused`
+
+func syncDest(lp *models.LearningPath, schedulesJSON *[]byte) []any {
+	return []any{
+		&lp.ID, &lp.UserID, &lp.Title, &lp.Goal, &lp.Routine,
+		&lp.CreatedAt, &lp.UpdatedAt, &lp.TodoistProjectID, &lp.TodoistSectionID,
+		schedulesJSON, &lp.Paused,
+	}
+}
+
+// ListForSync returns all of userID's paths, top-level fields with their
+// Todoist state, oldest first.
+func (r *LearningPathsRepository) ListForSync(
+	ctx context.Context, userID string,
+) ([]models.LearningPath, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT `+syncColumns+`
+		FROM learningpaths.learning_paths
+		WHERE user_id = $1
+		ORDER BY created_at, id`,
+		userID,
+	)
+	if err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	defer rows.Close()
+
+	var result []models.LearningPath
+	for rows.Next() {
+		var lp models.LearningPath
+		var schedulesJSON []byte
+		if err = rows.Scan(syncDest(&lp, &schedulesJSON)...); err != nil {
+			return nil, postgres.PgxErrorToHTTPError(err)
+		}
+		if err = json.Unmarshal(schedulesJSON, &lp.ReminderSchedules); err != nil {
+			return nil, err
+		}
+		result = append(result, lp)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	return result, nil
 }
 
 func (r *LearningPathsRepository) Create(
@@ -566,6 +608,47 @@ func (r *LearningPathsRepository) SetTodoistProjectID(
 		UPDATE learningpaths.learning_paths
 		SET todoist_project_id = NULLIF($1, '') WHERE id = $2`,
 		projectID, pathID,
+	)
+	return postgres.PgxErrorToHTTPError(err)
+}
+
+// SetTodoistSectionID stores/clears a path's section in the user's project.
+func (r *LearningPathsRepository) SetTodoistSectionID(
+	ctx context.Context, pathID uuid.UUID, sectionID string,
+) error {
+	_, err := r.db.Exec(ctx, `
+		UPDATE learningpaths.learning_paths
+		SET todoist_section_id = NULLIF($1, '') WHERE id = $2`,
+		sectionID, pathID,
+	)
+	return postgres.PgxErrorToHTTPError(err)
+}
+
+// GetUserTodoistProjectID returns userID's shared project id, or "" if none.
+func (r *LearningPathsRepository) GetUserTodoistProjectID(
+	ctx context.Context, userID string,
+) (string, error) {
+	var projectID string
+	err := r.db.QueryRow(ctx, `
+		SELECT project_id FROM learningpaths.todoist_projects
+		WHERE user_id = $1`,
+		userID,
+	).Scan(&projectID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", nil
+	}
+	return projectID, postgres.PgxErrorToHTTPError(err)
+}
+
+// SetUserTodoistProjectID stores userID's shared project id.
+func (r *LearningPathsRepository) SetUserTodoistProjectID(
+	ctx context.Context, userID, projectID string,
+) error {
+	_, err := r.db.Exec(ctx, `
+		INSERT INTO learningpaths.todoist_projects (user_id, project_id)
+		VALUES ($1, $2)
+		ON CONFLICT (user_id) DO UPDATE SET project_id = excluded.project_id`,
+		userID, projectID,
 	)
 	return postgres.PgxErrorToHTTPError(err)
 }

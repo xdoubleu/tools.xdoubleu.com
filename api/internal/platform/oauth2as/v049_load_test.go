@@ -38,6 +38,12 @@ func loadV049Fixture(t *testing.T, db *pgxpool.Pool) v049Fixture {
 		for _, raw := range f.Rows[table] {
 			var row map[string]any
 			require.NoError(t, json.Unmarshal(raw, &row))
+			if table == "oauth2_clients" {
+				// Columns added since the capture take their default.
+				if _, has := row["remember_consent"]; !has {
+					row["remember_consent"] = false
+				}
+			}
 			shifted, err := json.Marshal(shiftTimes(row, shift))
 			require.NoError(t, err)
 

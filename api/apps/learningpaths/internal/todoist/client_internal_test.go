@@ -45,7 +45,7 @@ func TestCreateTask_Success(t *testing.T) {
 	c := NewClient(tokenFn)
 
 	taskID, err := c.CreateTask(
-		t.Context(), "Learn Go: read ch3", "every Monday", "proj-7",
+		t.Context(), "Learn Go: read ch3", "every Monday", "proj-7", "sec-3",
 	)
 	require.NoError(t, err)
 	assert.Equal(t, "task-42", taskID)
@@ -55,6 +55,7 @@ func TestCreateTask_Success(t *testing.T) {
 	assert.Equal(t, "Learn Go: read ch3", gotBody.Content)
 	assert.Equal(t, "every Monday", gotBody.DueString)
 	assert.Equal(t, "proj-7", gotBody.ProjectID)
+	assert.Equal(t, "sec-3", gotBody.SectionID)
 }
 
 func TestCreateTask_OmitsEmptyDueString(t *testing.T) {
@@ -74,7 +75,7 @@ func TestCreateTask_OmitsEmptyDueString(t *testing.T) {
 		return "token", nil
 	}))
 
-	_, err := c.CreateTask(t.Context(), "content only", "", "")
+	_, err := c.CreateTask(t.Context(), "content only", "", "", "")
 	require.NoError(t, err)
 	assert.Empty(t, gotBody.DueString)
 	assert.Empty(t, gotBody.ProjectID)
@@ -86,7 +87,7 @@ func TestCreateTask_TokenFuncError(t *testing.T) {
 		return "", tokenErr
 	}))
 
-	_, err := c.CreateTask(t.Context(), "content", "", "")
+	_, err := c.CreateTask(t.Context(), "content", "", "", "")
 	assert.ErrorIs(t, err, tokenErr)
 }
 
@@ -104,7 +105,7 @@ func TestCreateTask_NonSuccessStatus(t *testing.T) {
 		return "bad-token", nil
 	}))
 
-	_, err := c.CreateTask(t.Context(), "content", "", "")
+	_, err := c.CreateTask(t.Context(), "content", "", "", "")
 	require.Error(t, err)
 	var apiErr *apiError
 	require.ErrorAs(t, err, &apiErr)
@@ -121,7 +122,7 @@ func TestCreateTask_RequestFails(t *testing.T) {
 		return "token", nil
 	}))
 
-	_, err := c.CreateTask(t.Context(), "content", "", "")
+	_, err := c.CreateTask(t.Context(), "content", "", "", "")
 	assert.Error(t, err)
 }
 
@@ -139,7 +140,7 @@ func TestCreateTask_DecodeError(t *testing.T) {
 		return "token", nil
 	}))
 
-	_, err := c.CreateTask(t.Context(), "content", "", "")
+	_, err := c.CreateTask(t.Context(), "content", "", "", "")
 	assert.Error(t, err)
 }
 
