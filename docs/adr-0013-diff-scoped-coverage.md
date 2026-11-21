@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Issues: #1301, #1364, #1376, #1632, #1868, T-300, T-301
-- Affects: `diff-coverage/`, `scripts/diff_coverage.sh`, `api/Makefile`, `.github/workflows/*-test.yml`, `web/package.json`
+- Affects: `scripts/diff_coverage.sh`, `api/Makefile`, `.github/workflows/*-test.yml`, `web/package.json`
 
 ## Context
 
@@ -15,7 +15,7 @@ Gate on **lines changed vs `origin/main`**, locally and in CI. The test workflow
 
 - `npm run test:cov:diff` runs `diff-coverage lcov`; `make test/cov/diff` runs
   `diff-coverage go`; `make test/cov/per-pkg` runs `diff-coverage merge`. All go
-  through `scripts/diff_coverage.sh`, which builds `diff-coverage/` and passes
+  through `scripts/diff_coverage.sh`, which runs `go tool diff-coverage` and passes
   this repo's globs.
 - `lcov` fails a changed file under 80% line/branch on its changed lines, **or
   with no coverage data at all** (e.g. a new unimported file). Only files in
@@ -28,11 +28,10 @@ Gate on **lines changed vs `origin/main`**, locally and in CI. The test workflow
   #1632) reuses the same diff scoping via `tools/diff_packages_go.py` /
   `tools/diff_files_ts.py`; the module doesn't expose the changed-file list.
 
-The gate's logic lives in its own Go module, `diff-coverage/`, so other repos
+The gate's logic lives in its own module, `github.com/xdoubleu/diff-coverage`, so other repos
 (`check-in` first) can drop Codecov too. Threshold, base ref and include/exclude
-globs are flags. Once the module is published, a `tool` directive in each
-`go.mod` pins it, so `go tool diff-coverage` is the same version locally and in
-CI; until then the wrapper builds the in-repo copy.
+globs are flags. A `tool` directive in each Go module's `go.mod` pins it, so
+`go tool diff-coverage` is the same version locally and in CI; `web/` uses api's pin.
 
 ## Alternatives considered
 

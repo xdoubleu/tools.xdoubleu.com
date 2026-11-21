@@ -9,9 +9,12 @@ require (
 )
 
 require (
+	github.com/xdoubleu/diff-coverage v0.1.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/sys v0.47.0 // indirect
 	golang.org/x/text v0.43.0 // indirect
 )
 
 replace tools.xdoubleu.com/selfupdate => ../selfupdate
+
+tool github.com/xdoubleu/diff-coverage
