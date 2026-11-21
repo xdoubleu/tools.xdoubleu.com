@@ -15,7 +15,7 @@ var now = time.Date(2026, 5, 1, 12, 0, 0, 0, time.UTC)
 func season(number int, airDate *time.Time, watches int) models.Season {
 	return models.Season{
 		Number: number, Name: "", AirDate: airDate, EpisodeCount: 0,
-		WatchedAt: make([]*time.Time, watches),
+		WatchedAt: make([]*time.Time, watches), HasAired: false,
 	}
 }
 

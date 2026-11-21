@@ -30,7 +30,7 @@ func (s *stubProviders) ListRegionProviders(
 
 func newService(stub *stubProviders, ttl time.Duration) *services.MovieService {
 	services.SetProvidersTTL(ttl)
-	return services.New(&repositories.Repositories{Movies: nil}, nil, stub).Movies
+	return services.New(&repositories.Repositories{Movies: nil}, nil, stub, nil).Movies
 }
 
 func TestAvailableProviders_CachedWithinTTL(t *testing.T) {

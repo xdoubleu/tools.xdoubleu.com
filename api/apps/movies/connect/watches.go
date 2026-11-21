@@ -1,4 +1,4 @@
-package movies
+package connect
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 
+	"tools.xdoubleu.com/apps/movies/internal/protomap"
 	moviesv1 "tools.xdoubleu.com/gen/movies/v1"
 )
 
@@ -33,7 +34,7 @@ func optionalInt(n *int32) *int {
 }
 
 // target resolves the list owner and entry id of an entry RPC.
-func (h *moviesConnectHandler) target(
+func (h *Handler) target(
 	ctx context.Context,
 	shared bool,
 	rawID string,
@@ -46,7 +47,7 @@ func (h *moviesConnectHandler) target(
 	return uid, id, err
 }
 
-func (h *moviesConnectHandler) SetSeasonWatched(
+func (h *Handler) SetSeasonWatched(
 	ctx context.Context,
 	req *moviesv1.SetSeasonWatchedRequest,
 ) (*moviesv1.SetSeasonWatchedResponse, error) {
@@ -54,19 +55,19 @@ func (h *moviesConnectHandler) SetSeasonWatched(
 	if err != nil {
 		return nil, err
 	}
-	entry, err := h.app.services.Movies.SetSeasonWatched(
+	entry, err := h.movies.SetSeasonWatched(
 		ctx, uid, id, int(req.SeasonNumber), req.Watched, req.UnknownDate,
 	)
 	if err != nil {
 		return nil, mapError(err)
 	}
 	return &moviesv1.SetSeasonWatchedResponse{
-		Entry:   protoEntry(entry),
-		Seasons: protoSeasons(entry.Seasons),
+		Entry:   protomap.Entry(entry),
+		Seasons: protomap.Seasons(entry.Seasons),
 	}, nil
 }
 
-func (h *moviesConnectHandler) AddWatchDate(
+func (h *Handler) AddWatchDate(
 	ctx context.Context,
 	req *moviesv1.AddWatchDateRequest,
 ) (*moviesv1.AddWatchDateResponse, error) {
@@ -78,19 +79,19 @@ func (h *moviesConnectHandler) AddWatchDate(
 	if err != nil {
 		return nil, err
 	}
-	entry, err := h.app.services.Movies.AddWatchDate(
+	entry, err := h.movies.AddWatchDate(
 		ctx, uid, id, optionalInt(req.SeasonNumber), day,
 	)
 	if err != nil {
 		return nil, mapError(err)
 	}
 	return &moviesv1.AddWatchDateResponse{
-		Entry:   protoEntry(entry),
-		Seasons: protoSeasons(entry.Seasons),
+		Entry:   protomap.Entry(entry),
+		Seasons: protomap.Seasons(entry.Seasons),
 	}, nil
 }
 
-func (h *moviesConnectHandler) EditWatchDate(
+func (h *Handler) EditWatchDate(
 	ctx context.Context,
 	req *moviesv1.EditWatchDateRequest,
 ) (*moviesv1.EditWatchDateResponse, error) {
@@ -102,19 +103,19 @@ func (h *moviesConnectHandler) EditWatchDate(
 	if err != nil {
 		return nil, err
 	}
-	entry, err := h.app.services.Movies.EditWatchDate(
+	entry, err := h.movies.EditWatchDate(
 		ctx, uid, id, optionalInt(req.SeasonNumber), int(req.Index), day,
 	)
 	if err != nil {
 		return nil, mapError(err)
 	}
 	return &moviesv1.EditWatchDateResponse{
-		Entry:   protoEntry(entry),
-		Seasons: protoSeasons(entry.Seasons),
+		Entry:   protomap.Entry(entry),
+		Seasons: protomap.Seasons(entry.Seasons),
 	}, nil
 }
 
-func (h *moviesConnectHandler) RemoveWatchDate(
+func (h *Handler) RemoveWatchDate(
 	ctx context.Context,
 	req *moviesv1.RemoveWatchDateRequest,
 ) (*moviesv1.RemoveWatchDateResponse, error) {
@@ -122,14 +123,14 @@ func (h *moviesConnectHandler) RemoveWatchDate(
 	if err != nil {
 		return nil, err
 	}
-	entry, err := h.app.services.Movies.RemoveWatchDate(
+	entry, err := h.movies.RemoveWatchDate(
 		ctx, uid, id, optionalInt(req.SeasonNumber), int(req.Index),
 	)
 	if err != nil {
 		return nil, mapError(err)
 	}
 	return &moviesv1.RemoveWatchDateResponse{
-		Entry:   protoEntry(entry),
-		Seasons: protoSeasons(entry.Seasons),
+		Entry:   protomap.Entry(entry),
+		Seasons: protomap.Seasons(entry.Seasons),
 	}, nil
 }

@@ -119,9 +119,14 @@ linters:
             - "**/apps/shoppinglist/connect/**"
             - "**/apps/shoppinglist/mcp/**"
             - "**/apps/shoppinglist/http/**"
+            - "**/apps/movies/connect/**"
+            - "**/apps/movies/mcp/**"
+            - "**/apps/movies/http/**"
             - "!**/*_test.go"
           deny:
             - pkg: tools.xdoubleu.com/apps/shoppinglist/internal/repositories
+              desc: adapters call services, never repositories
+            - pkg: tools.xdoubleu.com/apps/movies/internal/repositories
               desc: adapters call services, never repositories
             - pkg: github.com/jackc/pgx
               desc: adapters do not touch the database
@@ -130,6 +135,7 @@ linters:
         hexagonal-services:
           files:
             - "**/apps/shoppinglist/internal/services/**"
+            - "**/apps/movies/internal/services/**"
             - "!**/*_test.go"
           deny:
             - pkg: connectrpc.com/connect

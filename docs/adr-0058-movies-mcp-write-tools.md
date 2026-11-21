@@ -1,7 +1,7 @@
 # ADR-0058: movies gets MCP write tools for the backlog
 
 - Status: Accepted
-- Affects: `api/apps/movies/mcp.go`, `api/apps/movies/mcp_write.go`, `api/apps/movies/internal/services/movies.go`
+- Affects: `api/apps/movies/mcp/mcp.go`, `api/apps/movies/mcp/write.go`, `api/apps/movies/internal/services/titlechange.go`
 
 ## Context
 
@@ -41,7 +41,7 @@ for each app's mutating tools.
   the family's) backlog, including deleting entries and their watch history.
 - A rejected combination in `movies_add_title` for a new title (e.g.
   `watched_at` on a series) fails after the title was added as `want`.
-- `mcp_write_internal_test.go` covers idempotency, validation, dated watches
+- `mcp_test.go` covers idempotency, validation, dated watches
   reaching `movies_get_stats`, seasons and the shared list.
 
 ## Revisit when

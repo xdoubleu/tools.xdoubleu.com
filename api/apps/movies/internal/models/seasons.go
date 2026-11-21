@@ -10,6 +10,8 @@ type Season struct {
 	AirDate      *time.Time
 	EpisodeCount int
 	WatchedAt    []*time.Time
+	// HasAired is set by the service when it loads an entry.
+	HasAired bool
 }
 
 // Counts reports whether the season takes part in the series status: TMDB's

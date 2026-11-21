@@ -41,11 +41,11 @@ func (s *MovieService) loadSeasons(
 }
 
 // watchAt is a new watch: now, or unknown.
-func watchAt(unknownDate bool) *time.Time {
+func (s *MovieService) watchAt(unknownDate bool) *time.Time {
 	if unknownDate {
 		return nil
 	}
-	now := time.Now()
+	now := s.now()
 	return &now
 }
 
@@ -59,7 +59,7 @@ func (s *MovieService) markSeriesWatched(
 	if entry.Title.MediaType != tmdb.MediaTypeSeries {
 		return entry, nil
 	}
-	now := time.Now()
+	now := s.now()
 	changed := false
 	for _, season := range entry.Seasons {
 		if !season.Counts() || !season.Aired(now) || season.Ticked() {
@@ -67,7 +67,7 @@ func (s *MovieService) markSeriesWatched(
 		}
 		err := s.repo.SetSeasonWatchedAt(
 			ctx, userID, entry.ID, season.Number,
-			[]*time.Time{watchAt(unknownDate)},
+			[]*time.Time{s.watchAt(unknownDate)},
 		)
 		if err != nil {
 			return nil, err
@@ -99,7 +99,7 @@ func (s *MovieService) SetSeasonWatched(
 	}
 	var dates []*time.Time
 	if watched {
-		dates = []*time.Time{watchAt(unknownDate)}
+		dates = []*time.Time{s.watchAt(unknownDate)}
 	}
 	return s.saveSeasonWatches(ctx, userID, entry, number, dates)
 }
@@ -228,7 +228,7 @@ func (s *MovieService) saveSeasonWatches(
 	if err != nil || updated.Status == models.StatusDropped {
 		return updated, err
 	}
-	next := models.SeriesStatus(updated.Seasons, time.Now())
+	next := models.SeriesStatus(updated.Seasons, s.now())
 	if next == updated.Status {
 		return updated, nil
 	}
