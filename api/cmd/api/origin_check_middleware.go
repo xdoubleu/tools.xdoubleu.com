@@ -6,7 +6,7 @@ import (
 	"slices"
 	"strings"
 
-	"tools.xdoubleu.com/internal/platform/oauth2as"
+	"tools.xdoubleu.com/internal/platform/identity/oauth2as"
 )
 
 // originCheckMiddleware rejects browser-driven state-changing requests whose

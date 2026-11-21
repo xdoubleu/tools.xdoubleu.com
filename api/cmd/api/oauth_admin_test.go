@@ -11,7 +11,7 @@ import (
 
 	"tools.xdoubleu.com/internal/config"
 	"tools.xdoubleu.com/internal/models"
-	"tools.xdoubleu.com/internal/platform/oauth2as"
+	"tools.xdoubleu.com/internal/platform/connectflow"
 )
 
 // withStubProvider points "sentry" at conf until cleanup.
@@ -19,7 +19,7 @@ func withStubProvider(t *testing.T, conf *oauth2.Config) {
 	t.Helper()
 	providers := testApp.oauthConnect.Providers
 	original := providers["sentry"]
-	providers["sentry"] = oauth2as.ConnectProvider{
+	providers["sentry"] = connectflow.ConnectProvider{
 		Provider: original.Provider,
 		Conf:     func(config.Config) *oauth2.Config { return conf },
 	}

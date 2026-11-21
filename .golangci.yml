@@ -89,6 +89,22 @@ linters:
               desc: kit is the domain-free toolkit and imports no other tier
           allow:
             - tools.xdoubleu.com/internal/kit
+        # The identity core (agent accounts, the OAuth 2.1 server) imports only
+        # kit and its own ports, so it can be extracted; adapters live in
+        # identity/adapters and the connect/http subpackages.
+        identity-core:
+          files:
+            - "**/internal/platform/identity/agentaccounts/**"
+            - "**/internal/platform/identity/oauth2as/**"
+            - "!**/internal/platform/identity/agentaccounts/connect/**"
+            - "!**/internal/platform/identity/oauth2as/http/**"
+            - "!**/*_test.go"
+          list-mode: lax
+          deny:
+            - pkg: tools.xdoubleu.com/internal
+              desc: the identity core imports only kit and its own ports
+          allow:
+            - tools.xdoubleu.com/internal/kit
         platform-tier:
           files:
             - "**/internal/platform/**"

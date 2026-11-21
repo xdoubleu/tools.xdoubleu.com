@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Affects: `api/internal/platform/mcptools/agent_grants.go`,
-  `api/internal/platform/agentaccounts/store.go`, `global.agent_accounts`.
+  `api/internal/platform/identity/agentaccounts/store.go`, `global.agent_accounts`.
   Supersedes the "or read another person's data" rule of
   [ADR-0047](adr-0047-first-class-agent-users.md).
 

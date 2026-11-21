@@ -11,11 +11,11 @@ import (
 
 	"tools.xdoubleu.com/internal/kit/constants"
 	"tools.xdoubleu.com/internal/models"
-	"tools.xdoubleu.com/internal/platform/oauth2as"
+	"tools.xdoubleu.com/internal/platform/identity/oauth2as"
 )
 
 // OAuth 2.1 plumbing shared by MCP endpoints: the api is both the resource
-// server and its own authorization server (internal/platform/oauth2as). Server
+// server and its own authorization server (internal/platform/identity/oauth2as). Server
 // and tool registration live in cmd/api/mcp_apps.go.
 
 const (

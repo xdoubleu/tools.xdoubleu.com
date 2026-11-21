@@ -37,7 +37,7 @@ type appUsersStore interface {
 }
 
 // OAuth2TokenResolver resolves a fosite opaque access token to a user ID. It is
-// set by cmd/api to avoid an import cycle with internal/platform/oauth2as.
+// set by cmd/api to avoid an import cycle with internal/platform/identity/oauth2as.
 type OAuth2TokenResolver interface {
 	ResolveAccessToken(ctx context.Context, token string) (userID string, err error)
 }

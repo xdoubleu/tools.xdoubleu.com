@@ -25,13 +25,14 @@ import (
 	"tools.xdoubleu.com/internal/platform/account"
 	"tools.xdoubleu.com/internal/platform/auth"
 	"tools.xdoubleu.com/internal/platform/communication/httptools"
+	"tools.xdoubleu.com/internal/platform/connectflow"
 	"tools.xdoubleu.com/internal/platform/factory"
 	"tools.xdoubleu.com/internal/platform/family"
 	"tools.xdoubleu.com/internal/platform/github"
+	"tools.xdoubleu.com/internal/platform/identity/oauth2as"
 	"tools.xdoubleu.com/internal/platform/jobqueue"
 	"tools.xdoubleu.com/internal/platform/mailer"
 	"tools.xdoubleu.com/internal/platform/notifications"
-	"tools.xdoubleu.com/internal/platform/oauth2as"
 	"tools.xdoubleu.com/internal/platform/oauthconn"
 	"tools.xdoubleu.com/internal/platform/obs"
 	"tools.xdoubleu.com/internal/platform/observability"
@@ -63,7 +64,7 @@ type Application struct {
 	auth                          *auth.LocalService
 	authSealer                    *crypto.Sealer
 	oauth2as                      *oauth2as.Wiring
-	oauthConnect                  *oauth2as.ConnectFlow
+	oauthConnect                  *connectflow.ConnectFlow
 	family                        family.Service
 	platform                      *Platform
 	apps                          *Apps
@@ -574,7 +575,7 @@ func NewApplication(
 		notificationSettingsRepo: notificationSettingsRepo,
 		oauthConnRepo:            oauthConnRepo,
 		oauthState:               oauthState,
-		oauthConnect: oauth2as.NewConnectFlow(
+		oauthConnect: connectflow.NewConnectFlow(
 			config, authSvc, oauthState, oauthConnRepo, logger,
 		),
 		githubClient:                  githubClient,
@@ -610,7 +611,12 @@ func NewApplication(
 
 	oauth2Store := oauth2as.NewStore(spanDB)
 	oidcKey := oauth2as.LoadOIDCKeyOrDegrade(logger, config.OAuthOIDCPrivateKey)
-	oauth2Provider := oauth2as.NewProvider(config, oauth2Store, oidcKey)
+	oauth2Provider := oauth2as.NewProvider(oauth2as.Config{
+		HMACSecret: config.OAuthHMACSecret,
+		Issuer:     config.AuthIssuer,
+		APIURL:     config.APIURL,
+		WebURL:     config.WebURL,
+	}, oauth2Store, oidcKey)
 	app.oauth2as = &oauth2as.Wiring{
 		Store: oauth2Store, Provider: oauth2Provider, OIDCKey: oidcKey,
 	}
