@@ -2,6 +2,8 @@ package ward_test
 
 import (
 	"errors"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -58,8 +60,13 @@ func TestOnlyTheTwoModelSecretsAreKnown(t *testing.T) {
 }
 
 func TestTheRealKeychainRunsSecurity(t *testing.T) {
+	// A stand-in `security` on PATH, so the test runs off macOS too; it reports the
+	// item missing the way the real one does.
+	dir := t.TempDir()
+	stub := "#!/bin/sh\nexit 44\n"
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "security"), []byte(stub), 0o700))
+	t.Setenv("PATH", dir+string(os.PathListSeparator)+os.Getenv("PATH"))
 	k := ward.NewKeychain()
-	// A lookup of an item that never exists: `security` runs and reports it missing.
 	_, code, err := k.Run("find-generic-password", "-s", "wardcase-test-none", "-a", "x")
 	require.NoError(t, err)
 	assert.NotEqual(t, 0, code)
