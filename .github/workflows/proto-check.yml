@@ -8,6 +8,9 @@ jobs:
   proto-check:
     name: Proto Staleness Check
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: nix develop --command bash -euo pipefail {0}
     permissions:
       contents: read
       actions: write
@@ -15,17 +18,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
-        with:
-          node-version-file: './web/package.json'
-      - name: Install buf
-        env:
-          # renovate: datasource=github-releases depName=bufbuild/buf
-          version: v1.75.0
-        run: |
-          curl -sSL "https://github.com/bufbuild/buf/releases/download/${version}/buf-Linux-x86_64" \
-            -o /usr/local/bin/buf
-          chmod +x /usr/local/bin/buf
+      - uses: DeterminateSystems/nix-installer-action@3138316df39ed29be04236d7ffc686fa525866aa # v23
       - name: Generate Go proto stubs
         run: buf generate
         working-directory: './api'
