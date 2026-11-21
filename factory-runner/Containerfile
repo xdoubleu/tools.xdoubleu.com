@@ -9,6 +9,7 @@ FROM docker.io/library/node:26-bookworm-slim@sha256:5df79989ed685e09f0a98019db4c
 ARG CLAUDE_CODE_VERSION=2.1.285
 # Only @opencode/cli: the `opencode-ai` package ships the same binary name.
 ARG OPENCODE_VERSION=2.2.2
+ARG CODEX_VERSION=0.140.0
 # Go tools and sqlfluff come from tools/ci-tools.txt, the pins CI uses too
 # (make lint/ci-tools); Playwright keeps step with web/package.json.
 ARG PLAYWRIGHT_VERSION=1.65.0
@@ -37,7 +38,8 @@ COPY --from=go /usr/local/go /usr/local/go
 ENV PATH=/usr/local/go/bin:/home/node/go/bin:$PATH
 
 RUN npm install -g "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}" \
-    && npm install -g "@opencode/cli@${OPENCODE_VERSION}"
+    && npm install -g "@opencode/cli@${OPENCODE_VERSION}" \
+    && npm install -g "@openai/codex@${CODEX_VERSION}"
 
 # Claude's config (marketplaces and the plugins .claude/settings.json enables) lives
 # here; the runner copies it into a new session directory, because CLAUDE_CONFIG_DIR

@@ -1,5 +1,6 @@
-// Command wardcase runs an agent harness (Claude Code, OpenCode) in the job VM on
-// the current checkout, so any ADE or terminal gets the same sandbox. Experimental.
+// Command wardcase runs an agent harness (Claude Code, OpenCode, Codex) in the job
+// VM on the current checkout, so any ADE or terminal gets the same sandbox.
+// Experimental.
 package main
 
 import (
@@ -23,10 +24,10 @@ import (
 const usage = `wardcase runs an agent harness in a sealed VM on this checkout.
 (experimental)
 
-  wardcase [claude|opencode] [args...]          interactive; args go to the harness
-  wardcase --print [claude|opencode] [prompt]   headless; the prompt, else stdin
-  wardcase secret set <anthropic|openrouter>    reads the value from stdin
-  wardcase config                               prints the config path and settings
+  wardcase [claude|opencode|codex] [args...]         interactive; args go to the harness
+  wardcase --print [claude|opencode|codex] [prompt]  headless; the prompt, else stdin
+  wardcase secret set <anthropic|openrouter|openai>  reads the value from stdin
+  wardcase config                                    prints the config path and settings
 
 Without a harness the first in the config's order runs. At a usage limit the next
 one takes over, as the config's overflow (ask, auto, off) allows.
@@ -80,7 +81,7 @@ func secret(
 	store ward.Secrets, args []string, in io.Reader, out, errOut io.Writer,
 ) int {
 	if len(args) != 2 || args[0] != "set" || !ward.ValidSecret(args[1]) {
-		fmt.Fprintln(errOut, "usage: wardcase secret set <anthropic|openrouter>")
+		fmt.Fprintln(errOut, "usage: wardcase secret set <anthropic|openrouter|openai>")
 		return exitUsage
 	}
 	line, err := bufio.NewReader(in).ReadString('\n')
@@ -126,7 +127,7 @@ func start(
 	if len(args) > 0 && args[0] == "--print" {
 		req.Print, args = true, args[1:]
 	}
-	if len(args) > 0 && (args[0] == ward.Claude || args[0] == ward.OpenCode) {
+	if len(args) > 0 && ward.ValidHarness(args[0]) {
 		req.Harness, args = args[0], args[1:]
 	}
 	req.Args = args

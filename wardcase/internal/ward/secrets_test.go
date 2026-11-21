@@ -53,6 +53,7 @@ func TestASecretIsStoredReplacingAnOldOne(t *testing.T) {
 func TestOnlyTheTwoModelSecretsAreKnown(t *testing.T) {
 	assert.True(t, ward.ValidSecret("anthropic"))
 	assert.True(t, ward.ValidSecret("openrouter"))
+	assert.True(t, ward.ValidSecret("openai"))
 	assert.False(t, ward.ValidSecret("github"))
 }
 

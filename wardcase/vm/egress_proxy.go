@@ -21,6 +21,7 @@ const (
 
 	anthropicURL  = "https://api.anthropic.com"
 	openRouterURL = "https://openrouter.ai/api"
+	openAIURL     = "https://api.openai.com"
 	postHogURL    = "https://mcp.posthog.com/mcp"
 	goProxyURL    = "https://proxy.golang.org"
 	npmURL        = "https://registry.npmjs.org"
@@ -37,19 +38,21 @@ type EgressConfig struct {
 	// Server is the API root, like Config.Server; the board's MCP endpoint is
 	// <Server>/apps/mcp.
 	Server string
-	// MCPToken, OpenRouterKey and PostHogKey return the credential to add. A nil
-	// one leaves its route out: the VM then cannot reach that service at all.
+	// MCPToken, OpenRouterKey, OpenAIKey and PostHogKey return the credential to
+	// add. A nil one leaves its route out: the VM then cannot reach that service at all.
 	MCPToken      func(ctx context.Context) (string, error)
 	OpenRouterKey func() (string, error)
+	OpenAIKey     func() (string, error)
 	PostHogKey    func() (string, error)
 	// MCPRejected, when set, is called when the board answers 401, so a token it
 	// revoked early is not served again.
 	MCPRejected func()
 	// Transport is how the upstream is reached; nil means a TLS default.
 	Transport http.RoundTripper
-	// Anthropic, OpenRouter and PostHog override the upstream bases, for tests.
+	// Anthropic, OpenRouter, OpenAI and PostHog override the upstream bases, for tests.
 	Anthropic  string
 	OpenRouter string
+	OpenAI     string
 	PostHog    string
 	GoProxy    string
 	NPM        string
@@ -123,6 +126,7 @@ func NewEgressProxy(cfg EgressConfig) (*EgressProxy, error) {
 	}{
 		{"openrouter", "/openrouter/", orDefault(cfg.OpenRouter, openRouterURL),
 			false, cfg.OpenRouterKey},
+		{"openai", "/openai/", orDefault(cfg.OpenAI, openAIURL), false, cfg.OpenAIKey},
 		{"posthog", "/posthog", orDefault(cfg.PostHog, postHogURL), true, cfg.PostHogKey},
 	} {
 		if svc.key == nil {

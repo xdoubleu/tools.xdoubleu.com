@@ -42,7 +42,7 @@ model = "vendor/model:free"
 
 func TestABadConfigIsRefused(t *testing.T) {
 	for name, body := range map[string]string{
-		"unknown harness":  `order = ["codex"]`,
+		"unknown harness":  `order = ["hermes"]`,
 		"twice":            `order = ["claude", "claude"]`,
 		"overflow":         `overflow = "maybe"`,
 		"model":            "[opencode]\nmodel = \"no slash\"",
@@ -62,4 +62,10 @@ func TestAnUnreadableConfigIsAnError(t *testing.T) {
 
 func TestTheConfigLivesUnderDotConfig(t *testing.T) {
 	assert.Equal(t, "/h/.config/wardcase/config.toml", ward.ConfigPath("/h"))
+}
+
+func TestCodexCanBeInTheOrder(t *testing.T) {
+	cfg, err := ward.LoadConfig(writeConfig(t, `order = ["claude", "opencode", "codex"]`))
+	require.NoError(t, err)
+	assert.Equal(t, []string{"claude", "opencode", "codex"}, cfg.Order)
 }

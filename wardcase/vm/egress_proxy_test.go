@@ -49,10 +49,12 @@ func proxyFor(
 		Server:        up.srv.URL,
 		MCPToken:      func(context.Context) (string, error) { return "mcp-token", nil },
 		OpenRouterKey: func() (string, error) { return "real-or-key", nil },
+		OpenAIKey:     nil,
 		PostHogKey:    func() (string, error) { return "real-ph-key", nil },
 		MCPRejected:   nil,
 		Transport:     nil,
 		Anthropic:     up.srv.URL,
+		OpenAI:        up.srv.URL,
 		OpenRouter:    up.srv.URL + "/api", PostHog: up.srv.URL + "/mcp",
 		GoProxy: "", NPM: "", RubyGems: "",
 		Log: nil,
@@ -228,8 +230,9 @@ func TestResponsesStreamAsTheyArrive(t *testing.T) {
 	up := httptest.NewServer(http.HandlerFunc(events))
 	defer up.Close()
 	p, err := vm.NewEgressProxy(vm.EgressConfig{
-		Server: "", MCPToken: nil, OpenRouterKey: nil, PostHogKey: nil, MCPRejected: nil,
-		Transport: nil, Anthropic: up.URL, OpenRouter: "", PostHog: "",
+		Server: "", MCPToken: nil, OpenRouterKey: nil, OpenAIKey: nil, PostHogKey: nil,
+		MCPRejected: nil,
+		Transport:   nil, Anthropic: up.URL, OpenRouter: "", OpenAI: "", PostHog: "",
 		GoProxy: "", NPM: "", RubyGems: "", Log: nil,
 	})
 	require.NoError(t, err)
@@ -251,9 +254,11 @@ func TestResponsesStreamAsTheyArrive(t *testing.T) {
 
 func TestABadUpstreamBaseIsRejectedWhenBuildingTheProxy(t *testing.T) {
 	_, err := vm.NewEgressProxy(vm.EgressConfig{
-		Server: "", MCPToken: nil, OpenRouterKey: nil, PostHogKey: nil, MCPRejected: nil,
-		Transport: nil, Anthropic: "not a url", OpenRouter: "", PostHog: "", GoProxy: "",
-		NPM: "", RubyGems: "", Log: nil,
+		Server: "", MCPToken: nil, OpenRouterKey: nil, OpenAIKey: nil, PostHogKey: nil,
+		MCPRejected: nil,
+		Transport:   nil, Anthropic: "not a url", OpenRouter: "", OpenAI: "", PostHog: "",
+		GoProxy: "",
+		NPM:     "", RubyGems: "", Log: nil,
 	})
 	require.ErrorContains(t, err, "bad upstream")
 }
@@ -369,4 +374,23 @@ func TestWithoutAPostHogKeyThereIsNoPostHogRoute(t *testing.T) {
 
 	assert.Equal(t, http.StatusForbidden,
 		do(t, p, http.MethodPost, "/posthog", "{}", nil).Code)
+}
+
+func TestOpenAITrafficGetsTheHostsKeyInPlaceOfTheVMsPlaceholder(t *testing.T) {
+	p, up := proxyFor(t, func(c *vm.EgressConfig) {
+		c.OpenAIKey = func() (string, error) { return "real-oa-key", nil }
+	})
+
+	rec := do(t, p, http.MethodPost, "/openai/v1/responses", `{}`,
+		map[string]string{"Authorization": "Bearer replaced-by-the-host-proxy"})
+
+	require.Equal(t, http.StatusOK, rec.Code)
+	assert.Equal(t, "/v1/responses", up.got.URL.Path)
+	assert.Equal(t, "Bearer real-oa-key", up.got.Header.Get("Authorization"))
+}
+
+func TestWithoutAnOpenAIKeyThereIsNoOpenAIRoute(t *testing.T) {
+	p, _ := proxyFor(t, nil)
+	rec := do(t, p, http.MethodPost, "/openai/v1/responses", `{}`, nil)
+	assert.Equal(t, http.StatusForbidden, rec.Code)
 }

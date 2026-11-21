@@ -96,3 +96,36 @@ func TestTheShellStepResumesTheSessionWithoutSplicingItIntoTheScript(t *testing.
 	assert.Contains(t, got, "[--session]\n[ses_x]\n")
 	assert.True(t, strings.HasSuffix(got, "[more]\n"), got)
 }
+
+// The lines are modelled on OpenCode's `error` event carrying OpenRouter's message
+// (402 out of credits, 429 rate limit); UNVERIFIED against a real capture.
+func TestOpenRouterCreditAndRateLimitErrorsAreALimit(t *testing.T) {
+	h := vm.OpenCode{Model: "a/b"}
+	for name, line := range map[string]string{
+		"credits": `{"type":"error","sessionID":"s","error":{"name":"APIError",` +
+			`"data":{"message":"Insufficient credits. Add more at openrouter.ai",` +
+			`"statusCode":402}}}`,
+		"afford": `{"type":"error","error":{"data":{"message":"This request requires ` +
+			`more credits, or fewer max_tokens. You requested up to 8000 tokens, but ` +
+			`can only afford 100"}}}`,
+		"rate": `{"type":"error","error":{"data":{"message":"Rate limit exceeded: ` +
+			`free-models-per-day","statusCode":429}}}`,
+	} {
+		limited, at := h.LimitFrom([]byte(line))
+		assert.True(t, limited, name)
+		assert.True(t, at.IsZero(), name)
+	}
+}
+
+func TestOnlyAnErrorEventIsAnOpenCodeLimit(t *testing.T) {
+	h := vm.OpenCode{Model: "a/b"}
+	for name, line := range map[string]string{
+		"agent text":  `{"type":"text","part":{"text":"rate limit exceeded: error"}}`,
+		"other error": `{"type":"error","error":{"data":{"message":"file not found"}}}`,
+		"not json":    `error: Insufficient credits`,
+		"no error":    `{"type":"step_start"}`,
+	} {
+		limited, _ := h.LimitFrom([]byte(line))
+		assert.False(t, limited, name)
+	}
+}
