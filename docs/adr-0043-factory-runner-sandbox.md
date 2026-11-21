@@ -80,3 +80,5 @@ tool and reads anywhere by default.
 The probe fails on networking (then fix it on Apple's tooling, for example with a
 host firewall rule on the network's subnet, or revisit this ADR), Anthropic answers
 on credential intermediation, or `container` changes its networking or CLI.
+
+wardcase adds two read-only routes for Nix flakes, `/nixcache/` (cache.nixos.org) and `/nixsrc/` (codeload.github.com) → [adr-0055](adr-0055-wardcase-harness-sandbox.md).

@@ -1,0 +1,41 @@
+# The wardcase base image (docs/adr-0055): one per release, tagged with the
+# release's version, for any repository. It holds the harnesses, git and Nix, and
+# nothing of a project's own: a checkout's tools come from its flake.nix dev shell,
+# and skills from a host cache mounted at run time, never from here. Runs as the
+# unprivileged `node` user (uid 1000). Build from the repo root:
+#   container build -f wardcase/Containerfile -t ghcr.io/xdoubleu/wardcase:<version> .
+FROM docker.io/library/node:26-bookworm-slim@sha256:5df79989ed685e09f0a98019db4cebfb22fb9df1a53c0161664a011f7ff6b0f1
+
+ARG CLAUDE_CODE_VERSION=2.1.285
+# Only @opencode/cli: the `opencode-ai` package ships the same binary name.
+ARG OPENCODE_VERSION=2.2.2
+ARG CODEX_VERSION=0.140.0
+ARG NIX_VERSION=2.24.10
+ARG TARGETARCH
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates curl git jq xz-utils \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN npm install -g "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}" \
+    && npm install -g "@opencode/cli@${OPENCODE_VERSION}" \
+    && npm install -g "@openai/codex@${CODEX_VERSION}"
+
+# Nix (single-user, /nix owned by the job user). wardcase mounts a shared store
+# over /nix, which hides this install, so it is kept at /opt/nix-seed and copied
+# into an empty store by the first session.
+RUN mkdir -m 0755 /nix /etc/nix \
+    && echo 'experimental-features = nix-command flakes' > /etc/nix/nix.conf \
+    && chown node:node /nix
+USER node
+RUN case "${TARGETARCH}" in amd64) a=x86_64 ;; arm64) a=aarch64 ;; *) exit 1 ;; esac \
+    && d="nix-${NIX_VERSION}-${a}-linux" \
+    && curl -fsSL -o "/tmp/${d}.tar.xz" "https://releases.nixos.org/nix/nix-${NIX_VERSION}/${d}.tar.xz" \
+    && tar -xJf "/tmp/${d}.tar.xz" -C /tmp \
+    && "/tmp/${d}/install" --no-daemon \
+    && rm -rf /tmp/nix-*
+USER root
+RUN mv /nix /opt/nix-seed && mkdir -m 0755 /nix && chown node:node /nix
+USER node
+ENV PATH=/nix/var/nix/profiles/default/bin:$PATH
+WORKDIR /work

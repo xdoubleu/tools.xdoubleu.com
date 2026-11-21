@@ -280,7 +280,7 @@ func (r *Runner) harness(
 	egress := vm.EgressConfig{
 		Server: "", MCPToken: nil, OpenRouterKey: nil, OpenAIKey: nil, PostHogKey: nil,
 		MCPRejected: nil, Transport: nil, Anthropic: "", OpenRouter: "", OpenAI: "",
-		PostHog: "", GoProxy: "", NPM: "", RubyGems: "", Log: nil,
+		PostHog: "", GoProxy: "", NPM: "", RubyGems: "", NixCache: "", NixSrc: "", Log: nil,
 	}
 	switch name {
 	case Claude:

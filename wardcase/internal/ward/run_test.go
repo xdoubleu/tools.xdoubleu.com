@@ -136,7 +136,7 @@ func newFixture(t *testing.T, overflow string, answer bool) *fixture {
 			ward.SecretAnthropic: "oat-token", ward.SecretOpenRouter: "or-key",
 		},
 		Config: ward.Config{
-			Order: []string{"claude", "opencode"}, Overflow: overflow, Image: "",
+			Order: []string{"claude", "opencode"}, Overflow: overflow,
 			OpenCode: ward.OpenCodeConfig{Model: "vendor/model"},
 		},
 		StateDir: t.TempDir(), TempDir: t.TempDir(),
