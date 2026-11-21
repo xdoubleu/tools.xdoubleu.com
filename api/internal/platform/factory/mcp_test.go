@@ -604,8 +604,8 @@ func TestMoveTaskDescriptionAllowsReady(t *testing.T) {
 		}
 		assert.NotContains(t, tool.Description, "only a person")
 		assert.Contains(t, tool.Description, "ready")
-		schema, err := json.Marshal(tool.InputSchema)
-		require.NoError(t, err)
+		schema, mErr := json.Marshal(tool.InputSchema)
+		require.NoError(t, mErr)
 		assert.Contains(t, string(schema), "backlog, ready, in_progress")
 		return
 	}
