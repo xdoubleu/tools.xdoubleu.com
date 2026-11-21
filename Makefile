@@ -51,6 +51,10 @@ factory/finish:
 pr/wait:
 	./scripts/pr_wait.sh $(PR) $(MODE)
 
+# New ADR with the next free number (vs origin/main) and its AGENTS.md index line.
+adr/new:
+	./scripts/adr_new.sh "$(name)" "$(label)"
+
 # Fail on invalid SKILL.md frontmatter (harnesses silently drop the skill).
 lint/skills:
 	./scripts/lint_skills.sh
