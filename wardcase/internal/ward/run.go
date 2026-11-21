@@ -37,11 +37,15 @@ type Runner struct {
 	Box     vm.SessionSandbox
 	Secrets Secrets
 	Config  Config
-	// StateDir keeps the harnesses' sessions, one directory per checkout.
+	// StateDir keeps the harnesses' sessions, one directory per worktree, and the
+	// worktrees themselves.
 	StateDir string
 	// TempDir holds each run's outcome directory; empty means os.TempDir().
-	TempDir  string
-	Git      GitFunc
+	TempDir string
+	Git     GitFunc
+	// GH runs gh in a directory; nil means gh is absent and pull requests go
+	// unreported.
+	GH       GitFunc
 	NewProxy func(vm.EgressConfig) (vm.ProxyListener, error)
 	In       io.Reader
 	Out      io.Writer
@@ -65,6 +69,9 @@ type Request struct {
 	Args []string
 	// Print runs the harness headless on a prompt instead of on the terminal.
 	Print bool
+	// InPlace runs in Dir itself instead of a worktree of its own, for an ADE that
+	// already makes one per agent.
+	InPlace bool
 }
 
 type outcome struct {
@@ -80,21 +87,29 @@ func (r *Runner) Run(ctx context.Context, req Request) (int, error) {
 	if name == "" {
 		name = r.Config.Order[0]
 	}
-	checkout, mounts := r.workspace(ctx, req.Dir)
+	sess, err := r.openSession(ctx, req)
+	if err != nil {
+		return -1, err
+	}
+	dir := req.Dir
+	if sess.path != "" {
+		dir = sess.path
+	}
+	checkout, mounts := r.workspace(ctx, dir)
+	defer func() { r.finish(context.WithoutCancel(ctx), sess) }()
 	since, _ := r.Git(ctx, checkout, "rev-parse", "HEAD")
 	since = strings.TrimSpace(since)
 	args, prompt := req.Args, ""
 	if req.Print {
-		var err error
 		if prompt, err = r.prompt(req.Args); err != nil {
 			return -1, err
 		}
 	}
 	task := prompt
 	for {
-		res, err := r.runOnce(ctx, name, checkout, mounts, args, prompt, req.Print)
-		if err != nil {
-			return -1, err
+		res, runErr := r.runOnce(ctx, name, checkout, mounts, args, prompt, req.Print)
+		if runErr != nil {
+			return -1, runErr
 		}
 		next := r.Config.next(name)
 		if !res.limited || next == "" || !r.mayOverflow(name, next, res.resets, req.Print) {
@@ -194,7 +209,7 @@ func (r *Runner) writeHandoff(
 	return nil
 }
 
-// sessionDir keeps a harness's sessions for one checkout, so --resume works.
+// sessionDir keeps a harness's sessions for one worktree, so --resume works.
 func (r *Runner) sessionDir(checkout, name string) string {
 	sum := sha256.Sum256([]byte(checkout))
 	return filepath.Join(r.StateDir, hex.EncodeToString(sum[:])[:checkoutKey], name)
