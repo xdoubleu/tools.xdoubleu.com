@@ -24,10 +24,15 @@ import (
 const usage = `wardcase runs an agent harness in a sealed VM on this checkout.
 (experimental)
 
-  wardcase [claude|opencode|codex] [args...]         interactive; args go to the harness
+  wardcase [--in-place] [claude|opencode|codex] [args...]
+                                                     interactive; args go to the harness
   wardcase --print [claude|opencode|codex] [prompt]  headless; the prompt, else stdin
   wardcase secret set <anthropic|openrouter|openai>  reads the value from stdin
   wardcase config                                    prints the config path and settings
+
+Each run gets its own git worktree on a new branch cut from HEAD; on exit wardcase
+says what is left in it and removes it when nothing is. --in-place runs in the
+current directory instead. --resume goes on in the checkout's latest worktree.
 
 Without a harness the first in the config's order runs. At a usage limit the next
 one takes over, as the config's overflow (ask, auto, off) allows.
@@ -139,9 +144,12 @@ func start(
 	if err != nil {
 		return 1, err
 	}
-	req := ward.Request{Dir: "", Harness: "", Args: nil, Print: false}
+	req := ward.Request{Dir: "", Harness: "", Args: nil, Print: false, InPlace: false}
 	if len(args) > 0 && args[0] == "--print" {
 		req.Print, args = true, args[1:]
+	}
+	if len(args) > 0 && args[0] == "--in-place" {
+		req.InPlace, args = true, args[1:]
 	}
 	if len(args) > 0 && ward.ValidHarness(args[0]) {
 		req.Harness, args = args[0], args[1:]
@@ -170,10 +178,26 @@ func start(
 	r := &ward.Runner{
 		Box: box, Secrets: h.secrets, Config: cfg,
 		StateDir: filepath.Join(home, ".local", "state", "wardcase"), TempDir: "",
-		Git: hostGit, NewProxy: newProxy, In: in, Out: out, Notes: errOut,
+		Git: hostGit, GH: hostGH, NewProxy: newProxy, In: in, Out: out, Notes: errOut,
 		Terminal: terminal, Ask: ask(in, errOut), Now: nil,
 	}
 	return r.Run(ctx, req)
+}
+
+// hostGH runs gh when it is installed; without it every call fails.
+func hostGH(ctx context.Context, dir string, args ...string) (string, error) {
+	path, err := exec.LookPath("gh")
+	if err != nil {
+		return "", fmt.Errorf("gh: %w", err)
+	}
+	cmd := exec.CommandContext(ctx, path, args...)
+	cmd.Dir = dir
+	var stdout bytes.Buffer
+	cmd.Stdout = &stdout
+	if err = cmd.Run(); err != nil {
+		return stdout.String(), fmt.Errorf("gh %s: %w", strings.Join(args, " "), err)
+	}
+	return stdout.String(), nil
 }
 
 func newProxy(cfg vm.EgressConfig) (vm.ProxyListener, error) {
