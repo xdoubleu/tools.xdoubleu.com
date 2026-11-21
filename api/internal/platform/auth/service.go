@@ -379,6 +379,7 @@ func (service *LocalService) GetUser(
 		Role:        models.RoleUser,
 		AppAccess:   []string{},
 		WriteAccess: []string{},
+		PrincipalID: "",
 		HasMFA:      hasMFA,
 		DisplayName: "",
 	}, nil

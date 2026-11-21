@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/internal/kit/constants"
+	"tools.xdoubleu.com/internal/kit/contexttools"
 	"tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/platform/mcptools"
 )
@@ -115,7 +116,7 @@ func agent(apps ...string) *models.User {
 func user(role models.Role) *models.User {
 	return &models.User{
 		ID: "u", Email: "u@example.com", Role: role,
-		AppAccess: nil, WriteAccess: nil, HasMFA: false, DisplayName: "",
+		AppAccess: nil, WriteAccess: nil, PrincipalID: "", HasMFA: false, DisplayName: "",
 	}
 }
 
@@ -302,4 +303,63 @@ func TestCanObserveByRoleAndGrant(t *testing.T) {
 	granted := agent(mcptools.ObservabilityGrant)
 	assert.True(t, mcptools.CanObserve(withRole(granted), "prom_query"))
 	assert.False(t, mcptools.CanObserve(withRole(granted), "dismiss_security_alert"))
+}
+
+// A per-user app's tools and resources run as the person the agent acts for,
+// while factory_ and admin tools keep the agent's own identity (adr-0057).
+func TestAgentActsAsItsPrincipalOnPerUserApps(t *testing.T) {
+	ctx := context.Background()
+	seen := map[string]string{}
+	record := func(c context.Context, name string) {
+		u := contexttools.GetValue[models.User](c, constants.UserContextKey)
+		seen[name] = u.ID + "/" + string(u.Role)
+	}
+
+	//nolint:exhaustruct // only Name/Version identify the test server
+	srv := mcp.NewServer(&mcp.Implementation{Name: "test", Version: "0"}, nil)
+	for _, name := range []string{"learningpaths_list_paths", "factory_list_tasks"} {
+		//nolint:exhaustruct // name and description are all a tool needs
+		mcp.AddTool(srv, &mcp.Tool{Name: name, Description: name},
+			func(c context.Context, _ *mcp.CallToolRequest, _ noArgs) (
+				*mcp.CallToolResult, any, error,
+			) {
+				record(c, name)
+				//nolint:exhaustruct // an empty result is enough
+				return &mcp.CallToolResult{}, nil, nil
+			})
+	}
+	//nolint:exhaustruct // name and URI are all a resource needs
+	srv.AddResource(&mcp.Resource{Name: "g", URI: "learningpaths://guide"},
+		func(c context.Context, req *mcp.ReadResourceRequest) (
+			*mcp.ReadResourceResult, error,
+		) {
+			record(c, "resource")
+			return echoResource(c, req)
+		})
+	acting := agent("learningpaths", "factory")
+	acting.PrincipalID = "owner"
+	srv.AddReceivingMiddleware(withUser(acting), mcptools.AgentGrants())
+
+	st, ct := mcp.NewInMemoryTransports()
+	ss, err := srv.Connect(ctx, st, nil)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = ss.Close() })
+	//nolint:exhaustruct // only Name/Version identify the test client
+	client := mcp.NewClient(&mcp.Implementation{Name: "client", Version: "0"}, nil)
+	session, err := client.Connect(ctx, ct, nil)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = session.Close() })
+
+	for _, name := range []string{"learningpaths_list_paths", "factory_list_tasks"} {
+		_, err = session.CallTool(ctx, callParams(name))
+		require.NoError(t, err)
+	}
+	_, err = session.ReadResource(ctx, &mcp.ReadResourceParams{
+		Meta: nil, URI: "learningpaths://guide", InputResponses: nil, RequestState: "",
+	})
+	require.NoError(t, err)
+
+	assert.Equal(t, "owner/agent", seen["learningpaths_list_paths"])
+	assert.Equal(t, "owner/agent", seen["resource"])
+	assert.Equal(t, "u/agent", seen["factory_list_tasks"])
 }

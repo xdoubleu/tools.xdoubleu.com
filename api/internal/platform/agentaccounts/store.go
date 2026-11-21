@@ -10,6 +10,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -105,6 +106,19 @@ func scanAccount(row rowScanner) (*Account, error) {
 	return &a, nil
 }
 
+// personOf is the person a "human:<user id>" actor names, nil for any other.
+func personOf(actor string) *uuid.UUID {
+	id, ok := strings.CutPrefix(actor, "human:")
+	if !ok {
+		return nil
+	}
+	parsed, err := uuid.Parse(id)
+	if err != nil {
+		return nil
+	}
+	return &parsed
+}
+
 // Create adds the user, client and account row in one transaction and returns
 // the client secret, which is not stored in the clear and can't be shown again.
 func (s *Store) Create(
@@ -181,9 +195,11 @@ func (s *Store) create(
 	); err != nil {
 		return nil, "", err
 	}
-	var jobID, taskID *uuid.UUID
+	var jobID, taskID, principal *uuid.UUID
 	if scope != nil {
 		jobID, taskID = &scope.JobID, &scope.TaskID
+	} else {
+		principal = personOf(createdBy)
 	}
 	if _, err = tx.Exec(ctx,
 		`INSERT INTO global.app_access (user_id, app_name, level)
@@ -204,10 +220,10 @@ func (s *Store) create(
 	}
 	account, err := scanAccount(tx.QueryRow(ctx, `
 		INSERT INTO global.agent_accounts
-			(user_id, client_id, name, created_by, job_id, task_id)
-		VALUES ($1, $2, $3, $4, $5, $6)
+			(user_id, client_id, name, created_by, job_id, task_id, principal_user_id)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
 		RETURNING `+accountColumns,
-		userID, clientID, name, createdBy, jobID, taskID,
+		userID, clientID, name, createdBy, jobID, taskID, principal,
 	))
 	if err != nil {
 		return nil, "", err
@@ -478,7 +494,8 @@ func endAccess(ctx context.Context, tx pgx.Tx, id uuid.UUID) (*Account, error) {
 
 // Delegate makes clientID, an authorization_code client, act as the active
 // standing account id from its next authorization (adr-0048), replacing any
-// earlier delegation of that client.
+// earlier delegation of that client. An account with no principal takes the
+// delegating person as its principal (adr-0057).
 func (s *Store) Delegate(
 	ctx context.Context,
 	id uuid.UUID,
@@ -511,6 +528,14 @@ func (s *Store) Delegate(
 		return nil, fmt.Errorf(
 			"%w: the client can't be delegated", database.ErrResourceConflict,
 		)
+	}
+	if person := personOf(createdBy); person != nil {
+		if _, err = tx.Exec(ctx, `
+			UPDATE global.agent_accounts SET principal_user_id = $2
+			WHERE id = $1 AND principal_user_id IS NULL`, id, person,
+		); err != nil {
+			return nil, err
+		}
 	}
 	return account, tx.Commit(ctx)
 }

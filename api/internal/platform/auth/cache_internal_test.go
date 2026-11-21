@@ -16,6 +16,7 @@ func testUser(id string) models.User {
 		Role:        models.RoleUser,
 		AppAccess:   []string{},
 		WriteAccess: []string{},
+		PrincipalID: "",
 		HasMFA:      false,
 		DisplayName: "",
 	}

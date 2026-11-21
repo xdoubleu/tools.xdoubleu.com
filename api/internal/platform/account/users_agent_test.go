@@ -173,3 +173,31 @@ func TestAgentAccessIsRefusedForAPerson(t *testing.T) {
 	require.NoError(t, err)
 	assert.Empty(t, got.AppAccess)
 }
+
+func TestGetByIDCarriesAnActiveStandingAgentsPrincipal(t *testing.T) {
+	id := seedAgentUser(t)
+	pool := testhelper.ConnectTestDB(testhelper.NewTestConfig().DBDsn)
+	t.Cleanup(pool.Close)
+	repo := account.NewAppUsersRepository(pool)
+	ctx := context.Background()
+	principal := uuid.NewString()
+
+	got, err := repo.GetByID(ctx, id)
+	require.NoError(t, err)
+	assert.Empty(t, got.PrincipalID)
+
+	_, err = pool.Exec(ctx,
+		`UPDATE global.agent_accounts SET principal_user_id = $2 WHERE user_id = $1`,
+		id, principal)
+	require.NoError(t, err)
+	got, err = repo.GetByID(ctx, id)
+	require.NoError(t, err)
+	assert.Equal(t, principal, got.PrincipalID)
+
+	_, err = pool.Exec(ctx,
+		`UPDATE global.agent_accounts SET revoked_at = now() WHERE user_id = $1`, id)
+	require.NoError(t, err)
+	got, err = repo.GetByID(ctx, id)
+	require.NoError(t, err)
+	assert.Empty(t, got.PrincipalID, "a revoked account acts for no one")
+}

@@ -73,7 +73,7 @@ func TestAJobAccountReportsToTheSandboxBoardOnly(t *testing.T) {
 	session := mcpSessionOn(t, env.app, &models.User{
 		ID: acc.userID, Email: "job@agent.invalid", Role: models.RoleAgent,
 		AppAccess: []string{"factory"}, WriteAccess: []string{"factory"},
-		HasMFA: false, DisplayName: "",
+		PrincipalID: "", HasMFA: false, DisplayName: "",
 	})
 
 	args := map[string]any{

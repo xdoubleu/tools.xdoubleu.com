@@ -103,6 +103,7 @@ func (service *LocalService) ResolveToken(
 		Role:        models.RoleUser,
 		AppAccess:   []string{},
 		WriteAccess: []string{},
+		PrincipalID: "",
 		HasMFA:      hasMFA,
 		DisplayName: "",
 	}

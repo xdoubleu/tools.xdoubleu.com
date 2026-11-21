@@ -574,3 +574,35 @@ func TestOwnerNamesResolvesThePersonBehindEachAccount(t *testing.T) {
 	assert.Equal(t, "", got[factoryOwned.UserID])
 	assert.Len(t, got, 2, "a user with no account is left out")
 }
+
+func principalOf(t *testing.T, db postgres.DB, id uuid.UUID) *uuid.UUID {
+	t.Helper()
+	var p *uuid.UUID
+	require.NoError(t, db.QueryRow(context.Background(),
+		`SELECT principal_user_id FROM global.agent_accounts WHERE id = $1`, id,
+	).Scan(&p))
+	return p
+}
+
+func TestCreateRecordsThePersonAsPrincipalAndDelegateFillsAMissingOne(t *testing.T) {
+	store, db := newStore(t, nil)
+	ctx := context.Background()
+	admin, other := uuid.New(), uuid.New()
+
+	byPerson, _, err := store.Create(ctx, "human:"+admin.String(), "by person")
+	require.NoError(t, err)
+	assert.Equal(t, &admin, principalOf(t, db, byPerson.ID))
+
+	byFactory, _, err := store.Create(ctx, "factory", "by factory")
+	require.NoError(t, err)
+	assert.Nil(t, principalOf(t, db, byFactory.ID))
+
+	client := publicClient(t, db)
+	_, err = store.Delegate(ctx, byFactory.ID, client, "human:"+other.String())
+	require.NoError(t, err)
+	assert.Equal(t, &other, principalOf(t, db, byFactory.ID))
+
+	_, err = store.Delegate(ctx, byPerson.ID, client, "human:"+other.String())
+	require.NoError(t, err)
+	assert.Equal(t, &admin, principalOf(t, db, byPerson.ID), "kept, not replaced")
+}
