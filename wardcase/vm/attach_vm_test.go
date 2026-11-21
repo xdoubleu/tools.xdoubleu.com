@@ -81,14 +81,14 @@ git -c user.name=v -c user.email=v@v commit -q --allow-empty -m from-vm && echo 
 	t.Logf("file made in the VM: mode %v", info.Mode())
 }
 
-// Both harnesses start on a terminal command line behind the proxy with MCP off.
+// Every harness in the image starts on a terminal command line behind the proxy with MCP off.
 func TestRealVMStartsEachHarnessInteractively(t *testing.T) {
 	image := os.Getenv("WARDCASE_IMAGE")
 	require.NotEmpty(t, image, "set WARDCASE_IMAGE")
 	proxy, err := vm.NewEgressProxy(vm.EgressConfig{
-		Server: "", MCPToken: nil, OpenRouterKey: nil, PostHogKey: nil, MCPRejected: nil,
-		Transport: nil, Anthropic: "", OpenRouter: "", PostHog: "", GoProxy: "", NPM: "",
-		RubyGems: "", Log: nil,
+		Server: "", MCPToken: nil, OpenRouterKey: nil, OpenAIKey: nil, PostHogKey: nil,
+		MCPRejected: nil, Transport: nil, Anthropic: "", OpenRouter: "", OpenAI: "",
+		PostHog: "", GoProxy: "", NPM: "", RubyGems: "", Log: nil,
 	})
 	require.NoError(t, err)
 	box := &vm.ContainerSandbox{
@@ -99,7 +99,7 @@ func TestRealVMStartsEachHarnessInteractively(t *testing.T) {
 	for _, h := range []interface {
 		vm.Harness
 		Interactive([]string) []string
-	}{vm.ClaudeCode{}, vm.OpenCode{Model: "vendor/model"}} {
+	}{vm.ClaudeCode{}, vm.OpenCode{Model: "vendor/model"}, vm.Codex{}} {
 		dir := t.TempDir()
 		env := h.SessionEnv(vm.SandboxSessionDir)
 		env["FACTORY_JOB"] = "wardcase-harness"

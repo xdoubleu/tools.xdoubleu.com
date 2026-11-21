@@ -46,6 +46,8 @@ func newJobProxy(
 		MCPToken:      nil,
 		MCPRejected:   nil,
 		Anthropic:     "",
+		OpenAIKey:     nil,
+		OpenAI:        "",
 		OpenRouter:    "", PostHog: "", GoProxy: "", NPM: "", RubyGems: "",
 		Log: log,
 	}

@@ -18,6 +18,7 @@ import (
 const (
 	Claude   = "claude"
 	OpenCode = "opencode"
+	Codex    = "codex"
 )
 
 // Overflow says what happens when a harness hits its usage limit.
@@ -43,6 +44,11 @@ type Config struct {
 type OpenCodeConfig struct {
 	// Model is an OpenRouter model id, "vendor/model".
 	Model string `toml:"model"`
+}
+
+// ValidHarness reports whether name is a harness wardcase runs.
+func ValidHarness(name string) bool {
+	return name == Claude || name == OpenCode || name == Codex
 }
 
 // ConfigPath is where the device's config lives.
@@ -78,8 +84,8 @@ func LoadConfig(path string) (Config, error) {
 
 func (c Config) validate() error {
 	for i, name := range c.Order {
-		if name != Claude && name != OpenCode {
-			return fmt.Errorf("order: unknown harness %q (claude or opencode)", name)
+		if !ValidHarness(name) {
+			return fmt.Errorf("order: unknown harness %q (claude, opencode or codex)", name)
 		}
 		if slices.Index(c.Order, name) != i {
 			return fmt.Errorf("order: %q is listed twice", name)

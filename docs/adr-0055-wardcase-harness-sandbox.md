@@ -23,6 +23,6 @@ The factory already has the parts: the Apple `container` VM, the egress proxy an
 ## Consequences
 
 - The factory runs unchanged; T-273 should reuse this overflow for runner jobs.
-- Another harness needs an image layer, a proxy route and an adapter with `Interactive`, `Command` and `LimitFrom`. Hermes and Codex aren't in the image yet.
-- OpenCode's limit isn't detected (OpenRouter credits fail the run), and an OpenCode handoff carries git state only.
+- Another harness needs an image layer, a proxy route and an adapter with `Interactive`, `Command` and `LimitFrom`. Codex has all three: the image pins `@openai/codex`, the proxy's `/openai` route adds the key from the `openai` keychain item (the VM holds a placeholder), and `codex` is opt-in in the config's `order`. Hermes is skipped: its CLI and whether it takes a proxied base URL couldn't be confirmed offline, so add it once someone checks.
+- OpenCode's limit is OpenRouter's out-of-credits and rate-limit error events (no reset time), and an OpenCode handoff carries git state only. The Codex and OpenCode limit lines are modelled on the CLIs' documented shapes, not captured from a real limit hit.
 - Revisit when an ADE's UI replaces the board for the owner, or when wardcase gets its own repo (T-345).

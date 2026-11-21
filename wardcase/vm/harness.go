@@ -211,9 +211,34 @@ func epochSeconds(secs float64) time.Time {
 	return at
 }
 
-// LimitFrom implements Harness: OpenRouter's limits are credits the key's own cap
-// enforces, and a job that runs out simply fails.
-func (OpenCode) LimitFrom([]byte) (bool, time.Time) { return false, time.Time{} }
+// LimitFrom implements Harness: OpenRouter's out-of-credits (402) and rate-limit
+// (429) refusals reach the stream as error events carrying the provider's message.
+// OpenRouter says nothing about when either lifts, so the reset is zero.
+func (OpenCode) LimitFrom(line []byte) (bool, time.Time) {
+	if !bytes.Contains(line, []byte(`"error"`)) {
+		return false, time.Time{}
+	}
+	var event struct {
+		Type string `json:"type"`
+	}
+	// Only an error event counts: the agent's own text may talk about limits.
+	if json.Unmarshal(line, &event) != nil || event.Type != "error" {
+		return false, time.Time{}
+	}
+	// The texts of OpenRouter's credit and rate-limit errors.
+	marks := []string{
+		"insufficient credits", "requires more credits", "can only afford",
+		"rate limit exceeded", "rate-limited", "rate limited", "free-models-per-day",
+		`"code":402`, `"code":429`, `"statuscode":402`, `"statuscode":429`,
+	}
+	lower := bytes.ToLower(line)
+	for _, mark := range marks {
+		if bytes.Contains(lower, []byte(mark)) {
+			return true, time.Time{}
+		}
+	}
+	return false, time.Time{}
+}
 
 // TransientError implements Harness: OpenCode reports a failed request as an error
 // event carrying the transport's own message.

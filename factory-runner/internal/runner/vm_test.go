@@ -10,9 +10,9 @@ import (
 
 func TestTheJobProxyRefusesABadUpstream(t *testing.T) {
 	cfg := runner.EgressConfig{
-		Server: "", MCPToken: nil, OpenRouterKey: nil, PostHogKey: nil,
+		Server: "", MCPToken: nil, OpenRouterKey: nil, OpenAIKey: nil, PostHogKey: nil,
 		MCPRejected: nil, Transport: nil, Anthropic: "not a url", OpenRouter: "",
-		PostHog: "", GoProxy: "", NPM: "", RubyGems: "", Log: nil,
+		OpenAI: "", PostHog: "", GoProxy: "", NPM: "", RubyGems: "", Log: nil,
 	}
 	_, err := runner.NewEgressProxy(cfg)
 	require.ErrorContains(t, err, "egress route anthropic")

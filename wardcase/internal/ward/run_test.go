@@ -405,3 +405,53 @@ func TestTheLastHarnessHasNowhereToOverflow(t *testing.T) {
 	assert.Equal(t, 1, code)
 	assert.Len(t, f.box.runs, 1)
 }
+
+func TestCodexsKeyStaysOnTheHost(t *testing.T) {
+	f := newFixture(t, ward.OverflowOff, false)
+	f.r.Secrets = memSecrets{ward.SecretOpenAI: "oa-key"}
+	var gotKey string
+	f.r.NewProxy = func(cfg vm.EgressConfig) (vm.ProxyListener, error) {
+		require.NotNil(t, cfg.OpenAIKey)
+		gotKey, _ = cfg.OpenAIKey()
+		assert.Nil(t, cfg.OpenRouterKey)
+		assert.Nil(t, cfg.MCPToken, "no board route")
+		return vm.NewEgressProxy(cfg)
+	}
+	_, err := f.r.Run(context.Background(),
+		ward.Request{Dir: "/w", Harness: "codex", Args: []string{"--version"}, Print: false})
+	require.NoError(t, err)
+	assert.Equal(t, "oa-key", gotKey)
+	spec := f.box.runs[0].spec
+	assert.Equal(t, "codex", filepath.Base(spec.SessionDir))
+	for k, v := range spec.Env {
+		assert.NotContains(t, v, "oa-key", k)
+	}
+	assert.Equal(t, "--version", f.box.runs[0].command[len(f.box.runs[0].command)-1])
+}
+
+func TestCodexNeedsItsSecret(t *testing.T) {
+	f := newFixture(t, ward.OverflowOff, false)
+	_, err := f.r.Run(context.Background(),
+		ward.Request{Dir: "/w", Harness: "codex", Args: nil, Print: false})
+	require.ErrorIs(t, err, ward.ErrNoSecret)
+}
+
+func TestAnOpenCodeCreditLimitOverflowsToCodex(t *testing.T) {
+	f := newFixture(t, ward.OverflowAuto, true)
+	f.r.Secrets = memSecrets{ward.SecretOpenRouter: "or-key", ward.SecretOpenAI: "oa-key"}
+	f.r.Config.Order = []string{"opencode", "codex"}
+	f.box.act = func(i int, _ run, out io.Writer) int {
+		if i == 0 {
+			_, _ = io.WriteString(out, `{"type":"error","error":{"data":`+
+				`{"message":"Insufficient credits","statusCode":402}}}`+"\n")
+			return 1
+		}
+		return 0
+	}
+	code, err := f.r.Run(context.Background(),
+		ward.Request{Dir: "/w", Harness: "", Args: []string{"go"}, Print: true})
+	require.NoError(t, err)
+	assert.Equal(t, 0, code)
+	require.Len(t, f.box.runs, 2)
+	assert.Equal(t, "codex", filepath.Base(f.box.runs[1].spec.SessionDir))
+}

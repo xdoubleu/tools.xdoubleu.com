@@ -272,14 +272,15 @@ func (r *Runner) runOnce(
 
 // harness builds the named harness, its environment and the proxy's credentials.
 // Claude Code's token goes in the VM, which can send it only to Anthropic through
-// the proxy (adr-0043); OpenRouter's key stays on the host and the proxy adds it.
+// the proxy (adr-0043); OpenRouter's and OpenAI's keys stay on the host and the
+// proxy adds them.
 func (r *Runner) harness(
 	name string,
 ) (interactive, map[string]string, vm.EgressConfig, error) {
 	egress := vm.EgressConfig{
-		Server: "", MCPToken: nil, OpenRouterKey: nil, PostHogKey: nil, MCPRejected: nil,
-		Transport: nil, Anthropic: "", OpenRouter: "", PostHog: "", GoProxy: "", NPM: "",
-		RubyGems: "", Log: nil,
+		Server: "", MCPToken: nil, OpenRouterKey: nil, OpenAIKey: nil, PostHogKey: nil,
+		MCPRejected: nil, Transport: nil, Anthropic: "", OpenRouter: "", OpenAI: "",
+		PostHog: "", GoProxy: "", NPM: "", RubyGems: "", Log: nil,
 	}
 	switch name {
 	case Claude:
@@ -300,6 +301,12 @@ func (r *Runner) harness(
 			return r.Secrets.Get(SecretOpenRouter)
 		}
 		return vm.OpenCode{Model: r.Config.OpenCode.Model}, map[string]string{}, egress, nil
+	case Codex:
+		if _, err := r.Secrets.Get(SecretOpenAI); err != nil {
+			return nil, nil, egress, secretErr(SecretOpenAI, err)
+		}
+		egress.OpenAIKey = func() (string, error) { return r.Secrets.Get(SecretOpenAI) }
+		return vm.Codex{}, map[string]string{}, egress, nil
 	}
 	return nil, nil, egress, fmt.Errorf("unknown harness %q", name)
 }

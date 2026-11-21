@@ -14,6 +14,7 @@ import (
 const (
 	SecretAnthropic  = "anthropic"
 	SecretOpenRouter = "openrouter"
+	SecretOpenAI     = "openai"
 
 	keychainService = "com.xdoubleu.wardcase"
 	// notFound is `security`'s exit code for a missing item.
@@ -53,7 +54,7 @@ func NewKeychain() *Keychain {
 
 // ValidSecret reports whether name is a secret wardcase uses.
 func ValidSecret(name string) bool {
-	return slices.Contains([]string{SecretAnthropic, SecretOpenRouter}, name)
+	return slices.Contains([]string{SecretAnthropic, SecretOpenRouter, SecretOpenAI}, name)
 }
 
 // Get implements Secrets.
