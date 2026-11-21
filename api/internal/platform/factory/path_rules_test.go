@@ -47,7 +47,7 @@ func TestAMergedPullRequestGoesToDoneByItsChangedFiles(t *testing.T) {
 		"githubapp":         {"api/internal/platform/githubapp/githubapp.go"},
 		"diff-coverage":     {"diff-coverage/internal/diffcov/diff.go"},
 		"agent tooling": {".claude/skills/x/SKILL.md", ".factory/gates", "CLAUDE.md",
-			"api/scripts/check_kamal_secrets.sh", "scripts/lint_docs.sh", "scripts/test_hooks.sh",
+			"scripts/require_tools.sh", "scripts/lint_docs.sh", "scripts/test_hooks.sh",
 			"scripts/check_feature_gate.sh"},
 	}
 	for name, files := range cases {
