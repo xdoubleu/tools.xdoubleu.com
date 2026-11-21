@@ -45,7 +45,7 @@ Menu bar and `config …`/`pair` write the same the config file; `install` and t
 
 Targets, one per line:
 
-- `make build | dist | test | image` (realises the flake shell)
+- `make build | dist | test | image`
 - `make test/cov/diff` (CI's diff gate), `test/mutation/diff`
 - `make lint | lint/darwin | lint/fix`: CI lints on macOS, so run `lint/darwin` too; per-OS `syscall` types need `//nolint:gosec,nolintlint`
 
