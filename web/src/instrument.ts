@@ -10,6 +10,8 @@ Sentry.init({
   // Names pageload/navigation transactions by route (e.g. /books/:id/read).
   integrations: [reactRouterBrowserTracingIntegration()],
   tracesSampleRate: 1.0,
+  // A stale tab asking for a chunk the next deploy removed; a reload fixes it.
+  ignoreErrors: [/Importing a module script failed/, /Failed to fetch dynamically imported module/],
   // v11 defaults to collecting everything; keep the restrictive v10 baseline.
   dataCollection: {
     userInfo: false,
