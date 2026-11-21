@@ -28,10 +28,17 @@ const usage = `wardcase runs an agent harness in a sealed VM on this checkout.
   wardcase --print [claude|opencode|codex] [prompt]  headless; the prompt, else stdin
   wardcase secret set <anthropic|openrouter|openai>  reads the value from stdin
   wardcase config                                    prints the config path and settings
+  wardcase mcp login <name>                          signs a configured MCP server in
+  wardcase mcp list                                  the configured MCP servers
+  wardcase mcp logout <name>                         forgets a server's sign-in
 
 Each run gets its own git worktree on a new branch cut from HEAD; on exit wardcase
 says what is left in it and removes it when nothing is. --in-place runs in the
 current directory instead. --resume goes on in the checkout's latest worktree.
+
+MCP servers are the config's [[mcp]] entries (name, url, jobs). They are signed in
+here, on the Mac, with OAuth; the VM reaches them through the proxy, which adds the
+token, and never holds one.
 
 Without a harness the first in the config's order runs. At a usage limit the next
 one takes over, as the config's overflow (ask, auto, off) allows.
@@ -87,6 +94,8 @@ func run(
 			return secret(h.secrets, args[1:], in, out, errOut)
 		case "config":
 			return showConfig(home, out, errOut)
+		case "mcp":
+			return mcp(ctx, h, home, args[1:], out, errOut)
 		}
 	}
 	code, err := start(ctx, h, home, args, in, out, errOut)

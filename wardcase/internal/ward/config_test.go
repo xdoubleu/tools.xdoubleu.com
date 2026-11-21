@@ -72,3 +72,41 @@ func TestCodexCanBeInTheOrder(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, []string{"claude", "opencode", "codex"}, cfg.Order)
 }
+
+func TestMCPServersAreReadWithJobsOffByDefault(t *testing.T) {
+	cfg, err := ward.LoadConfig(writeConfig(t, `[[mcp]]
+name = "posthog"
+url = "https://mcp.posthog.com/mcp"
+
+[[mcp]]
+name = "local"
+url = "http://localhost:8080/mcp"
+jobs = true
+`))
+	require.NoError(t, err)
+	require.Len(t, cfg.MCP, 2)
+	assert.False(t, cfg.MCP[0].Jobs)
+	assert.True(t, cfg.MCP[1].Jobs)
+	got, ok := cfg.MCPServer("local")
+	assert.True(t, ok)
+	assert.Equal(t, "http://localhost:8080/mcp", got.URL)
+	_, ok = cfg.MCPServer("nope")
+	assert.False(t, ok)
+}
+
+func TestABadMCPEntryIsRefused(t *testing.T) {
+	cases := map[string]string{
+		"unknown key": "[[mcp]]\nname = \"a\"\nurl = \"https://x.example\"\ntoken = \"t\"\n",
+		"duplicate": "[[mcp]]\nname = \"a\"\nurl = \"https://x.example\"\n" +
+			"[[mcp]]\nname = \"a\"\nurl = \"https://y.example\"\n",
+		"reserved name":  "[[mcp]]\nname = \"board\"\nurl = \"https://x.example\"\n",
+		"bad name":       "[[mcp]]\nname = \"A b\"\nurl = \"https://x.example\"\n",
+		"plain http":     "[[mcp]]\nname = \"a\"\nurl = \"http://x.example/mcp\"\n",
+		"no url":         "[[mcp]]\nname = \"a\"\n",
+		"url credential": "[[mcp]]\nname = \"a\"\nurl = \"https://u:p@x.example\"\n",
+	}
+	for name, body := range cases {
+		_, err := ward.LoadConfig(writeConfig(t, body))
+		assert.Error(t, err, name)
+	}
+}

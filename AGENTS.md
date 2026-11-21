@@ -145,5 +145,6 @@ Update this file when structure, packages, targets or conventions change. `docs/
   - [0056](docs/adr-0056-components-not-a-self-hostable-platform.md) components
   - [0057](docs/adr-0057-agents-act-for-their-principal.md) principal
   - [0058](docs/adr-0058-movies-mcp-write-tools.md) movies
+  - [0059](docs/adr-0059-wardcase-mcp-servers-on-host.md) wardcase MCP
 - **Conventions:** [concise-docs-and-comments](docs/convention-concise-docs-and-comments.md) · [database-queries](docs/convention-database-queries.md) · [task-lifecycle](docs/convention-task-lifecycle.md) · [deploy-secrets](docs/convention-deploy-secrets.md) · [feature-review-policy](docs/convention-feature-review-policy.md) · [mcp-gap-first](docs/convention-mcp-gap-first.md) · [ui-standards](docs/convention-ui-standards.md) · [unattended-agent-trust](docs/convention-unattended-agent-trust.md)
 - Host-layer decisions: [`infra/README.md`](infra/README.md).

@@ -6,3 +6,5 @@ github.com/xdoubleu/diff-coverage v0.1.0 h1:RSDKerOcc9AD8rOxvxXXukW0fxBnQu1kdq4A
 github.com/xdoubleu/diff-coverage v0.1.0/go.mod h1:ULumZeKNmNQlm2ctLoMYu9eEYRpb0+MTKrVjMtaE2So=
 go.yaml.in/yaml/v3 v3.0.5 h1:N6y/pJk8buWs9NY5ERU2HSMfm+IuD/OtfdAnq6kESPw=
 go.yaml.in/yaml/v3 v3.0.5/go.mod h1:HVTZu1O7/Vkt2N+BFy8Zza+lnLsABggaTM2ZpNIGuKg=
+golang.org/x/oauth2 v0.38.0 h1:uW7XQbcu1eoiQS7uMJvLOjPMl04bTbmY1VeRPxvbspI=
+golang.org/x/oauth2 v0.38.0/go.mod h1:IxwZNxUULJmpBFf9K/9NTMSIfZZuvuTy1gGxhigP/58=

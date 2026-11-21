@@ -64,3 +64,13 @@ func TestTheRealKeychainRunsSecurity(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotEqual(t, 0, code)
 }
+
+func TestASecretIsDeletedAndAMissingOneIsNotAnError(t *testing.T) {
+	var calls [][]string
+	require.NoError(t, keychain("", 0, nil, &calls).Delete("mcp-x"))
+	assert.Equal(t, []string{"delete-generic-password", "-s", "com.xdoubleu.wardcase",
+		"-a", "mcp-x"}, calls[0])
+	require.NoError(t, keychain("", 44, nil, &calls).Delete("mcp-x"))
+	require.Error(t, keychain("", 1, nil, &calls).Delete("mcp-x"))
+	require.Error(t, keychain("", 0, errors.New("x"), &calls).Delete("mcp-x"))
+}

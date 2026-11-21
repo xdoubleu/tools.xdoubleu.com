@@ -22,16 +22,21 @@ type upstream struct {
 	srv  *httptest.Server
 	got  *http.Request
 	body string
+	// status, when set, is the status answered.
+	status int
 }
 
 func newUpstream(t *testing.T) *upstream {
 	t.Helper()
-	u := &upstream{srv: nil, got: nil, body: ""}
+	u := &upstream{srv: nil, got: nil, body: "", status: 0}
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		b, _ := io.ReadAll(r.Body)
 		u.got, u.body = r.Clone(context.Background()), string(b)
 		w.Header().Set("Set-Cookie", "planted=1")
 		w.Header().Set("X-Seen", "yes")
+		if u.status != 0 {
+			w.WriteHeader(u.status)
+		}
 		_, _ = io.WriteString(w, "up")
 	}
 	u.srv = httptest.NewServer(http.HandlerFunc(handler))
@@ -50,13 +55,17 @@ func proxyFor(
 		MCPToken:      func(context.Context) (string, error) { return "mcp-token", nil },
 		OpenRouterKey: func() (string, error) { return "real-or-key", nil },
 		OpenAIKey:     nil,
-		PostHogKey:    func() (string, error) { return "real-ph-key", nil },
-		MCPRejected:   nil,
-		Transport:     nil,
-		Anthropic:     up.srv.URL,
-		OpenAI:        up.srv.URL,
-		OpenRouter:    up.srv.URL + "/api", PostHog: up.srv.URL + "/mcp",
-		GoProxy: "", NPM: "", RubyGems: "", NixCache: "", NixSrc: "",
+		MCPServers: []vm.MCPServer{{
+			Name: "posthog", URL: up.srv.URL + "/mcp",
+			Token:    func(context.Context) (string, error) { return "real-ph-key", nil },
+			Rejected: nil,
+		}},
+		MCPRejected: nil,
+		Transport:   nil,
+		Anthropic:   up.srv.URL,
+		OpenAI:      up.srv.URL,
+		OpenRouter:  up.srv.URL + "/api",
+		GoProxy:     "", NPM: "", RubyGems: "", NixCache: "", NixSrc: "",
 		Log: nil,
 	}
 	if mutate != nil {
@@ -230,9 +239,9 @@ func TestResponsesStreamAsTheyArrive(t *testing.T) {
 	up := httptest.NewServer(http.HandlerFunc(events))
 	defer up.Close()
 	p, err := vm.NewEgressProxy(vm.EgressConfig{
-		Server: "", MCPToken: nil, OpenRouterKey: nil, OpenAIKey: nil, PostHogKey: nil,
+		Server: "", MCPToken: nil, OpenRouterKey: nil, OpenAIKey: nil, MCPServers: nil,
 		MCPRejected: nil,
-		Transport:   nil, Anthropic: up.URL, OpenRouter: "", OpenAI: "", PostHog: "",
+		Transport:   nil, Anthropic: up.URL, OpenRouter: "", OpenAI: "",
 		GoProxy: "", NPM: "", RubyGems: "", NixCache: "", NixSrc: "", Log: nil,
 	})
 	require.NoError(t, err)
@@ -254,9 +263,9 @@ func TestResponsesStreamAsTheyArrive(t *testing.T) {
 
 func TestABadUpstreamBaseIsRejectedWhenBuildingTheProxy(t *testing.T) {
 	_, err := vm.NewEgressProxy(vm.EgressConfig{
-		Server: "", MCPToken: nil, OpenRouterKey: nil, OpenAIKey: nil, PostHogKey: nil,
+		Server: "", MCPToken: nil, OpenRouterKey: nil, OpenAIKey: nil, MCPServers: nil,
 		MCPRejected: nil,
-		Transport:   nil, Anthropic: "not a url", OpenRouter: "", OpenAI: "", PostHog: "",
+		Transport:   nil, Anthropic: "not a url", OpenRouter: "", OpenAI: "",
 		GoProxy: "",
 		NPM:     "", RubyGems: "", NixCache: "", NixSrc: "", Log: nil,
 	})
@@ -358,26 +367,56 @@ func TestRegistriesAreReadOnlyRoutesToTheirFixedUpstreams(t *testing.T) {
 	}
 }
 
-func TestPostHogGetsTheRealKeyOnItsOneEndpoint(t *testing.T) {
+func TestAConfiguredMCPServerGetsItsTokenOnItsOneEndpoint(t *testing.T) {
 	p, up := proxyFor(t, nil)
 
-	rec := do(t, p, http.MethodPost, "/posthog", `{"jsonrpc":"2.0"}`,
+	rec := do(t, p, http.MethodPost, "/mcp-posthog", `{"jsonrpc":"2.0"}`,
 		map[string]string{"Authorization": "Bearer from-the-vm"})
 
 	require.Equal(t, http.StatusOK, rec.Code)
 	assert.Equal(t, "/mcp", up.got.URL.Path)
 	assert.Equal(t, "Bearer real-ph-key", up.got.Header.Get("Authorization"))
-	for _, other := range []string{"/posthog/", "/posthog/api/projects", "/posthogx"} {
+	others := []string{"/mcp-posthog/", "/mcp-posthog/api/projects", "/mcp-posthogx"}
+	for _, other := range others {
 		assert.Equal(t, http.StatusForbidden,
 			do(t, p, http.MethodPost, other, "{}", nil).Code, other)
 	}
 }
 
-func TestWithoutAPostHogKeyThereIsNoPostHogRoute(t *testing.T) {
-	p, _ := proxyFor(t, func(c *vm.EgressConfig) { c.PostHogKey = nil })
+func TestWithoutAnMCPServerThereIsNoRouteForIt(t *testing.T) {
+	p, _ := proxyFor(t, func(c *vm.EgressConfig) { c.MCPServers = nil })
 
 	assert.Equal(t, http.StatusForbidden,
-		do(t, p, http.MethodPost, "/posthog", "{}", nil).Code)
+		do(t, p, http.MethodPost, "/mcp-posthog", "{}", nil).Code)
+}
+
+func TestAnMCPServerAnswering401TellsItsOwner(t *testing.T) {
+	rejected := 0
+	p, up := proxyFor(t, func(c *vm.EgressConfig) {
+		c.MCPServers[0].Rejected = func() { rejected++ }
+	})
+	up.status = http.StatusUnauthorized
+
+	do(t, p, http.MethodPost, "/mcp-posthog", "{}", nil)
+
+	assert.Equal(t, 1, rejected)
+}
+
+func TestABadMCPServerIsRefusedWhenBuildingTheProxy(t *testing.T) {
+	token := func(context.Context) (string, error) { return "t", nil }
+	for _, srv := range []vm.MCPServer{
+		{Name: "board", URL: "https://x.example/mcp", Token: token, Rejected: nil},
+		{Name: "Bad Name", URL: "https://x.example/mcp", Token: token, Rejected: nil},
+		{Name: "ok", URL: "https://x.example/mcp", Token: nil, Rejected: nil},
+		{Name: "ok", URL: "not a url", Token: token, Rejected: nil},
+	} {
+		_, err := vm.NewEgressProxy(vm.EgressConfig{
+			MCPServers: []vm.MCPServer{srv}, Server: "", MCPToken: nil, OpenRouterKey: nil,
+			OpenAIKey: nil, MCPRejected: nil, Transport: nil, Anthropic: "", OpenRouter: "",
+			OpenAI: "", GoProxy: "", NPM: "", RubyGems: "", NixCache: "", NixSrc: "", Log: nil,
+		})
+		assert.Error(t, err, srv.Name)
+	}
 }
 
 func TestOpenAITrafficGetsTheHostsKeyInPlaceOfTheVMsPlaceholder(t *testing.T) {

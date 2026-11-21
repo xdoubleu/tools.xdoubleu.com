@@ -10,6 +10,7 @@ import (
 	"net/http/httputil"
 	"net/netip"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -22,7 +23,6 @@ const (
 	anthropicURL  = "https://api.anthropic.com"
 	openRouterURL = "https://openrouter.ai/api"
 	openAIURL     = "https://api.openai.com"
-	postHogURL    = "https://mcp.posthog.com/mcp"
 	goProxyURL    = "https://proxy.golang.org"
 	npmURL        = "https://registry.npmjs.org"
 	rubyGemsURL   = "https://rubygems.org"
@@ -40,22 +40,22 @@ type EgressConfig struct {
 	// Server is the API root, like Config.Server; the board's MCP endpoint is
 	// <Server>/apps/mcp.
 	Server string
-	// MCPToken, OpenRouterKey, OpenAIKey and PostHogKey return the credential to
-	// add. A nil one leaves its route out: the VM then cannot reach that service at all.
+	// MCPToken, OpenRouterKey and OpenAIKey return the credential to add. A nil one
+	// leaves its route out: the VM then cannot reach that service at all.
 	MCPToken      func(ctx context.Context) (string, error)
 	OpenRouterKey func() (string, error)
 	OpenAIKey     func() (string, error)
-	PostHogKey    func() (string, error)
+	// MCPServers are further MCP servers, each reached at /mcp-<name>.
+	MCPServers []MCPServer
 	// MCPRejected, when set, is called when the board answers 401, so a token it
 	// revoked early is not served again.
 	MCPRejected func()
 	// Transport is how the upstream is reached; nil means a TLS default.
 	Transport http.RoundTripper
-	// Anthropic, OpenRouter, OpenAI and PostHog override the upstream bases, for tests.
+	// Anthropic, OpenRouter and OpenAI override the upstream bases, for tests.
 	Anthropic  string
 	OpenRouter string
 	OpenAI     string
-	PostHog    string
 	GoProxy    string
 	NPM        string
 	RubyGems   string
@@ -65,6 +65,27 @@ type EgressConfig struct {
 	NixSrc   string
 	Log      *slog.Logger
 }
+
+// MCPServer is an MCP server the VM reaches through the proxy at /mcp-<Name>, with
+// no credential of its own: the proxy adds the bearer token.
+type MCPServer struct {
+	// Name is lower-case letters, digits and dashes, and is not "board".
+	Name string
+	// URL is the server's fixed endpoint.
+	URL string
+	// Token returns the access token to add.
+	Token func(ctx context.Context) (string, error)
+	// Rejected, when set, is called when the server answers 401, so the next request
+	// gets a fresh token.
+	Rejected func()
+}
+
+// MCPServerName reports whether name can name an MCP server.
+func MCPServerName(name string) bool {
+	return mcpName.MatchString(name) && name != "board"
+}
+
+var mcpName = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,30}$`)
 
 // route is one fixed destination. Nothing the VM sends can name another.
 type route struct {
@@ -107,20 +128,7 @@ func NewEgressProxy(cfg EgressConfig) (*EgressProxy, error) {
 	if p.log == nil {
 		p.log = slog.New(slog.DiscardHandler)
 	}
-	add := func(name, prefix string, exact bool, base string,
-		auth func(context.Context) (string, error), rejected func(),
-	) error {
-		target, err := url.Parse(base)
-		if err != nil || target.Scheme == "" || target.Host == "" {
-			return fmt.Errorf("egress route %s: bad upstream %q", name, base)
-		}
-		p.routes = append(p.routes, route{
-			name: name, prefix: prefix, exact: exact, target: target, auth: auth,
-			rejected: rejected, readOnly: false,
-		})
-		return nil
-	}
-	if err := add("anthropic", "/anthropic/", false,
+	if err := p.addRoute("anthropic", "/anthropic/", false,
 		orDefault(cfg.Anthropic, anthropicURL), nil, nil); err != nil {
 		return nil, err
 	}
@@ -133,19 +141,21 @@ func NewEgressProxy(cfg EgressConfig) (*EgressProxy, error) {
 		{"openrouter", "/openrouter/", orDefault(cfg.OpenRouter, openRouterURL),
 			false, cfg.OpenRouterKey},
 		{"openai", "/openai/", orDefault(cfg.OpenAI, openAIURL), false, cfg.OpenAIKey},
-		{"posthog", "/posthog", orDefault(cfg.PostHog, postHogURL), true, cfg.PostHogKey},
 	} {
 		if svc.key == nil {
 			continue
 		}
-		err := add(svc.name, svc.prefix, svc.exact, svc.base, bearer(svc.key), nil)
+		err := p.addRoute(svc.name, svc.prefix, svc.exact, svc.base, bearer(svc.key), nil)
 		if err != nil {
 			return nil, err
 		}
 	}
+	if err := p.addMCPServers(cfg.MCPServers); err != nil {
+		return nil, err
+	}
 	if cfg.MCPToken != nil && cfg.Server != "" {
 		token := cfg.MCPToken
-		err := add("mcp", "/mcp", true, strings.TrimRight(cfg.Server, "/")+"/apps/mcp",
+		err := p.addRoute("mcp", "/mcp", true, strings.TrimRight(cfg.Server, "/")+"/apps/mcp",
 			func(ctx context.Context) (string, error) {
 				t, err := token(ctx)
 				return "Bearer " + t, err
@@ -162,7 +172,7 @@ func NewEgressProxy(cfg EgressConfig) (*EgressProxy, error) {
 		{"nixcache", "/nixcache/", orDefault(cfg.NixCache, nixCacheURL)},
 		{"nixsrc", "/nixsrc/", orDefault(cfg.NixSrc, nixSrcURL)},
 	} {
-		if err := add(reg.name, reg.prefix, false, reg.base, nil, nil); err != nil {
+		if err := p.addRoute(reg.name, reg.prefix, false, reg.base, nil, nil); err != nil {
 			return nil, err
 		}
 		p.routes[len(p.routes)-1].readOnly = true
@@ -188,6 +198,40 @@ func NewEgressProxy(cfg EgressConfig) (*EgressProxy, error) {
 		ErrorHandler:   p.upstreamError,
 	}
 	return p, nil
+}
+
+// addRoute adds a fixed route to base.
+func (p *EgressProxy) addRoute(
+	name, prefix string, exact bool, base string,
+	auth func(context.Context) (string, error), rejected func(),
+) error {
+	target, err := url.Parse(base)
+	if err != nil || target.Scheme == "" || target.Host == "" {
+		return fmt.Errorf("egress route %s: bad upstream %q", name, base)
+	}
+	p.routes = append(p.routes, route{
+		name: name, prefix: prefix, exact: exact, target: target, auth: auth,
+		rejected: rejected, readOnly: false,
+	})
+	return nil
+}
+
+// addMCPServers adds each server's route, /mcp-<name>.
+func (p *EgressProxy) addMCPServers(servers []MCPServer) error {
+	for _, srv := range servers {
+		if !MCPServerName(srv.Name) || srv.Token == nil {
+			return fmt.Errorf("egress route: bad MCP server %q", srv.Name)
+		}
+		err := p.addRoute("mcp-"+srv.Name, "/mcp-"+srv.Name, true, srv.URL,
+			func(ctx context.Context) (string, error) {
+				t, err := srv.Token(ctx)
+				return "Bearer " + t, err
+			}, srv.Rejected)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // match finds the route for a request path and the path under it.
