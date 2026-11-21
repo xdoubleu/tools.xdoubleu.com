@@ -1,4 +1,4 @@
-package runner
+package vm
 
 import (
 	"bytes"
@@ -25,7 +25,7 @@ import (
 const ContainerVersion = "1.6"
 
 const (
-	containerCLI = "container"
+	ContainerCLI = "container"
 	mountFlag    = "--mount"
 
 	// sandboxUser is the non-root user the job runs as.
@@ -166,7 +166,7 @@ type ContainerSandbox struct {
 // Check reports whether the `container` CLI is installed at the supported release.
 func (s *ContainerSandbox) Check(ctx context.Context) error {
 	var out bytes.Buffer
-	code, err := s.Exec.Exec(ctx, []string{containerCLI, "--version"}, nil, &out)
+	code, err := s.Exec.Exec(ctx, []string{ContainerCLI, "--version"}, nil, &out)
 	if err != nil || code != 0 {
 		return fmt.Errorf("the container CLI is not usable: %w", errors.Join(err,
 			fmt.Errorf("exit %d: %s", code, strings.TrimSpace(out.String()))))
@@ -248,10 +248,40 @@ func (v *vmSession) Exec(
 	stdin string,
 	log io.Writer,
 ) (int, error) {
+	return v.run(ctx, command, strings.NewReader(stdin), log, false)
+}
+
+// Attacher is a session that can run a command on the caller's own terminal.
+type Attacher interface {
+	// Attach runs command with in and out as its terminal; tty gives it a
+	// pseudo-terminal, for an interactive agent.
+	Attach(
+		ctx context.Context, command []string, in io.Reader, out io.Writer, tty bool,
+	) (int, error)
+}
+
+// Attach implements Attacher.
+func (v *vmSession) Attach(
+	ctx context.Context,
+	command []string,
+	in io.Reader,
+	out io.Writer,
+	tty bool,
+) (int, error) {
+	return v.run(ctx, command, in, out, tty)
+}
+
+func (v *vmSession) run(
+	ctx context.Context,
+	command []string,
+	in io.Reader,
+	out io.Writer,
+	tty bool,
+) (int, error) {
 	spec := v.spec
-	spec.Command, spec.Stdin, spec.Log = command, stdin, log
-	argv := execArgv(v.name, v.envFile, v.s.npmCacheSource(), !v.ran, spec)
-	code, err := v.s.Exec.Exec(ctx, argv, strings.NewReader(stdin), log)
+	spec.Command, spec.Log = command, out
+	argv := execArgv(v.name, v.envFile, v.s.npmCacheSource(), !v.ran, tty, spec)
+	code, err := v.s.Exec.Exec(ctx, argv, in, out)
 	// A first exec that never got going leaves setup to the next one.
 	v.ran = v.ran || (err == nil && code == 0)
 	return code, err
@@ -285,7 +315,14 @@ func checkSpec(spec SandboxSpec) error {
 		}
 	}
 	// A comma would add mount options to the comma-separated --mount value.
-	for _, dir := range []string{spec.CloneDir, spec.OutcomeDir, spec.SessionDir} {
+	dirs := []string{spec.CloneDir, spec.OutcomeDir, spec.SessionDir}
+	for _, m := range spec.Mounts {
+		if !path.IsAbs(m.Target) || path.Clean(m.Target) != m.Target {
+			return fmt.Errorf("mount target %q is not a clean absolute path", m.Target)
+		}
+		dirs = append(dirs, m.Source, m.Target)
+	}
+	for _, dir := range dirs {
 		if strings.ContainsAny(dir, ",\n\r") {
 			return fmt.Errorf("directory %q cannot be mounted", dir)
 		}
@@ -328,7 +365,7 @@ func (s *ContainerSandbox) createNetwork(
 	for _, subnet := range freeSubnets(routes.String(), subnetAttempts) {
 		var out bytes.Buffer
 		code, err := s.Exec.Exec(ctx, []string{
-			containerCLI, "network", "create", "--internal",
+			ContainerCLI, "network", "create", "--internal",
 			"--subnet", subnet.String(), name,
 		}, nil, &out)
 		if err != nil {
@@ -350,13 +387,16 @@ func (s *ContainerSandbox) start(
 	spec SandboxSpec,
 ) error {
 	args := []string{
-		containerCLI, "run", "--detach", "--rm", "--name", name, "--network", name,
+		ContainerCLI, "run", "--detach", "--rm", "--name", name, "--network", name,
 		"--read-only", "--tmpfs", "/tmp", "--cap-drop", "ALL",
 		"--user", sandboxUser, "--cpus", orDefault(s.CPUs, "4"),
 		"--memory", orDefault(s.Memory, "8G"),
 		mountFlag, mount(spec.CloneDir, SandboxCloneDir, false),
 		mountFlag, mount(spec.OutcomeDir, path.Dir(SandboxOutcomePath), false),
 		mountFlag, mount(spec.SessionDir, SandboxSessionDir, false),
+	}
+	for _, m := range spec.Mounts {
+		args = append(args, mountFlag, mount(m.Source, m.Target, m.ReadOnly))
 	}
 	for _, cache := range []struct{ dir, target string }{
 		{s.GoModCache, sandboxGoCache}, {s.NPMCache, sandboxNPMCache},
@@ -385,21 +425,31 @@ func (s *ContainerSandbox) start(
 // execArgv runs the job's setup commands and then its command in the VM. The
 // environment goes in a file, never argv, which any process on the Mac can read.
 // Setup reads no stdin, so it cannot swallow the prompt meant for the command.
-func execArgv(name, envFile, npmCache string, first bool, spec SandboxSpec) []string {
+func execArgv(
+	name, envFile, npmCache string,
+	first, tty bool,
+	spec SandboxSpec,
+) []string {
 	// The clone belongs to another uid on the host, so git must be told to trust it.
 	script := "set -e\nmkdir -p \"$HOME\"\n" +
-		"git config --global --add safe.directory " + SandboxCloneDir + "\n" +
-		"[ -d " + jobNPMCache + " ] || cp -R " + npmCache + " " + jobNPMCache +
+		"git config --global --add safe.directory " + SandboxCloneDir + "\n"
+	for _, m := range spec.Mounts {
+		// A target is a clean absolute path; quoted for the shell.
+		script += "git config --global --add safe.directory '" +
+			strings.ReplaceAll(m.Target, "'", `'\''`) + "'\n"
+	}
+	script += "[ -d " + jobNPMCache + " ] || cp -R " + npmCache + " " + jobNPMCache +
 		" 2>/dev/null || mkdir -p " + jobNPMCache + "\n" + postgresScript
-	if first {
+	if first && !spec.SkipInstall {
 		script += npmInstallScript
 	}
 	script += `exec "$@"`
-	argv := []string{
-		containerCLI, "exec", "--interactive", "--env-file", envFile,
-		"--user", sandboxUser, "--workdir", SandboxCloneDir, name, "sh", "-c", script,
-		"sh",
+	argv := []string{ContainerCLI, "exec", "--interactive"}
+	if tty {
+		argv = append(argv, "--tty")
 	}
+	argv = append(argv, "--env-file", envFile,
+		"--user", sandboxUser, "--workdir", SandboxCloneDir, name, "sh", "-c", script, "sh")
 	return append(argv, spec.Command...)
 }
 
@@ -536,10 +586,10 @@ func (s *ContainerSandbox) cleanup(name string) {
 	ctx, cancel := context.WithTimeout(context.Background(), cleanupTimeout)
 	defer cancel()
 	var sink bytes.Buffer
-	_, _ = s.Exec.Exec(ctx, []string{containerCLI, "kill", name}, nil, &sink)
-	_, _ = s.Exec.Exec(ctx, []string{containerCLI, "delete", "--force", name}, nil,
+	_, _ = s.Exec.Exec(ctx, []string{ContainerCLI, "kill", name}, nil, &sink)
+	_, _ = s.Exec.Exec(ctx, []string{ContainerCLI, "delete", "--force", name}, nil,
 		&sink)
-	_, _ = s.Exec.Exec(ctx, []string{containerCLI, "network", "delete", name}, nil,
+	_, _ = s.Exec.Exec(ctx, []string{ContainerCLI, "network", "delete", name}, nil,
 		&sink)
 }
 

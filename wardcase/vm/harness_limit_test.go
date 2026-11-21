@@ -1,4 +1,4 @@
-package runner_test
+package vm_test
 
 import (
 	"fmt"
@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"tools.xdoubleu.com/factory-runner/internal/runner"
+	"tools.xdoubleu.com/wardcase/vm"
 )
 
 // These lines are modelled on the shapes the Claude Code 2.1.285 binary contains
@@ -24,7 +24,7 @@ func TestARejectedRateLimitEventIsALimitWithItsResetTime(t *testing.T) {
 		`{"status":"rejected","resetsAt":%d,"rateLimitType":"five_hour",`+
 		`"isUsingOverage":false},"uuid":"u1","session_id":"s1"}`, reset)
 
-	limited, at := runner.ClaudeCode{}.LimitFrom([]byte(line))
+	limited, at := vm.ClaudeCode{}.LimitFrom([]byte(line))
 
 	assert.True(t, limited)
 	assert.Equal(t, time.Unix(reset, 0).UTC(), at)
@@ -34,7 +34,7 @@ func TestAllowedAndWarningRateLimitEventsAreNotAStop(t *testing.T) {
 	for _, status := range []string{"allowed", "allowed_warning", ""} {
 		line := fmt.Sprintf(`{"type":"rate_limit_event","rate_limit_info":{"status":%q,`+
 			`"resetsAt":%d,"rateLimitType":"seven_day"}}`, status, epochIn(time.Hour))
-		limited, _ := runner.ClaudeCode{}.LimitFrom([]byte(line))
+		limited, _ := vm.ClaudeCode{}.LimitFrom([]byte(line))
 		assert.False(t, limited, status)
 	}
 }
@@ -54,7 +54,7 @@ func TestAnErrorResultSayingTheLimitWasReachedIsALimit(t *testing.T) {
 	} {
 		line := fmt.Sprintf(`{"type":"result","subtype":"success","is_error":true,`+
 			`"result":%q,"session_id":"s1"}`, tc.result)
-		limited, at := runner.ClaudeCode{}.LimitFrom([]byte(line))
+		limited, at := vm.ClaudeCode{}.LimitFrom([]byte(line))
 		assert.True(t, limited, name)
 		assert.Equal(t, tc.wantAt, !at.IsZero(), name)
 	}
@@ -76,7 +76,7 @@ func TestOrdinaryOutputIsNotALimit(t *testing.T) {
 		"empty":               ``,
 		"a result with limit": `{"type":"result","is_error":true,"result":"limit"}`,
 	} {
-		limited, _ := runner.ClaudeCode{}.LimitFrom([]byte(line))
+		limited, _ := vm.ClaudeCode{}.LimitFrom([]byte(line))
 		assert.False(t, limited, name)
 	}
 }
@@ -89,7 +89,7 @@ func TestAResetTimeThatCannotBeRightIsLeftUnsaid(t *testing.T) {
 	} {
 		line := fmt.Sprintf(`{"type":"rate_limit_event","rate_limit_info":`+
 			`{"status":"rejected","resetsAt":%d}}`, secs)
-		limited, at := runner.ClaudeCode{}.LimitFrom([]byte(line))
+		limited, at := vm.ClaudeCode{}.LimitFrom([]byte(line))
 		assert.True(t, limited, name)
 		assert.True(t, at.IsZero(), name)
 	}
@@ -97,7 +97,7 @@ func TestAResetTimeThatCannotBeRightIsLeftUnsaid(t *testing.T) {
 
 func TestOpenCodeNeverReportsAClaudeLimit(t *testing.T) {
 	line := `{"type":"rate_limit_event","rate_limit_info":{"status":"rejected"}}`
-	limited, at := runner.OpenCode{Model: "a/b"}.LimitFrom([]byte(line))
+	limited, at := vm.OpenCode{Model: "a/b"}.LimitFrom([]byte(line))
 	require.False(t, limited)
 	assert.True(t, at.IsZero())
 }

@@ -130,7 +130,7 @@ func (l *jobLoop) open() *result {
 	spec := SandboxSpec{
 		CloneDir: l.dirs.clone, OutcomeDir: l.dirs.outcome, SessionDir: l.dirs.session,
 		Env: l.launch.env, Command: nil,
-		Proxy: l.launch.proxy, Stdin: "", Log: nil,
+		Proxy: l.launch.proxy, Stdin: "", Log: nil, Mounts: nil, SkipInstall: false,
 	}
 	session, err := openSession(l.ctx, l.r.Sandbox, spec)
 	if err != nil {

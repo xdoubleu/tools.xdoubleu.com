@@ -64,11 +64,12 @@ RUN /opt/ci-tools/setup-ci-tools.sh go
 # clone. What changed since the build resolves through the egress proxy's read-only
 # registry routes. Build from the repo root: `make image`.
 COPY --chown=node:node selfupdate/go.mod selfupdate/go.sum* /deps/selfupdate/
+COPY --chown=node:node wardcase/go.mod wardcase/go.sum /deps/wardcase/
 COPY --chown=node:node api/go.mod api/go.sum /deps/api/
 COPY --chown=node:node factory-runner/go.mod factory-runner/go.sum /deps/factory-runner/
 COPY --chown=node:node kobo-gateway/go.mod kobo-gateway/go.sum /deps/kobo-gateway/
 COPY --chown=node:node web/package.json web/package-lock.json /deps/web/
-RUN for m in api factory-runner kobo-gateway selfupdate; do \
+RUN for m in api factory-runner kobo-gateway selfupdate wardcase; do \
         (cd /deps/$m && go mod download) || exit 1; \
     done \
     && (cd /deps/web && npm ci --ignore-scripts --no-audit --no-fund \

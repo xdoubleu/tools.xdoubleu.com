@@ -23,9 +23,11 @@ jobs:
         working-directory: './factory-runner'
       - run: make test/cov/report
         working-directory: './selfupdate'
+      - run: make test/cov/report
+        working-directory: './wardcase'
       - name: Patch coverage (changed lines >= 80%)
         if: github.event_name == 'pull_request'
         run: |
-          for dir in factory-runner selfupdate; do
+          for dir in factory-runner selfupdate wardcase; do
             (cd "$dir" && ../scripts/diff_coverage.sh go coverage.out)
           done

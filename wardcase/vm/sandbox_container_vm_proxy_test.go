@@ -1,6 +1,6 @@
 //go:build container
 
-package runner_test
+package vm_test
 
 import (
 	"bytes"
@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"tools.xdoubleu.com/factory-runner/internal/runner"
+	"tools.xdoubleu.com/wardcase/vm"
 )
 
 // A real VM reaching a real proxy on its network's gateway: the only way out, with
@@ -27,16 +27,16 @@ func TestRealVMReachesOnlyTheProxyAndTheProxyAddsTheKey(t *testing.T) {
 		_, _ = io.WriteString(w, "from-upstream")
 	}))
 	defer up.Close()
-	proxy, err := runner.NewEgressProxy(runner.EgressConfig{
+	proxy, err := vm.NewEgressProxy(vm.EgressConfig{
 		Server: "", MCPToken: nil, Transport: nil, Anthropic: up.URL,
 		OpenRouterKey: func() (string, error) { return "real-key", nil },
 		OpenRouter:    up.URL + "/api", Log: nil,
 	})
 	require.NoError(t, err)
 
-	box := &runner.ContainerSandbox{
-		Image: "factory-job:dev", Exec: runner.OSExecer{BinDirs: nil}, GoModCache: "", NPMCache: "",
-		CPUs: "", Memory: "", TempDir: t.TempDir(), ProxyPort: runner.EgressProxyPort,
+	box := &vm.ContainerSandbox{
+		Image: "factory-job:dev", Exec: vm.OSExecer{BinDirs: nil}, GoModCache: "", NPMCache: "",
+		CPUs: "", Memory: "", TempDir: t.TempDir(), ProxyPort: vm.EgressProxyPort,
 		Proxy: proxy,
 	}
 	dir := t.TempDir()
@@ -55,7 +55,7 @@ curl -sS -m 4 -o /dev/null https://example.com && echo NET=leak || echo NET=bloc
 curl -sS -m 4 -o /dev/null http://1.1.1.1 && echo NET=leak || echo NET=blocked
 `
 	var log bytes.Buffer
-	code, err := box.Run(context.Background(), runner.SandboxSpec{
+	code, err := box.Run(context.Background(), vm.SandboxSpec{
 		CloneDir: dirs[0], OutcomeDir: dirs[1], SessionDir: dirs[2],
 		Env: map[string]string{"FACTORY_JOB": "realvm-proxy"}, Command: []string{"sh", "-c", script}, Stdin: "", Log: &log,
 	})

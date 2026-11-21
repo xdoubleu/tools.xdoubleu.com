@@ -1,4 +1,4 @@
-package runner
+package vm
 
 import (
 	"context"
@@ -34,6 +34,18 @@ type SandboxSpec struct {
 	Stdin string
 	// Log receives what the command writes to stdout and stderr.
 	Log io.Writer
+	// Mounts are further host directories, such as a worktree's shared git
+	// directory.
+	Mounts []Mount
+	// SkipInstall leaves node_modules alone: CloneDir is someone's own checkout,
+	// where Linux builds of native modules would break the host.
+	SkipInstall bool
+}
+
+// Mount is a host directory bound into the VM.
+type Mount struct {
+	Source, Target string
+	ReadOnly       bool
 }
 
 // Sandbox runs one job in a fresh, isolated VM and destroys it afterwards
@@ -80,8 +92,8 @@ func (o oneShot) Exec(
 
 func (oneShot) Close() {}
 
-// openSession keeps the job's VM when the sandbox can.
-func openSession(
+// OpenSession keeps the job's VM when the sandbox can.
+func OpenSession(
 	ctx context.Context,
 	box Sandbox,
 	spec SandboxSpec,
