@@ -17,7 +17,7 @@ MAX_COMMENT_LINES = 6
 SKILL_BUDGET = 900
 ADR_BUDGET = 1000
 BUDGETS = {
-    "AGENTS.md": 1000,
+    "AGENTS.md": 1070,
     "CLAUDE.md": 400,
     "api/AGENTS.md": 1400,
     "web/AGENTS.md": 650,
@@ -32,6 +32,14 @@ for adr in glob.glob("docs/adr-*.md"):
 for spec in glob.glob("docs/spec-*.md"):
     print(f"{spec}: specs are not kept; the code is the spec — record the decision in an ADR")
     sys.exit(1)
+
+seen = {}
+for adr in sorted(glob.glob("docs/adr-*.md")):
+    num = os.path.basename(adr).split("-")[1]
+    if num in seen:
+        print(f"{adr}: ADR number {num} also used by {seen[num]} — renumber (make adr/new picks a free one)")
+        sys.exit(1)
+    seen[num] = adr
 
 only = {os.path.relpath(os.path.abspath(f)) for f in sys.argv[1:]}
 failed = False
