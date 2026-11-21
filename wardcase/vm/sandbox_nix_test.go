@@ -159,5 +159,5 @@ func TestTheNixStoreIsMountedReadWriteAndFlakesAreEntered(t *testing.T) {
 	assert.NotContains(t, run, "target=/nix,readonly")
 	execLine := strings.Join(exec.find("exec")[0], " ")
 	assert.Contains(t, execLine, "nix develop")
-	assert.Contains(t, execLine, "-le 3221225472")
+	assert.Contains(t, execLine, "-le 3145728")
 }

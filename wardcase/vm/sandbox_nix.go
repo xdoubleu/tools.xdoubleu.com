@@ -13,6 +13,8 @@ const (
 	nixSeed = "/opt/nix-seed"
 	// defaultNixStoreMax is the store size above which a session collects garbage.
 	defaultNixStoreMax int64 = 3 << 30
+	// kib is the unit of `du -sk`, which macOS and Linux share (`-b` is Linux only).
+	kib int64 = 1024
 )
 
 // flakeInputs lists a flake.lock's direct GitHub inputs as "name owner repo rev".
@@ -47,8 +49,8 @@ func (s *ContainerSandbox) nixScriptAt(root, seed, proxyURL string) string {
 	// No sandbox or build users: the VM is the sandbox, and it holds no capabilities.
 	b.WriteString("export NIX_CONFIG='experimental-features = nix-command flakes\n" +
 		"sandbox = false\nbuild-users-group =\nsubstituters = " + substituters + "'\n")
-	b.WriteString("[ \"$(du -sb " + root + "/store | cut -f1)\" -le " +
-		strconv.FormatInt(limit, 10) + " ] || nix store gc >&2 || true\n")
+	b.WriteString("[ \"$(du -sk " + root + "/store | cut -f1)\" -le " +
+		strconv.FormatInt((limit+kib-1)/kib, 10) + " ] || nix store gc >&2 || true\n")
 	b.WriteString("if [ -f flake.nix ]; then\n  set -- --command \"$@\"\n")
 	if proxyURL != "" {
 		b.WriteString("  if [ -f flake.lock ]; then\n    list=$(jq -r '" + flakeInputs +
