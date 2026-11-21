@@ -330,3 +330,39 @@ func TestDeletePath_RemovesSection(t *testing.T) {
 	assert.Equal(t, "sec-1", mock.LastDeletedSectionID)
 	assert.Empty(t, mock.LastDeletedProjectID)
 }
+
+func readingBook(description string, progress int) models.Item {
+	it := typedItem("read", description)
+	it.LinkedBookID = new(uuid.New())
+	//nolint:exhaustruct //only progress matters
+	it.LinkedBook = &models.LinkedBook{ProgressPercent: progress}
+	return it
+}
+
+func TestSyncUser_PrefersStartedBookInActiveModule(t *testing.T) {
+	store := multiPathStore([]models.Module{
+		module(
+			readingBook("unstarted", 0),
+			readingBook("a bit", 17),
+			readingBook("further", 36),
+			typedItem("do", "apply"),
+		),
+		module(readingBook("next module", 80)),
+	})
+	svc, mock := newTestTodoistService(store)
+
+	require.NoError(t, svc.SyncUser(t.Context(), "user-1"))
+
+	assert.Equal(t, []string{"further"}, mock.Contents)
+}
+
+func TestSyncUser_NoStartedBookTakesFirstIncomplete(t *testing.T) {
+	store := multiPathStore([]models.Module{
+		module(done(nextItem("done")), readingBook("unstarted", 0), typedItem("do", "x")),
+	})
+	svc, mock := newTestTodoistService(store)
+
+	require.NoError(t, svc.SyncUser(t.Context(), "user-1"))
+
+	assert.Equal(t, []string{"unstarted"}, mock.Contents)
+}
