@@ -82,6 +82,7 @@ jobs:
           key=$( (cat factory-runner/Containerfile \
             selfupdate/go.mod selfupdate/go.sum api/go.mod api/go.sum \
             factory-runner/go.mod factory-runner/go.sum \
+            wardcase/go.mod wardcase/go.sum \
             kobo-gateway/go.mod kobo-gateway/go.sum \
             web/package.json web/package-lock.json; echo "$week") \
             | sha256sum | cut -c1-16)
