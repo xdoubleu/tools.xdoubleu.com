@@ -39,7 +39,7 @@ type ClaudeCode struct{}
 // Command implements Harness.
 func (ClaudeCode) Command() []string {
 	return []string{
-		"sh", "-c", claudeStart, "claude", "claude", "-p", "--output-format", "stream-json",
+		"sh", "-c", claudeStart, claudeBin, claudeBin, "-p", "--output-format", "stream-json",
 		"--verbose", "--permission-mode", "bypassPermissions",
 	}
 }
@@ -49,14 +49,33 @@ func (ClaudeCode) Command() []string {
 // so a new session directory is filled from here once; a resumed one is left alone.
 const ClaudeConfigSeed = "/opt/claude-config"
 
+// Interactive is the argv for Claude Code on a terminal, with args passed on.
+func (ClaudeCode) Interactive(args []string) []string {
+	return append([]string{"sh", "-c", claudeStart, claudeBin, claudeBin}, args...)
+}
+
+const (
+	claudeBin   = "claude"
+	openCodeBin = "opencode"
+)
+
+// MCPEnv switches the board's and PostHog's MCP servers off when set to MCPOff, for
+// a sandbox whose proxy has no route to them.
+const (
+	MCPEnv = "FACTORY_MCP"
+	MCPOff = "off"
+)
+
 // claudeStart seeds the config once, then, when the sandbox has a proxy, points Claude
-// at it: the API through /anthropic and the board's and PostHog's MCP servers
-// through /mcp and /posthog with no credential (the host adds it).
+// at it: the API through /anthropic and, unless switched off, the board's and
+// PostHog's MCP servers through /mcp and /posthog with no credential (the host adds
+// it).
 const claudeStart = `[ -e "$CLAUDE_CONFIG_DIR/.seeded" ] || ` +
 	`{ cp -R "$CLAUDE_CONFIG_SEED/." "$CLAUDE_CONFIG_DIR/" && ` +
 	`touch "$CLAUDE_CONFIG_DIR/.seeded"; } || exit 1
 if [ -n "${FACTORY_PROXY:-}" ]; then
   export ANTHROPIC_BASE_URL="$FACTORY_PROXY/anthropic"
+  [ "${FACTORY_MCP:-}" = off ] && exec "$@"
   mcp="$HOME/factory-mcp.json"
   printf '{"mcpServers":{"board":{"type":"http","url":"%s/mcp"},` +
 	`"posthog":{"type":"http","url":"%s/posthog"}}}\n' ` +
@@ -119,14 +138,14 @@ func (ClaudeCode) LimitFrom(line []byte) (bool, time.Time) {
 	case event.Type == "rate_limit_event" && event.Info.Status == "rejected":
 		return true, epochSeconds(event.Info.ResetsAt)
 	case event.Type == "result" && event.IsError:
-		return limitInText(event.Result)
+		return LimitInText(event.Result)
 	}
 	return false, time.Time{}
 }
 
-// limitInText reads an error result's text for a usage limit. The older form is
+// LimitInText reads Claude Code's error text for a usage limit. The older form is
 // "Claude AI usage limit reached|<epoch seconds>".
-func limitInText(text string) (bool, time.Time) {
+func LimitInText(text string) (bool, time.Time) {
 	lower := strings.ToLower(strings.ReplaceAll(text, "\u2019", "'"))
 	hitYourLimit := strings.Contains(lower, "you've hit your") &&
 		strings.Contains(lower, "limit")
@@ -192,15 +211,20 @@ type OpenCode struct {
 }
 
 // openCodePrelude writes the job's OpenCode config when the sandbox has a proxy:
-// OpenRouter through /openrouter (the model is declared, as the catalogue needs the
-// network), and the board's and PostHog's MCP servers through /mcp and /posthog.
-// The model id is validated, so it is safe inside the JSON string.
+// OpenRouter through /openrouter as the default model (declared, as the catalogue
+// needs the network), and, unless switched off, the board's and PostHog's MCP
+// servers through /mcp and /posthog. The model id is validated, so it is safe inside
+// the JSON string.
 const openCodePrelude = `if [ -n "${FACTORY_PROXY:-}" ]; then
   cfg="$HOME/opencode-job.json"
-  printf '{"provider":{"openrouter":{"options":{"baseURL":"%s/openrouter/v1"},` +
-	`"models":{"%s":{}}}},"mcp":{"board":{"type":"remote","url":"%s/mcp"},` +
-	`"posthog":{"type":"remote","url":"%s/posthog"}}}\n' ` +
-	`"$FACTORY_PROXY" "$1" "$FACTORY_PROXY" "$FACTORY_PROXY" > "$cfg" || exit 1
+  mcp=""
+  p="$FACTORY_PROXY"
+  [ "${FACTORY_MCP:-}" = off ] ||
+    mcp=$(printf ',"mcp":{"board":{"type":"remote","url":"%s/mcp"},` +
+	`"posthog":{"type":"remote","url":"%s/posthog"}}' "$p" "$p")
+  printf '{"model":"openrouter/%s",` +
+	`"provider":{"openrouter":{"options":{"baseURL":"%s/openrouter/v1"},` +
+	`"models":{"%s":{}}}}%s}\n' "$1" "$p" "$1" "$mcp" > "$cfg" || exit 1
   export OPENCODE_CONFIG="$cfg"
 fi
 `
@@ -210,7 +234,14 @@ const (
 		`--auto -m "openrouter/$1" "$(cat)"`
 	openCodeAgain = openCodePrelude + `exec opencode run --standalone --format json ` +
 		`--auto -m "openrouter/$1" --session "$2" "$(cat)"`
+	openCodeTerminal = openCodePrelude + `shift
+exec opencode --standalone "$@"`
 )
+
+// Interactive is the argv for OpenCode's terminal UI, with args passed on.
+func (o OpenCode) Interactive(args []string) []string {
+	return append([]string{"sh", "-c", openCodeTerminal, openCodeBin, o.Model}, args...)
+}
 
 // Command implements Harness.
 func (o OpenCode) Command() []string {
