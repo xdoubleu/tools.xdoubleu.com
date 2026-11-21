@@ -12,6 +12,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"tools.xdoubleu.com/wardcase/internal/ward"
 )
 
 // emptyFile is standard input that is a file, not a terminal.
@@ -27,7 +29,7 @@ func emptyFile(t *testing.T) *os.File {
 
 func TestHelpPrintsUsage(t *testing.T) {
 	var out bytes.Buffer
-	code := run(context.Background(), []string{"--help"}, emptyFile(t), &out,
+	code := run(context.Background(), testHost(), []string{"--help"}, emptyFile(t), &out,
 		io.Discard)
 	assert.Equal(t, 0, code)
 	assert.Contains(t, out.String(), "wardcase secret set")
@@ -36,7 +38,7 @@ func TestHelpPrintsUsage(t *testing.T) {
 func TestConfigShowsThePathAndDefaults(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 	var out bytes.Buffer
-	code := run(context.Background(), []string{"config"}, emptyFile(t), &out,
+	code := run(context.Background(), testHost(), []string{"config"}, emptyFile(t), &out,
 		io.Discard)
 	assert.Equal(t, 0, code)
 	assert.Contains(t, out.String(), ".config/wardcase/config.toml")
@@ -51,21 +53,21 @@ func TestABadConfigFailsEveryCommandThatReadsIt(t *testing.T) {
 	require.NoError(t, os.WriteFile(filepath.Join(dir, "config.toml"),
 		[]byte(`overflow = "x"`), 0o600))
 	var errOut bytes.Buffer
-	assert.Equal(t, 1, run(context.Background(), []string{"config"}, emptyFile(t),
-		io.Discard, &errOut))
-	assert.Equal(t, 1, run(context.Background(), []string{"claude"}, emptyFile(t),
-		io.Discard, &errOut))
+	assert.Equal(t, 1, run(context.Background(), testHost(), []string{"config"},
+		emptyFile(t), io.Discard, &errOut))
+	assert.Equal(t, 1, run(context.Background(), testHost(), []string{"claude"},
+		emptyFile(t), io.Discard, &errOut))
 	assert.Contains(t, errOut.String(), "overflow")
 }
 
 func TestSecretNeedsAKnownNameAndAValue(t *testing.T) {
 	var errOut bytes.Buffer
-	assert.Equal(t, exitUsage, secret([]string{"set", "github"}, strings.NewReader("v"),
-		io.Discard, &errOut))
-	assert.Equal(t, exitUsage, secret([]string{"get", "anthropic"}, strings.NewReader("v"),
-		io.Discard, &errOut))
-	assert.Equal(t, 1, secret([]string{"set", "anthropic"}, strings.NewReader(""),
-		io.Discard, &errOut))
+	set := func(args []string, in string) int {
+		return secret(memSecrets{}, args, strings.NewReader(in), io.Discard, &errOut)
+	}
+	assert.Equal(t, exitUsage, set([]string{"set", "github"}, "v"))
+	assert.Equal(t, exitUsage, set([]string{"get", "anthropic"}, "v"))
+	assert.Equal(t, 1, set([]string{"set", "anthropic"}, ""))
 	assert.Contains(t, errOut.String(), "pipe the value in")
 }
 
@@ -123,4 +125,74 @@ func TestHostGitRunsGitInTheDirectory(t *testing.T) {
 	assert.Contains(t, out, "git version")
 	_, err = hostGit(context.Background(), t.TempDir(), "rev-parse", "--show-toplevel")
 	require.Error(t, err, "not a repository")
+}
+
+// memSecrets is a keychain in memory.
+type memSecrets map[string]string
+
+func (m memSecrets) Get(name string) (string, error) {
+	if v, ok := m[name]; ok {
+		return v, nil
+	}
+	return "", ward.ErrNoSecret
+}
+
+func (m memSecrets) Set(name, value string) error {
+	m[name] = value
+	return nil
+}
+
+// hostCLI answers the container CLI's version and image list.
+type hostCLI struct{ version string }
+
+func (h hostCLI) Exec(
+	_ context.Context, argv []string, _ io.Reader, out io.Writer,
+) (int, error) {
+	switch strings.Join(argv[1:], " ") {
+	case "--version":
+		_, _ = io.WriteString(out, h.version)
+	case "image list":
+		_, _ = io.WriteString(out, "NAME TAG DIGEST\nfactory-job cf99 aa\n")
+	default:
+		return 1, errors.New("unexpected: " + strings.Join(argv, " "))
+	}
+	return 0, nil
+}
+
+// testHost fails any container call; a test that needs the CLI builds its own.
+func testHost() host {
+	return host{exec: listExec{out: "", code: 1, err: nil}, secrets: memSecrets{}}
+}
+
+func TestSecretSetStoresTheTrimmedValue(t *testing.T) {
+	m := memSecrets{}
+	var out bytes.Buffer
+	code := secret(m, []string{"set", "openrouter"}, strings.NewReader(" k1 \n"), &out,
+		io.Discard)
+	assert.Equal(t, 0, code)
+	assert.Equal(t, "k1", m["openrouter"])
+	assert.Contains(t, out.String(), "Stored the openrouter secret")
+}
+
+func TestARunWithoutTheClaudeTokenStopsBeforeTheVM(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	h := host{
+		exec:    hostCLI{version: "container CLI version 1.6.0 (build: release)"},
+		secrets: memSecrets{},
+	}
+	var errOut bytes.Buffer
+	code := run(context.Background(), h, []string{"--print", "claude", "hi"},
+		emptyFile(t), io.Discard, &errOut)
+	assert.Equal(t, 1, code)
+	assert.Contains(t, errOut.String(), "anthropic")
+}
+
+func TestAnOldContainerCLIIsRefused(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	h := host{exec: hostCLI{version: "container CLI version 0.9.0"}, secrets: memSecrets{}}
+	var errOut bytes.Buffer
+	code := run(context.Background(), h, []string{"opencode"}, emptyFile(t),
+		io.Discard, &errOut)
+	assert.Equal(t, 1, code)
+	assert.Contains(t, errOut.String(), "1.6.x is required")
 }

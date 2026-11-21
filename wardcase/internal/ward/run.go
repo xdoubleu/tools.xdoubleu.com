@@ -285,7 +285,7 @@ func (r *Runner) harness(
 	case Claude:
 		token, err := r.Secrets.Get(SecretAnthropic)
 		if err != nil {
-			return nil, nil, egress, err
+			return nil, nil, egress, secretErr(SecretAnthropic, err)
 		}
 		env := map[string]string{"CLAUDE_CODE_OAUTH_TOKEN": token}
 		return vm.ClaudeCode{}, env, egress, nil
@@ -294,7 +294,7 @@ func (r *Runner) harness(
 			return nil, nil, egress, errors.New("set opencode.model in the wardcase config")
 		}
 		if _, err := r.Secrets.Get(SecretOpenRouter); err != nil {
-			return nil, nil, egress, err
+			return nil, nil, egress, secretErr(SecretOpenRouter, err)
 		}
 		egress.OpenRouterKey = func() (string, error) {
 			return r.Secrets.Get(SecretOpenRouter)
@@ -302,6 +302,10 @@ func (r *Runner) harness(
 		return vm.OpenCode{Model: r.Config.OpenCode.Model}, map[string]string{}, egress, nil
 	}
 	return nil, nil, egress, fmt.Errorf("unknown harness %q", name)
+}
+
+func secretErr(name string, err error) error {
+	return fmt.Errorf("the %s secret: %w (wardcase secret set %s)", name, err, name)
 }
 
 func maps(dst, src map[string]string) {

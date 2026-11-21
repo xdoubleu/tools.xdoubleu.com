@@ -35,14 +35,23 @@ one takes over, as the config's overflow (ask, auto, off) allows.
 // exitUsage is the exit code for a malformed command line.
 const exitUsage = 2
 
+// host is the Mac's container CLI and keychain; tests pass fakes.
+type host struct {
+	exec    vm.Execer
+	secrets ward.Secrets
+}
+
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	code := run(ctx, os.Args[1:], os.Stdin, os.Stdout, os.Stderr)
+	h := host{exec: vm.OSExecer{BinDirs: nil}, secrets: ward.NewKeychain()}
+	code := run(ctx, h, os.Args[1:], os.Stdin, os.Stdout, os.Stderr)
 	stop()
 	os.Exit(code)
 }
 
-func run(ctx context.Context, args []string, in *os.File, out, errOut io.Writer) int {
+func run(
+	ctx context.Context, h host, args []string, in *os.File, out, errOut io.Writer,
+) int {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		fmt.Fprintln(errOut, "wardcase:", err)
@@ -54,12 +63,12 @@ func run(ctx context.Context, args []string, in *os.File, out, errOut io.Writer)
 			fmt.Fprint(out, usage)
 			return 0
 		case "secret":
-			return secret(args[1:], in, out, errOut)
+			return secret(h.secrets, args[1:], in, out, errOut)
 		case "config":
 			return showConfig(home, out, errOut)
 		}
 	}
-	code, err := start(ctx, home, args, in, out, errOut)
+	code, err := start(ctx, h, home, args, in, out, errOut)
 	if err != nil {
 		fmt.Fprintln(errOut, "wardcase:", err)
 		return 1
@@ -67,7 +76,9 @@ func run(ctx context.Context, args []string, in *os.File, out, errOut io.Writer)
 	return code
 }
 
-func secret(args []string, in io.Reader, out, errOut io.Writer) int {
+func secret(
+	store ward.Secrets, args []string, in io.Reader, out, errOut io.Writer,
+) int {
 	if len(args) != 2 || args[0] != "set" || !ward.ValidSecret(args[1]) {
 		fmt.Fprintln(errOut, "usage: wardcase secret set <anthropic|openrouter>")
 		return exitUsage
@@ -79,7 +90,7 @@ func secret(args []string, in io.Reader, out, errOut io.Writer) int {
 			"wardcase: pipe the value in, e.g. pbpaste | wardcase secret set", args[1])
 		return 1
 	}
-	if err = ward.NewKeychain().Set(args[1], value); err != nil {
+	if err = store.Set(args[1], value); err != nil {
 		fmt.Fprintln(errOut, "wardcase:", err)
 		return 1
 	}
@@ -101,6 +112,7 @@ func showConfig(home string, out, errOut io.Writer) int {
 
 func start(
 	ctx context.Context,
+	h host,
 	home string,
 	args []string,
 	in *os.File,
@@ -121,7 +133,7 @@ func start(
 	if req.Dir, err = os.Getwd(); err != nil {
 		return 1, fmt.Errorf("working directory: %w", err)
 	}
-	execer := vm.OSExecer{BinDirs: nil}
+	execer := h.exec
 	if cfg.Image == "" {
 		if cfg.Image, err = newestJobImage(ctx, execer); err != nil {
 			return 1, err
@@ -136,7 +148,7 @@ func start(
 	}
 	terminal := isTerminal(in)
 	r := &ward.Runner{
-		Box: box, Secrets: ward.NewKeychain(), Config: cfg,
+		Box: box, Secrets: h.secrets, Config: cfg,
 		StateDir: filepath.Join(home, ".local", "state", "wardcase"), TempDir: "",
 		Git: hostGit, NewProxy: newProxy, In: in, Out: out, Notes: errOut,
 		Terminal: terminal, Ask: ask(in, errOut), Now: nil,
