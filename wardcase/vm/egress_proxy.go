@@ -26,6 +26,8 @@ const (
 	goProxyURL    = "https://proxy.golang.org"
 	npmURL        = "https://registry.npmjs.org"
 	rubyGemsURL   = "https://rubygems.org"
+	nixCacheURL   = "https://cache.nixos.org"
+	nixSrcURL     = "https://codeload.github.com"
 
 	maxProxyBody      = 64 << 20
 	proxyHeaderWait   = 15 * time.Second
@@ -57,7 +59,11 @@ type EgressConfig struct {
 	GoProxy    string
 	NPM        string
 	RubyGems   string
-	Log        *slog.Logger
+	// NixCache and NixSrc are the Nix binary cache and the GitHub tarball host a
+	// flake's inputs come from.
+	NixCache string
+	NixSrc   string
+	Log      *slog.Logger
 }
 
 // route is one fixed destination. Nothing the VM sends can name another.
@@ -153,6 +159,8 @@ func NewEgressProxy(cfg EgressConfig) (*EgressProxy, error) {
 		{"goproxy", "/goproxy/", orDefault(cfg.GoProxy, goProxyURL)},
 		{"npm", "/npm/", orDefault(cfg.NPM, npmURL)},
 		{"rubygems", "/rubygems/", orDefault(cfg.RubyGems, rubyGemsURL)},
+		{"nixcache", "/nixcache/", orDefault(cfg.NixCache, nixCacheURL)},
+		{"nixsrc", "/nixsrc/", orDefault(cfg.NixSrc, nixSrcURL)},
 	} {
 		if err := add(reg.name, reg.prefix, false, reg.base, nil, nil); err != nil {
 			return nil, err

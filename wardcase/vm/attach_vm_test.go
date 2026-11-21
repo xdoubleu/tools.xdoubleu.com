@@ -88,7 +88,7 @@ func TestRealVMStartsEachHarnessInteractively(t *testing.T) {
 	proxy, err := vm.NewEgressProxy(vm.EgressConfig{
 		Server: "", MCPToken: nil, OpenRouterKey: nil, OpenAIKey: nil, PostHogKey: nil,
 		MCPRejected: nil, Transport: nil, Anthropic: "", OpenRouter: "", OpenAI: "",
-		PostHog: "", GoProxy: "", NPM: "", RubyGems: "", Log: nil,
+		PostHog: "", GoProxy: "", NPM: "", RubyGems: "", NixCache: "", NixSrc: "", Log: nil,
 	})
 	require.NoError(t, err)
 	box := &vm.ContainerSandbox{

@@ -35,9 +35,10 @@ func newJobRunner(
 		ProxyPort:  runner.EgressProxyPort,
 		GoModCache: cfg.GoModCache,
 		NPMCache:   cfg.NPMCache,
-		CPUs:       "",
-		Memory:     "",
-		TempDir:    "",
+		NixStore:   "", NixStoreMax: 0,
+		CPUs:    "",
+		Memory:  "",
+		TempDir: "",
 	}
 	if err := box.Check(ctx); err != nil {
 		return nil, fmt.Errorf("jobs cannot run on this Mac: %w", err)

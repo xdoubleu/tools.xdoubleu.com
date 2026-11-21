@@ -28,7 +28,6 @@ func TestAMissingConfigIsClaudeThenOpenCodeAskingFirst(t *testing.T) {
 func TestTheConfigIsReadAsWritten(t *testing.T) {
 	cfg, err := ward.LoadConfig(writeConfig(t, `order = ["opencode", "claude"]
 overflow = "auto"
-image = "factory-job:abc"
 
 [opencode]
 model = "vendor/model:free"
@@ -36,8 +35,12 @@ model = "vendor/model:free"
 	require.NoError(t, err)
 	assert.Equal(t, []string{"opencode", "claude"}, cfg.Order)
 	assert.Equal(t, "auto", cfg.Overflow)
-	assert.Equal(t, "factory-job:abc", cfg.Image)
 	assert.Equal(t, "vendor/model:free", cfg.OpenCode.Model)
+}
+
+func TestTheDeviceConfigCannotPickAnImage(t *testing.T) {
+	_, err := ward.LoadConfig(writeConfig(t, `image = "evil:latest"`))
+	require.ErrorContains(t, err, "unknown setting image")
 }
 
 func TestABadConfigIsRefused(t *testing.T) {

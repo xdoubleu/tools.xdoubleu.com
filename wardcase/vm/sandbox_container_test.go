@@ -98,15 +98,17 @@ default            192.168.128.1      UGScg                 en0
 func sandboxWith(t *testing.T, exec *scriptedExec) *vm.ContainerSandbox {
 	t.Helper()
 	return &vm.ContainerSandbox{
-		Image:      "factory-job:test",
-		Exec:       exec,
-		Proxy:      nil,
-		GoModCache: "",
-		NPMCache:   "",
-		CPUs:       "",
-		Memory:     "",
-		ProxyPort:  0,
-		TempDir:    t.TempDir(),
+		Image:       "factory-job:test",
+		Exec:        exec,
+		Proxy:       nil,
+		GoModCache:  "",
+		NPMCache:    "",
+		NixStore:    "",
+		NixStoreMax: 0,
+		CPUs:        "",
+		Memory:      "",
+		ProxyPort:   0,
+		TempDir:     t.TempDir(),
 	}
 }
 

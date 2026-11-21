@@ -18,5 +18,8 @@ lint: tools/lint
 lint/fix: tools/lint
 	golangci-lint run --fix
 
+# VERSION is the release whose base image (wardcase/Containerfile) this binary runs.
+VERSION ?= dev
+
 build:
-	go build -o bin/wardcase ./cmd/wardcase
+	go build -ldflags "-X main.Version=$(VERSION)" -o bin/wardcase ./cmd/wardcase
