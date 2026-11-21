@@ -384,11 +384,14 @@ learningpaths_update_path
 mealplans_get_plan
 mealplans_list_plans
 mealplans_suggest_recipes
+movies_add_title
 movies_get_settings
 movies_get_stats
 movies_get_title
 movies_list_backlog
+movies_remove_title
 movies_search_titles
+movies_update_title
 prom_query
 recipes_create_recipe
 recipes_fetch_video

@@ -315,6 +315,24 @@ func (r *MoviesRepository) StatusesByKey(
 	return out, rows.Err()
 }
 
+// EntryIDByKey returns the id of the user's entry for a catalog title, or
+// database.ErrResourceNotFound when it is not in their backlog.
+func (r *MoviesRepository) EntryIDByKey(
+	ctx context.Context,
+	userID string,
+	k models.TitleKey,
+) (uuid.UUID, error) {
+	var id uuid.UUID
+	err := r.db.QueryRow(ctx, `
+		SELECT ut.id
+		FROM movies.user_titles ut
+		JOIN movies.titles t ON t.id = ut.title_id
+		WHERE ut.user_id = $1 AND t.media_type = $2 AND t.tmdb_id = $3`,
+		userID, k.MediaType, k.TMDBID,
+	).Scan(&id)
+	return id, postgres.PgxErrorToHTTPError(err)
+}
+
 // SharedOwners returns the owner key of every shared list with a title.
 func (r *MoviesRepository) SharedOwners(ctx context.Context) ([]string, error) {
 	rows, err := r.db.Query(ctx, `
