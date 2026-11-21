@@ -38,6 +38,22 @@ Without a harness the first in the config's order runs. At a usage limit the nex
 one takes over, as the config's overflow (ask, auto, off) allows.
 `
 
+// Version is the release wardcase is built at, stamped with
+// -ldflags "-X main.Version=...". The base image of the same version is the only
+// image wardcase runs.
+//
+//nolint:gochecknoglobals // set by the linker
+var Version = "dev"
+
+// ImageRepo is where each release publishes its base image.
+const ImageRepo = "ghcr.io/xdoubleu/wardcase"
+
+// ImageRef is the base image of one release.
+func ImageRef(version string) string { return ImageRepo + ":" + version }
+
+// stateDirPerm is the mode of wardcase's own state directories.
+const stateDirPerm = 0o750
+
 // exitUsage is the exit code for a malformed command line.
 const exitUsage = 2
 
@@ -111,8 +127,8 @@ func showConfig(home string, out, errOut io.Writer) int {
 		fmt.Fprintln(errOut, "wardcase:", err)
 		return 1
 	}
-	fmt.Fprintf(out, "%s\norder = %q\noverflow = %q\nimage = %q\nopencode.model = %q\n",
-		path, cfg.Order, cfg.Overflow, cfg.Image, cfg.OpenCode.Model)
+	fmt.Fprintf(out, "%s\norder = %q\noverflow = %q\nopencode.model = %q\n",
+		path, cfg.Order, cfg.Overflow, cfg.OpenCode.Model)
 	return 0
 }
 
@@ -143,17 +159,20 @@ func start(
 		return 1, fmt.Errorf("working directory: %w", err)
 	}
 	execer := h.exec
-	if cfg.Image == "" {
-		if cfg.Image, err = newestJobImage(ctx, execer); err != nil {
-			return 1, err
-		}
-	}
 	box := &vm.ContainerSandbox{
-		Image: cfg.Image, Exec: execer, Proxy: nil, ProxyPort: vm.EgressProxyPort,
-		GoModCache: "", NPMCache: "", CPUs: "", Memory: "", TempDir: "",
+		Image: ImageRef(Version), Exec: execer, Proxy: nil, ProxyPort: vm.EgressProxyPort,
+		GoModCache: "", NPMCache: "",
+		NixStore:    filepath.Join(home, ".local", "state", "wardcase", "nix"),
+		NixStoreMax: 0, CPUs: "", Memory: "", TempDir: "",
 	}
 	if err = box.Check(ctx); err != nil {
 		return 1, err
+	}
+	if err = ensureImage(ctx, execer, box.Image, errOut); err != nil {
+		return 1, err
+	}
+	if err = os.MkdirAll(box.NixStore, stateDirPerm); err != nil {
+		return 1, fmt.Errorf("nix store directory: %w", err)
 	}
 	terminal := isTerminal(in)
 	r := &ward.Runner{
@@ -196,27 +215,25 @@ func hostGit(ctx context.Context, dir string, args ...string) (string, error) {
 	return stdout.String(), nil
 }
 
-// newestJobImage is the first factory-job image `container image list` shows.
-func newestJobImage(ctx context.Context, execer vm.Execer) (string, error) {
-	var listing bytes.Buffer
-	argv := []string{vm.ContainerCLI, "image", "list"}
-	code, err := execer.Exec(ctx, argv, nil, &listing)
+// ensureImage pulls image unless the container CLI already has it.
+func ensureImage(
+	ctx context.Context, execer vm.Execer, image string, notes io.Writer,
+) error {
+	var out bytes.Buffer
+	code, err := execer.Exec(ctx, []string{vm.ContainerCLI, "image", "inspect", image},
+		nil, &out)
+	if err == nil && code == 0 {
+		return nil
+	}
+	fmt.Fprintf(notes, "wardcase: pulling %s\n", image)
+	out.Reset()
+	code, err = execer.Exec(ctx, []string{vm.ContainerCLI, "image", "pull", image},
+		nil, &out)
 	if err != nil || code != 0 {
-		return "", fmt.Errorf("list the container images: %w", errors.Join(err,
-			fmt.Errorf("exit %d", code)))
+		return fmt.Errorf("pull %s: %w", image, errors.Join(err,
+			fmt.Errorf("exit %d: %s", code, strings.TrimSpace(out.String()))))
 	}
-	return jobImageFrom(listing.String())
-}
-
-func jobImageFrom(listing string) (string, error) {
-	for _, line := range strings.Split(listing, "\n") {
-		fields := strings.Fields(line)
-		if len(fields) >= 2 && fields[0] == "factory-job" {
-			return "factory-job:" + fields[1], nil
-		}
-	}
-	return "", errors.New("no factory-job image: build one with `make image` in " +
-		"factory-runner, or set image in the wardcase config")
+	return nil
 }
 
 func isTerminal(f *os.File) bool {

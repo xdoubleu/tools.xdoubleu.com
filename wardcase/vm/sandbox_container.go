@@ -153,8 +153,14 @@ type ContainerSandbox struct {
 	// registry access, so the host fills them from the lockfiles.
 	GoModCache string
 	NPMCache   string
-	CPUs       string
-	Memory     string
+	// NixStore, when set, is a host directory mounted read-write at /nix, shared by
+	// the sessions of this host. A checkout with a flake.nix then runs inside its
+	// dev shell; the store is garbage-collected when it passes NixStoreMax bytes
+	// (default 3 GiB). Empty leaves /nix to the image and ignores flakes.
+	NixStore    string
+	NixStoreMax int64
+	CPUs        string
+	Memory      string
 	// TempDir holds the per-job env file; empty means os.TempDir().
 	TempDir string
 
@@ -193,7 +199,9 @@ type vmSession struct {
 	s       *ContainerSandbox
 	name    string
 	envFile string
-	spec    SandboxSpec
+	// proxyURL is the egress proxy as the VM reaches it; empty means none.
+	proxyURL string
+	spec     SandboxSpec
 	// cleanups run in reverse on Close.
 	cleanups []func()
 	ran      bool
@@ -211,7 +219,10 @@ func (s *ContainerSandbox) Open(
 	name := "factory-job-" + shortID(spec.Env["FACTORY_JOB"])
 	// A crashed runner may have left these behind.
 	s.cleanup(name)
-	v := &vmSession{s: s, name: name, envFile: "", spec: spec, cleanups: nil, ran: false}
+	v := &vmSession{
+		s: s, name: name, envFile: "", proxyURL: "", spec: spec, cleanups: nil,
+		ran: false,
+	}
 	v.cleanups = append(v.cleanups, func() { s.cleanup(name) })
 
 	subnet, err := s.provision(ctx, name, spec)
@@ -232,6 +243,7 @@ func (s *ContainerSandbox) Open(
 		proxyURL = "http://" + addr
 	}
 
+	v.proxyURL = proxyURL
 	v.envFile, err = s.writeEnvFile(spec.Env, gateway, proxyURL)
 	if err != nil {
 		v.Close()
@@ -280,7 +292,8 @@ func (v *vmSession) run(
 ) (int, error) {
 	spec := v.spec
 	spec.Command, spec.Log = command, out
-	argv := execArgv(v.name, v.envFile, v.s.npmCacheSource(), !v.ran, tty, spec)
+	argv := execArgv(v.name, v.envFile, v.s.npmCacheSource(), v.s.nixScript(v.proxyURL),
+		!v.ran, tty, spec)
 	code, err := v.s.Exec.Exec(ctx, argv, in, out)
 	// A first exec that never got going leaves setup to the next one.
 	v.ran = v.ran || (err == nil && code == 0)
@@ -398,6 +411,12 @@ func (s *ContainerSandbox) start(
 	for _, m := range spec.Mounts {
 		args = append(args, mountFlag, mount(m.Source, m.Target, m.ReadOnly))
 	}
+	if s.NixStore != "" {
+		if strings.ContainsAny(s.NixStore, ",\n\r") {
+			return fmt.Errorf("directory %q cannot be mounted", s.NixStore)
+		}
+		args = append(args, mountFlag, mount(s.NixStore, nixMount, false))
+	}
 	for _, cache := range []struct{ dir, target string }{
 		{s.GoModCache, sandboxGoCache}, {s.NPMCache, sandboxNPMCache},
 	} {
@@ -426,7 +445,7 @@ func (s *ContainerSandbox) start(
 // environment goes in a file, never argv, which any process on the Mac can read.
 // Setup reads no stdin, so it cannot swallow the prompt meant for the command.
 func execArgv(
-	name, envFile, npmCache string,
+	name, envFile, npmCache, nix string,
 	first, tty bool,
 	spec SandboxSpec,
 ) []string {
@@ -443,7 +462,7 @@ func execArgv(
 	if first && !spec.SkipInstall {
 		script += npmInstallScript
 	}
-	script += `exec "$@"`
+	script += nix + `exec "$@"`
 	argv := []string{ContainerCLI, "exec", "--interactive"}
 	if tty {
 		argv = append(argv, "--tty")

@@ -71,16 +71,6 @@ func TestSecretNeedsAKnownNameAndAValue(t *testing.T) {
 	assert.Contains(t, errOut.String(), "pipe the value in")
 }
 
-func TestTheNewestJobImageIsTheFirstListed(t *testing.T) {
-	img, err := jobImageFrom("NAME         TAG     DIGEST\n" +
-		"other        1       aa\nfactory-job  cf99    bb\nfactory-job  old     cc\n")
-	require.NoError(t, err)
-	assert.Equal(t, "factory-job:cf99", img)
-
-	_, err = jobImageFrom("NAME TAG DIGEST\n")
-	require.ErrorContains(t, err, "make image")
-}
-
 type listExec struct {
 	out  string
 	code int
@@ -94,16 +84,47 @@ func (l listExec) Exec(
 	return l.code, l.err
 }
 
-func TestTheImageListComesFromTheContainerCLI(t *testing.T) {
-	img, err := newestJobImage(context.Background(),
-		listExec{out: "factory-job  t1  d\n", code: 0, err: nil})
-	require.NoError(t, err)
-	assert.Equal(t, "factory-job:t1", img)
-	_, err = newestJobImage(context.Background(), listExec{out: "", code: 1, err: nil})
-	require.Error(t, err)
-	_, err = newestJobImage(context.Background(),
-		listExec{out: "", code: 0, err: errors.New("no container")})
-	require.Error(t, err)
+func TestTheImageIsTheReleasesOwn(t *testing.T) {
+	assert.Equal(t, "ghcr.io/xdoubleu/wardcase:1.2.3", ImageRef("1.2.3"))
+}
+
+// recordExec answers the container CLI's image calls and records them.
+type recordExec struct {
+	have  bool
+	pull  int
+	calls []string
+}
+
+func (r *recordExec) Exec(
+	_ context.Context, argv []string, _ io.Reader, _ io.Writer,
+) (int, error) {
+	r.calls = append(r.calls, strings.Join(argv[1:], " "))
+	switch argv[2] {
+	case "inspect":
+		if r.have {
+			return 0, nil
+		}
+		return 1, nil
+	case "pull":
+		return r.pull, nil
+	}
+	return 1, errors.New("unexpected")
+}
+
+func TestTheImageIsPulledOnlyWhenMissing(t *testing.T) {
+	have := &recordExec{have: true, pull: 0, calls: nil}
+	require.NoError(t, ensureImage(context.Background(), have, "img:1", io.Discard))
+	assert.Equal(t, []string{"image inspect img:1"}, have.calls)
+
+	var notes bytes.Buffer
+	missing := &recordExec{have: false, pull: 0, calls: nil}
+	require.NoError(t, ensureImage(context.Background(), missing, "img:1", &notes))
+	assert.Equal(t, []string{"image inspect img:1", "image pull img:1"}, missing.calls)
+	assert.Contains(t, notes.String(), "pulling img:1")
+
+	failing := &recordExec{have: false, pull: 1, calls: nil}
+	require.ErrorContains(t,
+		ensureImage(context.Background(), failing, "img:1", io.Discard), "pull img:1")
 }
 
 func TestAnAnswerDefaultsToYes(t *testing.T) {
@@ -170,8 +191,7 @@ func (h hostCLI) Exec(
 	switch strings.Join(argv[1:], " ") {
 	case "--version":
 		_, _ = io.WriteString(out, h.version)
-	case "image list":
-		_, _ = io.WriteString(out, "NAME TAG DIGEST\nfactory-job cf99 aa\n")
+	case "image inspect " + ImageRef(Version):
 	default:
 		return 1, errors.New("unexpected: " + strings.Join(argv, " "))
 	}

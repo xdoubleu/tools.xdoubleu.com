@@ -34,9 +34,7 @@ type Config struct {
 	// next one.
 	Order []string `toml:"order"`
 	// Overflow is ask, auto or off. A run without a terminal treats ask as off.
-	Overflow string `toml:"overflow"`
-	// Image is the job image; empty picks the newest local factory-job image.
-	Image    string         `toml:"image"`
+	Overflow string         `toml:"overflow"`
 	OpenCode OpenCodeConfig `toml:"opencode"`
 }
 
@@ -58,7 +56,7 @@ func ConfigPath(home string) string {
 
 // LoadConfig reads the config at path; a missing file is the defaults.
 func LoadConfig(path string) (Config, error) {
-	cfg := Config{Order: nil, Overflow: "", Image: "", OpenCode: OpenCodeConfig{Model: ""}}
+	cfg := Config{Order: nil, Overflow: "", OpenCode: OpenCodeConfig{Model: ""}}
 	data, err := os.ReadFile(path)
 	switch {
 	case errors.Is(err, os.ErrNotExist):
