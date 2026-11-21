@@ -33,6 +33,7 @@ jobs:
       config_api: ${{ steps.filter.outputs.config_api }}
       config_grafana: ${{ steps.filter.outputs.config_grafana }}
       grafana_dockerfile: ${{ steps.proto-workflows.outputs.grafana_dockerfile }}
+      flake: ${{ steps.proto-workflows.outputs.flake }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       # 'every' makes '!api/**/*.md' mean "and isn't an api/ doc"; under the
@@ -80,6 +81,9 @@ jobs:
               - '.github/workflows/**'
             selfupdate:
               - 'selfupdate/**'
+            flake:
+              - 'flake.nix'
+              - 'flake.lock'
             wardcase:
               - 'wardcase/**'
             # Rebuilds the Grafana wrapper image when its Dockerfile or baked-in
@@ -329,6 +333,25 @@ jobs:
       - name: make lint/deploy-version
         run: make lint/deploy-version
 
+  # The flake is the toolchain CI and the job image will share. The image builds it
+  # for arm64; this builds the x86_64-linux shell, so a broken lock fails here first.
+  flake:
+    needs: changes
+    if: |
+      github.event_name != 'push' &&
+      (github.event_name == 'workflow_dispatch' ||
+      needs.changes.outputs.flake == 'true' ||
+      needs.changes.outputs.workflows == 'true')
+    name: Nix Flake
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: DeterminateSystems/nix-installer-action@3138316df39ed29be04236d7ffc686fa525866aa # v23
+      - name: make flake/build
+        run: make flake/build
+
   # Unconditional: invalid frontmatter makes harnesses silently drop a skill.
   skills-lint:
     if: github.event_name != 'push'
@@ -415,6 +438,7 @@ jobs:
         skills-lint,
         docs-lint,
         feature-gate,
+        flake,
       ]
     if: always() && github.event_name != 'push'
     runs-on: ubuntu-latest

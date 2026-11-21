@@ -2,7 +2,7 @@
 
 - Status: Proposed
 - Issues: T-652, T-721, T-736; related T-478, T-539, T-541, T-491, T-575, T-648, T-735
-- Affects: `factory-runner/internal/runner/` (`Sandbox`), `factory-runner/Containerfile`
+- Affects: `wardcase/vm/` (`Sandbox`), `factory-runner/Containerfile`, `flake.nix`
 - Revisits: [adr-0043](adr-0043-factory-runner-sandbox.md)
 
 ## Context
@@ -21,7 +21,7 @@ The spike ran without network; the gates below were measured later on the runner
   4. Start latency is within 1.5x of the current VM.
   5. No direct network, with credentials injected only on approved endpoints, passes `scripts/factory_sandbox_probe.sh`.
 - **Keep the current VM** until then. A second backend is another `Sandbox` implementation; one with its own proxy, as OpenShell has, also replaces the egress proxy.
-- **Nix flake first (T-478).** The toolchain and a size-capped shared cache fix most of the tool-drift and disk tasks on any runtime; a new runtime alone removes few of them.
+- **Nix flake first (T-478, T-722).** The toolchain and a size-capped shared cache fix most of the tool-drift and disk tasks on any runtime; a new runtime alone removes few of them. `flake.nix` holds the CI toolchain; the job image realises its dev shell into `/nix` under a 3 GiB cap, and CI builds the same shell.
 
 ## Consequences
 
@@ -36,7 +36,7 @@ Measured 2026-11-21 (T-736) on the runner Mac: Apple M3, 8 cores, 24 GB, macOS 2
 | --- | --- | --- |
 | 1. License, CNCF | **Pass.** Apache-2.0 ([LICENSE](https://github.com/ai-openshell/openshell/blob/main/LICENSE)); CNCF Sandbox since 2026-09-26 ([cncf.io](https://www.cncf.io/projects/openshell/)) | **Fail.** Proprietary, "All rights reserved" ([LICENSE](https://github.com/docker/sbx-releases/blob/HEAD/LICENSE)), and every local command refuses to run until `sbx login` to a Docker account |
 | 2. Boots the job image on Apple Silicon | **Pass.** libkrun microVM via Hypervisor.framework, aarch64, Node, Go and Claude Code present | Not measured (owner ruled it out on gate 1) |
-| 3. Go and npm cache mounts | **Pass**, with setup: virtiofs bind mounts (read-only by default, read-write on request) need `enable_bind_mounts`, a `sandbox_uid`/`sandbox_gid` matching the host user, and a Landlock policy listing each mount. `/nix` is N/A (T-478 shipped `tools/setup-ci-tools.sh`) | Not measured |
+| 3. Go and npm cache mounts | **Pass**, with setup: virtiofs bind mounts (read-only by default, read-write on request) need `enable_bind_mounts`, a `sandbox_uid`/`sandbox_gid` matching the host user, and a Landlock policy listing each mount; the image realises the flake's dev shell into `/nix` | Not measured |
 | 4. Cold start ≤ 1.5x (median of 5) | **Fail.** From the rootfs tar: 15.65 s (15.06–18.76), 13x. From a cached registry image (512 MB default): 2.02 s, 1.7x. Apple `container`: 1.17 s (1.04–1.52) | Not measured |
 | 5. No direct network, credentials only via the proxy | **Pass.** The probe's checks, ported to `openshell sandbox exec`, all pass: no direct HTTPS, HTTP or raw TCP out; the VM holds only an `openshell:resolve:env:…` placeholder; the proxy injects the secret on the approved host only, refuses it elsewhere and refuses unapproved binaries (per-binary rules); no `/Users`, read-only root, non-root writable clone | Not measured |
 
