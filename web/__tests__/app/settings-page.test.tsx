@@ -22,6 +22,8 @@ vi.mock('@/hooks/useAuth', () => ({
   useSetTabPins: () => vi.fn()
 }))
 
+vi.mock('@/components/settings/PasskeysSection', () => ({ PasskeysSection: () => null }))
+
 vi.mock('@/lib/env', () => ({ getRelease: vi.fn(() => '') }))
 
 import SettingsPage from '@/app/settings/page'

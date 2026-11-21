@@ -46,7 +46,12 @@ import {
   useMFAUnenroll,
   useCurrentUser,
   useSetTabPins,
-  useRecordAppOpen
+  useRecordAppOpen,
+  usePasskeys,
+  useRenamePasskey,
+  useRemovePasskey,
+  useRegisterPasskey,
+  passkeysSupported
 } from '@/hooks/useAuth'
 
 const mockUseSWR = vi.mocked(useSWR)
@@ -268,5 +273,85 @@ describe('useRecordAppOpen', () => {
     const { result } = renderHook(() => useRecordAppOpen())
     result.current('recipes')
     expect(recordAppOpen).toHaveBeenCalledWith({ app: 'recipes' })
+  })
+})
+
+describe('passkey hooks', () => {
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('usePasskeys lists through the client', async () => {
+    const listPasskeys = vi.fn().mockResolvedValue({ passkeys: [{ id: 'p1' }] })
+    // @ts-expect-error -- mock client returns partial shape
+    mockCreateServiceClient.mockReturnValue({ listPasskeys })
+    let listed: unknown
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    mockUseSWR.mockImplementationOnce((key, fetcher) => {
+      // @ts-expect-error -- the mock calls the fetcher SWR would call
+      listed = fetcher(key)
+      return {}
+    })
+    renderHook(() => usePasskeys())
+    await expect(listed).resolves.toEqual([{ id: 'p1' }])
+  })
+
+  it('rename and remove call the client', () => {
+    const renamePasskey = vi.fn().mockResolvedValue({})
+    const removePasskey = vi.fn().mockResolvedValue({})
+    // @ts-expect-error -- mock client returns partial shape
+    mockCreateServiceClient.mockReturnValue({ renamePasskey, removePasskey })
+    renderHook(() => useRenamePasskey()).result.current('p1', 'New')
+    renderHook(() => useRemovePasskey()).result.current('p1')
+    expect(renamePasskey).toHaveBeenCalledWith({ id: 'p1', name: 'New' })
+    expect(removePasskey).toHaveBeenCalledWith({ id: 'p1' })
+  })
+
+  it('reports support only when the browser has the JSON helpers', () => {
+    expect(passkeysSupported()).toBe(false)
+    vi.stubGlobal('PublicKeyCredential', { parseCreationOptionsFromJSON: vi.fn() })
+    expect(passkeysSupported()).toBe(true)
+    vi.stubGlobal('PublicKeyCredential', {})
+    expect(passkeysSupported()).toBe(false)
+  })
+
+  describe('useRegisterPasskey', () => {
+    class FakeCredential {
+      toJSON() {
+        return { id: 'cred' }
+      }
+    }
+    const setup = (created: unknown) => {
+      const passkeyRegisterBegin = vi.fn().mockResolvedValue({
+        optionsJson: JSON.stringify({ challenge: 'abc' })
+      })
+      const passkeyRegisterFinish = vi.fn().mockResolvedValue({ passkey: { id: 'p1' } })
+      // @ts-expect-error -- mock client returns partial shape
+      mockCreateServiceClient.mockReturnValue({ passkeyRegisterBegin, passkeyRegisterFinish })
+      const parse = vi.fn((o) => ({ parsed: o }))
+      const create = vi.fn().mockResolvedValue(created)
+      vi.stubGlobal(
+        'PublicKeyCredential',
+        Object.assign(FakeCredential, { parseCreationOptionsFromJSON: parse })
+      )
+      vi.stubGlobal('navigator', { credentials: { create } })
+      return { passkeyRegisterFinish, create }
+    }
+
+    it('runs begin, the authenticator, then finish', async () => {
+      const { passkeyRegisterFinish, create } = setup(new FakeCredential())
+      const { result } = renderHook(() => useRegisterPasskey())
+      await expect(result.current('Laptop')).resolves.toEqual({ id: 'p1' })
+      expect(create).toHaveBeenCalledWith({ publicKey: { parsed: { challenge: 'abc' } } })
+      expect(passkeyRegisterFinish).toHaveBeenCalledWith({
+        name: 'Laptop',
+        credentialJson: JSON.stringify({ id: 'cred' })
+      })
+    })
+
+    it('fails when the browser returns no credential', async () => {
+      const { passkeyRegisterFinish } = setup(null)
+      const { result } = renderHook(() => useRegisterPasskey())
+      await expect(result.current('Laptop')).rejects.toThrow('No passkey was created.')
+      expect(passkeyRegisterFinish).not.toHaveBeenCalled()
+    })
   })
 })

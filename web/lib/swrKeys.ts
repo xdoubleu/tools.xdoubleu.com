@@ -5,6 +5,7 @@ const tasteRecommendations = '/taste/recommendations'
 
 export const swrKeys = {
   currentUser: '/auth/current-user',
+  passkeys: '/auth/passkeys',
   userManagementUsers: '/user-management/users',
   userManagementAgents: '/user-management/agents',
   monitoringOAuthConnections: '/monitoring/oauth-connections',

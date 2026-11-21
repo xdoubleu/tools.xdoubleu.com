@@ -27,7 +27,7 @@ func (s racyStore) GetRefreshTokenByHash(
 	context.Context, string,
 ) (*RefreshTokenRow, error) {
 	return &RefreshTokenRow{
-		ID: uuid.New(), UserID: "user", AAL: aal2,
+		ID: uuid.New(), UserID: "user", AAL: aal2, AuthTime: time.Now(),
 		ExpiresAt: time.Now().Add(time.Hour),
 	}, nil
 }
