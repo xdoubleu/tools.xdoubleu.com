@@ -40,7 +40,7 @@ func TestInstalledAppKeepsAValidSignatureThroughInstallAndInPlaceUpdate(t *testi
 	require.NoError(t, verify(t, src))
 
 	home := t.TempDir()
-	installed, err := runner.InstallBinary(home, binary)
+	installed, err := runner.InstallBinary(home, binary, "v1")
 	require.NoError(t, err)
 	assert.Equal(t, filepath.Join(runner.ApplicationsDir(home), "FactoryRunner.app"),
 		runner.InstalledBundlePath(home))

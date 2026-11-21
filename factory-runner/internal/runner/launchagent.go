@@ -172,7 +172,7 @@ func InstalledBinaryPath(homeDir string) string {
 // InstallBinary installs src's app bundle at InstalledBundlePath (a bare binary
 // gets a minimal one) and returns the binary inside it. The caller seals the
 // result with ResignBundle. Running the installed copy already is a no-op.
-func InstallBinary(homeDir, src string) (string, error) {
+func InstallBinary(homeDir, src, release string) (string, error) {
 	dst := InstalledBinaryPath(homeDir)
 	if filepath.Clean(src) == dst {
 		return dst, nil
@@ -189,7 +189,7 @@ func InstallBinary(homeDir, src string) (string, error) {
 	if app := appbundle.Path(src); app != "" {
 		err = copyBundle(app, tmp)
 	} else {
-		err = writeBundle(src, tmp)
+		err = writeBundle(src, tmp, release)
 	}
 	if err == nil {
 		err = os.RemoveAll(bundle)
@@ -234,7 +234,7 @@ func copyBundle(src, dst string) error {
 	return nil
 }
 
-func writeBundle(binary, bundle string) error {
+func writeBundle(binary, bundle, release string) error {
 	data, err := os.ReadFile(binary)
 	if err != nil {
 		return fmt.Errorf("read executable: %w", err)
@@ -248,12 +248,7 @@ func writeBundle(binary, bundle string) error {
 	if err != nil {
 		return fmt.Errorf("write binary: %w", err)
 	}
-	plist := filepath.Join(bundle, "Contents", "Info.plist")
-	//nolint:gosec // an Info.plist is world-readable
-	if err = os.WriteFile(plist, []byte(bundleInfoPlist), 0o644); err != nil {
-		return fmt.Errorf("write Info.plist: %w", err)
-	}
-	return nil
+	return writeBundleResources(bundle, release)
 }
 
 // BinaryRelease asks the binary at path for its stamped release; an empty

@@ -155,6 +155,45 @@ func TestNoArgsInAnAppBundleKeepsAnInstalledBinaryOfTheSameRelease(t *testing.T)
 	assert.Equal(t, "installed", string(data))
 }
 
+func TestNoArgsInAnAppBundleRepairsAnIconlessBundleOfTheSameRelease(t *testing.T) {
+	e := newEnv(t)
+	installed := installWithBundle(t, &e, "fresh", "installed")
+	var signed []string
+	e.app.sign = func(_ context.Context, p string) error {
+		signed = append(signed, p)
+		return nil
+	}
+
+	assert.Equal(t, 0, e.do())
+	assert.FileExists(t, filepath.Join(runner.InstalledBundlePath(e.app.home),
+		"Contents", "Resources", "AppIcon.icns"))
+	assert.Equal(t, []string{installed}, signed)
+	data, err := os.ReadFile(installed)
+	require.NoError(t, err)
+	assert.Equal(t, "installed", string(data))
+
+	signed = nil
+	assert.Equal(t, 0, e.do())
+	assert.Empty(t, signed, "a complete bundle is not re-signed")
+}
+
+func TestNoArgsInAnAppBundleReportsRepairFailures(t *testing.T) {
+	t.Run("write", func(t *testing.T) {
+		e := newEnv(t)
+		installWithBundle(t, &e, "bundle", "installed")
+		require.NoError(t, os.WriteFile(filepath.Join(
+			runner.InstalledBundlePath(e.app.home), "Contents", "Resources"), nil, 0o644))
+		assert.Equal(t, 1, e.do())
+	})
+	t.Run("sign", func(t *testing.T) {
+		e := newEnv(t)
+		installWithBundle(t, &e, "bundle", "installed")
+		e.app.sign = func(context.Context, string) error { return errors.New("sign") }
+		assert.Equal(t, 1, e.do())
+		assert.Contains(t, e.errs.String(), "sign repaired app")
+	})
+}
+
 func TestNoArgsInAnAppBundleUpgradesAnInstalledBinaryOfAnotherRelease(t *testing.T) {
 	e := newEnv(t)
 	installed := installWithBundle(t, &e, "bundle", "old")

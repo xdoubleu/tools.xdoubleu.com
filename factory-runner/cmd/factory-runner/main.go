@@ -432,7 +432,7 @@ func (a *app) linkCLI(installed string) {
 // installBinary installs this executable's app and seals it, so the LaunchAgent
 // runs from a bundle, which macOS notifications need.
 func (a *app) installBinary(ctx context.Context) (string, error) {
-	installed, err := runner.InstallBinary(a.home, a.execPath)
+	installed, err := runner.InstallBinary(a.home, a.execPath, Release)
 	if err != nil {
 		return "", err
 	}
@@ -456,6 +456,14 @@ func (a *app) installFromApp(ctx context.Context) int {
 		installed, err = a.installBinary(ctx)
 		if err != nil {
 			fmt.Fprintln(a.stderr, "factory-runner:", err)
+			return 1
+		}
+	} else if repaired, rerr := runner.RepairBundle(a.home, Release); rerr != nil {
+		fmt.Fprintln(a.stderr, "factory-runner:", rerr)
+		return 1
+	} else if repaired {
+		if err = a.sign(ctx, installed); err != nil {
+			fmt.Fprintln(a.stderr, "factory-runner: sign repaired app:", err)
 			return 1
 		}
 	}
