@@ -145,7 +145,7 @@ func mcpStatus(t *testing.T, token string) int {
 //
 //nolint:gochecknoglobals // shared expectation for the agent MCP tests
 var factoryToolNames = []string{
-	"factory_list_repos", "factory_list_tasks", "factory_get_task",
+	"factory_list_repos", "factory_list_tasks", "factory_get_task", "factory_get_job",
 	"factory_create_task", "factory_comment_task", "factory_move_task",
 	"factory_update_task", "factory_move_tasks",
 	"factory_list_routines", "factory_set_routine", "factory_run_routine",

@@ -19,12 +19,11 @@ func protoRoutine(r *models.Routine) *factoryv1.Routine {
 	}
 	if r.LastJob != nil {
 		out.LastJob = protoJob(r.LastJob)
-		out.LastJob.Outcome = truncateOutcome(r.LastJob.Outcome)
 	}
 	return out
 }
 
-// maxRoutineOutcome caps the outcome shown with a routine's last job.
+// maxRoutineOutcome caps a job's outcome as the board shows it.
 const maxRoutineOutcome = 2000
 
 func truncateOutcome(s string) string {

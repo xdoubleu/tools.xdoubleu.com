@@ -250,7 +250,8 @@ func (r *JobsRepository) CancelForTask(
 	taskID uuid.UUID,
 ) (*models.Job, error) {
 	return scanJob(r.db.QueryRow(ctx, `
-		UPDATE factory.jobs SET status = 'cancelled', finished_at = now()
+		UPDATE factory.jobs SET status = 'cancelled', finished_at = now(),
+			outcome = CASE WHEN outcome = '' THEN 'Stopped from the board.' ELSE outcome END
 		WHERE task_id = $1 AND status IN ('queued', 'running')
 		RETURNING `+jobColumns, taskID))
 }
@@ -262,7 +263,10 @@ func (r *JobsRepository) ExpireLost(
 	cutoff time.Time,
 ) ([]models.Job, error) {
 	rows, err := r.db.Query(ctx, `
-		UPDATE factory.jobs SET status = 'lost', finished_at = now()
+		UPDATE factory.jobs SET status = 'lost', finished_at = now(),
+			outcome = CASE WHEN outcome = '' THEN
+				'The runner stopped checking in, so the job was marked lost.'
+				ELSE outcome END
 		WHERE status = 'running' AND last_check_in < $1
 		RETURNING `+jobColumns, cutoff)
 	if err != nil {

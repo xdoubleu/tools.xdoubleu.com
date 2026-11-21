@@ -60,7 +60,16 @@ func protoJob(j *models.Job) *factoryv1.Job {
 
 		Limited:       j.Limited,
 		LimitResetsAt: limitResetsAt,
+		Outcome:       truncateOutcome(j.Outcome),
 	}
+}
+
+func protoJobs(jobs []models.Job) []*factoryv1.Job {
+	out := make([]*factoryv1.Job, len(jobs))
+	for i := range jobs {
+		out[i] = protoJob(&jobs[i])
+	}
+	return out
 }
 
 func (h *taskConnectHandler) RunTask(
@@ -135,6 +144,10 @@ func (h *taskConnectHandler) ListJobEvents(
 	if err != nil {
 		return nil, mapError(err)
 	}
+	return &factoryv1.ListJobEventsResponse{Events: protoJobEvents(events)}, nil
+}
+
+func protoJobEvents(events []models.JobEvent) []*factoryv1.JobEvent {
 	out := make([]*factoryv1.JobEvent, len(events))
 	for i := range events {
 		out[i] = &factoryv1.JobEvent{
@@ -144,7 +157,7 @@ func (h *taskConnectHandler) ListJobEvents(
 			CreatedAt: events[i].CreatedAt.Format(time.RFC3339),
 		}
 	}
-	return &factoryv1.ListJobEventsResponse{Events: out}, nil
+	return out
 }
 
 // claimedJobToProto is the job as the runner receives it.

@@ -24,8 +24,8 @@ import (
 //
 //nolint:gochecknoglobals // shared expectations for the apps-MCP tests
 var appsToolNames = []string{
-	// factory (12)
-	"factory_list_repos", "factory_list_tasks", "factory_get_task",
+	// factory (13)
+	"factory_list_repos", "factory_list_tasks", "factory_get_task", "factory_get_job",
 	"factory_create_task", "factory_comment_task", "factory_move_task",
 	"factory_move_tasks", "factory_update_task", "factory_list_routines",
 	"factory_set_routine", "factory_run_routine", "factory_delete_routine",

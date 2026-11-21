@@ -57,6 +57,35 @@ func (r *JobEventsRepository) After(
 	return out, rows.Err()
 }
 
+// Last lists a job's final limit events, oldest first.
+func (r *JobEventsRepository) Last(
+	ctx context.Context,
+	jobID uuid.UUID,
+	limit int,
+) ([]models.JobEvent, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT job_id, seq, kind, payload, created_at FROM (
+			SELECT job_id, seq, kind, payload, created_at
+			FROM factory.job_events
+			WHERE job_id = $1
+			ORDER BY seq DESC LIMIT $2
+		) tail ORDER BY seq`, jobID, limit)
+	if err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	defer rows.Close()
+
+	out := []models.JobEvent{}
+	for rows.Next() {
+		var e models.JobEvent
+		if err = rows.Scan(&e.JobID, &e.Seq, &e.Kind, &e.Payload, &e.CreatedAt); err != nil {
+			return nil, postgres.PgxErrorToHTTPError(err)
+		}
+		out = append(out, e)
+	}
+	return out, rows.Err()
+}
+
 // DeleteBefore removes events older than cutoff and returns how many.
 func (r *JobEventsRepository) DeleteBefore(
 	ctx context.Context,
