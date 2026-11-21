@@ -194,6 +194,7 @@
         'golang',
       ],
     },
+    // `go` directives stay major.minor (1.27): nixpkgs supplies the patch.
     // A major needs a pg_upgrade of the production volume (and PG18 moves the
     // mount to /var/lib/postgresql); CI and dev move with production.
     {
