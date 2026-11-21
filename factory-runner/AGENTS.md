@@ -31,7 +31,7 @@ The server is untrusted; each job needs UUID ids, an allowlisted repo, an `agent
 - Each attempt is host-checked: real commits, no secret. A pass is pushed and opened as a PR → [`adr-0045`](../docs/adr-0045-factory-github-app.md).
 - The device token lives only in the keychain.
 
-`jobLoop` resumes the agent's session in one VM with each failure (gate, push, CI) until the PR merges, sharing no state → [`adr-0044`](../docs/adr-0044-factory-jobs-queue.md).
+`jobLoop` resumes the agent's session in one VM with each failure (gate, push, CI) until the PR merges, sharing no state → [`adr-0044`](../docs/adr-0044-factory-jobs-queue.md). A run that lost its provider is repeated in place; a block carries its last lines.
 
 ## Distribution → [`adr-0042`](../docs/adr-0042-factory-runner-distribution.md)
 
