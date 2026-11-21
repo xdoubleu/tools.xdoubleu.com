@@ -13,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/xhit/go-str2duration/v2"
 	"golang.org/x/crypto/bcrypt"
@@ -44,6 +45,8 @@ type OAuth2TokenResolver interface {
 type claims struct {
 	jwt.RegisteredClaims
 	AAL string `json:"aal"`
+	// AuthTime is when the user last signed in; refreshing keeps it.
+	AuthTime *jwt.NumericDate `json:"auth_time,omitempty"`
 }
 
 const (
@@ -58,11 +61,13 @@ const (
 
 // LocalService is the self-hosted bcrypt + TOTP + JWT auth Service.
 type LocalService struct {
-	usersStore       usersStore
-	jwtSecret        []byte
-	sealer           *crypto.Sealer
-	mailer           mailer.Client
-	webURL           string
+	usersStore usersStore
+	jwtSecret  []byte
+	sealer     *crypto.Sealer
+	mailer     mailer.Client
+	webURL     string
+	// relyingParty is nil when WEB_URL gives no usable RP ID.
+	relyingParty     *webauthn.WebAuthn
 	useSecureCookies bool
 	accessExpiry     string
 	refreshExpiry    string
@@ -92,7 +97,9 @@ func NewService(
 	if cfg.Env == config.ProdEnv && cfg.JWTSecret == "" {
 		panic("auth: JWT_SECRET must be set in production")
 	}
+	relyingParty, _ := newRelyingParty(cfg.WebURL)
 	return &LocalService{
+		relyingParty:     relyingParty,
 		usersStore:       store,
 		jwtSecret:        []byte(cfg.JWTSecret),
 		sealer:           sealer,
@@ -161,6 +168,13 @@ func hashToken(token string) string {
 }
 
 func (service *LocalService) mintAccessToken(userID, aal string) (string, error) {
+	return service.mintAccessTokenAt(userID, aal, time.Now())
+}
+
+func (service *LocalService) mintAccessTokenAt(
+	userID, aal string,
+	authTime time.Time,
+) (string, error) {
 	ttl, err := str2duration.ParseDuration(service.accessExpiry)
 	if err != nil {
 		return "", err
@@ -173,7 +187,8 @@ func (service *LocalService) mintAccessToken(userID, aal string) (string, error)
 			IssuedAt:  jwt.NewNumericDate(now),
 			ExpiresAt: jwt.NewNumericDate(now.Add(ttl)),
 		},
-		AAL: aal,
+		AAL:      aal,
+		AuthTime: jwt.NewNumericDate(authTime),
 	})
 	return tok.SignedString(service.jwtSecret)
 }
@@ -281,6 +296,14 @@ func (service *LocalService) issueRefreshToken(
 	ctx context.Context,
 	userID, aal string,
 ) (string, error) {
+	return service.issueRefreshTokenAt(ctx, userID, aal, time.Now())
+}
+
+func (service *LocalService) issueRefreshTokenAt(
+	ctx context.Context,
+	userID, aal string,
+	authTime time.Time,
+) (string, error) {
 	ttl, err := str2duration.ParseDuration(service.refreshExpiry)
 	if err != nil {
 		return "", err
@@ -290,7 +313,7 @@ func (service *LocalService) issueRefreshToken(
 		return "", err
 	}
 	if err = service.usersStore.CreateRefreshToken(
-		ctx, userID, hashToken(token), aal, time.Now().Add(ttl),
+		ctx, userID, hashToken(token), aal, authTime, time.Now().Add(ttl),
 	); err != nil {
 		return "", err
 	}
@@ -418,12 +441,14 @@ func (service *LocalService) SignInWithRefreshToken(
 		return nil, nil, err
 	}
 
-	newRefreshToken, err := service.issueRefreshToken(ctx, row.UserID, row.AAL)
+	newRefreshToken, err := service.issueRefreshTokenAt(
+		ctx, row.UserID, row.AAL, row.AuthTime,
+	)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	accessToken, err := service.mintAccessToken(row.UserID, row.AAL)
+	accessToken, err := service.mintAccessTokenAt(row.UserID, row.AAL, row.AuthTime)
 	if err != nil {
 		return nil, nil, err
 	}
