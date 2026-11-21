@@ -32,8 +32,10 @@ type repoArgs struct {
 // workflowRunLogsArgs is the input for get_workflow_run_logs.
 type workflowRunLogsArgs struct {
 	RunID int64 `json:"run_id,omitempty" jsonschema:"run id, from get_workflow_runs"`
+
 	//nolint:lll // jsonschema description
 	PRNumber int64 `json:"pr_number,omitempty" jsonschema:"PR number, used when run_id is omitted"`
+
 	//nolint:lll // jsonschema description
 	Job string `json:"job,omitempty" jsonschema:"only jobs whose name contains this, case-insensitive"`
 }
