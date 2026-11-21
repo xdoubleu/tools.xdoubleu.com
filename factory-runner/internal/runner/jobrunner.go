@@ -164,6 +164,11 @@ const preamble = `You are running unattended in a sandbox with no network ` +
 	`still needs a commit, or the runner refuses the branch: record the ` +
 	`result in a docs ADR (see AGENTS.md) and commit it, and post the ` +
 	`comment as well. ` +
+	`When the only thing that blocked a task is fixed (your sandbox fix ` +
+	`shipped, or the task it waited on landed), move it to Ready yourself ` +
+	`with factory_move_task and say why; Needs you is only for decisions a ` +
+	`person must make. A task parked while a new job image ships resumes on ` +
+	`its own. ` +
 	`Nobody can answer questions while you run.`
 
 // JobRunner claims jobs from the server and runs each one in a sandbox.

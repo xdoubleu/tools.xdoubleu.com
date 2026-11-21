@@ -487,7 +487,7 @@ export const UpdateTaskResponseSchema: GenMessage<UpdateTaskResponse> = /*@__PUR
   messageDesc(file_factory_v1_factory, 12);
 
 /**
- * Moving into Ready needs a human admin in a browser session.
+ * Moving into Ready is allowed for a human admin or an agent account; the actor is recorded.
  *
  * @generated from message factory.v1.MoveTaskRequest
  */

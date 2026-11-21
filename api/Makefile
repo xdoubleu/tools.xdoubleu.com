@@ -49,7 +49,7 @@ lint/sql: tools/lint/sql
 	sqlfluff lint --dialect postgres .
 
 tools/proto:
-	go install github.com/bufbuild/buf/cmd/buf@v1.75.0
+	./scripts/ensure_go_tool.sh buf github.com/bufbuild/buf github.com/bufbuild/buf/cmd/buf 1.75.0
 
 # For environments that can't reach buf.build. Versions must match
 # buf.gen.yaml's pins (checked by make lint/proto-local-versions).

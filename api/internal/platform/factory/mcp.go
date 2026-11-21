@@ -57,7 +57,7 @@ type mcpCommentArgs struct {
 //nolint:lll // struct tags can't wrap
 type mcpMoveArgs struct {
 	ID     string `json:"id"     jsonschema:"task id, such as T-142"`
-	Status string `json:"status" jsonschema:"target column: backlog, in_progress, in_review, needs_you, testing or done"`
+	Status string `json:"status" jsonschema:"target column: backlog, ready, in_progress, in_review, needs_you, testing or done"`
 }
 
 //nolint:lll // struct tags can't wrap
@@ -73,7 +73,7 @@ type mcpUpdateArgs struct {
 //nolint:lll // struct tags can't wrap
 type mcpMoveManyArgs struct {
 	IDs    []string `json:"ids"    jsonschema:"task ids such as T-142, at most 200"`
-	Status string   `json:"status" jsonschema:"target column: backlog, in_progress, in_review, needs_you, testing or done"`
+	Status string   `json:"status" jsonschema:"target column: backlog, ready, in_progress, in_review, needs_you, testing or done"`
 }
 
 //nolint:lll // struct tags can't wrap
@@ -117,8 +117,9 @@ func (a *Factory) RegisterMCPTools(srv *mcp.Server) {
 	mcptools.AddAgentWriteTool(srv, mcpAppName, "factory_comment_task",
 		"Add a comment to a task, as this agent.", t.commentTask)
 	mcptools.AddAgentWriteTool(srv, mcpAppName, "factory_move_task",
-		"Move a task to another column ("+statusNames+"). Moving into ready is "+
-			"refused: only a person in a browser can do that.", t.moveTask)
+		"Move a task to another column ("+statusNames+"). Moving into ready "+
+			"re-queues a task you unblocked yourself; the move is recorded "+
+			"with your name.", t.moveTask)
 	mcptools.AddAgentWriteTool(srv, mcpAppName, "factory_update_task",
 		"Change a task's title, body, priority or labels (add_labels and "+
 			"remove_labels). Fields left out stay as they are. It never changes "+

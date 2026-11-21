@@ -1166,7 +1166,7 @@ func (x *UpdateTaskResponse) GetTask() *Task {
 	return nil
 }
 
-// Moving into Ready needs a human admin in a browser session.
+// Moving into Ready is allowed for a human admin or an agent account; the actor is recorded.
 type MoveTaskRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
