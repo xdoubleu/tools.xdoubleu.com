@@ -140,7 +140,7 @@ func newFixture(t *testing.T, overflow string, answer bool) *fixture {
 			OpenCode: ward.OpenCodeConfig{Model: "vendor/model"},
 		},
 		StateDir: t.TempDir(), TempDir: t.TempDir(),
-		GH: nil, Git: fakeGit("/Users/me/wt", "/Users/me/repo/.git"),
+		GH: nil, GitEnv: nil, Git: fakeGit("/Users/me/wt", "/Users/me/repo/.git"),
 		NewProxy: func(cfg vm.EgressConfig) (vm.ProxyListener, error) {
 			return vm.NewEgressProxy(cfg)
 		},

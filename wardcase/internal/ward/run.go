@@ -43,6 +43,9 @@ type Runner struct {
 	// TempDir holds each run's outcome directory; empty means os.TempDir().
 	TempDir string
 	Git     GitFunc
+	// GitEnv runs git with a token in its environment; only RunSession needs it
+	// and only for a request with a token.
+	GitEnv GitEnvFunc
 	// GH runs gh in a directory; nil means gh is absent and pull requests go
 	// unreported.
 	GH       GitFunc
@@ -83,40 +86,66 @@ type outcome struct {
 // Run runs the request, going on to the next harness at a usage limit as the
 // config allows, and returns the last harness's exit code.
 func (r *Runner) Run(ctx context.Context, req Request) (int, error) {
-	name := req.Harness
-	if name == "" {
-		name = r.Config.Order[0]
-	}
 	sess, err := r.openSession(ctx, req)
 	if err != nil {
 		return -1, err
+	}
+	defer func() { r.finish(context.WithoutCancel(ctx), sess) }()
+	res, err := r.loop(ctx, sess, req)
+	return res.code, err
+}
+
+// loopResult is how the harnesses' runs in one session ended.
+type loopResult struct {
+	code int
+	// harness is the one that ran last.
+	harness string
+	// continued says an earlier harness handed over at its usage limit.
+	continued bool
+	// limited says the last harness stopped at its usage limit too.
+	limited bool
+}
+
+// loop runs the request in the session's worktree, handing over at a usage limit.
+func (r *Runner) loop(
+	ctx context.Context,
+	sess session,
+	req Request,
+) (loopResult, error) {
+	name := req.Harness
+	if name == "" {
+		name = r.Config.Order[0]
 	}
 	dir := req.Dir
 	if sess.path != "" {
 		dir = sess.path
 	}
 	checkout, mounts := r.workspace(ctx, dir)
-	defer func() { r.finish(context.WithoutCancel(ctx), sess) }()
 	since, _ := r.Git(ctx, checkout, "rev-parse", "HEAD")
 	since = strings.TrimSpace(since)
 	args, prompt := req.Args, ""
 	if req.Print {
+		var err error
 		if prompt, err = r.prompt(req.Args); err != nil {
-			return -1, err
+			return loopResult{code: -1, harness: name, continued: false, limited: false}, err
 		}
 	}
 	task := prompt
+	out := loopResult{code: 0, harness: name, continued: false, limited: false}
 	for {
 		res, runErr := r.runOnce(ctx, name, checkout, mounts, args, prompt, req.Print)
 		if runErr != nil {
-			return -1, runErr
+			out.code = -1
+			return out, runErr
 		}
+		out.code, out.limited = res.code, res.limited
 		next := r.Config.next(name)
 		if !res.limited || next == "" || !r.mayOverflow(name, next, res.resets, req.Print) {
-			return res.code, nil
+			return out, nil
 		}
-		if err = r.writeHandoff(ctx, checkout, since, name, next); err != nil {
-			return -1, err
+		if err := r.writeHandoff(ctx, checkout, since, name, next); err != nil {
+			out.code = -1
+			return out, err
 		}
 		fmt.Fprintf(r.Notes, "wardcase: continuing in %s\n", next)
 		if req.Print {
@@ -124,7 +153,7 @@ func (r *Runner) Run(ctx context.Context, req Request) (int, error) {
 		} else {
 			args = promptArgs(next)
 		}
-		name = next
+		name, out.harness, out.continued = next, next, true
 	}
 }
 
