@@ -123,14 +123,16 @@ func sandboxWith(t *testing.T, exec *scriptedExec) *runner.ContainerSandbox {
 func spec(t *testing.T, log io.Writer) runner.SandboxSpec {
 	t.Helper()
 	return runner.SandboxSpec{
-		CloneDir:   "/data/jobs/j1/clone",
-		OutcomeDir: "/data/jobs/j1/outcome",
-		SessionDir: "/data/sessions/t1",
-		Env:        map[string]string{"FACTORY_JOB": "0a1b2c3d-4e5f", "SECRET": "s3cret"},
-		Command:    []string{"claude", "-p"},
-		Proxy:      nil,
-		Stdin:      "do the thing",
-		Log:        log,
+		CloneDir:    "/data/jobs/j1/clone",
+		OutcomeDir:  "/data/jobs/j1/outcome",
+		SessionDir:  "/data/sessions/t1",
+		Env:         map[string]string{"FACTORY_JOB": "0a1b2c3d-4e5f", "SECRET": "s3cret"},
+		Command:     []string{"claude", "-p"},
+		Proxy:       nil,
+		Stdin:       "do the thing",
+		Log:         log,
+		Mounts:      nil,
+		SkipInstall: false,
 	}
 }
 func (f *fakeProxy) Listen(gateway string, port int) (func(), string, error) {

@@ -39,10 +39,14 @@ const (
 )
 
 // NewEgressProxy builds the proxy for one job.
-func NewEgressProxy(cfg EgressConfig) (*EgressProxy, error) { return vm.NewEgressProxy(cfg) }
+func NewEgressProxy(cfg EgressConfig) (*EgressProxy, error) {
+	return vm.NewEgressProxy(cfg)
+}
 
 func validModel(model string) bool { return vm.ValidModel(model) }
 
-func openSession(ctx context.Context, box Sandbox, spec SandboxSpec) (SandboxSession, error) {
+func openSession(
+	ctx context.Context, box Sandbox, spec SandboxSpec,
+) (SandboxSession, error) {
 	return vm.OpenSession(ctx, box, spec)
 }
