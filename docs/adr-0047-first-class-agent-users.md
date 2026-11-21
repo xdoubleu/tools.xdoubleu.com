@@ -34,7 +34,9 @@ it does for people: granted per app, revoked the same way.
     with a `factory` `write` grant, which keeps today's behavior.
 - **Tool list.** `AgentToolsOnly` becomes grant filtering: an agent lists the
   tools of the apps it holds. Resources and prompts follow the same grants.
-  `factory_*` tools stay hidden from non-agents.
+  `factory_*` tools are listed to a person only when they are an admin or hold
+  a `factory` grant, and then act as a human outside a browser: no Ready, no
+  routines. A service identity never sees them.
 - **Never, whatever the grants.** An agent can't: call `SetRole`, `SetAppAccess`
   or any agent-management RPC; use admin or observability tools
   (`RequireAdmin` and `RequireObservability` exclude it); move a task into

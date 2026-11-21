@@ -505,7 +505,7 @@ func TestToolInputErrors(t *testing.T) {
 	}
 }
 
-func TestPeopleAreRefusedTheAgentTools(t *testing.T) {
+func TestCallersWithoutTheGrantAreRefusedTheBoardTools(t *testing.T) {
 	browserClient(t)
 	agent := mcpSessionAs(t, asUser(models.RoleAgent))
 	repoID := seededRepoID(t)
@@ -516,7 +516,7 @@ func TestPeopleAreRefusedTheAgentTools(t *testing.T) {
 
 	// Every call is valid, so only the role can refuse it.
 	for _, role := range []models.Role{
-		models.RoleAdmin, models.RoleUser, models.RoleService,
+		models.RoleUser, models.RoleService,
 	} {
 		session := mcpSessionAs(t, asUser(role))
 		for _, tc := range []struct {
@@ -547,6 +547,32 @@ func TestPeopleAreRefusedTheAgentTools(t *testing.T) {
 	assert.Equal(t, 1, tasks)
 	assert.Zero(t, comments)
 	assert.Equal(t, "backlog", status)
+}
+
+func TestPeopleWithTheGrantUseTheBoardTools(t *testing.T) {
+	browserClient(t)
+	person := asUser(models.RoleUser)
+	person.AppAccess, person.WriteAccess = []string{"factory"}, []string{"factory"}
+	session := mcpSessionAs(t, person)
+
+	created, err := callTool(t, session, "factory_create_task",
+		map[string]any{"repo_id": seededRepoID(t), "title": "person task"})
+	require.NoError(t, err)
+	id := str(t, created, "task", "id")
+
+	_, err = callTool(t, session, "factory_comment_task",
+		map[string]any{"task_id": id, "body": "hello"})
+	require.NoError(t, err)
+	_, err = callTool(t, session, "factory_move_task",
+		map[string]any{"id": id, "status": "in_review"})
+	require.NoError(t, err)
+
+	// Ready stays browser-only, and so do routines.
+	_, err = callTool(t, session, "factory_move_task",
+		map[string]any{"id": id, "status": "ready"})
+	assert.Error(t, err)
+	_, err = callTool(t, session, "factory_run_routine", map[string]any{"name": "x"})
+	assert.Error(t, err)
 }
 
 func TestAgentNeedsTheFactoryGrantAndWriteLevel(t *testing.T) {
