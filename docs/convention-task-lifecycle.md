@@ -4,7 +4,7 @@ The harness-neutral rules for starting and finishing a task. Harness
 mechanisms reference this file and add only the *how*:
 
 - Claude Code: the `start-task`/`finish-task` skills and the `PreToolUse`/
-  `Stop`/`ExitPlanMode` hooks ([`adr-0014`](adr-0014-start-finish-task-enforcement.md)).
+  `Stop` hooks ([`adr-0014`](adr-0014-start-finish-task-enforcement.md)).
 - OpenCode: the same skills (via compatibility discovery, dependencies under
   `.agents/skills/`) and `.opencode/plugins/repo-guard`.
 

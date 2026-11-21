@@ -26,7 +26,6 @@ done < <(jq -r '[.hooks[][].hooks[]?.command] | .[]' "$SETTINGS")
 pass "all hook commands pass bash -n"
 
 STOP_CMD=$(jq -r '.hooks.Stop[0].hooks[0].command' "$SETTINGS")
-EXITPLAN_CMD=$(jq -r '.hooks.PostToolUse[] | select(.matcher=="ExitPlanMode") | .hooks[0].command' "$SETTINGS")
 SESSIONSTART_CMD=$(jq -r '.hooks.SessionStart[0].hooks[0].command' "$SETTINGS")
 EDITGUARD_CMD=$(jq -r '.hooks.PreToolUse[] | select(.matcher=="Edit|Write|NotebookEdit") | .hooks[0].command' "$SETTINGS")
 
@@ -195,14 +194,6 @@ if printf '%s' "$out" | jq -e '.decision == "block"' > /dev/null 2>&1; then
   pass "no gh, REST fallback finds no PR -> fires block decision"
 else
   fail "no gh, REST fallback finds no PR -> fires block decision" "$out"
-fi
-
-# --- ExitPlanMode hook ---------------------------------------------------
-out=$(bash -c "$EXITPLAN_CMD")
-if printf '%s' "$out" | jq -e '.hookSpecificOutput.additionalContext | contains("start-task")' > /dev/null 2>&1; then
-  pass "ExitPlanMode hook returns start-task reminder"
-else
-  fail "ExitPlanMode hook returns start-task reminder" "$out"
 fi
 
 # --- SessionStart hook ---------------------------------------------------
