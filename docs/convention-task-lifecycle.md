@@ -20,6 +20,11 @@ what it did and what is left. The host checks the work, pushes it and opens the 
 the unshipped-work nudge stand aside when `FACTORY_JOB` is set; the sandbox is the
 boundary.
 
+`make factory/finish` (`scripts/factory_finish.sh`) is the job's finish step: it
+runs lint, diff coverage, the web build, proto checks and `make lint/docs` for the
+modules changed since `origin/main`, marks the docker and macOS gates "not run (CI
+checks it)", and prints the `Checks:` line to end the outcome with.
+
 A job whose blocker is cleared (its sandbox fix shipped, or the dependency
 landed) re-queues the task by moving it to Ready with `factory_move_task` and a
 comment saying why; it doesn't park it in Needs you

@@ -108,6 +108,8 @@ const preamble = `You are running unattended in a sandbox with no network ` +
 	`checks it)". The same goes for the docker-only gates ` +
 	"`grafana/verify` and `lint/infra`" + `: the sandbox has no docker, so mark ` +
 	`them "not run (CI checks it)", never a bare "not run". ` +
+	"`make factory/finish`" + ` runs every gate for the changed modules offline and ` +
+	`prints the Checks: line. ` +
 	`Your work continues until its pull request merges: the ` +
 	`runner opens the pull request, and when a gate, the push or CI fails it ` +
 	`resumes this session with what failed. Fix it, commit, and write the ` +
