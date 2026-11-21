@@ -30,4 +30,5 @@ build:
 
 # Packages KoboGateway.app + .dmg plus the raw binary into ./dist/kobo-gateway/.
 dist: build
+	../scripts/check_darwin_linkage.sh ./bin/kobo-gateway-darwin-arm64
 	RELEASE=$(RELEASE) ./cmd/kobo-gateway/assets/package.sh
