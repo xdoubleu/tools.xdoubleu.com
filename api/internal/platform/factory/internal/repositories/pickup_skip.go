@@ -20,25 +20,53 @@ import (
 const skipPrefix = "Skipped by auto pickup: "
 
 var (
-	dependsLine = regexp.MustCompile(`(?im)^\W*depends on\b:?(.*)$`)
-	taskRef     = regexp.MustCompile(`\bT-(\d+)\b`)
-	issueRef    = regexp.MustCompile(`#(\d+)`)
-	issueKey    = regexp.MustCompile(`\[github-issue:(\d+)\]`)
+	// dependsOn finds "Depends on" at the start of a line, or "Depends on:" (colon
+	// required) at the start of a later sentence on it, so "Part of X (T-1).
+	// Depends on: T-2." counts and "the slice that depends on T-3" does not.
+	dependsOn = regexp.MustCompile(
+		`(?im)^\W*depends on\b:?(.*)$|[.;!?]\s+\W*depends on\s*:(.*)$`)
+	taskRef  = regexp.MustCompile(`\bT-(\d+)\b`)
+	issueRef = regexp.MustCompile(`#(\d+)`)
+	issueKey = regexp.MustCompile(`\[github-issue:(\d+)\]`)
 )
 
 // pickupRefs reads what a body says about other work: the T-numbers and GitHub
-// issue numbers on its "Depends on" lines, and its own imported issue key ("" if none).
+// issue numbers in its "Depends on" sentences, and its own imported issue key
+// ("" if none).
 func pickupRefs(body string) ([]int64, []int64, string) {
 	var tasks, issues []int64
-	for _, line := range dependsLine.FindAllStringSubmatch(body, -1) {
-		tasks = append(tasks, numbers(taskRef, line[1])...)
-		issues = append(issues, numbers(issueRef, line[1])...)
+	for _, m := range dependsOn.FindAllStringSubmatch(body, -1) {
+		deps := sentence(m[1] + m[2])
+		tasks = append(tasks, numbers(taskRef, deps)...)
+		issues = append(issues, numbers(issueRef, deps)...)
 	}
 	key := ""
 	if m := issueKey.FindStringSubmatch(body); m != nil {
 		key = m[1]
 	}
 	return tasks, issues, key
+}
+
+// sentence cuts s at the first full stop outside parentheses that ends a sentence,
+// so a later sentence on the same line ("T-9 waits on this task") is not a dependency.
+func sentence(s string) string {
+	depth := 0
+	for i, r := range s {
+		switch r {
+		case '(':
+			depth++
+		case ')':
+			if depth > 0 {
+				depth--
+			}
+		case '.', ';':
+			next := i + 1
+			if depth == 0 && (next == len(s) || s[next] == ' ' || s[next] == '\t') {
+				return s[:i]
+			}
+		}
+	}
+	return s
 }
 
 func numbers(re *regexp.Regexp, s string) []int64 {

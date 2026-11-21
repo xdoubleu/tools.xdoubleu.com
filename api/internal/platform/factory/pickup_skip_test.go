@@ -88,6 +88,18 @@ func TestPickupSkipsATaskWhoseTaskDependencyIsNotMerged(t *testing.T) {
 	assert.Empty(t, env.task(t, task.id).Task.PickupBlockReason)
 }
 
+func TestPickupSkipsADependencyNamedAfterAPartOfSentence(t *testing.T) {
+	env := browserJobEnv(t)
+	autoPickup(t, true)
+	dep := seedTask(t, "dep", "Do it.", "in_review", nil)
+	task := seedTask(t, "task",
+		"Part of the epic. Depends on: "+dep.ref()+" (the first slice).\n\nDo it.",
+		"ready", nil)
+
+	assert.Nil(t, env.claim(t))
+	env.assertSkipped(t, task, "depends on "+dep.ref())
+}
+
 func TestPickupSkipsATaskWhoseIssueDependencyIsNotMerged(t *testing.T) {
 	env := browserJobEnv(t)
 	autoPickup(t, true)
