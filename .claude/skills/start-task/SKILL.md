@@ -24,6 +24,14 @@ CI failures, and comment "Why attempt failed" on the task
 (`factory_comment_task`) before writing code. The new attempt must differ in
 response to that analysis.
 
+## Scope check
+
+If the task needs more than one PR's worth (a migration plus new RPCs plus a
+new UI, or several apps), split it first with `refine-feature` into slices that
+each fit one job, comment the slice ids, and keep the parent as the spec. Don't
+code on the oversized card: a 60-minute timeout with nothing pushed is the cost.
+Factory jobs skip this skill; their preamble carries the same check.
+
 ## 2. Fresh worktree off up-to-date main
 
 Run `task-worktree` (pull latest `main`, completely fresh worktree; never
