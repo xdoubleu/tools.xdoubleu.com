@@ -29,6 +29,35 @@ type Harness interface {
 	// LimitFrom reports whether one line of output says the harness's provider
 	// refused further use for a usage limit, and when it lifts (zero if unsaid).
 	LimitFrom(line []byte) (bool, time.Time)
+	// TransientError reports whether one line of output says the harness could not
+	// reach its provider at all: a failure the next run may not hit.
+	TransientError(line []byte) bool
+}
+
+// transportErrorLine matches an error event whose text is a provider transport
+// failure. A usage limit is LimitFrom's, and any other error is the work's.
+func transportErrorLine(line []byte) bool {
+	lower := bytes.ToLower(line)
+	if !bytes.Contains(lower, []byte(`"error"`)) &&
+		!bytes.Contains(lower, []byte("is_error")) {
+		return false
+	}
+	if bytes.Contains(lower, []byte("limit")) {
+		return false
+	}
+	// The transport failures a harness reports; a run that hits one is worth
+	// repeating in place.
+	marks := []string{
+		"no internet route", "ehostunreach", "econnreset", "econnrefused",
+		"enotfound", "etimedout", "socket hang up", "connection error",
+		"request timed out", "fetch failed",
+	}
+	for _, mark := range marks {
+		if bytes.Contains(lower, []byte(mark)) {
+			return true
+		}
+	}
+	return false
 }
 
 // ClaudeCode runs the unmodified `claude` CLI headless on the subscription: never
@@ -143,6 +172,11 @@ func (ClaudeCode) LimitFrom(line []byte) (bool, time.Time) {
 	return false, time.Time{}
 }
 
+// TransientError implements Harness. Claude Code reports a request it could not
+// make as an assistant event with an `error` field, or an error result, whose text
+// is the transport's own ("API Error: No internet route ... (EHOSTUNREACH)").
+func (ClaudeCode) TransientError(line []byte) bool { return transportErrorLine(line) }
+
 // LimitInText reads Claude Code's error text for a usage limit. The older form is
 // "Claude AI usage limit reached|<epoch seconds>".
 func LimitInText(text string) (bool, time.Time) {
@@ -180,6 +214,10 @@ func epochSeconds(secs float64) time.Time {
 // LimitFrom implements Harness: OpenRouter's limits are credits the key's own cap
 // enforces, and a job that runs out simply fails.
 func (OpenCode) LimitFrom([]byte) (bool, time.Time) { return false, time.Time{} }
+
+// TransientError implements Harness: OpenCode reports a failed request as an error
+// event carrying the transport's own message.
+func (OpenCode) TransientError(line []byte) bool { return transportErrorLine(line) }
 
 // modelPattern is an OpenRouter model id, "vendor/model" with an optional tag. It is
 // matched again here because the server is untrusted and the id goes into argv.

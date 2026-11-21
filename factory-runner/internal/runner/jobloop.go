@@ -24,6 +24,12 @@ const (
 
 	// maxAttempts bounds the agent runs of one job, whatever else happens.
 	maxAttempts = 20
+	// maxTransientRuns bounds the runs of one attempt that failed reaching the
+	// provider.
+	maxTransientRuns = 4
+	// transientWait is the first pause before running such an attempt again; it
+	// doubles.
+	transientWait = 15 * time.Second
 	// defaultLimitWait is how long a usage limit with no reset time is waited out.
 	defaultLimitWait = time.Hour
 	maxLimitWait     = 7 * 24 * time.Hour
@@ -376,14 +382,11 @@ func (l *jobLoop) agent(command []string, prompt string) (string, *step) {
 	attemptCtx, cancel := context.WithTimeout(l.ctx, l.limit)
 	defer cancel()
 	l.tap.resetLimit()
-	// An earlier attempt's outcome must not pass for this one's.
-	_ = os.Remove(filepath.Join(l.dirs.outcome, outcomeFile))
-	exit, runErr := l.session.Exec(attemptCtx, command, prompt,
-		io.MultiWriter(l.tap, l.events))
-	timedOut := errors.Is(attemptCtx.Err(), context.DeadlineExceeded) &&
-		l.ctx.Err() == nil
-	cancel()
 	outPath := filepath.Join(l.dirs.outcome, outcomeFile)
+	// An earlier attempt's outcome must not pass for this one's.
+	_ = os.Remove(outPath)
+	exit, timedOut, runErr := l.runAgent(attemptCtx, command, prompt)
+	cancel()
 	// A clean exit with no outcome is usually an agent that forgot the last step:
 	// ask once, in the same session, before failing the attempt.
 	if sid := l.tap.Session(); runErr == nil && exit == 0 && !timedOut &&
@@ -428,6 +431,9 @@ func (l *jobLoop) agent(command []string, prompt string) (string, *step) {
 		return "", &end
 	case exit != 0:
 		reason = fmt.Sprintf("The agent exited with status %d.", exit)
+		if tail := l.failureTail(); tail != "" {
+			reason += "\n\nIts last output:\n" + tail
+		}
 		res.blocked = noOutcomeBlock(text, reason, l.secrets, res.blocked)
 	case text == "":
 		reason = "The agent exited cleanly but wrote no outcome file."
@@ -438,6 +444,55 @@ func (l *jobLoop) agent(command []string, prompt string) (string, *step) {
 	res.outcome = strings.TrimSpace(reason + "\n\n" + text)
 	end := over(res)
 	return "", &end
+}
+
+// runAgent runs the harness, repeating the same run when the only thing that
+// failed was reaching its provider. A run that lost its route throws away a live
+// session and the work it was carrying (a conflict or a CI fix), so it is worth
+// a few seconds before the attempt counts as failed.
+func (l *jobLoop) runAgent(
+	ctx context.Context, command []string, prompt string,
+) (int, bool, error) {
+	outPath := filepath.Join(l.dirs.outcome, outcomeFile)
+	for run := 1; ; run++ {
+		l.tap.resetTransient()
+		exit, runErr := l.session.Exec(ctx, command, prompt,
+			io.MultiWriter(l.tap, l.events))
+		timedOut := errors.Is(ctx.Err(), context.DeadlineExceeded) &&
+			l.ctx.Err() == nil
+		if run >= maxTransientRuns ||
+			!l.transientFailure(exit, runErr, timedOut, outPath) {
+			return exit, timedOut, runErr
+		}
+		l.note("The model API was unreachable; running the same attempt again")
+		l.sleep(transientWait << (run - 1))
+		if sid := l.tap.Session(); sid != "" {
+			command = l.r.harnessFor(l.job).Resume(sid)
+		}
+	}
+}
+
+// transientFailure says a run failed only because the harness could not reach its
+// provider, so running the same attempt again is what to do about it.
+func (l *jobLoop) transientFailure(
+	exit int, runErr error, timedOut bool, outPath string,
+) bool {
+	limited, _ := l.tap.Limit()
+	return runErr == nil && exit != 0 && !timedOut && !limited &&
+		l.ended() == "" && l.tap.Transient() && readOutcome(outPath) == ""
+}
+
+// failureTail is the harness's last output for a block's report, minus any line
+// that carries a secret; a report nobody can act on is a report nobody reads.
+func (l *jobLoop) failureTail() string {
+	lines := l.tap.Tail()
+	kept := make([]string, 0, len(lines))
+	for _, line := range lines {
+		if !leaks(line, l.secrets) {
+			kept = append(kept, line)
+		}
+	}
+	return strings.Join(kept, "\n")
 }
 
 // limitEnd is when claims resume after a limit: the time the harness gave, within

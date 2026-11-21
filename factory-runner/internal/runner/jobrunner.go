@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -633,6 +634,7 @@ func (r *JobRunner) execute(ctx context.Context, job *ClaimedJob) result {
 		partial: nil,
 		session: "",
 		limited: false, resetsAt: time.Time{},
+		transient: false, tail: nil,
 	}
 	secrets := append(r.secrets(), launch.secrets...)
 	events := newEventTap(secrets)
@@ -1058,7 +1060,8 @@ func limitReason(resetsAt time.Time) string {
 		resetsAt.UTC().Format("2006-01-02 15:04 MST") + "."
 }
 
-// sessionTap watches the harness's output for its session id and for a usage limit.
+// sessionTap watches the harness's output for its session id, for a usage limit and
+// for a provider it could not reach, and keeps the last lines of it for a report.
 type sessionTap struct {
 	harness  Harness
 	mu       sync.Mutex
@@ -1066,7 +1069,18 @@ type sessionTap struct {
 	session  string
 	limited  bool
 	resetsAt time.Time
+	// transient is set when the harness reported a provider transport failure.
+	transient bool
+	// tail is the last lines of output, for the block a failed attempt files.
+	tail []string
 }
+
+const (
+	// tailLines is how many of the harness's last lines a failure keeps.
+	tailLines = 8
+	// tailLine is how much of one long line that report keeps, from its end.
+	tailLine = 300
+)
 
 // Write implements io.Writer: it splits the output into lines and keeps the
 // first session id any line carries.
@@ -1079,21 +1093,42 @@ func (t *sessionTap) Write(p []byte) (int, error) {
 		if i < 0 {
 			break
 		}
+		line := t.partial[:i]
 		if t.session == "" {
-			t.session = t.harness.SessionID(t.partial[:i])
+			t.session = t.harness.SessionID(line)
 		}
-		if hit, at := t.harness.LimitFrom(t.partial[:i]); hit {
+		if hit, at := t.harness.LimitFrom(line); hit {
 			t.limited = true
 			if !at.IsZero() {
 				t.resetsAt = at
 			}
 		}
+		if t.harness.TransientError(line) {
+			t.transient = true
+		}
+		t.keep(line)
 		t.partial = t.partial[i+1:]
 	}
 	if len(t.partial) > maxTapLine {
 		t.partial = nil
 	}
 	return len(p), nil
+}
+
+// keep remembers one line of output, capped and beyond that its end, where the
+// harness puts the error.
+func (t *sessionTap) keep(line []byte) {
+	if len(line) == 0 {
+		return
+	}
+	s := string(line)
+	if len(s) > tailLine {
+		s = "…" + s[len(s)-tailLine:]
+	}
+	t.tail = append(t.tail, s)
+	if len(t.tail) > tailLines {
+		t.tail = t.tail[len(t.tail)-tailLines:]
+	}
 }
 
 // Limit reports whether a usage limit was seen, and when it lifts (zero if unsaid).
@@ -1111,11 +1146,33 @@ func (t *sessionTap) Limit() (bool, time.Time) {
 	return limited, resetsAt
 }
 
+// Transient reports whether the harness said it could not reach its provider.
+func (t *sessionTap) Transient() bool {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	return t.transient || t.harness.TransientError(t.partial)
+}
+
+// Tail is the last lines of the harness's output.
+func (t *sessionTap) Tail() []string {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	return slices.Clone(t.tail)
+}
+
 // resetLimit forgets a usage limit seen, for the next attempt.
 func (t *sessionTap) resetLimit() {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	t.limited, t.resetsAt, t.partial = false, time.Time{}, nil
+	t.limited, t.resetsAt, t.transient, t.tail, t.partial = false,
+		time.Time{}, false, nil, nil
+}
+
+// resetTransient forgets a provider failure seen, for the next run of one attempt.
+func (t *sessionTap) resetTransient() {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.transient, t.tail = false, nil
 }
 
 // Session is the session id seen so far, or "".
