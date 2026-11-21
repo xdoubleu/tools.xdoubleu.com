@@ -15,7 +15,7 @@ func (s *ShoppingService) SetItemAlias(
 	alias := normalizeItemName(name)
 	canonical = normalizeItemName(canonical)
 	if alias == canonical {
-		return repositories.ErrSelfAlias
+		return ErrSelfAlias
 	}
 
 	familyID, err := s.family.EnsureFamily(ctx, userID)

@@ -25,11 +25,11 @@ make db/reset                      # recreate the Postgres volume — shared by 
 - `ApplyMigrations` takes a Postgres advisory lock (concurrent replicas never race), runs global migrations (`cmd/api/migrations/`), then each app's.
 - `ApplyMigrationsFromFS` (`internal/app/base.go`) runs goose with `WithAllowMissing()`, so out-of-order merges self-heal.
 
-Per-app layout (`apps/<name>/`):
+Per-app layout (`apps/<name>/`; see [hexagonal-apps](../docs/convention-hexagonal-apps.md)):
 
 ```
 app.go         # embeds app.Base; books/games route test seeding through a test-only TestSeeds handle
-routes.go      # ConnectRPC handler wrapped in the app's own AppAccess gate
+routes.go      # ConnectRPC handler behind the AppAccess gate
 connect_*.go   # service implementations
 mcp.go         # optional MCPToolProvider
 internal/{dtos,models,repositories,services,jobs,mocks}/

@@ -162,13 +162,16 @@ type shoppingRepo interface {
 	) ([]repositories.IngredientUnit, error)
 }
 
+// ErrSelfAlias is returned when an item would be merged into itself.
+var ErrSelfAlias = repositories.ErrSelfAlias
+
 type Services struct {
 	Auth     auth.Service
 	Shopping *ShoppingService
 }
 
 func New(
-	repo *repositories.ShoppingRepository,
+	repo shoppingRepo,
 	authService auth.Service,
 	family familyStore,
 ) *Services {

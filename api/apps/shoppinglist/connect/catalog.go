@@ -1,4 +1,4 @@
-package shoppinglist
+package connect
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 	"tools.xdoubleu.com/internal/connecttools"
 )
 
-func (h *shoppingConnectHandler) ListCategories(
+func (h *Handler) ListCategories(
 	ctx context.Context,
 	_ *shoppinglistv1.ListCategoriesRequest,
 ) (*shoppinglistv1.ListCategoriesResponse, error) {
@@ -20,7 +20,7 @@ func (h *shoppingConnectHandler) ListCategories(
 		return nil, err
 	}
 
-	categories, err := h.app.services.Shopping.ListCategories(ctx, userID)
+	categories, err := h.shopping.ListCategories(ctx, userID)
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -34,7 +34,7 @@ func (h *shoppingConnectHandler) ListCategories(
 	}, nil
 }
 
-func (h *shoppingConnectHandler) CreateCategory(
+func (h *Handler) CreateCategory(
 	ctx context.Context,
 	req *shoppinglistv1.CreateCategoryRequest,
 ) (*shoppinglistv1.CreateCategoryResponse, error) {
@@ -50,7 +50,7 @@ func (h *shoppingConnectHandler) CreateCategory(
 		return nil, err
 	}
 
-	c, err := h.app.services.Shopping.CreateCategory(ctx, userID, id, req.Name)
+	c, err := h.shopping.CreateCategory(ctx, userID, id, req.Name)
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -59,7 +59,7 @@ func (h *shoppingConnectHandler) CreateCategory(
 	}, nil
 }
 
-func (h *shoppingConnectHandler) RenameCategory(
+func (h *Handler) RenameCategory(
 	ctx context.Context,
 	req *shoppinglistv1.RenameCategoryRequest,
 ) (*shoppinglistv1.RenameCategoryResponse, error) {
@@ -75,7 +75,7 @@ func (h *shoppingConnectHandler) RenameCategory(
 		return nil, err
 	}
 
-	c, err := h.app.services.Shopping.RenameCategory(ctx, userID, id, req.Name)
+	c, err := h.shopping.RenameCategory(ctx, userID, id, req.Name)
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -84,7 +84,7 @@ func (h *shoppingConnectHandler) RenameCategory(
 	}, nil
 }
 
-func (h *shoppingConnectHandler) DeleteCategory(
+func (h *Handler) DeleteCategory(
 	ctx context.Context,
 	req *shoppinglistv1.DeleteCategoryRequest,
 ) (*shoppinglistv1.DeleteCategoryResponse, error) {
@@ -97,13 +97,13 @@ func (h *shoppingConnectHandler) DeleteCategory(
 		return nil, err
 	}
 
-	if err = h.app.services.Shopping.DeleteCategory(ctx, userID, id); err != nil {
+	if err = h.shopping.DeleteCategory(ctx, userID, id); err != nil {
 		return nil, mapError(err)
 	}
 	return &shoppinglistv1.DeleteCategoryResponse{}, nil
 }
 
-func (h *shoppingConnectHandler) ListItemNames(
+func (h *Handler) ListItemNames(
 	ctx context.Context,
 	_ *shoppinglistv1.ListItemNamesRequest,
 ) (*shoppinglistv1.ListItemNamesResponse, error) {
@@ -112,7 +112,7 @@ func (h *shoppingConnectHandler) ListItemNames(
 		return nil, err
 	}
 
-	names, err := h.app.services.Shopping.ListItemNames(ctx, userID)
+	names, err := h.shopping.ListItemNames(ctx, userID)
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -129,7 +129,7 @@ func (h *shoppingConnectHandler) ListItemNames(
 	return &shoppinglistv1.ListItemNamesResponse{Names: pb}, nil
 }
 
-func (h *shoppingConnectHandler) ListItemCategories(
+func (h *Handler) ListItemCategories(
 	ctx context.Context,
 	_ *shoppinglistv1.ListItemCategoriesRequest,
 ) (*shoppinglistv1.ListItemCategoriesResponse, error) {
@@ -138,7 +138,7 @@ func (h *shoppingConnectHandler) ListItemCategories(
 		return nil, err
 	}
 
-	items, err := h.app.services.Shopping.ListItemCategories(ctx, userID)
+	items, err := h.shopping.ListItemCategories(ctx, userID)
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -152,7 +152,7 @@ func (h *shoppingConnectHandler) ListItemCategories(
 	}, nil
 }
 
-func (h *shoppingConnectHandler) SetItemCategory(
+func (h *Handler) SetItemCategory(
 	ctx context.Context,
 	req *shoppinglistv1.SetItemCategoryRequest,
 ) (*shoppinglistv1.SetItemCategoryResponse, error) {
@@ -175,7 +175,7 @@ func (h *shoppingConnectHandler) SetItemCategory(
 		return nil, err
 	}
 
-	err = h.app.services.Shopping.SetItemCategory(
+	err = h.shopping.SetItemCategory(
 		ctx, userID, req.Name, categoryID,
 	)
 	if err != nil {
@@ -184,7 +184,7 @@ func (h *shoppingConnectHandler) SetItemCategory(
 	return &shoppinglistv1.SetItemCategoryResponse{}, nil
 }
 
-func (h *shoppingConnectHandler) SetItemExcluded(
+func (h *Handler) SetItemExcluded(
 	ctx context.Context,
 	req *shoppinglistv1.SetItemExcludedRequest,
 ) (*shoppinglistv1.SetItemExcludedResponse, error) {
@@ -197,7 +197,7 @@ func (h *shoppingConnectHandler) SetItemExcluded(
 		return nil, err
 	}
 
-	err = h.app.services.Shopping.SetItemExcluded(
+	err = h.shopping.SetItemExcluded(
 		ctx, userID, req.Name, req.Excluded,
 	)
 	if err != nil {
@@ -206,7 +206,7 @@ func (h *shoppingConnectHandler) SetItemExcluded(
 	return &shoppinglistv1.SetItemExcludedResponse{}, nil
 }
 
-func (h *shoppingConnectHandler) SetItemAlias(
+func (h *Handler) SetItemAlias(
 	ctx context.Context,
 	req *shoppinglistv1.SetItemAliasRequest,
 ) (*shoppinglistv1.SetItemAliasResponse, error) {
@@ -219,7 +219,7 @@ func (h *shoppingConnectHandler) SetItemAlias(
 		return nil, err
 	}
 
-	err = h.app.services.Shopping.SetItemAlias(
+	err = h.shopping.SetItemAlias(
 		ctx, userID, req.Name, req.Canonical,
 	)
 	if err != nil {
@@ -228,7 +228,7 @@ func (h *shoppingConnectHandler) SetItemAlias(
 	return &shoppinglistv1.SetItemAliasResponse{}, nil
 }
 
-func (h *shoppingConnectHandler) ListIngredientUnits(
+func (h *Handler) ListIngredientUnits(
 	ctx context.Context,
 	_ *shoppinglistv1.ListIngredientUnitsRequest,
 ) (*shoppinglistv1.ListIngredientUnitsResponse, error) {
@@ -237,7 +237,7 @@ func (h *shoppingConnectHandler) ListIngredientUnits(
 		return nil, err
 	}
 
-	units, err := h.app.services.Shopping.ListIngredientUnits(ctx, userID)
+	units, err := h.shopping.ListIngredientUnits(ctx, userID)
 	if err != nil {
 		return nil, mapError(err)
 	}
