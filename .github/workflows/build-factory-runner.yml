@@ -11,24 +11,18 @@ jobs:
   build-factory-runner:
     name: Build factory-runner (macOS)
     runs-on: macos-26
-    defaults:
-      run:
-        shell: nix develop --command bash -euo pipefail {0}
+    # No `nix develop` shell: its cgo toolchain links /nix/store dylibs that
+    # users' Macs lack. Shipped binaries build with the system clang.
     permissions:
       contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
-      - uses: DeterminateSystems/nix-installer-action@3138316df39ed29be04236d7ffc686fa525866aa # v23
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7
         with:
-          path: |
-            ~/go/pkg/mod
-            ~/.cache/go-build
-            ~/Library/Caches/go-build
-          key: go-${{ runner.os }}-${{ hashFiles('factory-runner/go.sum') }}
-          restore-keys: go-${{ runner.os }}-
+          go-version-file: './factory-runner/go.mod'
+          cache-dependency-path: './factory-runner/go.sum'
       - name: Build
         working-directory: './factory-runner'
         run: |
