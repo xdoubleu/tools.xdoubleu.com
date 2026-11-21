@@ -65,13 +65,19 @@ func (r *AppUsersRepository) GetByID(
 	err := r.db.QueryRow(ctx, `
 		SELECT u.id, u.email, u.role, COALESCE(u.display_name, ''),
 		       COALESCE(array_agg(a.app_name) FILTER (WHERE a.app_name IS NOT NULL), '{}'),
-		       COALESCE(array_agg(a.app_name) FILTER (WHERE a.level = 'write'), '{}')
+		       COALESCE(array_agg(a.app_name) FILTER (WHERE a.level = 'write'), '{}'),
+		       COALESCE((
+		           SELECT g.principal_user_id::text FROM global.agent_accounts g
+		           WHERE g.user_id::text = u.id AND g.revoked_at IS NULL AND g.job_id IS NULL
+		           LIMIT 1
+		       ), '')
 		FROM global.app_users u
 		LEFT JOIN global.app_access a ON a.user_id = u.id
 		WHERE u.id = $1
 		GROUP BY u.id, u.email, u.role, u.display_name
 	`, id).Scan(
 		&u.ID, &u.Email, &u.Role, &u.DisplayName, &u.AppAccess, &u.WriteAccess,
+		&u.PrincipalID,
 	)
 	if err != nil {
 		return nil, postgres.PgxErrorToHTTPError(err)

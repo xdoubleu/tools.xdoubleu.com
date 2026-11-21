@@ -27,7 +27,8 @@ func asUser(role models.Role) *models.User {
 	}
 	return &models.User{
 		ID: agentUserID, Email: "agent@agent.invalid", Role: role,
-		AppAccess: grants, WriteAccess: grants, HasMFA: false, DisplayName: "",
+		AppAccess: grants, WriteAccess: grants, PrincipalID: "",
+		HasMFA: false, DisplayName: "",
 	}
 }
 

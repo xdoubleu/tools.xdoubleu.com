@@ -278,7 +278,7 @@ func TestAJobAccountSeesAndActsOnItsOwnTaskOnly(t *testing.T) {
 	jobUser := &models.User{
 		ID: acc.userID, Email: "job@agent.invalid", Role: models.RoleAgent,
 		AppAccess: []string{"factory"}, WriteAccess: []string{"factory"},
-		HasMFA: false, DisplayName: "",
+		PrincipalID: "", HasMFA: false, DisplayName: "",
 	}
 	session := mcpSessionOn(t, env.app, jobUser)
 
@@ -373,7 +373,7 @@ func TestAJobAccountStaysConfinedAfterItsJobEnds(t *testing.T) {
 	session := mcpSessionOn(t, env.app, &models.User{
 		ID: acc.userID, Email: "job@agent.invalid", Role: models.RoleAgent,
 		AppAccess: []string{"factory"}, WriteAccess: []string{"factory"},
-		HasMFA: false, DisplayName: "",
+		PrincipalID: "", HasMFA: false, DisplayName: "",
 	})
 	_, err = callTool(t, session, "factory_get_task", map[string]any{"id": other.Id})
 	require.Error(t, err)
@@ -407,7 +407,7 @@ func TestARoutineJobGetsAnAccountWithoutATaskScope(t *testing.T) {
 	session := mcpSessionOn(t, env.app, &models.User{
 		ID: acc.userID, Email: "job@agent.invalid", Role: models.RoleAgent,
 		AppAccess: []string{"factory"}, WriteAccess: []string{"factory"},
-		HasMFA: false, DisplayName: "",
+		PrincipalID: "", HasMFA: false, DisplayName: "",
 	})
 
 	// It reads and comments across the board and files a Backlog task...
@@ -462,7 +462,7 @@ func TestARoutineJobManagesOtherRoutinesAndIsNamedInTheNotice(t *testing.T) {
 	session := mcpSessionOn(t, env.app, &models.User{
 		ID: acc.userID, Email: "job@agent.invalid", Role: models.RoleAgent,
 		AppAccess: []string{"factory"}, WriteAccess: []string{"factory"},
-		HasMFA: false, DisplayName: "",
+		PrincipalID: "", HasMFA: false, DisplayName: "",
 	})
 
 	listed, err := callTool(t, session, "factory_list_routines", nil)

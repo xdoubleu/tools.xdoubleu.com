@@ -40,9 +40,8 @@ it does for people: granted per app, revoked the same way.
 - **Never, whatever the grants.** An agent can't: call `SetRole`, `SetAppAccess`
   or any agent-management RPC; use admin or observability tools
   (`RequireAdmin` and `RequireObservability` exclude it); move a task into
-  Ready; or read another person's data. Handlers already scope queries to the
-  caller's user id, so an agent sees its own data plus whatever a family grant
-  adds.
+  Ready; or read another person's data except its principal's
+  ([ADR-0055](adr-0055-agents-act-for-their-principal.md)).
 - **Job accounts.** Unchanged and never granted apps: the store refuses app
   access for a row with `job_id`. A job's account holds only the task-scoped
   `factory` grant.
