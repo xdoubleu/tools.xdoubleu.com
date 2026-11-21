@@ -13,7 +13,7 @@ import (
 	"tools.xdoubleu.com/internal/models"
 )
 
-// factoryApp owns the factory_ tools, which only agents may use.
+// factoryApp owns the factory_ tools, for agents and people holding the grant.
 const factoryApp = "factory"
 
 var errUnknownTool = errors.New("unknown tool")
@@ -21,8 +21,8 @@ var errUnknownTool = errors.New("unknown tool")
 // AgentGrants limits an agent account to the apps it holds a grant on (adr-0047).
 // A tool belongs to an app by its "<app>_" prefix, a resource by its "<app>://"
 // scheme; anything else (admin tools, prompts, an app without a grant) is left
-// out of the lists and refused as if it didn't exist. Other callers' tool lists
-// leave out the factory_ tools, which are for agents alone.
+// out of the lists and refused as if it didn't exist. A person's tool
+// list leaves out the factory_ tools unless they hold the factory app.
 func AgentGrants() mcp.Middleware {
 	return func(next mcp.MethodHandler) mcp.MethodHandler {
 		return func(
@@ -91,11 +91,17 @@ func held(apps []string, name, sep string) bool {
 	})
 }
 
-// hideAgentTools leaves the factory_ tools out of a non-agent's tool list.
+// hideAgentTools leaves the factory_ tools out of a non-agent's tool list unless
+// they are an admin or hold the factory app. A service identity never sees them.
 func hideAgentTools(
 	ctx context.Context, method string, req mcp.Request, next mcp.MethodHandler,
 ) (mcp.Result, error) {
 	res, err := next(ctx, method, req)
+	user := contexttools.GetValue[models.User](ctx, constants.UserContextKey)
+	if user != nil && user.Role != models.RoleService &&
+		(user.Role == models.RoleAdmin || slices.Contains(user.AppAccess, factoryApp)) {
+		return res, err
+	}
 	if list, ok := res.(*mcp.ListToolsResult); ok && err == nil && method == "tools/list" {
 		list.Tools = slices.DeleteFunc(slices.Clone(list.Tools), func(t *mcp.Tool) bool {
 			return strings.HasPrefix(t.Name, factoryApp+"_")

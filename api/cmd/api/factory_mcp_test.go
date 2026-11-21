@@ -112,9 +112,9 @@ func TestFactoryMCP_AgentWorksTheBoardAndMarksReady(t *testing.T) {
 	assert.Equal(t, "agent:"+created.Account.UserId, author)
 }
 
-// TestFactoryMCP_PeopleGetNoBoardTools: a session signed in as a person, even
-// an admin, neither sees the tools nor can call them.
-func TestFactoryMCP_PeopleGetNoBoardTools(t *testing.T) {
+// TestFactoryMCP_AdminSeesBoardTools: a session signed in as an admin lists the
+// tools and can call them.
+func TestFactoryMCP_AdminSeesBoardTools(t *testing.T) {
 	adminToken := freshTestUser(t)
 	user, err := testApp.auth.ResolveToken(context.Background(), adminToken)
 	require.NoError(t, err)
@@ -129,9 +129,7 @@ func TestFactoryMCP_PeopleGetNoBoardTools(t *testing.T) {
 	testApp.auth.InvalidateUserCache()
 	session := appsMCPSession(t, adminToken)
 
-	for _, name := range toolNames(t, session) {
-		assert.NotContains(t, name, "factory_")
-	}
+	assert.Contains(t, toolNames(t, session), "factory_list_tasks")
 	_, err = callAgentTool(t, session, "factory_list_tasks", map[string]any{})
-	assert.Error(t, err)
+	assert.NoError(t, err)
 }

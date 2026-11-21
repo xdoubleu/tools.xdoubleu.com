@@ -188,9 +188,8 @@ func TestAgentCannotUsePrompts(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestOtherCallersDoNotSeeTheAgentTools(t *testing.T) {
+func TestCallersWithoutTheGrantDoNotSeeTheBoardTools(t *testing.T) {
 	for name, u := range map[string]*models.User{
-		"admin":   user(models.RoleAdmin),
 		"user":    user(models.RoleUser),
 		"service": user(models.RoleService),
 		"nobody":  nil,
@@ -204,6 +203,17 @@ func TestOtherCallersDoNotSeeTheAgentTools(t *testing.T) {
 			toolNames(t, session), name)
 		_, err := session.CallTool(context.Background(), callParams("books_get_library"))
 		assert.NoError(t, err, name)
+	}
+}
+
+func TestAdminsAndGrantedPeopleSeeTheBoardTools(t *testing.T) {
+	granted := user(models.RoleUser)
+	granted.AppAccess = []string{"factory"}
+	for name, u := range map[string]*models.User{
+		"admin":   user(models.RoleAdmin),
+		"granted": granted,
+	} {
+		assert.Contains(t, toolNames(t, connectAs(t, u)), "factory_list_tasks", name)
 	}
 }
 

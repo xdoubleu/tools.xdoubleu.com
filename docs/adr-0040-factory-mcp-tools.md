@@ -28,10 +28,12 @@ the opposite of what the board needs.
   column. It refuses a title or body change once a task is Ready, because a
   person approved that text. `factory_move_tasks` moves many tasks and returns
   only the ids moved and failed. A job's own account can use neither.
-- Each tool is gated by `RequireAgent` (the `agent` role only) and the `factory`
-  grant, write tools at the write level. An admin or a user gets a permission
-  error, and `AgentGrants` leaves the `factory_` tools out of every non-agent's
-  tool list.
+- Each tool is gated by the `factory` grant (an admin has it implicitly), write
+  tools at the write level. An agent or a person may use them; a service
+  identity gets a permission error. `AgentGrants` leaves the `factory_` tools
+  out of the tool list of anyone without the grant. A person acts as
+  `human:<user id>`, never a browser, so Ready and routine management stay with
+  agents and the browser.
 - The tools call the services as an agent actor (`agent:<user id>`), which is
   neither a browser nor an admin. `TaskService.Move` lets an agent or a human admin in a browser move a task into
   Ready (not other channels) and records the actor in a comment.

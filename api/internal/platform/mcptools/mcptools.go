@@ -82,8 +82,8 @@ func AddReadTool[In any](
 	})
 }
 
-// AddAgentReadTool registers a read-only tool for agent accounts that hold
-// the app.
+// AddAgentReadTool registers a read-only tool for agent accounts and people
+// that hold the app.
 func AddAgentReadTool[In any](
 	srv *mcp.Server,
 	appName, name, description string,
@@ -92,8 +92,8 @@ func AddAgentReadTool[In any](
 	addTool(srv, name, description, produce, agentGate(appName, RequireAppAccess))
 }
 
-// AddAgentWriteTool registers a mutating tool for agent accounts with write
-// access to the app. Like AddWriteTool, each app's mutating tools need their
+// AddAgentWriteTool registers a mutating tool for agent accounts and people
+// with write access to the app. Like AddWriteTool, each app's mutating tools need their
 // own ADR.
 func AddAgentWriteTool[In any](
 	srv *mcp.Server,
@@ -107,8 +107,12 @@ func agentGate(
 	appName string, app func(context.Context, string) error,
 ) func(context.Context) error {
 	return func(ctx context.Context) error {
-		if err := RequireAgent(ctx); err != nil {
-			return err
+		user := contexttools.GetValue[models.User](ctx, constants.UserContextKey)
+		if user == nil || user.Role == models.RoleService {
+			return connect.NewError(
+				connect.CodePermissionDenied,
+				"this tool is for people and agent accounts only",
+			)
 		}
 		return app(ctx, appName)
 	}
