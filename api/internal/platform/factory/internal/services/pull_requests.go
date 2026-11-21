@@ -70,28 +70,61 @@ func (s *JobService) mergedLinked(ctx context.Context) (int, error) {
 		return 0, err
 	}
 	var failures []error
-	moved := 0
+	var pulls []PullRequestRef
+	var refs []string
 	for i := range repos {
-		pulls, listErr := skipNotInstalled(
+		listed, listErr := skipNotInstalled(
 			s.github.MergedPullRequests(ctx, repos[i].Owner, repos[i].Name),
 		)
 		if listErr != nil {
 			failures = append(failures, fmt.Errorf("repo %s: %w", repos[i].Name, listErr))
 			continue
 		}
-		for _, p := range pulls {
-			done, moveErr := s.TestingAfterMerge(ctx, PullRequestRef{
+		for _, p := range listed {
+			pr := PullRequestRef{
 				URL: p.URL, Title: p.Title, Branch: p.Branch, Body: p.Body, MergeSHA: p.MergeSHA,
-			})
-			if moveErr != nil {
-				failures = append(failures, fmt.Errorf("pull request %s: %w", p.URL, moveErr))
 			}
-			if done {
-				moved++
+			pulls = append(pulls, pr)
+			refs = append(refs, linkedTasks(pr)...)
+		}
+	}
+	// One query for every task of every merged pull request, however many.
+	lookup, err := s.lookupTasks(ctx, refs)
+	if err != nil {
+		return 0, errors.Join(append(failures, err)...)
+	}
+	moved := 0
+	var rows []models.LinkedPullRequest
+	seen := map[string]bool{}
+	for _, pr := range pulls {
+		for _, task := range lookup.tasksOf(linkedTasks(pr)) {
+			if key := pr.URL + task.ID.String(); !seen[key] {
+				seen[key] = true
+				rows = append(rows, mergedRow(pr.URL, task.ID))
 			}
 		}
 	}
+	if err = s.linked.UpsertMany(ctx, rows); err != nil {
+		return 0, errors.Join(append(failures, err)...)
+	}
+	for _, pr := range pulls {
+		done, moveErr := s.mergeTasks(ctx, pr, lookup, false)
+		if moveErr != nil {
+			failures = append(failures, fmt.Errorf("pull request %s: %w", pr.URL, moveErr))
+		}
+		if done {
+			moved++
+		}
+	}
 	return moved, errors.Join(failures...)
+}
+
+func mergedRow(url string, taskID uuid.UUID) models.LinkedPullRequest {
+	return models.LinkedPullRequest{
+		URL: url, TaskID: taskID, State: githubapp.StateMerged,
+		CI: "", Review: "", Mergeable: "", UnmergeableSince: nil,
+		CheckedAt: time.Time{},
+	}
 }
 
 // skipNotInstalled turns "the App is not installed on the repo" into an empty
@@ -274,10 +307,26 @@ func (s *JobService) TestingAfterMerge(
 	ctx context.Context,
 	pr PullRequestRef,
 ) (bool, error) {
+	lookup, err := s.lookupTasks(ctx, linkedTasks(pr))
+	if err != nil {
+		return false, err
+	}
+	return s.mergeTasks(ctx, pr, lookup, true)
+}
+
+// mergeTasks moves each task of a merged pull request found in lookup. It records
+// the pull request as merged on each when upsert is set; the poll does that for
+// all of its pull requests in one statement instead.
+func (s *JobService) mergeTasks(
+	ctx context.Context,
+	pr PullRequestRef,
+	lookup taskLookup,
+	upsert bool,
+) (bool, error) {
 	var failures []error
 	moved := false
-	for _, ref := range linkedTasks(pr) {
-		done, err := s.testingAfterMerge(ctx, ref, pr.URL, pr.MergeSHA)
+	for _, task := range lookup.tasksOf(linkedTasks(pr)) {
+		done, err := s.testingAfterMerge(ctx, task, pr, upsert)
 		if err != nil {
 			failures = append(failures, err)
 		}
@@ -288,27 +337,18 @@ func (s *JobService) TestingAfterMerge(
 
 func (s *JobService) testingAfterMerge(
 	ctx context.Context,
-	ref, prURL, mergeSHA string,
+	task *models.Task,
+	pr PullRequestRef,
+	upsert bool,
 ) (bool, error) {
-	id, err := s.tasks.Resolve(ctx, ref)
-	if err != nil {
-		// A link to a task that is gone is not a failure.
-		return false, nil //nolint:nilerr // nothing to move
-	}
-	task, err := s.tasks.Get(ctx, id)
-	if err != nil {
-		return false, nil //nolint:nilerr // nothing to move
-	}
+	id := task.ID
+	var err error
 	// Also backfills a task that merged without its commit being recorded.
-	if task.MergeSHA == "" && mergeSHA != "" {
-		err = s.tasks.SetMergeSHA(ctx, id, mergeSHA)
+	if task.MergeSHA == "" && pr.MergeSHA != "" {
+		err = s.tasks.SetMergeSHA(ctx, id, pr.MergeSHA)
 	}
-	if err == nil {
-		err = s.linked.Upsert(ctx, models.LinkedPullRequest{
-			URL: prURL, TaskID: id, State: githubapp.StateMerged,
-			CI: "", Review: "", Mergeable: "", UnmergeableSince: nil,
-			CheckedAt: time.Time{},
-		})
+	if err == nil && upsert {
+		err = s.linked.Upsert(ctx, mergedRow(pr.URL, id))
 	}
 	if err != nil {
 		return false, err
@@ -323,11 +363,11 @@ func (s *JobService) testingAfterMerge(
 	if len(jobs) > 0 {
 		return false, nil
 	}
-	to, note := s.afterMergeStatus(ctx, task, prURL)
+	to, note := s.afterMergeStatus(ctx, task, pr.URL)
 	if _, err = s.tasks.Move(ctx, id, to); err != nil {
 		return false, err
 	}
-	body := "The pull request was merged: " + prURL + withNote(note)
+	body := "The pull request was merged: " + pr.URL + withNote(note)
 	_, err = s.tasks.AddComment(ctx, id, systemAuthor, body)
 	return true, err
 }
@@ -443,6 +483,19 @@ func (s *JobService) lookupTasks(
 		l.byNumber[tasks[i].Number] = &tasks[i]
 	}
 	return l, nil
+}
+
+// tasksOf is the distinct tasks that exist among refs, in order.
+func (l taskLookup) tasksOf(refs []string) []*models.Task {
+	var tasks []*models.Task
+	seen := map[uuid.UUID]bool{}
+	for _, ref := range refs {
+		if task := l.find(ref); task != nil && !seen[task.ID] {
+			seen[task.ID] = true
+			tasks = append(tasks, task)
+		}
+	}
+	return tasks
 }
 
 func (l taskLookup) find(ref string) *models.Task {
