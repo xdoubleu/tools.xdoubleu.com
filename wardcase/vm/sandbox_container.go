@@ -1,4 +1,4 @@
-package runner
+package vm
 
 import (
 	"bytes"
@@ -25,7 +25,7 @@ import (
 const ContainerVersion = "1.6"
 
 const (
-	containerCLI = "container"
+	ContainerCLI = "container"
 	mountFlag    = "--mount"
 
 	// sandboxUser is the non-root user the job runs as.
@@ -166,7 +166,7 @@ type ContainerSandbox struct {
 // Check reports whether the `container` CLI is installed at the supported release.
 func (s *ContainerSandbox) Check(ctx context.Context) error {
 	var out bytes.Buffer
-	code, err := s.Exec.Exec(ctx, []string{containerCLI, "--version"}, nil, &out)
+	code, err := s.Exec.Exec(ctx, []string{ContainerCLI, "--version"}, nil, &out)
 	if err != nil || code != 0 {
 		return fmt.Errorf("the container CLI is not usable: %w", errors.Join(err,
 			fmt.Errorf("exit %d: %s", code, strings.TrimSpace(out.String()))))
@@ -328,7 +328,7 @@ func (s *ContainerSandbox) createNetwork(
 	for _, subnet := range freeSubnets(routes.String(), subnetAttempts) {
 		var out bytes.Buffer
 		code, err := s.Exec.Exec(ctx, []string{
-			containerCLI, "network", "create", "--internal",
+			ContainerCLI, "network", "create", "--internal",
 			"--subnet", subnet.String(), name,
 		}, nil, &out)
 		if err != nil {
@@ -350,7 +350,7 @@ func (s *ContainerSandbox) start(
 	spec SandboxSpec,
 ) error {
 	args := []string{
-		containerCLI, "run", "--detach", "--rm", "--name", name, "--network", name,
+		ContainerCLI, "run", "--detach", "--rm", "--name", name, "--network", name,
 		"--read-only", "--tmpfs", "/tmp", "--cap-drop", "ALL",
 		"--user", sandboxUser, "--cpus", orDefault(s.CPUs, "4"),
 		"--memory", orDefault(s.Memory, "8G"),
@@ -396,7 +396,7 @@ func execArgv(name, envFile, npmCache string, first bool, spec SandboxSpec) []st
 	}
 	script += `exec "$@"`
 	argv := []string{
-		containerCLI, "exec", "--interactive", "--env-file", envFile,
+		ContainerCLI, "exec", "--interactive", "--env-file", envFile,
 		"--user", sandboxUser, "--workdir", SandboxCloneDir, name, "sh", "-c", script,
 		"sh",
 	}
@@ -536,10 +536,10 @@ func (s *ContainerSandbox) cleanup(name string) {
 	ctx, cancel := context.WithTimeout(context.Background(), cleanupTimeout)
 	defer cancel()
 	var sink bytes.Buffer
-	_, _ = s.Exec.Exec(ctx, []string{containerCLI, "kill", name}, nil, &sink)
-	_, _ = s.Exec.Exec(ctx, []string{containerCLI, "delete", "--force", name}, nil,
+	_, _ = s.Exec.Exec(ctx, []string{ContainerCLI, "kill", name}, nil, &sink)
+	_, _ = s.Exec.Exec(ctx, []string{ContainerCLI, "delete", "--force", name}, nil,
 		&sink)
-	_, _ = s.Exec.Exec(ctx, []string{containerCLI, "network", "delete", name}, nil,
+	_, _ = s.Exec.Exec(ctx, []string{ContainerCLI, "network", "delete", name}, nil,
 		&sink)
 }
 

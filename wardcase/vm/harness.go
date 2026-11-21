@@ -1,4 +1,4 @@
-package runner
+package vm
 
 import (
 	"bytes"
@@ -171,8 +171,8 @@ var modelPattern = regexp.MustCompile(
 // maxModelLen bounds a model id.
 const maxModelLen = 100
 
-// validModel reports whether model is a usable OpenRouter model id.
-func validModel(model string) bool {
+// ValidModel reports whether model is a usable OpenRouter model id.
+func ValidModel(model string) bool {
 	return len(model) <= maxModelLen && modelPattern.MatchString(model)
 }
 

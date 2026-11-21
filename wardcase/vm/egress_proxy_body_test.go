@@ -1,4 +1,4 @@
-package runner_test
+package vm_test
 
 import (
 	"io"

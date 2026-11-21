@@ -1,4 +1,4 @@
-package runner_test
+package vm_test
 
 import (
 	"bytes"
@@ -10,12 +10,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"tools.xdoubleu.com/factory-runner/internal/runner"
+	"tools.xdoubleu.com/wardcase/vm"
 )
 
 func TestOSExecerRunsAHostCommandAndReportsItsExitCode(t *testing.T) {
 	var out bytes.Buffer
-	code, err := runner.OSExecer{BinDirs: nil}.Exec(
+	code, err := vm.OSExecer{BinDirs: nil}.Exec(
 		context.Background(),
 		[]string{"sh", "-c", "cat; echo err >&2; exit 3"},
 		strings.NewReader("in\n"),
@@ -27,7 +27,7 @@ func TestOSExecerRunsAHostCommandAndReportsItsExitCode(t *testing.T) {
 }
 
 func TestOSExecerErrorsWhenTheCommandCannotRunAtAll(t *testing.T) {
-	code, err := runner.OSExecer{BinDirs: nil}.Exec(
+	code, err := vm.OSExecer{BinDirs: nil}.Exec(
 		context.Background(), []string{"no-such-binary-xyz"}, nil, io.Discard)
 	require.ErrorContains(t, err, "no-such-binary-xyz")
 	assert.Equal(t, -1, code)
@@ -53,5 +53,5 @@ func TestAJobIDIsReducedToASafeVMName(t *testing.T) {
 func TestRoutesThatAreNotNetworksAreIgnored(t *testing.T) {
 	routes := "default 1.2.3.4 UG en0\nnot.an.ip x\n300.1.1.1 x\n10.231.7/bad x\n" +
 		"1.2.3.4.5 x\n\n"
-	assert.Equal(t, []string{"10.231.7.0/24"}, runner.FreeSubnets(routes, 1))
+	assert.Equal(t, []string{"10.231.7.0/24"}, vm.FreeSubnets(routes, 1))
 }

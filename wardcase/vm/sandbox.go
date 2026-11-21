@@ -1,4 +1,4 @@
-package runner
+package vm
 
 import (
 	"context"
@@ -80,8 +80,8 @@ func (o oneShot) Exec(
 
 func (oneShot) Close() {}
 
-// openSession keeps the job's VM when the sandbox can.
-func openSession(
+// OpenSession keeps the job's VM when the sandbox can.
+func OpenSession(
 	ctx context.Context,
 	box Sandbox,
 	spec SandboxSpec,

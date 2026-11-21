@@ -1,4 +1,4 @@
-package runner_test
+package vm_test
 
 import (
 	"encoding/json"
@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"tools.xdoubleu.com/factory-runner/internal/runner"
+	"tools.xdoubleu.com/wardcase/vm"
 )
 
 const proxyURL = "http://10.231.7.1:8118"
@@ -83,7 +83,7 @@ func claudeEnv(t *testing.T, withProxy bool) []string {
 }
 
 func TestClaudeIsPointedAtTheProxyAndTheBoardThroughIt(t *testing.T) {
-	got := runHarness(t, "claude", runner.ClaudeCode{}.Command(), claudeEnv(t, true),
+	got := runHarness(t, "claude", vm.ClaudeCode{}.Command(), claudeEnv(t, true),
 		[]string{"ANTHROPIC_BASE_URL"}, "factory-mcp.json")
 
 	assert.Equal(t, proxyURL+"/anthropic", got.env["ANTHROPIC_BASE_URL"])
@@ -109,7 +109,7 @@ func TestClaudeIsPointedAtTheProxyAndTheBoardThroughIt(t *testing.T) {
 }
 
 func TestAResumedClaudeJobKeepsItsResumeFlagAndGetsTheSameConfig(t *testing.T) {
-	got := runHarness(t, "claude", runner.ClaudeCode{}.Resume("abc"), claudeEnv(t, true),
+	got := runHarness(t, "claude", vm.ClaudeCode{}.Resume("abc"), claudeEnv(t, true),
 		nil, "factory-mcp.json")
 
 	assert.Contains(t, strings.Join(got.args, " "), "--resume abc")
@@ -117,7 +117,7 @@ func TestAResumedClaudeJobKeepsItsResumeFlagAndGetsTheSameConfig(t *testing.T) {
 }
 
 func TestWithoutAProxyClaudeIsLeftAlone(t *testing.T) {
-	got := runHarness(t, "claude", runner.ClaudeCode{}.Command(), claudeEnv(t, false),
+	got := runHarness(t, "claude", vm.ClaudeCode{}.Command(), claudeEnv(t, false),
 		[]string{"ANTHROPIC_BASE_URL"}, "factory-mcp.json")
 
 	assert.Empty(t, got.env["ANTHROPIC_BASE_URL"])
@@ -133,7 +133,7 @@ func openCodeEnv(withProxy bool) []string {
 }
 
 func TestOpenCodeIsPointedAtOpenRouterAndTheBoardThroughTheProxy(t *testing.T) {
-	h := runner.OpenCode{Model: "vendor/model:free"}
+	h := vm.OpenCode{Model: "vendor/model:free"}
 	got := runHarness(t, "opencode", h.Command(), openCodeEnv(true),
 		[]string{"OPENCODE_CONFIG"}, "opencode-job.json")
 
@@ -164,7 +164,7 @@ func TestOpenCodeIsPointedAtOpenRouterAndTheBoardThroughTheProxy(t *testing.T) {
 }
 
 func TestAResumedOpenCodeJobGetsTheSameConfig(t *testing.T) {
-	h := runner.OpenCode{Model: "a/b"}
+	h := vm.OpenCode{Model: "a/b"}
 	got := runHarness(t, "opencode", h.Resume("ses_1"), openCodeEnv(true),
 		[]string{"OPENCODE_CONFIG"}, "opencode-job.json")
 
@@ -173,7 +173,7 @@ func TestAResumedOpenCodeJobGetsTheSameConfig(t *testing.T) {
 }
 
 func TestWithoutAProxyOpenCodeIsLeftAlone(t *testing.T) {
-	h := runner.OpenCode{Model: "a/b"}
+	h := vm.OpenCode{Model: "a/b"}
 	got := runHarness(t, "opencode", h.Command(), openCodeEnv(false),
 		[]string{"OPENCODE_CONFIG"}, "opencode-job.json")
 

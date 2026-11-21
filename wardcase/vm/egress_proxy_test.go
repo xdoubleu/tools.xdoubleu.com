@@ -1,4 +1,4 @@
-package runner_test
+package vm_test
 
 import (
 	"context"
@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"tools.xdoubleu.com/factory-runner/internal/runner"
+	"tools.xdoubleu.com/wardcase/vm"
 )
 
 // upstream records what reached it and answers 200 "up".
@@ -41,11 +41,11 @@ func newUpstream(t *testing.T) *upstream {
 
 func proxyFor(
 	t *testing.T,
-	mutate func(*runner.EgressConfig),
-) (*runner.EgressProxy, *upstream) {
+	mutate func(*vm.EgressConfig),
+) (*vm.EgressProxy, *upstream) {
 	t.Helper()
 	up := newUpstream(t)
-	cfg := runner.EgressConfig{
+	cfg := vm.EgressConfig{
 		Server:        up.srv.URL,
 		MCPToken:      func(context.Context) (string, error) { return "mcp-token", nil },
 		OpenRouterKey: func() (string, error) { return "real-or-key", nil },
@@ -60,7 +60,7 @@ func proxyFor(
 	if mutate != nil {
 		mutate(&cfg)
 	}
-	p, err := runner.NewEgressProxy(cfg)
+	p, err := vm.NewEgressProxy(cfg)
 	require.NoError(t, err)
 	return p, up
 }
@@ -175,7 +175,7 @@ func TestAPathThatClimbsOutOfItsRouteIsRefused(t *testing.T) {
 }
 
 func TestARouteWithoutItsCredentialSourceIsLeftOut(t *testing.T) {
-	p, up := proxyFor(t, func(c *runner.EgressConfig) {
+	p, up := proxyFor(t, func(c *vm.EgressConfig) {
 		c.OpenRouterKey = nil
 		c.MCPToken = nil
 	})
@@ -189,7 +189,7 @@ func TestARouteWithoutItsCredentialSourceIsLeftOut(t *testing.T) {
 }
 
 func TestACredentialThatCannotBeFetchedFailsTheRequestWithoutLeakingWhy(t *testing.T) {
-	p, up := proxyFor(t, func(c *runner.EgressConfig) {
+	p, up := proxyFor(t, func(c *vm.EgressConfig) {
 		c.MCPToken = func(context.Context) (string, error) {
 			return "", errors.New("secret detail: client-secret-123")
 		}
@@ -204,7 +204,7 @@ func TestACredentialThatCannotBeFetchedFailsTheRequestWithoutLeakingWhy(t *testi
 }
 
 func TestAnUpstreamThatIsDownIsAGenericBadGateway(t *testing.T) {
-	p, _ := proxyFor(t, func(c *runner.EgressConfig) {
+	p, _ := proxyFor(t, func(c *vm.EgressConfig) {
 		c.Anthropic = "http://127.0.0.1:1" // nothing listens
 	})
 	rec := do(t, p, http.MethodPost, "/anthropic/v1/messages", "{}",
@@ -227,7 +227,7 @@ func TestResponsesStreamAsTheyArrive(t *testing.T) {
 	}
 	up := httptest.NewServer(http.HandlerFunc(events))
 	defer up.Close()
-	p, err := runner.NewEgressProxy(runner.EgressConfig{
+	p, err := vm.NewEgressProxy(vm.EgressConfig{
 		Server: "", MCPToken: nil, OpenRouterKey: nil, PostHogKey: nil, MCPRejected: nil,
 		Transport: nil, Anthropic: up.URL, OpenRouter: "", PostHog: "",
 		GoProxy: "", NPM: "", RubyGems: "", Log: nil,
@@ -250,7 +250,7 @@ func TestResponsesStreamAsTheyArrive(t *testing.T) {
 }
 
 func TestABadUpstreamBaseIsRejectedWhenBuildingTheProxy(t *testing.T) {
-	_, err := runner.NewEgressProxy(runner.EgressConfig{
+	_, err := vm.NewEgressProxy(vm.EgressConfig{
 		Server: "", MCPToken: nil, OpenRouterKey: nil, PostHogKey: nil, MCPRejected: nil,
 		Transport: nil, Anthropic: "not a url", OpenRouter: "", PostHog: "", GoProxy: "",
 		NPM: "", RubyGems: "", Log: nil,
@@ -323,7 +323,7 @@ func TestTheHostInARequestNeverChoosesTheDestination(t *testing.T) {
 }
 
 func TestRegistriesAreReadOnlyRoutesToTheirFixedUpstreams(t *testing.T) {
-	p, up := proxyFor(t, func(c *runner.EgressConfig) {
+	p, up := proxyFor(t, func(c *vm.EgressConfig) {
 		c.GoProxy = c.Anthropic + "/gomod"
 		c.NPM = c.Anthropic + "/npmreg"
 		c.RubyGems = c.Anthropic + "/gems"
@@ -365,7 +365,7 @@ func TestPostHogGetsTheRealKeyOnItsOneEndpoint(t *testing.T) {
 }
 
 func TestWithoutAPostHogKeyThereIsNoPostHogRoute(t *testing.T) {
-	p, _ := proxyFor(t, func(c *runner.EgressConfig) { c.PostHogKey = nil })
+	p, _ := proxyFor(t, func(c *vm.EgressConfig) { c.PostHogKey = nil })
 
 	assert.Equal(t, http.StatusForbidden,
 		do(t, p, http.MethodPost, "/posthog", "{}", nil).Code)
