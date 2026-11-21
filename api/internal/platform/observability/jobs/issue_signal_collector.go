@@ -57,8 +57,8 @@ var (
 	}, []string{"schema"})
 	sentryUnresolvedIssues = promauto.NewGauge(prometheus.GaugeOpts{
 		Name: "sentry_unresolved_issues",
-		Help: "Unresolved Sentry issues across every project the connected " +
-			"token can see.",
+		Help: "Unresolved error- and fatal-level Sentry issues across every " +
+			"project the connected token can see.",
 	})
 	sentryUnresolvedIssuesByRepo = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "sentry_unresolved_issues_by_repo",
@@ -349,6 +349,7 @@ func (j *IssueSignalCollectorJob) collectSentryIssues(
 			err, sentryapi.IsTransientAPIError(err))
 		return
 	}
+	issues = errorLevelIssues(issues)
 	sentryUnresolvedIssues.Set(float64(len(issues)))
 	sentryUnresolvedFetchOK.Set(1)
 
@@ -361,6 +362,20 @@ func (j *IssueSignalCollectorJob) collectSentryIssues(
 		}
 		sentryUnresolvedIssuesByRepo.WithLabelValues(repo).Inc()
 	}
+}
+
+// errorLevelIssues drops info-, warning- and debug-level issues, which aren't
+// outages; an unset level is kept.
+func errorLevelIssues(issues []sentryapi.Issue) []sentryapi.Issue {
+	kept := make([]sentryapi.Issue, 0, len(issues))
+	for _, is := range issues {
+		switch is.Level {
+		case "info", "warning", "debug":
+		default:
+			kept = append(kept, is)
+		}
+	}
+	return kept
 }
 
 func (j *IssueSignalCollectorJob) collectStorage(

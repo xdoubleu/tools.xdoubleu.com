@@ -485,3 +485,29 @@ func TestIssueSignalCollectorPartialProviderStillCollectsOthers(t *testing.T) {
 	assert.InDelta(t, 1.0, testutil.ToFloat64(githubFailingPullRequests), 0)
 	assert.Empty(t, buf.String())
 }
+
+func issueAt(id, level string) sentryapi.Issue {
+	return sentryapi.Issue{
+		ID: id, Level: level, Title: "", Culprit: "", Permalink: "",
+		Count: 0, LastSeen: time.Time{}, Project: "",
+	}
+}
+
+func TestErrorLevelIssues(t *testing.T) {
+	t.Parallel()
+
+	got := errorLevelIssues([]sentryapi.Issue{
+		issueAt("1", "error"),
+		issueAt("2", "info"),
+		issueAt("3", "fatal"),
+		issueAt("4", "warning"),
+		issueAt("5", "debug"),
+		issueAt("6", ""),
+	})
+
+	ids := make([]string, 0, len(got))
+	for _, is := range got {
+		ids = append(ids, is.ID)
+	}
+	assert.Equal(t, []string{"1", "3", "6"}, ids)
+}
