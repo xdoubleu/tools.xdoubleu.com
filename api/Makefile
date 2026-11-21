@@ -17,9 +17,11 @@ db/reset:
 
 # Build the dev tools with the repo's Go version: a bare `go install` uses the
 # toolchain the tool's own go.mod asks for, and golangci-lint refuses to run
-# against a newer Go than it was built with.
+# against a newer Go than it was built with. A GOTOOLCHAIN already set in the
+# environment (e.g. `local` on an offline host) wins.
 GO_VERSION := $(shell sed -n 's/^go //p' go.mod)
-tools/lint/go tools/lint/golines tools/proto tools/proto/local tools/mutation tools/vuln: export GOTOOLCHAIN := go$(GO_VERSION)
+TOOL_GOTOOLCHAIN := $(if $(filter environment,$(origin GOTOOLCHAIN)),$(GOTOOLCHAIN),go$(GO_VERSION))
+tools/lint/go tools/lint/golines tools/proto tools/proto/local tools/mutation tools/vuln: export GOTOOLCHAIN := $(TOOL_GOTOOLCHAIN)
 
 tools: tools/lint tools/proto
 
