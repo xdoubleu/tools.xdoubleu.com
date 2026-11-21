@@ -1,6 +1,6 @@
 module tools.xdoubleu.com
 
-go 1.27.4
+go 1.27.0
 
 require (
 	authelia.com/provider/jose v0.2.1

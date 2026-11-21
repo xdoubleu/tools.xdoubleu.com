@@ -79,7 +79,7 @@ jobs:
         id: key
         run: |
           week=$(date -u +%G-%V)
-          key=$( (cat factory-runner/Containerfile \
+          key=$( (cat factory-runner/Containerfile flake.nix flake.lock \
             selfupdate/go.mod selfupdate/go.sum api/go.mod api/go.sum \
             factory-runner/go.mod factory-runner/go.sum \
             wardcase/go.mod wardcase/go.sum \

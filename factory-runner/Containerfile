@@ -42,7 +42,9 @@ RUN npm install -g "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}" \
 # Claude's config (marketplaces and the plugins .claude/settings.json enables) lives
 # here; the runner copies it into a new session directory, because CLAUDE_CONFIG_DIR
 # replaces the whole config directory.
-RUN mkdir -m 0755 /nix && chown node:node /nix \
+RUN mkdir -m 0755 /nix /etc/nix \
+    && echo 'experimental-features = nix-command flakes' > /etc/nix/nix.conf \
+    && chown node:node /nix \
     && mkdir -p /opt/claude-config /opt/gomodcache /opt/npmcache /deps \
     && chown node:node /opt/claude-config /opt/gomodcache /opt/npmcache /deps
 USER node
@@ -63,6 +65,20 @@ RUN case "${TARGETARCH}" in amd64) a=x86_64 ;; arm64) a=aarch64 ;; *) exit 1 ;; 
     && tar -xJf "/tmp/${d}.tar.xz" -C /tmp \
     && "/tmp/${d}/install" --no-daemon \
     && rm -rf /tmp/nix-*
+
+# The flake's dev shell (flake.nix), realised here so a job's toolchain is the one
+# CI and local dev use (docs/adr-0054). The profile is the GC root that keeps it
+# through the prune; the cap fails the build rather than grow the image unbounded.
+ENV PATH=/home/node/.nix-profile/bin:$PATH
+COPY --chown=node:node flake.nix flake.lock /opt/flake/
+ARG NIX_STORE_MAX=3221225472
+RUN case "${TARGETARCH}" in amd64) s=x86_64-linux ;; arm64) s=aarch64-linux ;; *) exit 1 ;; esac \
+    && nix build --out-link /nix/var/nix/profiles/devshell "/opt/flake#packages.${s}.default" \
+    && nix store gc \
+    && size=$(du -sb /nix/store | cut -f1) \
+    && if [ "$size" -gt "$NIX_STORE_MAX" ]; then \
+        echo "nix store is $size bytes, over the $NIX_STORE_MAX cap" >&2; exit 1; \
+    fi
 # Tools go through the module cache the VM uses as its file:// GOPROXY, so the
 # Makefile's own `go install tool@version` resolves offline. GOTOOLCHAIN=local keeps
 # Go at the image's version (api/go.mod's).

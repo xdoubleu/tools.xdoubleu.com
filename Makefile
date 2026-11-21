@@ -26,6 +26,10 @@ lint/workflows:
 lint/ci-tools:
 	./scripts/lint_ci_tools.sh
 
+# Build the flake's dev shell: the toolchain CI and the job image share.
+flake/build:
+	nix develop .# --command true
+
 # Fail when a script lost its executable bit.
 lint/script-modes:
 	./scripts/lint_script_modes.sh
