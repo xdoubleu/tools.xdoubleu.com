@@ -45,6 +45,9 @@ type moviesStore interface {
 	StatusesByKey(
 		ctx context.Context, userID string, keys []models.TitleKey,
 	) (map[models.TitleKey]string, error)
+	EntryIDByKey(
+		ctx context.Context, userID string, k models.TitleKey,
+	) (uuid.UUID, error)
 	UpsertSeasons(ctx context.Context, titleID uuid.UUID, seasons []models.Season) error
 	ListSeasons(
 		ctx context.Context, userID string, entryID uuid.UUID,
@@ -188,6 +191,32 @@ func (s *MovieService) Add(
 		return entry, err
 	}
 	return s.markSeriesWatched(ctx, userID, entry, unknownDate)
+}
+
+// Ensure returns the user's entry for a title, adding it as want when it is
+// not in their backlog yet; created reports which. An existing entry is left
+// untouched.
+func (s *MovieService) Ensure(
+	ctx context.Context,
+	userID string,
+	mediaType string,
+	tmdbID int64,
+) (*models.Entry, bool, error) {
+	if !isMediaType(mediaType) {
+		return nil, false, badRequest("media_type must be movie or series")
+	}
+	id, err := s.repo.EntryIDByKey(
+		ctx, userID, models.TitleKey{MediaType: mediaType, TMDBID: tmdbID},
+	)
+	if err == nil {
+		entry, getErr := s.Get(ctx, userID, id)
+		return entry, false, getErr
+	}
+	if !errors.Is(err, database.ErrResourceNotFound) {
+		return nil, false, err
+	}
+	entry, err := s.Add(ctx, userID, mediaType, tmdbID, models.StatusWant, false)
+	return entry, err == nil, err
 }
 
 func (s *MovieService) fetch(
