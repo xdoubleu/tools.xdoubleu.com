@@ -7,7 +7,7 @@
 
 ## Context
 
-Auth is first-party. `internal/platform/auth` holds passwords, TOTP, recovery codes and lockout; `internal/platform/oauth2as` and `internal/platform/agentaccounts` are the MCP authorization server with dynamic client registration, client_credentials for agents and delegation at consent ([adr-0048](adr-0048-consent-delegates-to-agent-accounts.md)). The owner would rather not own password and MFA code, and wants a free provider.
+Auth is first-party. `internal/platform/auth` holds passwords, TOTP, recovery codes and lockout; `internal/platform/identity/oauth2as` and `internal/platform/identity/agentaccounts` are the MCP authorization server with dynamic client registration, client_credentials for agents and delegation at consent ([adr-0048](adr-0048-consent-delegates-to-agent-accounts.md)). The owner would rather not own password and MFA code, and wants a free provider.
 
 No provider covers the second half: none of the hosted free tiers (Auth0, WorkOS, Stytch, Clerk, Zitadel Cloud) lets an admin switch an MCP client's subject to an agent account at consent, and Clerk has no standard client_credentials grant. Self-hosted, only Ory Hydra fits delegation by design, at the cost of writing its login and consent UI. The full evaluation is in T-254.
 

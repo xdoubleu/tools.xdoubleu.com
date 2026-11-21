@@ -36,6 +36,7 @@ ADR-0046 aimed for anyone to self-host the apps: a Compose file, a Helm chart, a
 - The self-hosting tasks are closed. Zitadel no longer ships in a Compose file or chart ([adr-0051](adr-0051-zitadel-for-people-sign-in.md)).
 - The worktree edit guard, the unshipped-work `Stop` hook and `.opencode/plugins/repo-guard/` shrink as wardcase and the generic skills take over ([adr-0014](adr-0014-start-finish-task-enforcement.md)).
 - Each extraction gets its own task under T-741, with its contract named.
+- Agent identity is decoupled in `api/internal/platform/identity`: `agentaccounts` and `oauth2as` import only `kit` and their own ports (depguard `identity-core`). `adapters` implements the ports over the platform; `connect` and `http` map requests and errors. The GitHub/Sentry connect flow moved to `platform/connectflow`.
 
 ## Revisit when
 

@@ -1,0 +1,104 @@
+package oauth2as
+
+import (
+	"crypto/rsa"
+	"net/url"
+	"time"
+
+	"authelia.com/provider/jose"
+	fosite "authelia.com/provider/oauth2"
+	"authelia.com/provider/oauth2/compose"
+	hoauth2 "authelia.com/provider/oauth2/handler/oauth2"
+	"authelia.com/provider/oauth2/token/jwt"
+)
+
+const (
+	accessTokenLifespan   = time.Hour
+	refreshTokenLifespan  = 30 * 24 * time.Hour
+	authorizeCodeLifespan = 10 * time.Minute
+	idTokenLifespan       = time.Hour
+)
+
+// hmacTokenPrefix keeps the "ory_at_"/"ory_rt_"/"ory_ac_" prefixes so tokens
+// issued before the switch from ory/fosite still validate.
+const hmacTokenPrefix = "ory_%s_"
+
+// NewProvider builds the embedded OAuth 2.1 / OIDC server: authorization code
+// and refresh grants, PKCE required, RS256 ID tokens for openid clients, and
+// client_credentials for confidential clients registered with that grant.
+// Access tokens are opaque HMAC tokens; oidcKey signs only ID tokens.
+func NewProvider(
+	cfg Config,
+	store fosite.Storage,
+	oidcKey *rsa.PrivateKey,
+) fosite.Provider {
+	//nolint:exhaustruct //remaining Config fields use library defaults
+	fc := &fosite.Config{
+		GlobalSecret:                   []byte(cfg.HMACSecret),
+		AccessTokenLifespan:            accessTokenLifespan,
+		RefreshTokenLifespan:           refreshTokenLifespan,
+		AuthorizeCodeLifespan:          authorizeCodeLifespan,
+		IDTokenLifespan:                idTokenLifespan,
+		Issuer:                         cfg.Issuer,
+		EnforcePKCE:                    true,
+		EnablePKCEPlainChallengeMethod: false,
+		ResourceStrategy:               ownResourceStrategy(cfg.APIURL),
+	}
+
+	signer := &jwt.DefaultStrategy{
+		Config: fc,
+		Issuer: jwt.NewDefaultIssuerUnverifiedFromJWKS(&jose.JSONWebKeySet{
+			//nolint:exhaustruct //only the private key and its identity are needed
+			Keys: []jose.JSONWebKey{{
+				Key:       oidcKey,
+				KeyID:     OIDCKeyID(oidcKey),
+				Algorithm: string(jose.RS256),
+				Use:       jwt.JSONWebTokenUseSignature,
+			}},
+		}),
+	}
+
+	strategy := &compose.CommonStrategy{
+		CoreStrategy:               hoauth2.NewHMACCoreStrategy(fc, hmacTokenPrefix),
+		OpenIDConnectTokenStrategy: compose.NewOpenIDConnectStrategy(nil, signer, fc),
+		Strategy:                   signer,
+	}
+
+	return compose.Compose(
+		fc,
+		store,
+		strategy,
+		compose.OAuth2AuthorizeExplicitFactory,
+		compose.OAuth2RefreshTokenGrantFactory,
+		compose.OAuth2ClientCredentialsGrantFactory,
+		compose.OAuth2PKCEFactory,
+		// OIDC must come after the authorize-code handler: it adds an ID token to the
+		// code that handler issued.
+		compose.OpenIDConnectExplicitFactory,
+		compose.OpenIDConnectRefreshFactory,
+		// Required: without it IntrospectToken always fails, breaking
+		// ResolveAccessToken.
+		compose.OAuth2TokenIntrospectionFactory,
+	)
+}
+
+// ownResourceStrategy accepts RFC 8707 resource indicators that name this api
+// (e.g. its MCP endpoints). Clients carry no audience list, so the library
+// default would reject every indicator.
+func ownResourceStrategy(apiURL string) fosite.ResourceStrategy {
+	return func(_, needle []string) error {
+		base, err := url.Parse(apiURL)
+		if err != nil {
+			return fosite.ErrInvalidTarget.WithWrap(err)
+		}
+		for _, n := range needle {
+			u, parseErr := url.Parse(n)
+			if parseErr != nil || !fosite.IsMatchingResourceIndicator(base, u) {
+				return fosite.ErrInvalidTarget.WithDebugf(
+					"Resource '%s' is not served by this authorization server.", n,
+				)
+			}
+		}
+		return nil
+	}
+}

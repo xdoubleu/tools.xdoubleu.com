@@ -16,7 +16,8 @@ import (
 
 	factoryv1 "tools.xdoubleu.com/gen/factory/v1"
 	"tools.xdoubleu.com/internal/models"
-	"tools.xdoubleu.com/internal/platform/oauth2as"
+	"tools.xdoubleu.com/internal/platform/identity/oauth2as"
+	oauth2http "tools.xdoubleu.com/internal/platform/identity/oauth2as/http"
 )
 
 // approveAs approves a fresh authorization of clientID with the admin's session,
@@ -39,7 +40,7 @@ func approveAs(
 	token := oauth2asConsentToken(t, baseURL, q, session)
 	q.Set("consent", "allow")
 	if accountID != "" {
-		q.Set(oauth2as.AgentAccountParam, accountID)
+		q.Set(oauth2http.AgentAccountParam, accountID)
 	}
 	req, err := http.NewRequestWithContext(
 		context.Background(), http.MethodPost,

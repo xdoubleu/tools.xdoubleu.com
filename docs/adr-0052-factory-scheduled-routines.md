@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Issues: T-4, epic T-3
-- Affects: `api/internal/platform/factory/`, `factory-runner/`, `api/internal/platform/agentaccounts/`, `docs/convention-unattended-agent-trust.md`
+- Affects: `api/internal/platform/factory/`, `factory-runner/`, `api/internal/platform/identity/agentaccounts/`, `docs/convention-unattended-agent-trust.md`
 - Changes: [adr-0025](adr-0025-machine-client-credentials-service-role.md) (routines stop using the `service` client), the Actions routine runner and its `automated_actions` ledger (retired)
 
 ## Context

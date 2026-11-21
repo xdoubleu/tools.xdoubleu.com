@@ -26,11 +26,12 @@ import (
 	"tools.xdoubleu.com/internal/kit/crypto"
 	"tools.xdoubleu.com/internal/kit/database/postgres"
 	"tools.xdoubleu.com/internal/platform/account"
-	"tools.xdoubleu.com/internal/platform/agentaccounts"
 	"tools.xdoubleu.com/internal/platform/auth"
 	"tools.xdoubleu.com/internal/platform/factory"
 	"tools.xdoubleu.com/internal/platform/family"
 	"tools.xdoubleu.com/internal/platform/githubapp"
+	"tools.xdoubleu.com/internal/platform/identity/agentaccounts"
+	"tools.xdoubleu.com/internal/platform/mcptools"
 	"tools.xdoubleu.com/internal/platform/notifications"
 )
 
@@ -113,7 +114,9 @@ func NewApps(
 		factoryOpts = append(factoryOpts, factory.WithStepUp(stepUp))
 	}
 	if invalidator, ok := authService.(interface{ InvalidateUserCache() }); ok {
-		jobAccounts := agentaccounts.NewStore(db, invalidator.InvalidateUserCache)
+		jobAccounts := agentaccounts.NewStore(
+			db, invalidator.InvalidateUserCache, mcptools.ObservabilityGrant,
+		)
 		factoryOpts = append(factoryOpts, factory.WithJobAccounts(jobAccounts))
 	}
 	factoryOpts = append(factoryOpts, factoryGitHubOptions(cfg, logger)...)
