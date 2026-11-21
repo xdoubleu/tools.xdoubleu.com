@@ -27,3 +27,17 @@ The spike ran without network, so OpenShell's license and CNCF status, its macOS
 
 - No code change now; the sandbox stays as ADR-0043 describes.
 - Adoption needs someone with network access to run the prototype.
+
+## Prototype results
+
+The prototype (T-721) ran as an unattended job with no network and no Apple Silicon host, so no gate was measured. No backend was written: OpenShell's API is unverified here, and an untested `Sandbox` implementation would only look like progress.
+
+| Gate | Result |
+| --- | --- |
+| 1. License and CNCF status | Not measured (needs network to read the sources) |
+| 2. `vm` driver boots the job image without KVM | Not measured (needs the runner Mac) |
+| 3. Go and npm cache mounts | Not measured. `/nix` is N/A: T-478 shipped `tools/setup-ci-tools.sh`, not a flake |
+| 4. Start latency within 1.5x (median of 5 cold starts each) | Not measured |
+| 5. No direct network; `scripts/factory_sandbox_probe.sh` passes | Not measured |
+
+**Recommendation: don't adopt.** Nothing supports a switch, so the Apple `container` VM stays. The prototype stays open for someone with network and the runner Mac: add an experimental, non-default `Sandbox` backend, measure each gate and replace this table.
