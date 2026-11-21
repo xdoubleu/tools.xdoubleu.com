@@ -8,8 +8,8 @@ require (
 	codeberg.org/readeck/go-readability/v2 v2.1.3
 	connectrpc.com/connect/v2 v2.0.2
 	github.com/aws/aws-sdk-go-v2 v1.48.0
-	github.com/aws/aws-sdk-go-v2/credentials v1.21.1
-	github.com/aws/aws-sdk-go-v2/service/s3 v1.115.0
+	github.com/aws/aws-sdk-go-v2/credentials v1.21.2
+	github.com/aws/aws-sdk-go-v2/service/s3 v1.116.0
 	github.com/coder/websocket v1.8.15
 	github.com/getsentry/sentry-go v0.50.0
 	github.com/go-pdf/fpdf v0.9.0
