@@ -12,7 +12,7 @@ description: >-
 
 Closing half of every task (pairs with `start-task`); implements
 [`docs/convention-task-lifecycle.md`](../../../docs/convention-task-lifecycle.md).
-**Factory job (`FACTORY_JOB` set):** follow [Factory jobs](../../../docs/convention-task-lifecycle.md) instead.
+**Factory job (`FACTORY_JOB` set):** follow [Factory jobs](../../../docs/convention-task-lifecycle.md) instead: run `make factory/finish` for the gates and the `Checks:` line.
 
 Run the steps in order. Opening the PR is pre-authorized; a branch without a PR isn't done.
 

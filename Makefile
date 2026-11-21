@@ -41,6 +41,11 @@ lint/deploy-version:
 # The Mac sandbox probe needs macOS 26 and `container`; CI only parses it.
 lint/sandbox-probe:
 	bash -n scripts/factory_sandbox_probe.sh
+	bash -n scripts/factory_finish.sh
+
+# Factory-job finish step: gates for the changed modules, prints the Checks: line.
+factory/finish:
+	./scripts/factory_finish.sh $(BASE)
 
 # Wait for a PR's CI, then its merge: make pr/wait PR=<n> [MODE=mergeable].
 pr/wait:
