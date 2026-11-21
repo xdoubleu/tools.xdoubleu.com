@@ -19,8 +19,8 @@ found=$(
 		grep -rhoE 'pip install [A-Za-z0-9_.-]+==[^ ]+' "$root"/.github "$root"/Makefile \
 			"$root"/*/Makefile 2>/dev/null |
 			sed -E 's/pip install ([^=]+)==(.*)/\1 \2/'
-		# golangci-lint-action pins its version in a `version:` under the renovate marker.
-		grep -rhA1 'renovate: datasource=go depName=' "$root"/.github 2>/dev/null |
+		# A workflow step may pin a Go tool in a `version:` under the renovate marker.
+		{ grep -rhA1 'renovate: datasource=go depName=' "$root"/.github 2>/dev/null || true; } |
 			awk '/depName=/ {split($0, a, "depName="); n = a[2]; next}
 				/version:/ {print n, $2; n = ""}'
 	} | sed -E 's/ v/ /' | sort -u

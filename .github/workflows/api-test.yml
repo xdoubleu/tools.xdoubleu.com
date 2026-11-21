@@ -11,6 +11,9 @@ jobs:
   test:
     name: API Test
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: nix develop --command bash -euo pipefail {0}
     services:
       postgres:
         image: postgres:17@sha256:ff87138949ad9a46f32ff23bd6852b52ce024a13dffe9b4087be98292cdd3b4f
@@ -27,10 +30,15 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
-      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7
+      - uses: DeterminateSystems/nix-installer-action@3138316df39ed29be04236d7ffc686fa525866aa # v23
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
-          go-version-file: './api/go.mod'
-          cache-dependency-path: './api/go.sum'
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+            ~/Library/Caches/go-build
+          key: go-${{ runner.os }}-${{ hashFiles('api/go.sum') }}
+          restore-keys: go-${{ runner.os }}-
       # A transient proxy.golang.org error mid-test fails whole binaries at
       # setup, so fetch modules up front and retry that.
       - name: Download modules

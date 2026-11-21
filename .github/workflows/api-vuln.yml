@@ -15,12 +15,20 @@ jobs:
   govulncheck:
     name: API govulncheck
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: nix develop --command bash -euo pipefail {0}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7
+      - uses: DeterminateSystems/nix-installer-action@3138316df39ed29be04236d7ffc686fa525866aa # v23
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
-          go-version-file: './api/go.mod'
-          cache-dependency-path: './api/go.sum'
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+            ~/Library/Caches/go-build
+          key: go-${{ runner.os }}-${{ hashFiles('api/go.sum') }}
+          restore-keys: go-${{ runner.os }}-
       - name: Run govulncheck
-        run: make lint/vuln
+        run: make -o tools/vuln lint/vuln
         working-directory: './api'
