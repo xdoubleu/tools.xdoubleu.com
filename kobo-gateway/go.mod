@@ -1,6 +1,6 @@
 module tools.xdoubleu.com/kobo-gateway
 
-go 1.27.0
+go 1.27.4
 
 require (
 	github.com/getsentry/sentry-go v0.50.0
