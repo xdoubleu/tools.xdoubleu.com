@@ -87,7 +87,7 @@ func sessionConfig(req SessionRequest) (Config, error) {
 	}
 	cfg := Config{
 		Order: []string{req.Harness}, Overflow: OverflowOff,
-		OpenCode: OpenCodeConfig{Model: req.OpenCodeModel},
+		OpenCode: OpenCodeConfig{Model: req.OpenCodeModel}, MCP: nil,
 	}
 	switch req.Overflow {
 	case "", OverflowOff:

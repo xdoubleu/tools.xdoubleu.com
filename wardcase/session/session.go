@@ -138,8 +138,12 @@ type readOnly struct{ Secrets }
 
 func (readOnly) Set(string, string) error { return ward.ErrNoSecret }
 
+func (readOnly) Delete(string) error { return ward.ErrNoSecret }
+
 // emptyConfig is the device config a session does not use: each session names its
 // own harnesses and overflow.
 func emptyConfig() ward.Config {
-	return ward.Config{Order: nil, Overflow: "", OpenCode: ward.OpenCodeConfig{Model: ""}}
+	return ward.Config{
+		Order: nil, Overflow: "", OpenCode: ward.OpenCodeConfig{Model: ""}, MCP: nil,
+	}
 }

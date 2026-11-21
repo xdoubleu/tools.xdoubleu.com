@@ -5,6 +5,8 @@ package ward
 import (
 	"errors"
 	"fmt"
+	"net/netip"
+	"net/url"
 	"os"
 	"path/filepath"
 	"slices"
@@ -36,6 +38,18 @@ type Config struct {
 	// Overflow is ask, auto or off. A run without a terminal treats ask as off.
 	Overflow string         `toml:"overflow"`
 	OpenCode OpenCodeConfig `toml:"opencode"`
+	// MCP is the MCP servers every harness gets, signed in on the host (mcp.go).
+	MCP []MCPConfig `toml:"mcp"`
+}
+
+// MCPConfig is one MCP server of the device.
+type MCPConfig struct {
+	// Name is the server's name in the harness and in `wardcase mcp`.
+	Name string `toml:"name"`
+	// URL is the server's endpoint, https (http only on loopback).
+	URL string `toml:"url"`
+	// Jobs says whether headless jobs get the server too, not only interactive runs.
+	Jobs bool `toml:"jobs"`
 }
 
 // OpenCodeConfig is OpenCode's own settings.
@@ -56,7 +70,9 @@ func ConfigPath(home string) string {
 
 // LoadConfig reads the config at path; a missing file is the defaults.
 func LoadConfig(path string) (Config, error) {
-	cfg := Config{Order: nil, Overflow: "", OpenCode: OpenCodeConfig{Model: ""}}
+	cfg := Config{
+		Order: nil, Overflow: "", OpenCode: OpenCodeConfig{Model: ""}, MCP: nil,
+	}
 	data, err := os.ReadFile(path)
 	switch {
 	case errors.Is(err, os.ErrNotExist):
@@ -95,7 +111,43 @@ func (c Config) validate() error {
 	if c.OpenCode.Model != "" && !vm.ValidModel(c.OpenCode.Model) {
 		return fmt.Errorf("opencode.model %q is not an OpenRouter model id", c.OpenCode.Model)
 	}
+	return c.validateMCP()
+}
+
+func (c Config) validateMCP() error {
+	seen := map[string]bool{}
+	for _, m := range c.MCP {
+		if !vm.MCPServerName(m.Name) {
+			return fmt.Errorf("mcp: %q is not a server name (lower-case letters, digits "+
+				"and dashes; not board)", m.Name)
+		}
+		if seen[m.Name] {
+			return fmt.Errorf("mcp: %q is listed twice", m.Name)
+		}
+		seen[m.Name] = true
+		u, err := url.Parse(m.URL)
+		secure := err == nil && u.Host != "" && u.User == nil && u.Fragment == "" &&
+			(u.Scheme == "https" || (u.Scheme == "http" && isLoopback(u.Hostname())))
+		if !secure {
+			return fmt.Errorf("mcp %s: url %q must be https", m.Name, m.URL)
+		}
+	}
 	return nil
+}
+
+func isLoopback(host string) bool {
+	ip, err := netip.ParseAddr(host)
+	return host == "localhost" || (err == nil && ip.IsLoopback())
+}
+
+// MCPServer is the configured server called name.
+func (c Config) MCPServer(name string) (MCPConfig, bool) {
+	for _, m := range c.MCP {
+		if m.Name == name {
+			return m, true
+		}
+	}
+	return MCPConfig{Name: "", URL: "", Jobs: false}, false
 }
 
 // next is the harness after name in Order, or "" if it is the last.

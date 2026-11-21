@@ -95,6 +95,8 @@ func (m memSecrets) Get(name string) (string, error) {
 
 func (m memSecrets) Set(name, value string) error { m[name] = value; return nil }
 
+func (m memSecrets) Delete(name string) error { delete(m, name); return nil }
+
 // fakeGit answers like a worktree whose shared git directory is elsewhere.
 func fakeGit(top, common string) ward.GitFunc {
 	return func(_ context.Context, _ string, args ...string) (string, error) {
@@ -137,7 +139,7 @@ func newFixture(t *testing.T, overflow string, answer bool) *fixture {
 		},
 		Config: ward.Config{
 			Order: []string{"claude", "opencode"}, Overflow: overflow,
-			OpenCode: ward.OpenCodeConfig{Model: "vendor/model"},
+			OpenCode: ward.OpenCodeConfig{Model: "vendor/model"}, MCP: nil,
 		},
 		StateDir: t.TempDir(), TempDir: t.TempDir(),
 		GH: nil, GitEnv: nil, Git: fakeGit("/Users/me/wt", "/Users/me/repo/.git"),
@@ -382,7 +384,7 @@ func TestOpenCodesKeyStaysOnTheHost(t *testing.T) {
 		require.NotNil(t, cfg.OpenRouterKey)
 		gotKey, _ = cfg.OpenRouterKey()
 		assert.Nil(t, cfg.MCPToken, "no board route")
-		assert.Nil(t, cfg.PostHogKey)
+		assert.Empty(t, cfg.MCPServers)
 		return vm.NewEgressProxy(cfg)
 	}
 	_, err := f.r.Run(context.Background(),

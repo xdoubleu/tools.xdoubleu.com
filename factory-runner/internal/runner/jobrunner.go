@@ -792,6 +792,7 @@ func (r *JobRunner) invocation(
 	env := harness.SessionEnv(SandboxSessionDir)
 	env["FACTORY_JOB"] = job.ID
 	env["FACTORY_OUTCOME_PATH"] = SandboxOutcomePath
+	env[MCPServersEnv] = "posthog" // routed by the job proxy
 	author := cmp.Or(job.MCPClientID, "factory")
 	email := cmp.Or(r.AuthorEmail, DefaultBotEmail)
 	env["GIT_AUTHOR_NAME"], env["GIT_COMMITTER_NAME"] = author, author

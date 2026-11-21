@@ -88,27 +88,39 @@ const (
 	openCodeBin = "opencode"
 )
 
-// MCPEnv switches the board's and PostHog's MCP servers off when set to MCPOff, for
-// a sandbox whose proxy has no route to them.
+// MCPEnv switches the board's MCP server off when set to MCPOff, for a sandbox whose
+// proxy has no route to it. MCPServersEnv lists, space separated, the other MCP
+// servers the proxy routes at /mcp-<name>; names are validated (MCPServerName), so
+// they are safe in the shell and the JSON.
 const (
-	MCPEnv = "FACTORY_MCP"
-	MCPOff = "off"
+	MCPEnv        = "FACTORY_MCP"
+	MCPOff        = "off"
+	MCPServersEnv = "FACTORY_MCP_SERVERS"
 )
 
+// mcpList builds $list, the JSON members of the servers to configure, each shaped by
+// the printf format $mfmt (given the name and the proxy URL); empty if there are none.
+const mcpList = `list=""; sep=""
+  if [ "${FACTORY_MCP:-}" != off ]; then
+    list=$(printf "$mfmt" board "$FACTORY_PROXY/mcp"); sep=,
+  fi
+  for n in ${FACTORY_MCP_SERVERS:-}; do
+    list="$list$sep$(printf "$mfmt" "$n" "$FACTORY_PROXY/mcp-$n")"; sep=,
+  done`
+
 // claudeStart seeds the config once, then, when the sandbox has a proxy, points Claude
-// at it: the API through /anthropic and, unless switched off, the board's and
-// PostHog's MCP servers through /mcp and /posthog with no credential (the host adds
-// it).
+// at it: the API through /anthropic and the board's and the configured MCP servers
+// through /mcp and /mcp-<name> with no credential (the host adds it).
 const claudeStart = `[ -e "$CLAUDE_CONFIG_DIR/.seeded" ] || ` +
 	`{ cp -R "$CLAUDE_CONFIG_SEED/." "$CLAUDE_CONFIG_DIR/" && ` +
 	`touch "$CLAUDE_CONFIG_DIR/.seeded"; } || exit 1
 if [ -n "${FACTORY_PROXY:-}" ]; then
   export ANTHROPIC_BASE_URL="$FACTORY_PROXY/anthropic"
-  [ "${FACTORY_MCP:-}" = off ] && exec "$@"
+  mfmt='"%s":{"type":"http","url":"%s"}'
+  ` + mcpList + `
+  [ -n "$list" ] || exec "$@"
   mcp="$HOME/factory-mcp.json"
-  printf '{"mcpServers":{"board":{"type":"http","url":"%s/mcp"},` +
-	`"posthog":{"type":"http","url":"%s/posthog"}}}\n' ` +
-	`"$FACTORY_PROXY" "$FACTORY_PROXY" > "$mcp" || exit 1
+  printf '{"mcpServers":{%s}}\n' "$list" > "$mcp" || exit 1
   exec "$@" --mcp-config "$mcp"
 fi
 exec "$@"`
@@ -275,16 +287,16 @@ type OpenCode struct {
 
 // openCodePrelude writes the job's OpenCode config when the sandbox has a proxy:
 // OpenRouter through /openrouter as the default model (declared, as the catalogue
-// needs the network), and, unless switched off, the board's and PostHog's MCP
-// servers through /mcp and /posthog. The model id is validated, so it is safe inside
+// needs the network), and the board's (unless switched off) and the configured MCP
+// servers through /mcp and /mcp-<name>. The model id is validated, so it is safe inside
 // the JSON string.
 const openCodePrelude = `if [ -n "${FACTORY_PROXY:-}" ]; then
   cfg="$HOME/opencode-job.json"
-  mcp=""
   p="$FACTORY_PROXY"
-  [ "${FACTORY_MCP:-}" = off ] ||
-    mcp=$(printf ',"mcp":{"board":{"type":"remote","url":"%s/mcp"},` +
-	`"posthog":{"type":"remote","url":"%s/posthog"}}' "$p" "$p")
+  mfmt='"%s":{"type":"remote","url":"%s","oauth":false}'
+  ` + mcpList + `
+  mcp=""
+  [ -z "$list" ] || mcp=",\"mcp\":{$list}"
   printf '{"model":"openrouter/%s",` +
 	`"provider":{"openrouter":{"options":{"baseURL":"%s/openrouter/v1"},` +
 	`"models":{"%s":{}}}}%s}\n' "$1" "$p" "$1" "$mcp" > "$cfg" || exit 1
