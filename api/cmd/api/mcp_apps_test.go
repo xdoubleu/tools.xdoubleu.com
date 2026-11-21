@@ -66,9 +66,10 @@ var appsToolNames = []string{
 	"learningpaths_get_progress", "learningpaths_get_todoist_status",
 	"learningpaths_create_path", "learningpaths_update_path",
 	"learningpaths_record_progress",
-	// movies (5)
+	// movies (8); add/update/remove_title mutate (adr-0058)
 	"movies_search_titles", "movies_list_backlog", "movies_get_title",
 	"movies_get_stats", "movies_get_settings",
+	"movies_add_title", "movies_update_title", "movies_remove_title",
 	// taste (7); add/remove_favourite_show mutate
 	"taste_get_stats", "taste_list_events", "taste_get_profile",
 	"taste_list_recommendations",
@@ -93,6 +94,7 @@ var appsNetworkTools = map[string]bool{
 	"books_get_external_book":      true,
 	"books_get_book_sources":       true,
 	"taste_add_favourite_show":     true,
+	"movies_add_title":             true,
 	"get_failing_pull_requests":    true,
 	"get_workflow_runs":            true,
 	"get_workflow_run_logs":        true,
@@ -384,6 +386,8 @@ func TestAppsMCPCallAllToolsAsAdmin(t *testing.T) {
 		"movies_search_titles":                    map[string]any{"query": "x"},
 		"movies_get_title":                        map[string]any{"id": uid},
 		"taste_remove_favourite_show":             map[string]any{"id": uid},
+		"movies_update_title":                     map[string]any{"id": uid},
+		"movies_remove_title":                     map[string]any{"id": uid},
 		"learningpaths_update_path": map[string]any{
 			"id": uid, "title": "t",
 		},

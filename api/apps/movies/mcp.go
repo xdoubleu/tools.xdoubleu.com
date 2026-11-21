@@ -64,6 +64,24 @@ func (a *Movies) RegisterMCPTools(srv *mcp.Server) {
 			"watches per month (last 12, "+
 			"Europe/Brussels), top genres, rating distribution and totals.",
 		h.mcpGetStats)
+
+	// Writes: adr-0058.
+	mcptools.AddWriteTool(srv, mcpAppName, "movies_add_title",
+		"Add a movie or series to the backlog (or, with shared, the family's "+
+			"shared one) by tmdb_id and media_type; movies_search_titles returns "+
+			"both, and results already in the backlog carry their status. Adding "+
+			"a title that is already there creates no duplicate: it returns the "+
+			"existing entry and changes its status, rating or watch date only "+
+			"when passed. New titles start as want.", h.mcpAddTitle)
+	mcptools.AddWriteTool(srv, mcpAppName, "movies_update_title",
+		"Change a backlog entry's status (want, watching, watched, dropped), "+
+			"rating (1-5, 0 clears) or watch date, or tick/untick a series "+
+			"season. The id comes from movies_list_backlog. Watched sets the "+
+			"status and records a watch dated now unless watched_at is given.",
+		h.mcpUpdateTitle)
+	mcptools.AddWriteTool(srv, mcpAppName, "movies_remove_title",
+		"Remove an entry from the backlog, including its rating and watch "+
+			"dates. The id comes from movies_list_backlog.", h.mcpRemoveTitle)
 }
 
 func (h *moviesConnectHandler) mcpGetStats(

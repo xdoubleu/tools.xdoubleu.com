@@ -8,8 +8,13 @@ require (
 	tools.xdoubleu.com/wardcase v0.0.0
 )
 
-require go.yaml.in/yaml/v3 v3.0.5 // indirect
+require (
+	github.com/xdoubleu/diff-coverage v0.1.0 // indirect
+	go.yaml.in/yaml/v3 v3.0.5 // indirect
+)
 
 replace tools.xdoubleu.com/selfupdate => ../selfupdate
 
 replace tools.xdoubleu.com/wardcase => ../wardcase
+
+tool github.com/xdoubleu/diff-coverage

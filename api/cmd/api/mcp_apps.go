@@ -12,8 +12,8 @@ import (
 // The apps MCP server exposes each app's read RPCs plus admin observability
 // tools over streamable HTTP. Tools are gated by per-app access or
 // obs.requireObservability. The observability tools live in internal/platform/obs.
-// Deliberate mutations: learningpaths' write tools (docs/adr-0023) and the
-// admin tools resolve_sentry_issue and dismiss_security_alert.
+// Deliberate mutations: learningpaths' write tools (docs/adr-0023), movies'
+// (docs/adr-0058) and the admin tools resolve_sentry_issue and dismiss_security_alert.
 
 const (
 	appsMCPServerName = "tools-apps"
