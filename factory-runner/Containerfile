@@ -10,8 +10,8 @@ ARG CLAUDE_CODE_VERSION=2.1.285
 # Only @opencode/cli: the `opencode-ai` package ships the same binary name.
 ARG OPENCODE_VERSION=2.2.2
 ARG CODEX_VERSION=0.140.0
-# Go tools and sqlfluff come from tools/ci-tools.txt, the pins CI uses too
-# (make lint/ci-tools); Playwright keeps step with web/package.json.
+# Go tools and sqlfluff come from the flake's dev shell below; Playwright keeps
+# step with web/package.json.
 ARG PLAYWRIGHT_VERSION=1.65.0
 
 RUN apt-get update \
@@ -23,14 +23,10 @@ RUN apt-get update \
 # bookworm has no apt bundler; `bundle update` needs it (gems come through the proxy).
 RUN gem install --no-document bundler -v 2.4.22
 
-# sqlfluff for `make lint/sql` and `make lint/migrations`; Chromium and its OS
-# libraries for mobile-review (root-owned, world-readable, as the job user is not root).
+# Chromium and its OS libraries for mobile-review (root-owned, world-readable,
+# as the job user is not root).
 ENV PLAYWRIGHT_BROWSERS_PATH=/opt/ms-playwright
-COPY tools/ci-tools.txt tools/setup-ci-tools.sh /opt/ci-tools/
-RUN python3 -m venv /opt/sqlfluff \
-    && PIP=/opt/sqlfluff/bin/pip /opt/ci-tools/setup-ci-tools.sh pip \
-    && ln -s /opt/sqlfluff/bin/sqlfluff /usr/local/bin/sqlfluff \
-    && npx --yes "playwright@${PLAYWRIGHT_VERSION}" install --with-deps chromium \
+RUN npx --yes "playwright@${PLAYWRIGHT_VERSION}" install --with-deps chromium \
     && chmod -R a+rX /opt/ms-playwright \
     && rm -rf /var/lib/apt/lists/* /root/.npm
 
@@ -81,11 +77,9 @@ RUN case "${TARGETARCH}" in amd64) s=x86_64-linux ;; arm64) s=aarch64-linux ;; *
     && if [ "$size" -gt "$NIX_STORE_MAX" ]; then \
         echo "nix store is $size bytes, over the $NIX_STORE_MAX cap" >&2; exit 1; \
     fi
-# Tools go through the module cache the VM uses as its file:// GOPROXY, so the
-# Makefile's own `go install tool@version` resolves offline. GOTOOLCHAIN=local keeps
-# Go at the image's version (api/go.mod's).
+# The module cache is the VM's file:// GOPROXY. GOTOOLCHAIN=local keeps Go at the
+# image's version (api/go.mod's).
 ENV GOMODCACHE=/opt/gomodcache GOTOOLCHAIN=local
-RUN /opt/ci-tools/setup-ci-tools.sh go
 
 # Dependency caches for the offline VM (docs/adr-0043): every Go module's downloads
 # (used as a file:// GOPROXY) and web/'s npm cache, so lint and tests run on a fresh

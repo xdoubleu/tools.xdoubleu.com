@@ -22,10 +22,6 @@ lint/conflict-markers:
 lint/workflows:
 	./scripts/lint_workflows.sh
 
-# Fail when CI installs a tool the job image's manifest lacks or pins differently.
-lint/ci-tools:
-	./scripts/lint_ci_tools.sh
-
 # Build the flake's dev shell: the toolchain CI and the job image share.
 flake/build:
 	nix develop .# --command true
