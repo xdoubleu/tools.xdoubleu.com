@@ -1,4 +1,4 @@
-package shoppinglist
+package amount
 
 import (
 	"testing"
@@ -28,7 +28,7 @@ func TestToAmount(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			assert.Equal(t, tt.want, toAmount(tt.in))
+			assert.Equal(t, tt.want, Format(tt.in))
 		})
 	}
 }

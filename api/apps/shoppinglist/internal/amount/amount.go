@@ -1,13 +1,13 @@
-package shoppinglist
+package amount
 
 import (
 	"strconv"
 	"strings"
 )
 
-// toAmount formats f without rounding, trimming trailing zeros; capped at 3
+// Format formats f without rounding, trimming trailing zeros; capped at 3
 // decimals to match the web formatter and absorb float noise.
-func toAmount(f float64) string {
+func Format(f float64) string {
 	if f <= 0 {
 		return "0"
 	}

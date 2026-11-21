@@ -3,8 +3,11 @@ package shoppinglist
 import (
 	"net/http"
 
-	"connectrpc.com/connect/v2"
+	connectv2 "connectrpc.com/connect/v2"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 
+	"tools.xdoubleu.com/apps/shoppinglist/connect"
+	shoppingmcp "tools.xdoubleu.com/apps/shoppinglist/mcp"
 	"tools.xdoubleu.com/gen/shoppinglist/v1/shoppinglistv1connect"
 	iapp "tools.xdoubleu.com/internal/app"
 )
@@ -16,11 +19,16 @@ func (a *ShoppingList) Routes(prefix string, mux *http.ServeMux) {
 		func(next http.HandlerFunc) http.HandlerFunc {
 			return a.services.Auth.AppAccess(prefix, next)
 		},
-		func(s *connect.Server) {
+		func(s *connectv2.Server) {
 			shoppinglistv1connect.RegisterShoppingListServiceHandler(
 				s,
-				&shoppingConnectHandler{app: a},
+				connect.NewHandler(a.services.Shopping),
 			)
 		},
 	)
+}
+
+// RegisterMCPTools exposes the app's read-only RPCs as MCP tools.
+func (a *ShoppingList) RegisterMCPTools(srv *mcp.Server) {
+	shoppingmcp.Register(srv, a.services.Shopping)
 }
