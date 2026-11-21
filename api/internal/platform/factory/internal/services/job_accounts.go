@@ -7,8 +7,8 @@ import (
 
 	"github.com/google/uuid"
 
-	"tools.xdoubleu.com/internal/platform/agentaccounts"
 	"tools.xdoubleu.com/internal/platform/factory/internal/models"
+	"tools.xdoubleu.com/internal/platform/identity/agentaccounts"
 )
 
 const (

@@ -17,7 +17,7 @@ import (
 	"tools.xdoubleu.com/internal/config"
 	"tools.xdoubleu.com/internal/kit/database/postgres"
 	"tools.xdoubleu.com/internal/kit/logging"
-	"tools.xdoubleu.com/internal/platform/oauth2as"
+	"tools.xdoubleu.com/internal/platform/identity/oauth2as"
 )
 
 // TestAppAccess_AdminGrantedPath: admins pass without an explicit grant.

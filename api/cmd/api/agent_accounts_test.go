@@ -21,8 +21,9 @@ import (
 	factoryv1 "tools.xdoubleu.com/gen/factory/v1"
 	"tools.xdoubleu.com/gen/factory/v1/factoryv1connect"
 	"tools.xdoubleu.com/internal/models"
-	"tools.xdoubleu.com/internal/platform/agentaccounts"
-	"tools.xdoubleu.com/internal/platform/oauth2as"
+	"tools.xdoubleu.com/internal/platform/identity/agentaccounts"
+	"tools.xdoubleu.com/internal/platform/identity/oauth2as"
+	"tools.xdoubleu.com/internal/platform/mcptools"
 )
 
 // agentAdmin is a signed-in admin with a verified TOTP factor, so it can pass
@@ -339,7 +340,9 @@ func TestAgentUser_AdminGrantsAndRevokesAppAccess(t *testing.T) {
 // A routine job's account lists the observability tools it needs and calls
 // resolve_sentry_issue past the gate; a task job's account sees neither.
 func TestAgentAccount_OnlyARoutineJobSeesTheObservabilityTools(t *testing.T) {
-	store := agentaccounts.NewStore(testApp.db, testApp.auth.InvalidateUserCache)
+	store := agentaccounts.NewStore(
+		testApp.db, testApp.auth.InvalidateUserCache, mcptools.ObservabilityGrant,
+	)
 	ctx := context.Background()
 	toolsOf := func(scope agentaccounts.Scope) (*mcp.ClientSession, []string) {
 		account, secret, err := store.CreateForJob(ctx, "system:factory", "job", scope)

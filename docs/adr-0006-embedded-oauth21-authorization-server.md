@@ -2,7 +2,7 @@
 
 - Status: Accepted — extended by ADR-0021 (OIDC + confidential clients); library replaced by ADR-0037
 - Issues: #1039, #1177, #1715
-- Affects: `api/internal/platform/oauth2as/`, `api/internal/platform/oauth2as/wiring.go`, `api/internal/platform/mcp/auth.go`, `web/app/oauth/consent`
+- Affects: `api/internal/platform/identity/oauth2as/`, `api/internal/platform/identity/oauth2as/wiring.go`, `api/internal/platform/mcp/auth.go`, `web/app/oauth/consent`
 
 ## Context
 
@@ -12,7 +12,7 @@ Cloud URL, even though first-party auth (ADR-0005) already had every piece.
 ## Decision
 
 The api is **both** resource server and authorization server:
-`internal/platform/oauth2as` embeds `ory/fosite` with PKCE, RFC 7591 dynamic client
+`internal/platform/identity/oauth2as` embeds `ory/fosite` with PKCE, RFC 7591 dynamic client
 registration, and RFC 8414 metadata. `mcpAuthServerIssuer` is `cfg.AuthIssuer`
 (default `cfg.APIURL`). The web `/oauth/consent` page drives approval.
 

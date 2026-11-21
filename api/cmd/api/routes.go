@@ -12,12 +12,16 @@ import (
 	"tools.xdoubleu.com/gen/factory/v1/factoryv1connect"
 	"tools.xdoubleu.com/internal/kit/constants"
 	"tools.xdoubleu.com/internal/platform/account"
-	"tools.xdoubleu.com/internal/platform/agentaccounts"
 	"tools.xdoubleu.com/internal/platform/communication/httptools"
 	"tools.xdoubleu.com/internal/platform/family"
+	"tools.xdoubleu.com/internal/platform/identity/adapters"
+	"tools.xdoubleu.com/internal/platform/identity/agentaccounts"
+	accountsconnect "tools.xdoubleu.com/internal/platform/identity/agentaccounts/connect"
+	"tools.xdoubleu.com/internal/platform/identity/oauth2as"
+	oauth2http "tools.xdoubleu.com/internal/platform/identity/oauth2as/http"
 	platformmcp "tools.xdoubleu.com/internal/platform/mcp"
+	"tools.xdoubleu.com/internal/platform/mcptools"
 	"tools.xdoubleu.com/internal/platform/middleware"
-	"tools.xdoubleu.com/internal/platform/oauth2as"
 	"tools.xdoubleu.com/internal/platform/obs"
 	"tools.xdoubleu.com/internal/platform/observability"
 	"tools.xdoubleu.com/internal/platform/slack"
@@ -36,13 +40,21 @@ func (app *Application) mux() *http.ServeMux {
 	mux := http.NewServeMux()
 
 	account.Register(mux, app.logger, nil, app.auth.Access, app.accountDeps())
-	agents := agentaccounts.NewStore(app.db, app.auth.InvalidateUserCache)
-	agentaccounts.Register(mux, app.logger, app.auth.Access, &agentaccounts.Deps{
-		Store:    agents,
-		StepUp:   app.auth,
-		Families: family.NewFamilyRepository(app.db),
-		Notify:   app.slackNotify(),
-	})
+	agents := agentaccounts.NewStore(
+		app.db, app.auth.InvalidateUserCache, mcptools.ObservabilityGrant,
+	)
+	var notifier agentaccounts.Notifier
+	if send := app.slackNotify(); send != nil {
+		notifier = adapters.SlackNotifier{Send: send}
+	}
+	accountsconnect.Register(mux, app.logger, app.auth.Access,
+		agentaccounts.NewService(
+			agents,
+			adapters.StepUp{Auth: app.auth},
+			family.NewFamilyRepository(app.db),
+			notifier,
+		),
+	)
 	obs.Register(mux, app.logger, app.auth.Access, app.obsDeps())
 
 	// MCP behind OAuth 2.1 Bearer auth. The protected-resource metadata is public
@@ -60,28 +72,27 @@ func (app *Application) mux() *http.ServeMux {
 	)
 
 	// Embedded OAuth 2.1 authorization server.
-	sessionUser := oauth2as.NewSessionUserResolver(app.auth, app.appUsersRepo)
-	delegator := oauth2as.NewAgentDelegator(agents, app.appUsersRepo)
-	metadata := oauth2as.MetadataHandler(app.config.AuthIssuer)
-	mux.HandleFunc(
-		"GET "+oauth2as.AuthorizePath,
-		oauth2as.AuthorizeHandler(
-			app.oauth2as.Provider, app.config,
-			sessionUser, delegator, app.oauth2as.Store,
-			app.oauth2as.OIDCKeyID(), app.logger,
-		),
+	sessionUser := oauth2http.NewSessionUserResolver(
+		adapters.Sessions{Sessions: app.auth, Users: app.appUsersRepo},
 	)
-	mux.HandleFunc(
-		"POST "+oauth2as.AuthorizePath,
-		oauth2as.AuthorizeHandler(
-			app.oauth2as.Provider, app.config,
-			sessionUser, delegator, app.oauth2as.Store,
-			app.oauth2as.OIDCKeyID(), app.logger,
-		),
+	authz := oauth2as.NewAuthorizer(
+		adapters.Delegations{Store: agents},
+		adapters.Users{Repo: app.appUsersRepo},
+		app.oauth2as.Store,
+		app.config.OAuthHMACSecret,
+		oauth2as.SystemClock{},
+		app.logger,
 	)
+	metadata := oauth2http.MetadataHandler(app.config.AuthIssuer)
+	authorize := oauth2http.AuthorizeHandler(
+		app.oauth2as.Provider, app.config.WebURL,
+		sessionUser, authz, app.oauth2as.OIDCKeyID(), app.logger,
+	)
+	mux.HandleFunc("GET "+oauth2as.AuthorizePath, authorize)
+	mux.HandleFunc("POST "+oauth2as.AuthorizePath, authorize)
 	mux.HandleFunc(
 		"POST "+oauth2as.TokenPath,
-		oauth2as.TokenHandler(
+		oauth2http.TokenHandler(
 			app.oauth2as.Provider,
 			oauth2as.NewMachineSubjects(agents.ClientSubject),
 			app.logger,
@@ -89,11 +100,11 @@ func (app *Application) mux() *http.ServeMux {
 	)
 	mux.HandleFunc(
 		"POST "+oauth2as.RegisterPath,
-		oauth2as.RegisterHandler(app.oauth2as.Store, app.logger),
+		oauth2http.RegisterHandler(app.oauth2as.Store, app.logger),
 	)
 	mux.HandleFunc(
-		"GET "+oauth2as.ConsentInfoPath, oauth2as.ConsentInfoHandler(
-			app.oauth2as.Store, app.config, sessionUser,
+		"GET "+oauth2as.ConsentInfoPath, oauth2http.ConsentInfoHandler(
+			app.oauth2as.Store, authz, sessionUser,
 		),
 	)
 	mux.HandleFunc("GET "+oauth2as.MetadataPath, metadata)
