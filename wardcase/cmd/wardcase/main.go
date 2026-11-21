@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"strings"
@@ -178,41 +177,15 @@ func start(
 	r := &ward.Runner{
 		Box: box, Secrets: h.secrets, Config: cfg,
 		StateDir: filepath.Join(home, ".local", "state", "wardcase"), TempDir: "",
-		Git: hostGit, GH: hostGH, NewProxy: newProxy, In: in, Out: out, Notes: errOut,
+		Git: ward.HostGit, GitEnv: nil, GH: ward.HostGH, NewProxy: newProxy, In: in,
+		Out: out, Notes: errOut,
 		Terminal: terminal, Ask: ask(in, errOut), Now: nil,
 	}
 	return r.Run(ctx, req)
 }
 
-// hostGH runs gh when it is installed; without it every call fails.
-func hostGH(ctx context.Context, dir string, args ...string) (string, error) {
-	path, err := exec.LookPath("gh")
-	if err != nil {
-		return "", fmt.Errorf("gh: %w", err)
-	}
-	cmd := exec.CommandContext(ctx, path, args...)
-	cmd.Dir = dir
-	var stdout bytes.Buffer
-	cmd.Stdout = &stdout
-	if err = cmd.Run(); err != nil {
-		return stdout.String(), fmt.Errorf("gh %s: %w", strings.Join(args, " "), err)
-	}
-	return stdout.String(), nil
-}
-
 func newProxy(cfg vm.EgressConfig) (vm.ProxyListener, error) {
 	return vm.NewEgressProxy(cfg)
-}
-
-func hostGit(ctx context.Context, dir string, args ...string) (string, error) {
-	//nolint:gosec // git with wardcase's own fixed arguments
-	cmd := exec.CommandContext(ctx, "git", append([]string{"-C", dir}, args...)...)
-	var stdout bytes.Buffer
-	cmd.Stdout = &stdout
-	if err := cmd.Run(); err != nil {
-		return stdout.String(), fmt.Errorf("git %s: %w", strings.Join(args, " "), err)
-	}
-	return stdout.String(), nil
 }
 
 // ensureImage pulls image unless the container CLI already has it.

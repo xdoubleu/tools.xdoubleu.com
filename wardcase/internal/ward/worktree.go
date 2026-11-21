@@ -129,16 +129,23 @@ func (r *Runner) reuse(ctx context.Context, path string) (session, bool) {
 
 func (r *Runner) newWorktree(ctx context.Context, top string) (session, error) {
 	id := randomID()
+	return r.addWorktree(ctx, top, branchPrefix+id, "HEAD", id)
+}
+
+// addWorktree cuts branch from start into a worktree of top named id.
+func (r *Runner) addWorktree(
+	ctx context.Context,
+	top, branch, start, id string,
+) (session, error) {
 	path := filepath.Join(r.checkoutDir(top), worktreesDir, id)
-	branch := branchPrefix + id
 	if err := os.MkdirAll(filepath.Dir(path), stateDirPerm); err != nil {
 		return none(), fmt.Errorf("worktree directory: %w", err)
 	}
-	base, err := r.Git(ctx, top, "rev-parse", "HEAD")
+	base, err := r.Git(ctx, top, "rev-parse", start)
 	if err != nil {
 		return none(), fmt.Errorf("the checkout has no commit to branch from: %w", err)
 	}
-	_, err = r.Git(ctx, top, "worktree", "add", "-b", branch, path, "HEAD")
+	_, err = r.Git(ctx, top, "worktree", "add", "-b", branch, path, start)
 	if err != nil {
 		return none(), fmt.Errorf("create the worktree: %w", err)
 	}
@@ -148,45 +155,46 @@ func (r *Runner) newWorktree(ctx context.Context, top string) (session, error) {
 	return session{path: path, branch: branch, home: top}, nil
 }
 
-// left is what a session's worktree holds that is not yet shipped.
-type left struct {
-	uncommitted int
-	unpushed    int
-	// own counts the commits the session added to its base; -1 when unknown.
-	own int
-	// pr is the branch's pull request state (OPEN, MERGED, CLOSED), or "" when
+// Leftover is what a session's worktree holds that is not yet shipped.
+type Leftover struct {
+	Uncommitted int
+	Unpushed    int
+	// Own counts the commits the session added to its base; -1 when unknown.
+	Own int
+	// PR is the branch's pull request state (OPEN, MERGED, CLOSED), or "" when
 	// there is none or gh could not say.
-	pr    string
-	prURL string
+	PR    string
+	PRURL string
 }
 
-func (l left) nothing() bool { return l.uncommitted == 0 && l.unpushed == 0 }
+func (l Leftover) nothing() bool { return l.Uncommitted == 0 && l.Unpushed == 0 }
 
 // finish reports what the session left in its worktree and removes the worktree
 // when nothing is left and any pull request merged.
-func (r *Runner) finish(ctx context.Context, s session) {
+func (r *Runner) finish(ctx context.Context, s session) (Leftover, bool) {
 	if s.path == "" {
-		return
+		return Leftover{Uncommitted: 0, Unpushed: 0, Own: -1, PR: "", PRURL: ""}, false
 	}
 	l := r.inspect(ctx, s)
-	if l.nothing() && (l.pr == "MERGED" || (l.pr == "" && l.own == 0)) {
+	if l.nothing() && (l.PR == "MERGED" || (l.PR == "" && l.Own == 0)) {
 		if r.remove(ctx, s) {
 			fmt.Fprintf(r.Notes, "wardcase: nothing left in %s; removed it\n", s.path)
-			return
+			return l, true
 		}
 	}
 	fmt.Fprintf(r.Notes, "wardcase: left in %s (branch %s):\n", s.path, s.branch)
-	fmt.Fprintf(r.Notes, "  %s\n  %s\n  %s\n", plural(l.uncommitted, "uncommitted change"),
-		plural(l.unpushed, "commit")+" not on any remote", l.prLine())
+	fmt.Fprintf(r.Notes, "  %s\n  %s\n  %s\n", plural(l.Uncommitted, "uncommitted change"),
+		plural(l.Unpushed, "commit")+" not on any remote", l.prLine())
 	fmt.Fprintf(r.Notes, "  continue with `wardcase --resume` from that directory\n")
+	return l, false
 }
 
-func (l left) prLine() string {
-	switch l.pr {
+func (l Leftover) prLine() string {
+	switch l.PR {
 	case "":
 		return "no pull request"
 	default:
-		return "pull request " + strings.ToLower(l.pr) + " " + l.prURL
+		return "pull request " + strings.ToLower(l.PR) + " " + l.PRURL
 	}
 }
 
@@ -200,31 +208,31 @@ func plural(n int, noun string) string {
 	return fmt.Sprintf("%d %ss", n, noun)
 }
 
-func (r *Runner) inspect(ctx context.Context, s session) left {
-	l := left{uncommitted: 0, unpushed: 0, own: -1, pr: "", prURL: ""}
+func (r *Runner) inspect(ctx context.Context, s session) Leftover {
+	l := Leftover{Uncommitted: 0, Unpushed: 0, Own: -1, PR: "", PRURL: ""}
 	status, err := r.Git(ctx, s.path, "status", "--porcelain")
 	if err != nil {
-		l.uncommitted = 1 // unknown counts as something left
+		l.Uncommitted = 1 // unknown counts as something left
 	}
-	l.uncommitted += len(nonEmptyLines(status))
+	l.Uncommitted += len(nonEmptyLines(status))
 	args := []string{"rev-list", "--count", "HEAD", "--not", "--remotes"}
 	base, _ := r.Git(ctx, s.path, "config", "--get", "branch."+s.branch+"."+baseConfig)
 	if b := strings.TrimSpace(base); b != "" {
 		args = append(args, b)
 		own, ownErr := r.Git(ctx, s.path, "rev-list", "--count", "HEAD", "--not", b)
-		if _, scanErr := fmt.Sscan(strings.TrimSpace(own), &l.own); ownErr != nil ||
+		if _, scanErr := fmt.Sscan(strings.TrimSpace(own), &l.Own); ownErr != nil ||
 			scanErr != nil {
-			l.own = -1
+			l.Own = -1
 		}
 	}
 	count, err := r.Git(ctx, s.path, args...)
 	if err != nil {
-		l.unpushed = 1
+		l.Unpushed = 1
 	}
-	if _, scanErr := fmt.Sscan(strings.TrimSpace(count), &l.unpushed); scanErr != nil {
-		l.unpushed = 1
+	if _, scanErr := fmt.Sscan(strings.TrimSpace(count), &l.Unpushed); scanErr != nil {
+		l.Unpushed = 1
 	}
-	l.pr, l.prURL = r.pullRequest(ctx, s)
+	l.PR, l.PRURL = r.pullRequest(ctx, s)
 	return l
 }
 

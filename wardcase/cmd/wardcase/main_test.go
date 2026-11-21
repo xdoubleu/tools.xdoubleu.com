@@ -140,33 +140,6 @@ func TestAFileIsNotATerminal(t *testing.T) {
 	assert.False(t, isTerminal(emptyFile(t)))
 }
 
-func TestHostGitRunsGitInTheDirectory(t *testing.T) {
-	out, err := hostGit(context.Background(), t.TempDir(), "--version")
-	require.NoError(t, err)
-	assert.Contains(t, out, "git version")
-	_, err = hostGit(context.Background(), t.TempDir(), "rev-parse", "--show-toplevel")
-	require.Error(t, err, "not a repository")
-}
-
-func TestHostGHRunsGHInTheDirectory(t *testing.T) {
-	bin := t.TempDir()
-	script := "#!/bin/sh\nif [ \"$1\" = fail ]; then exit 1; fi\npwd\n"
-	require.NoError(t, os.WriteFile(filepath.Join(bin, "gh"), []byte(script), 0o700))
-	t.Setenv("PATH", bin)
-	dir := t.TempDir()
-	out, err := hostGH(context.Background(), dir, "pr")
-	require.NoError(t, err)
-	assert.Equal(t, filepath.Base(dir), filepath.Base(strings.TrimSpace(out)))
-	_, err = hostGH(context.Background(), dir, "fail")
-	require.Error(t, err)
-}
-
-func TestHostGHWithoutGHFails(t *testing.T) {
-	t.Setenv("PATH", t.TempDir())
-	_, err := hostGH(context.Background(), t.TempDir(), "pr")
-	require.Error(t, err)
-}
-
 // memSecrets is a keychain in memory.
 type memSecrets map[string]string
 
