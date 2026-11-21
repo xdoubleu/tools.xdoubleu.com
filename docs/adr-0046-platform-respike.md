@@ -1,6 +1,6 @@
 # ADR-0046: A self-hostable platform in one image, still deployed with Kamal
 
-- Status: Accepted
+- Status: Partly superseded by [adr-0056](adr-0056-components-not-a-self-hostable-platform.md): no self-host packaging, enabled-apps switch or private infra repo. The tiers, migration isolation and Kamal stand.
 - Issues: epic T-224, spike T-228, #2866, T-96
 - Affects: `api/cmd/api/apps.go`, `api/internal/`, `config/`, `infra/`, `.github/workflows/main.yml`
 - Changes: [adr-0001](adr-0001-two-service-kamal-deploy.md) (Kamal stays; no second service for the platform)

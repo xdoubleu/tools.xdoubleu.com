@@ -1,6 +1,6 @@
 -- +goose Up
 -- +goose StatementBegin
--- The person a standing agent account acts for (adr-0056). Existing standing
+-- The person a standing agent account acts for (adr-0057). Existing standing
 -- accounts take the admin that created them; job and factory-made ones have
 -- none.
 ALTER TABLE global.agent_accounts

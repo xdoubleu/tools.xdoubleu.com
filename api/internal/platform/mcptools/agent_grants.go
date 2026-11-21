@@ -41,7 +41,7 @@ func AgentGrants() mcp.Middleware {
 // actAsPrincipal makes a call to a per-user app's tool or resource run as the
 // person the agent acts for, so the app's handlers scope to their data; the
 // role and grants stay the agent's. factory_ tools, admin and observability
-// tools keep the agent's own identity (adr-0056).
+// tools keep the agent's own identity (adr-0057).
 func actAsPrincipal(
 	ctx context.Context, user *models.User, method string, req mcp.Request,
 ) context.Context {

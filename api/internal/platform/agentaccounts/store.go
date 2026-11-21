@@ -495,7 +495,7 @@ func endAccess(ctx context.Context, tx pgx.Tx, id uuid.UUID) (*Account, error) {
 // Delegate makes clientID, an authorization_code client, act as the active
 // standing account id from its next authorization (adr-0048), replacing any
 // earlier delegation of that client. An account with no principal takes the
-// delegating person as its principal (adr-0056).
+// delegating person as its principal (adr-0057).
 func (s *Store) Delegate(
 	ctx context.Context,
 	id uuid.UUID,

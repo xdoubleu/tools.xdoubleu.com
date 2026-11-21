@@ -1,4 +1,4 @@
-# ADR-0056: Agents read and write the data of the person they act for
+# ADR-0057: Agents read and write the data of the person they act for
 
 - Status: Accepted
 - Affects: `api/internal/platform/mcptools/agent_grants.go`,
