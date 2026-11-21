@@ -3,11 +3,14 @@ package runner
 import (
 	"context"
 	"log/slog"
+	"strings"
 	"time"
 )
 
-// BundleInfoPlistForTest returns the minimal Info.plist of a made-up bundle.
-func BundleInfoPlistForTest() string { return bundleInfoPlist }
+// BundleInfoPlistForTest returns the Info.plist of a made-up bundle.
+func BundleInfoPlistForTest() string {
+	return strings.ReplaceAll(bundleInfoPlist, "__RELEASE__", "v1")
+}
 
 // NewKeychainWith returns a Keychain whose `security` calls go to run.
 func NewKeychainWith(run func(args ...string) ([]byte, int, error)) *Keychain {

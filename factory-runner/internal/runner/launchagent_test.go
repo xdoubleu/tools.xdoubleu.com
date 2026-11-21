@@ -49,7 +49,7 @@ func TestInstallBinaryCopiesTheExecutableToAStablePath(t *testing.T) {
 	src := filepath.Join(t.TempDir(), "factory-runner")
 	require.NoError(t, os.WriteFile(src, []byte("binary"), 0o755))
 
-	dst, err := runner.InstallBinary(home, src)
+	dst, err := runner.InstallBinary(home, src, "v1")
 	require.NoError(t, err)
 	assert.Equal(t, runner.InstalledBinaryPath(home), dst)
 	data, err := os.ReadFile(dst)
@@ -62,27 +62,27 @@ func TestInstallBinaryCopiesTheExecutableToAStablePath(t *testing.T) {
 		filepath.Join(runner.InstalledBundlePath(home), "Contents", "Info.plist"))
 
 	// Installing again, from the installed copy, changes nothing.
-	again, err := runner.InstallBinary(home, dst)
+	again, err := runner.InstallBinary(home, dst, "v1")
 	require.NoError(t, err)
 	assert.Equal(t, dst, again)
 }
 
 func TestInstallBinaryFailures(t *testing.T) {
 	home := t.TempDir()
-	_, err := runner.InstallBinary(home, filepath.Join(t.TempDir(), "missing"))
+	_, err := runner.InstallBinary(home, filepath.Join(t.TempDir(), "missing"), "v1")
 	require.Error(t, err, "no source")
 
 	src := filepath.Join(t.TempDir(), "factory-runner")
 	require.NoError(t, os.WriteFile(src, []byte("b"), 0o755))
 	blocked := t.TempDir()
 	require.NoError(t, os.WriteFile(filepath.Join(blocked, "Library"), nil, 0o600))
-	_, err = runner.InstallBinary(blocked, src)
+	_, err = runner.InstallBinary(blocked, src, "v1")
 	require.Error(t, err, "install dir can't be created")
 
 	// An app that isn't there can't be copied, and leaves nothing behind.
 	other := t.TempDir()
 	gone := filepath.Join(t.TempDir(), "Gone.app", "Contents", "MacOS", "factory-runner")
-	_, err = runner.InstallBinary(other, gone)
+	_, err = runner.InstallBinary(other, gone, "v1")
 	require.Error(t, err)
 	assert.NoDirExists(t, runner.InstalledBundlePath(other)+".install")
 }
@@ -124,7 +124,7 @@ func TestInstallBinaryCopiesAnAppBundleWithSymlinks(t *testing.T) {
 	require.NoError(t, os.WriteFile(src, []byte("bin"), 0o755))
 	require.NoError(t, os.Symlink("factory-runner", filepath.Join(macOS, "alias")))
 
-	dst, err := runner.InstallBinary(t.TempDir(), src)
+	dst, err := runner.InstallBinary(t.TempDir(), src, "v1")
 	require.NoError(t, err)
 	data, err := os.ReadFile(dst)
 	require.NoError(t, err)

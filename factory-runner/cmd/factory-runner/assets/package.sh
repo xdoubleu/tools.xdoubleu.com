@@ -25,15 +25,15 @@ chmod +x "$APP/Contents/MacOS/factory-runner"
 
 sed "s/__RELEASE__/$RELEASE/g" "$ASSETS/Info.plist" >"$APP/Contents/Info.plist"
 
-# Build AppIcon.icns from the source PNG (assets/appicon.png is a placeholder
+# Build AppIcon.icns from the source PNG (internal/runner/appicon.png is a placeholder
 # derived from the site icon — swap it for a designed one and this keeps working).
 ICONSET_PARENT=$(mktemp -d)
 ICONSET="$ICONSET_PARENT/AppIcon.iconset"
 mkdir -p "$ICONSET"
 for size in 16 32 128 256 512; do
-  sips -z "$size" "$size" "$ASSETS/appicon.png" --out "$ICONSET/icon_${size}x${size}.png" >/dev/null
+  sips -z "$size" "$size" "$ROOT/internal/runner/appicon.png" --out "$ICONSET/icon_${size}x${size}.png" >/dev/null
   double=$((size * 2))
-  sips -z "$double" "$double" "$ASSETS/appicon.png" --out "$ICONSET/icon_${size}x${size}@2x.png" >/dev/null
+  sips -z "$double" "$double" "$ROOT/internal/runner/appicon.png" --out "$ICONSET/icon_${size}x${size}@2x.png" >/dev/null
 done
 iconutil -c icns "$ICONSET" -o "$APP/Contents/Resources/AppIcon.icns"
 rm -rf "$ICONSET_PARENT"
