@@ -127,6 +127,25 @@ func TestHostGitRunsGitInTheDirectory(t *testing.T) {
 	require.Error(t, err, "not a repository")
 }
 
+func TestHostGHRunsGHInTheDirectory(t *testing.T) {
+	bin := t.TempDir()
+	script := "#!/bin/sh\nif [ \"$1\" = fail ]; then exit 1; fi\npwd\n"
+	require.NoError(t, os.WriteFile(filepath.Join(bin, "gh"), []byte(script), 0o700))
+	t.Setenv("PATH", bin)
+	dir := t.TempDir()
+	out, err := hostGH(context.Background(), dir, "pr")
+	require.NoError(t, err)
+	assert.Equal(t, filepath.Base(dir), filepath.Base(strings.TrimSpace(out)))
+	_, err = hostGH(context.Background(), dir, "fail")
+	require.Error(t, err)
+}
+
+func TestHostGHWithoutGHFails(t *testing.T) {
+	t.Setenv("PATH", t.TempDir())
+	_, err := hostGH(context.Background(), t.TempDir(), "pr")
+	require.Error(t, err)
+}
+
 // memSecrets is a keychain in memory.
 type memSecrets map[string]string
 
@@ -195,4 +214,17 @@ func TestAnOldContainerCLIIsRefused(t *testing.T) {
 		io.Discard, &errOut)
 	assert.Equal(t, 1, code)
 	assert.Contains(t, errOut.String(), "1.6.x is required")
+}
+
+func TestInPlaceIsAFlagBeforeTheHarness(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	h := host{
+		exec:    hostCLI{version: "container CLI version 1.6.0 (build: release)"},
+		secrets: memSecrets{},
+	}
+	var errOut bytes.Buffer
+	code := run(context.Background(), h, []string{"--in-place", "--print", "claude", "hi"},
+		emptyFile(t), io.Discard, &errOut)
+	assert.Equal(t, 1, code)
+	assert.Contains(t, errOut.String(), "anthropic")
 }

@@ -140,7 +140,7 @@ func newFixture(t *testing.T, overflow string, answer bool) *fixture {
 			OpenCode: ward.OpenCodeConfig{Model: "vendor/model"},
 		},
 		StateDir: t.TempDir(), TempDir: t.TempDir(),
-		Git: fakeGit("/Users/me/wt", "/Users/me/repo/.git"),
+		GH: nil, Git: fakeGit("/Users/me/wt", "/Users/me/repo/.git"),
 		NewProxy: func(cfg vm.EgressConfig) (vm.ProxyListener, error) {
 			return vm.NewEgressProxy(cfg)
 		},
@@ -166,7 +166,8 @@ func writeTranscript(t *testing.T, r run, lines ...string) {
 func TestClaudeRunsInteractivelyInTheVMOnTheWorktree(t *testing.T) {
 	f := newFixture(t, ward.OverflowAsk, true)
 	code, err := f.r.Run(context.Background(), ward.Request{
-		Dir: "/Users/me/wt/sub", Harness: "", Args: []string{"--resume"}, Print: false,
+		Dir: "/Users/me/wt/sub", Harness: "", Args: []string{"--resume"},
+		Print: false, InPlace: true,
 	})
 	require.NoError(t, err)
 	assert.Equal(t, 0, code)
@@ -191,7 +192,9 @@ func TestClaudeRunsInteractivelyInTheVMOnTheWorktree(t *testing.T) {
 
 func TestTheSameCheckoutKeepsItsSessionsAcrossRuns(t *testing.T) {
 	f := newFixture(t, ward.OverflowOff, false)
-	req := ward.Request{Dir: "/Users/me/wt", Harness: "claude", Args: nil, Print: false}
+	req := ward.Request{
+		Dir: "/Users/me/wt", Harness: "claude", Args: nil, Print: false, InPlace: true,
+	}
 	_, err := f.r.Run(context.Background(), req)
 	require.NoError(t, err)
 	_, err = f.r.Run(context.Background(), req)
@@ -214,7 +217,10 @@ func TestALimitedClaudeAsksAndHandsTheWorkToOpenCode(t *testing.T) {
 		return 0
 	}
 	code, err := f.r.Run(context.Background(),
-		ward.Request{Dir: "/Users/me/wt", Harness: "claude", Args: nil, Print: false})
+		ward.Request{
+			Dir: "/Users/me/wt", Harness: "claude", Args: nil, Print: false,
+			InPlace: true,
+		})
 	require.NoError(t, err)
 	assert.Equal(t, 0, code, "the last harness's exit")
 	require.Len(t, f.box.runs, 2)
@@ -248,7 +254,10 @@ func TestDecliningTheOverflowStopsAtTheLimit(t *testing.T) {
 		return 1
 	}
 	code, err := f.r.Run(context.Background(),
-		ward.Request{Dir: "/w", Harness: "claude", Args: nil, Print: false})
+		ward.Request{
+			Dir: "/w", Harness: "claude", Args: nil, Print: false,
+			InPlace: true,
+		})
 	require.NoError(t, err)
 	assert.Equal(t, 1, code)
 	assert.Len(t, f.box.runs, 1)
@@ -261,7 +270,10 @@ func TestOverflowOffOnlySaysTheLimitWasHit(t *testing.T) {
 		return 1
 	}
 	_, err := f.r.Run(context.Background(),
-		ward.Request{Dir: "/w", Harness: "claude", Args: nil, Print: false})
+		ward.Request{
+			Dir: "/w", Harness: "claude", Args: nil, Print: false,
+			InPlace: true,
+		})
 	require.NoError(t, err)
 	assert.Len(t, f.box.runs, 1)
 	assert.Empty(t, f.asked)
@@ -276,7 +288,10 @@ func TestAnOldLimitInAResumedTranscriptIsNotANewOne(t *testing.T) {
 		return 0
 	}
 	_, err := f.r.Run(context.Background(),
-		ward.Request{Dir: "/w", Harness: "claude", Args: nil, Print: false})
+		ward.Request{
+			Dir: "/w", Harness: "claude", Args: nil, Print: false,
+			InPlace: true,
+		})
 	require.NoError(t, err)
 	assert.Len(t, f.box.runs, 1)
 }
@@ -297,6 +312,7 @@ func TestHeadlessRunsPassTheirOutputThroughAndOverflowOnlyWhenAuto(t *testing.T)
 		}
 		_, err := f.r.Run(context.Background(), ward.Request{
 			Dir: "/w", Harness: "", Args: []string{"fix", "the", "bug"}, Print: true,
+			InPlace: true,
 		})
 		require.NoError(t, err)
 		require.Len(t, f.box.runs, wantRuns, overflow)
@@ -316,13 +332,19 @@ func TestAHeadlessPromptCanComeFromStdin(t *testing.T) {
 	f := newFixture(t, ward.OverflowOff, false)
 	f.r.In = strings.NewReader("from stdin\n")
 	_, err := f.r.Run(context.Background(),
-		ward.Request{Dir: "/w", Harness: "claude", Args: nil, Print: true})
+		ward.Request{
+			Dir: "/w", Harness: "claude", Args: nil, Print: true,
+			InPlace: true,
+		})
 	require.NoError(t, err)
 	assert.Equal(t, "from stdin\n", f.box.runs[0].stdin)
 
 	f.r.In = strings.NewReader("  ")
 	_, err = f.r.Run(context.Background(),
-		ward.Request{Dir: "/w", Harness: "claude", Args: nil, Print: true})
+		ward.Request{
+			Dir: "/w", Harness: "claude", Args: nil, Print: true,
+			InPlace: true,
+		})
 	require.Error(t, err)
 }
 
@@ -330,16 +352,25 @@ func TestAMissingCredentialOrModelStopsBeforeTheVMStarts(t *testing.T) {
 	f := newFixture(t, ward.OverflowOff, false)
 	f.r.Secrets = memSecrets{}
 	_, err := f.r.Run(context.Background(),
-		ward.Request{Dir: "/w", Harness: "claude", Args: nil, Print: false})
+		ward.Request{
+			Dir: "/w", Harness: "claude", Args: nil, Print: false,
+			InPlace: true,
+		})
 	require.ErrorIs(t, err, ward.ErrNoSecret)
 	_, err = f.r.Run(context.Background(),
-		ward.Request{Dir: "/w", Harness: "opencode", Args: nil, Print: false})
+		ward.Request{
+			Dir: "/w", Harness: "opencode", Args: nil, Print: false,
+			InPlace: true,
+		})
 	require.ErrorIs(t, err, ward.ErrNoSecret)
 
 	f.r.Secrets = memSecrets{ward.SecretOpenRouter: "k"}
 	f.r.Config.OpenCode.Model = ""
 	_, err = f.r.Run(context.Background(),
-		ward.Request{Dir: "/w", Harness: "opencode", Args: nil, Print: false})
+		ward.Request{
+			Dir: "/w", Harness: "opencode", Args: nil, Print: false,
+			InPlace: true,
+		})
 	require.Error(t, err)
 	assert.Empty(t, f.box.runs)
 }
@@ -355,7 +386,10 @@ func TestOpenCodesKeyStaysOnTheHost(t *testing.T) {
 		return vm.NewEgressProxy(cfg)
 	}
 	_, err := f.r.Run(context.Background(),
-		ward.Request{Dir: "/w", Harness: "opencode", Args: nil, Print: false})
+		ward.Request{
+			Dir: "/w", Harness: "opencode", Args: nil, Print: false,
+			InPlace: true,
+		})
 	require.NoError(t, err)
 	assert.Equal(t, "or-key", gotKey)
 	for k, v := range f.box.runs[0].spec.Env {
@@ -369,7 +403,10 @@ func TestOutsideAGitRepositoryTheDirectoryItselfIsMounted(t *testing.T) {
 		return "", errors.New("not a git repository")
 	}
 	_, err := f.r.Run(context.Background(),
-		ward.Request{Dir: "/plain", Harness: "claude", Args: nil, Print: false})
+		ward.Request{
+			Dir: "/plain", Harness: "claude", Args: nil, Print: false,
+			InPlace: true,
+		})
 	require.NoError(t, err)
 	assert.Equal(t, "/plain", f.box.runs[0].spec.CloneDir)
 	assert.Empty(t, f.box.runs[0].spec.Mounts)
@@ -379,7 +416,10 @@ func TestAGitDirectoryInsideTheCheckoutNeedsNoExtraMount(t *testing.T) {
 	f := newFixture(t, ward.OverflowOff, false)
 	f.r.Git = fakeGit("/Users/me/repo", "/Users/me/repo/.git")
 	_, err := f.r.Run(context.Background(),
-		ward.Request{Dir: "/Users/me/repo", Harness: "claude", Args: nil, Print: false})
+		ward.Request{
+			Dir: "/Users/me/repo", Harness: "claude", Args: nil, Print: false,
+			InPlace: true,
+		})
 	require.NoError(t, err)
 	assert.Empty(t, f.box.runs[0].spec.Mounts)
 }
@@ -388,7 +428,10 @@ func TestAVMThatWillNotStartIsAnError(t *testing.T) {
 	f := newFixture(t, ward.OverflowOff, false)
 	f.box.openErr = errors.New("no container")
 	_, err := f.r.Run(context.Background(),
-		ward.Request{Dir: "/w", Harness: "claude", Args: nil, Print: false})
+		ward.Request{
+			Dir: "/w", Harness: "claude", Args: nil, Print: false,
+			InPlace: true,
+		})
 	require.ErrorContains(t, err, "start the VM")
 }
 
@@ -400,7 +443,10 @@ func TestTheLastHarnessHasNowhereToOverflow(t *testing.T) {
 		return 1
 	}
 	code, err := f.r.Run(context.Background(),
-		ward.Request{Dir: "/w", Harness: "claude", Args: nil, Print: false})
+		ward.Request{
+			Dir: "/w", Harness: "claude", Args: nil, Print: false,
+			InPlace: true,
+		})
 	require.NoError(t, err)
 	assert.Equal(t, 1, code)
 	assert.Len(t, f.box.runs, 1)
@@ -418,7 +464,10 @@ func TestCodexsKeyStaysOnTheHost(t *testing.T) {
 		return vm.NewEgressProxy(cfg)
 	}
 	_, err := f.r.Run(context.Background(),
-		ward.Request{Dir: "/w", Harness: "codex", Args: []string{"--version"}, Print: false})
+		ward.Request{
+			Dir: "/w", Harness: "codex", Args: []string{"--version"}, Print: false,
+			InPlace: true,
+		})
 	require.NoError(t, err)
 	assert.Equal(t, "oa-key", gotKey)
 	spec := f.box.runs[0].spec
@@ -432,7 +481,10 @@ func TestCodexsKeyStaysOnTheHost(t *testing.T) {
 func TestCodexNeedsItsSecret(t *testing.T) {
 	f := newFixture(t, ward.OverflowOff, false)
 	_, err := f.r.Run(context.Background(),
-		ward.Request{Dir: "/w", Harness: "codex", Args: nil, Print: false})
+		ward.Request{
+			Dir: "/w", Harness: "codex", Args: nil, Print: false,
+			InPlace: true,
+		})
 	require.ErrorIs(t, err, ward.ErrNoSecret)
 }
 
@@ -449,7 +501,10 @@ func TestAnOpenCodeCreditLimitOverflowsToCodex(t *testing.T) {
 		return 0
 	}
 	code, err := f.r.Run(context.Background(),
-		ward.Request{Dir: "/w", Harness: "", Args: []string{"go"}, Print: true})
+		ward.Request{
+			Dir: "/w", Harness: "", Args: []string{"go"}, Print: true,
+			InPlace: true,
+		})
 	require.NoError(t, err)
 	assert.Equal(t, 0, code)
 	require.Len(t, f.box.runs, 2)
