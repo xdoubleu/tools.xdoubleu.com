@@ -37,22 +37,11 @@
       ],
       extractVersionTemplate: '^v?(?<version>.+)$',
     },
-    {
-      customType: 'regex',
-      managerFilePatterns: [
-        '/Makefile$/',
-      ],
-      matchStrings: [
-        'go install (?<depName>[^@]+)@(?<currentValue>[0-9a-zA-Z.]+)',
-      ],
-      datasourceTemplate: 'go',
-    },
     // sqlfluff (and sqlfluff's pip cache key).
     {
       customType: 'regex',
       managerFilePatterns: [
         '/^\\.github/workflows/.*\\.yml$/',
-        '/Makefile$/',
       ],
       matchStrings: [
         'pip install (?:-[^\\s]+ )*(?<depName>[A-Za-z0-9_.-]+)==(?<currentValue>[^\\s]+)',

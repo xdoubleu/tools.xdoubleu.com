@@ -8,7 +8,7 @@ test/flaky:
 	go test -count=3 -cpu 1,4 ./internal/runner/ ./cmd/factory-runner/
 
 tools/mutation:
-	go install github.com/go-gremlins/gremlins/cmd/gremlins@v0.6.0
+	@../scripts/require_tools.sh gremlins
 
 # Mirrors api/'s target: gremlins on Go packages changed vs origin/main, mutants
 # scoped to changed lines; fails if a changed line's mutant is SKIPPED.
@@ -43,7 +43,7 @@ test/cov/diff:
 	../scripts/diff_coverage.sh go coverage.out
 
 tools/lint:
-	../api/scripts/ensure_go_tool.sh golangci-lint github.com/golangci/golangci-lint/v2 github.com/golangci/golangci-lint/v2/cmd/golangci-lint 2.15.0
+	@../scripts/require_tools.sh golangci-lint
 
 lint: tools/lint
 	golangci-lint run

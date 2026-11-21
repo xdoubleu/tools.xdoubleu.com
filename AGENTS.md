@@ -57,7 +57,7 @@ make build | dist | test | lint/fix
 make build | test | test/mutation/diff | lint/fix
 
 # repo root
-make lint/docs | lint/skills | lint/workflows | lint/ci-tools | lint/infra | lint/grafana | grafana/verify | hooks/test | lint/deploy-version
+make lint/docs | lint/skills | lint/workflows | lint/infra | lint/grafana | grafana/verify | hooks/test | lint/deploy-version
 
 # proto changes: run BOTH generators (sandbox: …/local; gen/ conflicts: regenerate)
 cd api && make proto/generate    # check: make proto/check

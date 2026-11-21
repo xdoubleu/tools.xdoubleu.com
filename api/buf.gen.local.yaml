@@ -3,9 +3,8 @@ clean: true
 inputs:
   - directory: ../proto
 plugins:
-  # Version pinned by `go install ...@vX` in tools/proto/local (Makefile) —
-  # keep in step with buf.gen.yaml's matching `remote:` pin.
-  # make lint/proto-local-versions fails the build if they drift.
+  # Plugins come from the flake's dev shell; protoc-gen-connect-go's version in
+  # flake.nix must match buf.gen.yaml's `remote:` pin (make lint/proto-local-versions).
   - local: protoc-gen-go
     out: gen
     opt:

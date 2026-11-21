@@ -14,7 +14,7 @@ test/cov: test/cov/report
 	open ./coverage.html
 
 tools/lint:
-	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0
+	@../scripts/require_tools.sh golangci-lint
 
 lint: tools/lint
 	golangci-lint run

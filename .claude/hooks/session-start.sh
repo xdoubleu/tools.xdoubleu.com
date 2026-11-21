@@ -16,9 +16,6 @@ if [ -n "${CLAUDE_ENV_FILE:-}" ]; then
 fi
 export PATH="$GOBIN:$PATH"
 
-# --- 2. Install the pinned lint/proto tools.
-(cd api && make tools/lint tools/proto/local) >/tmp/claude-bootstrap-tools.log 2>&1 &
-
 # --- 3. No Docker daemon: point the API at a local Postgres cluster.
 if ! docker info >/dev/null 2>&1; then
   PG_VERSION="$(ls /etc/postgresql 2>/dev/null | sort -V | tail -1)"

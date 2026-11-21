@@ -1,5 +1,3 @@
-UNAME_S := $(shell uname -s)
-
 # Per-worktree cache: the shared default mixes worktrees' paths into output.
 # ?= lets a sandbox redirect it out of a read-only checkout.
 export GOLANGCI_LINT_CACHE ?= $(CURDIR)/.golangci-cache
@@ -15,49 +13,42 @@ db/reset:
 	docker-compose down -v
 	docker-compose up -d
 
-# Build the dev tools with the repo's Go version: a bare `go install` uses the
-# toolchain the tool's own go.mod asks for, and golangci-lint refuses to run
-# against a newer Go than it was built with. A GOTOOLCHAIN already set in the
-# environment (e.g. `local` on an offline host) wins.
-GO_VERSION := $(shell sed -n 's/^go //p' go.mod)
-TOOL_GOTOOLCHAIN := $(if $(filter environment,$(origin GOTOOLCHAIN)),$(GOTOOLCHAIN),go$(GO_VERSION))
-tools/lint/go tools/lint/golines tools/proto tools/proto/local tools/mutation tools/vuln: export GOTOOLCHAIN := $(TOOL_GOTOOLCHAIN)
+# Tools come from the flake's dev shell (`nix develop`); these only check PATH.
+tools/lint/go:
+	@../scripts/require_tools.sh golangci-lint gci gosec golines
 
-tools: tools/lint tools/proto
+tools/lint/golines:
+	@../scripts/require_tools.sh golines
+
+tools/lint/sql:
+	@../scripts/require_tools.sh sqlfluff
+
+tools/proto:
+	@../scripts/require_tools.sh buf
+
+# For environments that can't reach buf.build; the plugins must match
+# buf.gen.yaml's pins (make lint/proto-local-versions).
+tools/proto/local: tools/proto
+	@../scripts/require_tools.sh protoc-gen-go protoc-gen-connect-go
+
+tools/mutation:
+	@../scripts/require_tools.sh gremlins
+
+tools/vuln:
+	@../scripts/require_tools.sh govulncheck
+
+tools/arch:
+	@../scripts/require_tools.sh godepgraph
 
 tools/lint: tools/lint/go tools/lint/sql
 
-tools/lint/go: tools/lint/golines
-	./scripts/ensure_go_tool.sh golangci-lint github.com/golangci/golangci-lint/v2 github.com/golangci/golangci-lint/v2/cmd/golangci-lint 2.15.0
-	./scripts/ensure_go_tool.sh gci github.com/daixiang0/gci github.com/daixiang0/gci 0.14.0
-	./scripts/ensure_go_tool.sh gosec github.com/securego/gosec/v2 github.com/securego/gosec/v2/cmd/gosec 2.30.0
-
-tools/lint/golines:
-	./scripts/ensure_go_tool.sh golines github.com/segmentio/golines github.com/segmentio/golines 0.13.0
+tools: tools/lint tools/proto
 
 # --tab-len 1 matches lll, which counts a tab as one column.
 GOLINES = golines -m 88 --tab-len 1 --ignore-generated
 
-# Keep in step with Homebrew's sqlfluff (unpinnable on macOS), api-lint.yml: LT01's `TEXT[]` rule differs between 3.x and 4.x.
-tools/lint/sql:
-ifeq ($(UNAME_S),Darwin)
-	command -v sqlfluff >/dev/null || brew install sqlfluff
-endif
-ifeq ($(UNAME_S),Linux)
-	sqlfluff --version 2>/dev/null | grep -q 'version 4.5.0$$' || pip install sqlfluff==4.5.0
-endif
-
 lint/sql: tools/lint/sql
 	sqlfluff lint --dialect postgres .
-
-tools/proto:
-	./scripts/ensure_go_tool.sh buf github.com/bufbuild/buf github.com/bufbuild/buf/cmd/buf 1.75.0
-
-# For environments that can't reach buf.build. Versions must match
-# buf.gen.yaml's pins (checked by make lint/proto-local-versions).
-tools/proto/local: tools/proto
-	go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.12
-	go install connectrpc.com/connect/v2/cmd/protoc-gen-connect-go@v2.0.2
 
 lint/proto: tools/proto
 	cd ../proto && buf lint
@@ -93,9 +84,6 @@ lint/scalar-subqueries:
 
 lint/proto-local-versions:
 	./scripts/check_proto_local_versions.sh
-
-tools/arch:
-	go install github.com/kisielk/godepgraph@v1.0.0
 
 # Mermaid package-dependency diagram of this module's own packages (gen/
 # excluded). Diagnostic only; output is not committed.
@@ -135,9 +123,6 @@ lint/fix: tools/lint
 lint/golines: tools/lint/golines
 	@diff=$$($(GOLINES) --dry-run .); \
 	if [ -n "$$diff" ]; then echo "$$diff"; echo "golines drift: run make lint/fix"; exit 1; fi
-
-tools/vuln:
-	go install golang.org/x/vuln/cmd/govulncheck@v1.9.0
 
 # Not part of lint: a new disclosure would fail unrelated work, so CI runs it on
 # a schedule (api-vuln.yml).
@@ -196,9 +181,6 @@ pdf/check:
 
 test/pprof:
 	TZ=UTC go test -p 1 ./... -cpuprofile cpu.prof -memprofile mem.prof -bench ./cmd/api
-
-tools/mutation:
-	go install github.com/go-gremlins/gremlins/cmd/gremlins@v0.6.0
 
 # Runs gremlins on Go packages changed vs origin/main (one invocation per
 # package); --diff further scopes mutants to changed lines. gremlins matches

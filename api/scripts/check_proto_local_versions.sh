@@ -6,11 +6,9 @@
 # different files, so nothing else catches them drifting.
 #
 # Checked pairs:
-#   1. api/buf.gen.yaml   protoc-gen-go pin        <-> api/Makefile's
-#      `go install google.golang.org/protobuf/cmd/protoc-gen-go@vX`
-#   2. api/buf.gen.yaml   protoc-gen-connect-go pin <-> api/Makefile's
-#      `go install connectrpc.com/connect/v2/cmd/protoc-gen-connect-go@vX`
-#   3. web/buf.gen.yaml   protoc-gen-es pin         <-> web/package.json's
+#   1. api/buf.gen.yaml   protoc-gen-connect-go pin <-> flake.nix's
+#      protoc-gen-connect-go `version`
+#   2. web/buf.gen.yaml   protoc-gen-es pin         <-> web/package.json's
 #      "@bufbuild/protoc-gen-es" devDependency version
 #
 # Run via `make lint/proto-local-versions`; paths resolve from the repo root.
@@ -40,16 +38,12 @@ check() {
 
 api_gen_yaml="$root/api/buf.gen.yaml"
 web_gen_yaml="$root/web/buf.gen.yaml"
-api_makefile="$root/api/Makefile"
+flake_nix="$root/flake.nix"
 web_package_json="$root/web/package.json"
 
-go_want="$(remote_version protocolbuffers/go "$api_gen_yaml")"
-go_got="$(grep -oE 'google\.golang\.org/protobuf/cmd/protoc-gen-go@v[0-9.]+' "$api_makefile" | grep -oE 'v[0-9.]+$' || true)"
-check "protoc-gen-go" "$go_want" "$go_got" "api/Makefile tools/proto/local"
-
 connect_want="$(remote_version connectrpc/go "$api_gen_yaml")"
-connect_got="$(grep -oE 'connectrpc\.com/connect/v2/cmd/protoc-gen-connect-go@v[0-9.]+' "$api_makefile" | grep -oE 'v[0-9.]+$' || true)"
-check "protoc-gen-connect-go" "$connect_want" "$connect_got" "api/Makefile tools/proto/local"
+connect_got="$(grep -A1 'pname = "protoc-gen-connect-go"' "$flake_nix" | grep -oE 'version = "[0-9.]+"' | grep -oE '[0-9.]+' | sed 's/^/v/' || true)"
+check "protoc-gen-connect-go" "$connect_want" "$connect_got" "flake.nix"
 
 es_want="$(remote_version bufbuild/es "$web_gen_yaml" | sed 's/^v//')"
 es_got="$(grep -oE '"@bufbuild/protoc-gen-es": *"[0-9.]+"' "$web_package_json" | grep -oE '[0-9.]+"$' | tr -d '"' || true)"
