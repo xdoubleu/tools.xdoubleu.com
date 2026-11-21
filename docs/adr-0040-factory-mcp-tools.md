@@ -17,13 +17,18 @@ the opposite of what the board needs.
 
 ## Decision
 
-- Eleven tools on `/apps/mcp`: `factory_list_repos`, `factory_list_tasks`,
-  `factory_get_task` (read) and `factory_create_task`, `factory_comment_task`,
+- Twelve tools on `/apps/mcp`: `factory_list_repos`, `factory_list_tasks`,
+  `factory_get_task`, `factory_get_job` (read) and `factory_create_task`, `factory_comment_task`,
   `factory_move_task`, `factory_move_tasks`, `factory_update_task` (write), plus the routine tools
   `factory_list_routines` (read), `factory_set_routine`, `factory_run_routine` and `factory_delete_routine`
   (write; [adr-0052](adr-0052-factory-scheduled-routines.md)). A job's account may use them,
   except on the routine its own job runs for.
-  `factory_list_jobs` waits for jobs to exist (#2706).
+- `factory_get_task` lists the task's jobs with their outcome (how the job ended, or
+  why it failed, was lost or was stopped; stored for every job, truncated).
+  `factory_get_job(job_id, tail)` adds the last `tail` log events (default 50, at most
+  200). The events have credential values removed, and the owner accepts that code and
+  file contents of the job's repo reach agents with factory read access. The full log
+  (`ListJobEvents`) stays browser-only. A job's own account reads only its own task's jobs.
 - `factory_update_task` edits title, body, priority and labels but never the
   column. It refuses a title or body change once a task is Ready, because a
   person approved that text. `factory_move_tasks` moves many tasks and returns

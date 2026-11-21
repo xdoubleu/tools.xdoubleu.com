@@ -36,6 +36,12 @@ type mcpListTasksArgs struct {
 	Query  string `json:"query,omitempty"   jsonschema:"only tasks whose title or body contains this text, ignoring case"`
 }
 
+//nolint:lll // struct tags can't wrap
+type mcpJobArgs struct {
+	JobID string `json:"job_id"         jsonschema:"job id, from factory_get_task"`
+	Tail  int    `json:"tail,omitempty" jsonschema:"how many of the job's last log events to return; default 50, at most 200"`
+}
+
 type mcpTaskArgs struct {
 	ID string `json:"id" jsonschema:"task id, such as T-142"`
 }
@@ -110,7 +116,12 @@ func (a *Factory) RegisterMCPTools(srv *mcp.Server) {
 			"Filter by status (one of "+statusNames+"), repo_id, label, or query, "+
 			"which searches titles and bodies.", t.listTasks)
 	mcptools.AddAgentReadTool(srv, mcpAppName, "factory_get_task",
-		"A task with its body and comments.", t.getTask)
+		"A task with its body, comments and jobs (id, status, harness, outcome: "+
+			"how the job ended, or why it failed or was stopped).", t.getTask)
+	mcptools.AddAgentReadTool(srv, mcpAppName, "factory_get_job",
+		"A job with its outcome and the last events of its harness log, oldest "+
+			"first, credential values removed. The events can hold code and file "+
+			"contents of the job's repo.", t.getJob)
 	mcptools.AddAgentWriteTool(srv, mcpAppName, "factory_create_task",
 		"Create a task for a repo. It starts in Backlog, except a task labelled "+
 			"bug or factory-retro, which starts in Ready.", t.createTask)
@@ -304,9 +315,39 @@ func (t *mcpTools) getTask(
 	if err != nil {
 		return nil, connecttools.MapError(err)
 	}
+	jobs, err := t.app.services.Jobs.ByTask(ctx, id)
+	if err != nil {
+		return nil, connecttools.MapError(err)
+	}
 	return &factoryv1.GetTaskResponse{
 		Task:     t.app.protoTaskOf(ctx, task),
 		Comments: t.app.protoComments(ctx, comments),
+		Jobs:     protoJobs(jobs),
+	}, nil
+}
+
+func (t *mcpTools) getJob(
+	ctx context.Context, args mcpJobArgs,
+) (proto.Message, error) {
+	id, err := parseID(args.JobID)
+	if err != nil {
+		return nil, err
+	}
+	tail := args.Tail
+	if tail <= 0 {
+		tail = services.DefaultTailEvents
+	}
+	job, events, err := t.app.services.Jobs.TailEvents(ctx, id, tail)
+	if err != nil {
+		return nil, connecttools.MapError(err)
+	}
+	// A job's own account reads only its own task's jobs, as for the task itself.
+	if err = t.onlyOwnTask(ctx, job.TaskID); err != nil {
+		return nil, err
+	}
+	return &factoryv1.GetJobResponse{
+		Job:    protoJob(job),
+		Events: protoJobEvents(events),
 	}, nil
 }
 

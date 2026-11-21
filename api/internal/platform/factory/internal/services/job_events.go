@@ -21,6 +21,9 @@ const (
 	maxEventsPerJob  = 5000
 	maxEventBytes    = 32 * 1024
 	maxKindLen       = 40
+	// DefaultTailEvents and MaxTailEvents bound TailEvents.
+	DefaultTailEvents = 50
+	MaxTailEvents     = 200
 	// ListEventsLimit is the most events one ListEvents call returns.
 	ListEventsLimit = 500
 	rawKind         = "raw"
@@ -109,6 +112,26 @@ func (s *JobService) ListEvents(
 		return nil, err
 	}
 	return s.events.After(ctx, jobID, max(afterSeq, 0), ListEventsLimit)
+}
+
+// TailEvents is a job and the last n events of its log (n capped at
+// MaxTailEvents), for any agent with factory read access, not only a human admin:
+// the events have credential values removed, and the owner accepts that code and
+// file contents of the job's repo reach those agents.
+func (s *JobService) TailEvents(
+	ctx context.Context,
+	jobID uuid.UUID,
+	n int,
+) (*models.Job, []models.JobEvent, error) {
+	job, err := s.jobs.Get(ctx, jobID)
+	if err != nil {
+		return nil, nil, err
+	}
+	events, err := s.events.Last(ctx, jobID, min(max(n, 1), MaxTailEvents))
+	if err != nil {
+		return nil, nil, err
+	}
+	return job, events, nil
 }
 
 // PruneEvents deletes logs older than EventRetention.

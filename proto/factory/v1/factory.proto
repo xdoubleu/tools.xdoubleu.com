@@ -99,7 +99,7 @@ message GetTaskRequest {
 message GetTaskResponse {
   Task task = 1;
   repeated Comment comments = 2;
-  // The task's jobs, newest first. Left out by the MCP tool.
+  // The task's jobs, newest first.
   repeated Job jobs = 3;
   // Every pull request that belongs to the task: those its jobs opened and those
   // that link it in their body. Left out by the MCP tool.
@@ -201,8 +201,8 @@ message Job {
   string limit_resets_at = 13;
   // The routine a task-less job runs; empty for a task's job, which sets task_id.
   string routine = 14;
-  // How the job ended, as the agent wrote it; set only on a routine's last_job,
-  // truncated.
+  // How the job ended, as the agent wrote it, or why it failed, was lost or was
+  // stopped; empty while it runs. Truncated.
   string outcome = 15;
 }
 
@@ -226,6 +226,14 @@ message ListJobEventsRequest {
 }
 message ListJobEventsResponse {
   repeated JobEvent events = 1;
+}
+
+// A job with the tail of its log, oldest first. Returned by the MCP tool
+// factory_get_job to agents with factory read access: the events have credential
+// values removed but can hold code and file contents of the job's repo.
+message GetJobResponse {
+  Job job = 1;
+  repeated JobEvent events = 2;
 }
 
 // Queues a job for the task and moves it to In progress. A human admin in a
