@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
-# Run the changed-line coverage gate (diff-coverage/) from the current
+# Run the changed-line coverage gate (github.com/xdoubleu/diff-coverage) from the current
 # module or project directory: scripts/diff_coverage.sh go|lcov|merge ...
 # Adds this repo's include/exclude globs; flags given later still apply.
 set -euo pipefail
 
 root=$(git rev-parse --show-toplevel)
-bin="${TMPDIR:-/tmp}/diff-coverage-$(id -u)"
-go build -C "$root/diff-coverage" -o "$bin" .
+# Pinned per module by the `tool` directive; web/ has no go.mod, so it uses api's.
+modroot=.
+[ -f go.mod ] || modroot="$root/api"
+bin=$(cd "$modroot" && go tool -n diff-coverage)
 
 cmd=${1:?usage: diff_coverage.sh go|lcov|merge ...}
 shift
