@@ -1,6 +1,6 @@
 # ADR-0014: Enforce the start-task/finish-task pairing with `ExitPlanMode` and `Stop` hooks
 
-- Status: Accepted
+- Status: Accepted; the `ExitPlanMode` reminder was removed on 2026-11-21 (T-741)
 - Issues: #1236, #1238, #1400, #1619, #1440, #1706
 - Affects: `.claude/settings.json`, `.claude/hooks/stop-check-unshipped-work.sh`, `.claude/skills/start-task/`, `.claude/skills/finish-task/`, root `Makefile` (`hooks/test`)
 
@@ -17,8 +17,6 @@ plan mode is used.)
 
 Hooks in `.claude/settings.json`, all exercised by `make hooks/test`:
 
-- **`PostToolUse` on `ExitPlanMode`**: reminds that an approved plan hasn't
-  started the task; `start-task` still runs before the first edit.
 - **`Stop`** (`stop-check-unshipped-work.sh`): blocks stopping, once per
   commit, in a worktree with unpushed commits or changes and no PR. It checks
   via `gh`, or else the GitHub REST API using the credential
