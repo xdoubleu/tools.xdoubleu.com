@@ -11,27 +11,26 @@ jobs:
   lint-go:
     name: Factory Runner Go Lint
     runs-on: macos-26
+    defaults:
+      run:
+        shell: nix develop --command bash -euo pipefail {0}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7
+      - uses: DeterminateSystems/nix-installer-action@3138316df39ed29be04236d7ffc686fa525866aa # v23
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
-          go-version-file: './factory-runner/go.mod'
-          cache-dependency-path: './factory-runner/go.sum'
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+            ~/Library/Caches/go-build
+          key: go-${{ runner.os }}-${{ hashFiles('factory-runner/go.sum') }}
+          restore-keys: go-${{ runner.os }}-
       - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9
-        with:
-          # renovate: datasource=go depName=github.com/golangci/golangci-lint/v2/cmd/golangci-lint
-          version: v2.15.0
-          working-directory: ./factory-runner
+        run: golangci-lint run
+        working-directory: './factory-runner'
       - name: Run golangci-lint on the shared selfupdate module
-        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9
-        with:
-          # renovate: datasource=go depName=github.com/golangci/golangci-lint/v2/cmd/golangci-lint
-          version: v2.15.0
-          working-directory: ./selfupdate
+        run: golangci-lint run
+        working-directory: './selfupdate'
       - name: Run golangci-lint on the wardcase module
-        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9
-        with:
-          # renovate: datasource=go depName=github.com/golangci/golangci-lint/v2/cmd/golangci-lint
-          version: v2.15.0
-          working-directory: ./wardcase
+        run: golangci-lint run
+        working-directory: './wardcase'
