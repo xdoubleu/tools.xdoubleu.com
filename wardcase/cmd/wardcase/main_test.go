@@ -155,6 +155,8 @@ func (m memSecrets) Set(name, value string) error {
 	return nil
 }
 
+func (m memSecrets) Delete(name string) error { delete(m, name); return nil }
+
 // hostCLI answers the container CLI's version and image list.
 type hostCLI struct{ version string }
 
@@ -173,7 +175,9 @@ func (h hostCLI) Exec(
 
 // testHost fails any container call; a test that needs the CLI builds its own.
 func testHost() host {
-	return host{exec: listExec{out: "", code: 1, err: nil}, secrets: memSecrets{}}
+	return host{
+		exec: listExec{out: "", code: 1, err: nil}, secrets: memSecrets{},
+	}
 }
 
 func TestSecretSetStoresTheTrimmedValue(t *testing.T) {
@@ -201,7 +205,10 @@ func TestARunWithoutTheClaudeTokenStopsBeforeTheVM(t *testing.T) {
 
 func TestAnOldContainerCLIIsRefused(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
-	h := host{exec: hostCLI{version: "container CLI version 0.9.0"}, secrets: memSecrets{}}
+	h := host{
+		exec:    hostCLI{version: "container CLI version 0.9.0"},
+		secrets: memSecrets{},
+	}
 	var errOut bytes.Buffer
 	code := run(context.Background(), h, []string{"opencode"}, emptyFile(t),
 		io.Discard, &errOut)
@@ -220,4 +227,74 @@ func TestInPlaceIsAFlagBeforeTheHarness(t *testing.T) {
 		emptyFile(t), io.Discard, &errOut)
 	assert.Equal(t, 1, code)
 	assert.Contains(t, errOut.String(), "anthropic")
+}
+
+func store(t *testing.T, h host) memSecrets {
+	t.Helper()
+	m, ok := h.secrets.(memSecrets)
+	require.True(t, ok)
+	return m
+}
+
+func mcpHome(t *testing.T, config string) {
+	t.Helper()
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	dir := filepath.Join(home, ".config", "wardcase")
+	require.NoError(t, os.MkdirAll(dir, 0o700))
+	path := filepath.Join(dir, "config.toml")
+	require.NoError(t, os.WriteFile(path, []byte(config), 0o600))
+}
+
+const oneMCP = "[[mcp]]\nname = \"posthog\"\nurl = \"https://mcp.posthog.com/mcp\"\n"
+
+func TestMCPListShowsEachServerAndWhetherItIsSignedIn(t *testing.T) {
+	mcpHome(t, oneMCP)
+	h := testHost()
+	var out bytes.Buffer
+	assert.Equal(t, 0, run(context.Background(), h, []string{"mcp", "list"}, emptyFile(t),
+		&out, io.Discard))
+	assert.Equal(t, "posthog\thttps://mcp.posthog.com/mcp\tnot signed in\tjobs=false\n",
+		out.String())
+
+	store(t, h)["mcp-posthog"] = `{"refresh_token":"r"}`
+	out.Reset()
+	run(context.Background(), h, []string{"mcp", "list"}, emptyFile(t), &out, io.Discard)
+	assert.Contains(t, out.String(), "\tsigned in\t")
+}
+
+func TestMCPLogoutForgetsTheStoredSignIn(t *testing.T) {
+	mcpHome(t, oneMCP)
+	h := testHost()
+	store(t, h)["mcp-posthog"] = `{"refresh_token":"r"}`
+	assert.Equal(t, 0, run(context.Background(), h, []string{"mcp", "logout", "posthog"},
+		emptyFile(t), io.Discard, io.Discard))
+	assert.Empty(t, store(t, h))
+}
+
+func TestMCPNeedsAConfiguredNameAndAKnownCommand(t *testing.T) {
+	mcpHome(t, oneMCP)
+	var errOut bytes.Buffer
+	for _, args := range [][]string{{"mcp", "login", "nope"}, {"mcp", "logout", "nope"}} {
+		assert.Equal(t, 1, run(context.Background(), testHost(), args, emptyFile(t),
+			io.Discard, &errOut), args)
+	}
+	assert.Contains(t, errOut.String(), `no [[mcp]] named "nope"`)
+	assert.Equal(t, exitUsage, run(context.Background(), testHost(), []string{"mcp"},
+		emptyFile(t), io.Discard, &errOut))
+}
+
+func TestMCPLoginReportsAServerThatCannotBeSignedIn(t *testing.T) {
+	mcpHome(t, "[[mcp]]\nname = \"dead\"\nurl = \"http://127.0.0.1:1/mcp\"\n")
+	var errOut bytes.Buffer
+	args := []string{"mcp", "login", "dead"}
+	assert.Equal(t, 1, run(context.Background(), testHost(), args, emptyFile(t),
+		io.Discard, &errOut))
+	assert.Contains(t, errOut.String(), "RFC 9728")
+}
+
+func TestMCPFailsOnABadConfig(t *testing.T) {
+	mcpHome(t, "overflow = \"x\"")
+	assert.Equal(t, 1, run(context.Background(), testHost(), []string{"mcp", "list"},
+		emptyFile(t), io.Discard, io.Discard))
 }

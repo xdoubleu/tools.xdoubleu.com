@@ -104,8 +104,31 @@ func TestClaudeIsPointedAtTheProxyAndTheBoardThroughIt(t *testing.T) {
 	assert.Equal(t, "http", mcp.Servers["board"].Type)
 	assert.Equal(t, proxyURL+"/mcp", mcp.Servers["board"].URL)
 	assert.Empty(t, mcp.Servers["board"].Headers, "the host adds the credential")
-	assert.Equal(t, "http", mcp.Servers["posthog"].Type)
-	assert.Equal(t, proxyURL+"/posthog", mcp.Servers["posthog"].URL)
+	assert.NotContains(t, mcp.Servers, "posthog", "servers are configured, not built in")
+}
+
+func TestClaudeGetsTheConfiguredMCPServersThroughTheProxyAlone(t *testing.T) {
+	env := append(claudeEnv(t, true), vm.MCPEnv+"="+vm.MCPOff,
+		vm.MCPServersEnv+"=posthog my-docs")
+	got := runHarness(t, "claude", vm.ClaudeCode{}.Command(), env, nil, "factory-mcp.json")
+
+	var mcp struct {
+		Servers map[string]map[string]any `json:"mcpServers"`
+	}
+	require.NoError(t, json.Unmarshal(got.config, &mcp), string(got.config))
+	require.Len(t, mcp.Servers, 2, "the board is off")
+	assert.Equal(t, proxyURL+"/mcp-posthog", mcp.Servers["posthog"]["url"])
+	assert.Equal(t, proxyURL+"/mcp-my-docs", mcp.Servers["my-docs"]["url"])
+	assert.Equal(t, "http", mcp.Servers["posthog"]["type"])
+	assert.Len(t, mcp.Servers["posthog"], 2, "no header or token")
+}
+
+func TestClaudeWithNoMCPServerGetsNoMCPConfig(t *testing.T) {
+	env := append(claudeEnv(t, true), vm.MCPEnv+"="+vm.MCPOff)
+	got := runHarness(t, "claude", vm.ClaudeCode{}.Command(), env, nil, "factory-mcp.json")
+
+	assert.NotContains(t, got.args, "--mcp-config")
+	assert.Empty(t, got.config)
 }
 
 func TestAResumedClaudeJobKeepsItsResumeFlagAndGetsTheSameConfig(t *testing.T) {
@@ -158,9 +181,34 @@ func TestOpenCodeIsPointedAtOpenRouterAndTheBoardThroughTheProxy(t *testing.T) {
 	assert.Contains(t, cfg.Provider["openrouter"].Models, "vendor/model:free")
 	assert.Equal(t, "remote", cfg.MCP["board"].Type)
 	assert.Equal(t, proxyURL+"/mcp", cfg.MCP["board"].URL)
-	assert.Equal(t, "remote", cfg.MCP["posthog"].Type)
-	assert.Equal(t, proxyURL+"/posthog", cfg.MCP["posthog"].URL)
+	assert.NotContains(t, cfg.MCP, "posthog", "servers are configured, not built in")
 	assert.Contains(t, strings.Join(got.args, " "), "-m openrouter/vendor/model:free")
+}
+
+func TestOpenCodeGetsTheConfiguredMCPServersWithoutItsOwnSignIn(t *testing.T) {
+	h := vm.OpenCode{Model: "a/b"}
+	env := append(openCodeEnv(true), vm.MCPEnv+"="+vm.MCPOff,
+		vm.MCPServersEnv+"=posthog")
+	got := runHarness(t, "opencode", h.Command(), env, []string{"OPENCODE_CONFIG"},
+		"opencode-job.json")
+
+	var cfg struct {
+		MCP map[string]map[string]any `json:"mcp"`
+	}
+	require.NoError(t, json.Unmarshal(got.config, &cfg), string(got.config))
+	require.Len(t, cfg.MCP, 1, "the board is off")
+	assert.Equal(t, proxyURL+"/mcp-posthog", cfg.MCP["posthog"]["url"])
+	assert.Equal(t, "remote", cfg.MCP["posthog"]["type"])
+	assert.Equal(t, false, cfg.MCP["posthog"]["oauth"])
+}
+
+func TestOpenCodeWithNoMCPServerGetsNoMCPKey(t *testing.T) {
+	h := vm.OpenCode{Model: "a/b"}
+	env := append(openCodeEnv(true), vm.MCPEnv+"="+vm.MCPOff)
+	got := runHarness(t, "opencode", h.Command(), env, nil, "opencode-job.json")
+
+	assert.NotContains(t, string(got.config), `"mcp"`)
+	assert.True(t, json.Valid(got.config), string(got.config))
 }
 
 func TestAResumedOpenCodeJobGetsTheSameConfig(t *testing.T) {

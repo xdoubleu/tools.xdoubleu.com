@@ -28,6 +28,8 @@ var ErrNoSecret = errors.New("not stored")
 type Secrets interface {
 	Get(name string) (string, error)
 	Set(name, value string) error
+	// Delete removes a secret; one never stored is not an error.
+	Delete(name string) error
 }
 
 // Keychain keeps secrets in the macOS login keychain through `security`, apart from
@@ -82,6 +84,18 @@ func (k *Keychain) Set(name, value string) error {
 		return fmt.Errorf("write keychain: %w", err)
 	}
 	if code != 0 {
+		return fmt.Errorf("write keychain: security exited %d", code)
+	}
+	return nil
+}
+
+// Delete implements Secrets.
+func (k *Keychain) Delete(name string) error {
+	_, code, err := k.Run("delete-generic-password", "-s", keychainService, "-a", name)
+	if err != nil {
+		return fmt.Errorf("write keychain: %w", err)
+	}
+	if code != 0 && code != notFound {
 		return fmt.Errorf("write keychain: security exited %d", code)
 	}
 	return nil

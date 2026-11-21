@@ -86,9 +86,9 @@ func TestRealVMStartsEachHarnessInteractively(t *testing.T) {
 	image := os.Getenv("WARDCASE_IMAGE")
 	require.NotEmpty(t, image, "set WARDCASE_IMAGE")
 	proxy, err := vm.NewEgressProxy(vm.EgressConfig{
-		Server: "", MCPToken: nil, OpenRouterKey: nil, OpenAIKey: nil, PostHogKey: nil,
+		Server: "", MCPToken: nil, OpenRouterKey: nil, OpenAIKey: nil, MCPServers: nil,
 		MCPRejected: nil, Transport: nil, Anthropic: "", OpenRouter: "", OpenAI: "",
-		PostHog: "", GoProxy: "", NPM: "", RubyGems: "", NixCache: "", NixSrc: "", Log: nil,
+		GoProxy: "", NPM: "", RubyGems: "", NixCache: "", NixSrc: "", Log: nil,
 	})
 	require.NoError(t, err)
 	box := &vm.ContainerSandbox{

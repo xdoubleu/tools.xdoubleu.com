@@ -273,6 +273,9 @@ func (r *Runner) runOnce(
 	}
 	defer func() { _ = os.RemoveAll(outcomeDir) }()
 	maps(env, h.SessionEnv(vm.SandboxSessionDir))
+	if err = r.addMCP(&egress, env, headless); err != nil {
+		return outcome{}, err
+	}
 	env["FACTORY_JOB"] = "wardcase-" + randomID()
 	env[vm.MCPEnv] = vm.MCPOff
 	proxy, err := r.NewProxy(egress)
@@ -322,9 +325,9 @@ func (r *Runner) harness(
 	name string,
 ) (interactive, map[string]string, vm.EgressConfig, error) {
 	egress := vm.EgressConfig{
-		Server: "", MCPToken: nil, OpenRouterKey: nil, OpenAIKey: nil, PostHogKey: nil,
+		Server: "", MCPToken: nil, OpenRouterKey: nil, OpenAIKey: nil, MCPServers: nil,
 		MCPRejected: nil, Transport: nil, Anthropic: "", OpenRouter: "", OpenAI: "",
-		PostHog: "", GoProxy: "", NPM: "", RubyGems: "", NixCache: "", NixSrc: "", Log: nil,
+		GoProxy: "", NPM: "", RubyGems: "", NixCache: "", NixSrc: "", Log: nil,
 	}
 	switch name {
 	case Claude:

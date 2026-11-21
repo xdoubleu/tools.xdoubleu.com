@@ -20,6 +20,7 @@ type (
 	OSExecer         = vm.OSExecer
 	EgressConfig     = vm.EgressConfig
 	EgressProxy      = vm.EgressProxy
+	MCPServer        = vm.MCPServer
 	Harness          = vm.Harness
 	ClaudeCode       = vm.ClaudeCode
 	OpenCode         = vm.OpenCode
@@ -34,6 +35,7 @@ const (
 	HarnessClaudeCode  = vm.HarnessClaudeCode
 	HarnessOpenCode    = vm.HarnessOpenCode
 	ClaudeConfigSeed   = vm.ClaudeConfigSeed
+	MCPServersEnv      = vm.MCPServersEnv
 
 	containerCLI = vm.ContainerCLI
 )
