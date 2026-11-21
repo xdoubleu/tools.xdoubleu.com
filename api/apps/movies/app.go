@@ -30,7 +30,6 @@ var embedMigrations embed.FS
 type Movies struct {
 	app.Base
 	db         postgres.DB
-	family     *family.Repository
 	services   *services.Services
 	jobQueue   *jobqueue.JobQueue
 	refreshJob jobs.RefreshMetadataJob
@@ -62,11 +61,12 @@ func NewWithTMDB(
 ) *Movies {
 	//nolint:exhaustruct //services, jobs initialised below
 	a := &Movies{
-		Base:   app.NewBase(ctx, authService, logger, cfg),
-		db:     db,
-		family: familyRepo,
+		Base: app.NewBase(ctx, authService, logger, cfg),
+		db:   db,
 	}
-	a.services = services.New(repositories.New(db), authService, tmdbClient)
+	a.services = services.New(
+		repositories.New(db), authService, tmdbClient, familyRepo,
+	)
 
 	const amountOfWorkers = 1
 	const jobQueueSize = 10

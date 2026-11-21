@@ -3,13 +3,13 @@ package services
 import (
 	"context"
 	"errors"
-	"net/http"
 	"slices"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
 
+	"tools.xdoubleu.com/apps/internal/consumption"
 	"tools.xdoubleu.com/apps/movies/internal/models"
 	"tools.xdoubleu.com/apps/movies/pkg/tmdb"
 	"tools.xdoubleu.com/internal/app"
@@ -77,15 +77,51 @@ type moviesStore interface {
 	SharedOwners(ctx context.Context) ([]string, error)
 }
 
+// familyStore resolves a user's family, creating a family-of-one on demand.
+type familyStore interface {
+	EnsureFamily(ctx context.Context, userID string) (uuid.UUID, error)
+}
+
 type MovieService struct {
-	repo moviesStore
-	tmdb tmdb.Client
+	repo   moviesStore
+	family familyStore
+	tmdb   tmdb.Client
+	now    func() time.Time
 
 	providers providerCache
 }
 
+// NewMovieService builds the service; tmdbClient is nil when no API key is
+// configured and now is the clock aired seasons and new watches read.
+func NewMovieService(
+	store moviesStore,
+	family familyStore,
+	tmdbClient tmdb.Client,
+	now func() time.Time,
+) *MovieService {
+	//nolint:exhaustruct // the provider cache starts empty
+	return &MovieService{repo: store, family: family, tmdb: tmdbClient, now: now}
+}
+
+// Owner is the key the caller's list is stored under: their user ID, or the
+// family's shared-list subject when shared.
+func (s *MovieService) Owner(
+	ctx context.Context,
+	userID string,
+	shared bool,
+) (string, error) {
+	if !shared {
+		return userID, nil
+	}
+	familyID, err := s.family.EnsureFamily(ctx, userID)
+	if err != nil {
+		return "", err
+	}
+	return consumption.SharedSubject(familyID), nil
+}
+
 func badRequest(msg string) error {
-	return &app.HTTPError{Status: http.StatusBadRequest, Message: msg}
+	return app.NewBadRequestError(msg)
 }
 
 func isMediaType(s string) bool {
@@ -314,8 +350,25 @@ func (s *MovieService) Remove(
 }
 
 // Get returns the entry with its Belgian providers and, for a series, its
-// seasons, loading them from TMDB the first time they are missing.
+// seasons (flagged aired as of now), loading them from TMDB the first time
+// they are missing.
 func (s *MovieService) Get(
+	ctx context.Context,
+	userID string,
+	id uuid.UUID,
+) (*models.Entry, error) {
+	entry, err := s.load(ctx, userID, id)
+	if err != nil {
+		return nil, err
+	}
+	now := s.now()
+	for i := range entry.Seasons {
+		entry.Seasons[i].HasAired = entry.Seasons[i].Aired(now)
+	}
+	return entry, nil
+}
+
+func (s *MovieService) load(
 	ctx context.Context,
 	userID string,
 	id uuid.UUID,
