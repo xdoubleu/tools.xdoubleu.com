@@ -44,6 +44,7 @@ type PositionService struct {
 	objectStore  objectstore.Client
 	cache        *spanMapCache
 	texts        *lruCache[bookTextKey, *bookText]
+	labels       *lruCache[bookTextKey, *pdfLabels]
 	builds       singleflight.Group
 	slots        chan struct{}
 	budget       time.Duration
@@ -68,6 +69,7 @@ func NewPositionService(
 		objectStore:  objectStore,
 		cache:        newSpanMapCache(spanMapCacheSize),
 		texts:        newLRUCache[bookTextKey, *bookText](bookTextCacheSize),
+		labels:       newLRUCache[bookTextKey, *pdfLabels](bookTextCacheSize),
 		builds:       singleflight.Group{},
 		slots:        make(chan struct{}, spanMapBuildSlots),
 		budget:       budget,

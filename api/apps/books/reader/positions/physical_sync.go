@@ -82,7 +82,7 @@ type PhysicalChapter struct {
 // PhysicalCopyView is a copy's details plus what its EPUB offers for them.
 type PhysicalCopyView struct {
 	Copy models.PhysicalCopy
-	// Syncable also needs an EPUB to map through.
+	// Syncable also needs an EPUB, or a PDF with page labels, to map through.
 	Syncable      bool
 	HasPrintPages bool
 	Chapters      []PhysicalChapter
@@ -108,6 +108,9 @@ func (s *PhysicalService) Copy(
 	t, pending := s.positions.bookText(ctx, userID, bookID, s.budget)
 	view.Syncable = t != nil || pending
 	if t == nil {
+		if !pending && s.positions.pdfLabels(ctx, userID, bookID, s.budget) != nil {
+			view.Syncable, view.HasPrintPages = true, true
+		}
 		return view, nil
 	}
 	view.HasPrintPages = t.hasPrintPages()
@@ -177,7 +180,10 @@ func (s *PhysicalService) SyncPage(
 		_, err = s.states.UpsertIfNewer(ctx, state(&pos, t.percentAt(g)))
 		return err
 	}
-	if !pending || c.PageCount <= 0 {
+	if !pending {
+		return s.syncPDFPage(ctx, userID, bookID, page, state)
+	}
+	if c.PageCount <= 0 {
 		return nil
 	}
 	// Stored now, its position filled in once the EPUB is parsed, so a digital
@@ -228,8 +234,7 @@ func (s *PhysicalService) FollowDigital(
 	state models.BookReadingState,
 	updatedAt time.Time,
 ) {
-	if state.Source == models.ReadingSourcePhysical || state.Position == nil ||
-		state.Position.Page > 0 {
+	if state.Source == models.ReadingSourcePhysical || state.Position == nil {
 		return
 	}
 	s.background.Go(ctx, "physical-follow-digital", func(ctx context.Context) {
@@ -246,11 +251,15 @@ func (s *PhysicalService) followDigital(
 	if err != nil || !c.Syncable {
 		return
 	}
-	t, _ := s.positions.bookText(ctx, state.UserID, state.BookID, s.buildTimeout)
-	if t == nil {
-		return
+	var page int
+	if state.Position.Page > 0 {
+		page = s.pdfPrintedPage(ctx, state.UserID, state.BookID,
+			state.Position.Page, s.buildTimeout)
+	} else if t, _ := s.positions.bookText(
+		ctx, state.UserID, state.BookID, s.buildTimeout,
+	); t != nil {
+		page = t.pageOf(*c, *state.Position)
 	}
-	page := t.pageOf(*c, *state.Position)
 	if page <= 0 {
 		return
 	}
@@ -270,12 +279,12 @@ func (s *PhysicalService) Locate(
 	bookID uuid.UUID,
 	pos models.ReadingPosition,
 ) (int, string) {
-	if pos.Page > 0 {
-		return 0, ""
-	}
 	c, err := s.copies.GetPhysicalCopy(ctx, userID, bookID)
 	if err != nil || !c.Syncable {
 		return 0, ""
+	}
+	if pos.Page > 0 {
+		return s.pdfPrintedPage(ctx, userID, bookID, pos.Page, s.budget), ""
 	}
 	t, _ := s.positions.bookText(ctx, userID, bookID, s.budget)
 	if t == nil {
@@ -286,4 +295,47 @@ func (s *PhysicalService) Locate(
 		return 0, ""
 	}
 	return page, t.excerpt(pos)
+}
+
+// syncPDFPage writes a printed page as the PDF page that shows it, for a book
+// whose digital copy is a PDF with page labels. The KEPUB converted from it
+// follows, its positions being PDF pages.
+func (s *PhysicalService) syncPDFPage(
+	ctx context.Context,
+	userID string,
+	bookID uuid.UUID,
+	page int,
+	state func(*models.ReadingPosition, int) models.BookReadingState,
+) error {
+	l := s.positions.pdfLabels(ctx, userID, bookID, s.budget)
+	if l == nil {
+		return nil
+	}
+	at, ok := l.pageOf(page)
+	if !ok {
+		return nil
+	}
+	percent := 0
+	if l.pages > 0 {
+		percent = min(at*models.MaxProgressPercent/l.pages, models.MaxProgressPercent)
+	}
+	_, err := s.states.UpsertIfNewer(ctx,
+		state(&models.ReadingPosition{Href: "", Offset: 0, Page: at}, percent))
+	return err
+}
+
+// pdfPrintedPage is the printed number of a PDF page, 0 when the book has no
+// labelled PDF or the page has no printed number.
+func (s *PhysicalService) pdfPrintedPage(
+	ctx context.Context,
+	userID string,
+	bookID uuid.UUID,
+	pdfPage int,
+	wait time.Duration,
+) int {
+	l := s.positions.pdfLabels(ctx, userID, bookID, wait)
+	if l == nil {
+		return 0
+	}
+	return l.printedOf(pdfPage)
 }
