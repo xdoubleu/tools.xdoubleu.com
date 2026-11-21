@@ -4,7 +4,7 @@
 # so offline hosts with preinstalled tools work.
 set -euo pipefail
 bin=$1 mod=$2 pkg=$3 ver=$4
-if path=$(command -v "$bin") && go version -m "$path" 2>/dev/null |
+if path=$(command -v "$bin") && GOTOOLCHAIN=local go version -m "$path" 2>/dev/null |
   grep -qE "^[[:space:]]+mod[[:space:]]+${mod}[[:space:]]+v${ver}([[:space:]]|$)"; then
   exit 0
 fi
