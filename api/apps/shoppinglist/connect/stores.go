@@ -1,4 +1,4 @@
-package shoppinglist
+package connect
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 	"tools.xdoubleu.com/internal/connecttools"
 )
 
-func (h *shoppingConnectHandler) ListStores(
+func (h *Handler) ListStores(
 	ctx context.Context,
 	_ *shoppinglistv1.ListStoresRequest,
 ) (*shoppinglistv1.ListStoresResponse, error) {
@@ -18,7 +18,7 @@ func (h *shoppingConnectHandler) ListStores(
 		return nil, err
 	}
 
-	stores, err := h.app.services.Shopping.ListStores(ctx, userID)
+	stores, err := h.shopping.ListStores(ctx, userID)
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -30,7 +30,7 @@ func (h *shoppingConnectHandler) ListStores(
 	return &shoppinglistv1.ListStoresResponse{Stores: pb}, nil
 }
 
-func (h *shoppingConnectHandler) CreateStore(
+func (h *Handler) CreateStore(
 	ctx context.Context,
 	req *shoppinglistv1.CreateStoreRequest,
 ) (*shoppinglistv1.CreateStoreResponse, error) {
@@ -46,7 +46,7 @@ func (h *shoppingConnectHandler) CreateStore(
 		return nil, err
 	}
 
-	s, err := h.app.services.Shopping.CreateStore(ctx, userID, id, req.Name)
+	s, err := h.shopping.CreateStore(ctx, userID, id, req.Name)
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -55,7 +55,7 @@ func (h *shoppingConnectHandler) CreateStore(
 	}, nil
 }
 
-func (h *shoppingConnectHandler) RenameStore(
+func (h *Handler) RenameStore(
 	ctx context.Context,
 	req *shoppinglistv1.RenameStoreRequest,
 ) (*shoppinglistv1.RenameStoreResponse, error) {
@@ -71,7 +71,7 @@ func (h *shoppingConnectHandler) RenameStore(
 		return nil, err
 	}
 
-	s, err := h.app.services.Shopping.RenameStore(ctx, userID, id, req.Name)
+	s, err := h.shopping.RenameStore(ctx, userID, id, req.Name)
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -80,7 +80,7 @@ func (h *shoppingConnectHandler) RenameStore(
 	}, nil
 }
 
-func (h *shoppingConnectHandler) DeleteStore(
+func (h *Handler) DeleteStore(
 	ctx context.Context,
 	req *shoppinglistv1.DeleteStoreRequest,
 ) (*shoppinglistv1.DeleteStoreResponse, error) {
@@ -93,13 +93,13 @@ func (h *shoppingConnectHandler) DeleteStore(
 		return nil, err
 	}
 
-	if err = h.app.services.Shopping.DeleteStore(ctx, userID, id); err != nil {
+	if err = h.shopping.DeleteStore(ctx, userID, id); err != nil {
 		return nil, mapError(err)
 	}
 	return &shoppinglistv1.DeleteStoreResponse{}, nil
 }
 
-func (h *shoppingConnectHandler) GetStoreCategories(
+func (h *Handler) GetStoreCategories(
 	ctx context.Context,
 	req *shoppinglistv1.GetStoreCategoriesRequest,
 ) (*shoppinglistv1.GetStoreCategoriesResponse, error) {
@@ -112,7 +112,7 @@ func (h *shoppingConnectHandler) GetStoreCategories(
 		return nil, err
 	}
 
-	categories, err := h.app.services.Shopping.GetStoreCategories(
+	categories, err := h.shopping.GetStoreCategories(
 		ctx, userID, storeID,
 	)
 	if err != nil {
@@ -128,7 +128,7 @@ func (h *shoppingConnectHandler) GetStoreCategories(
 	}, nil
 }
 
-func (h *shoppingConnectHandler) SetStoreCategories(
+func (h *Handler) SetStoreCategories(
 	ctx context.Context,
 	req *shoppinglistv1.SetStoreCategoriesRequest,
 ) (*shoppinglistv1.SetStoreCategoriesResponse, error) {
@@ -151,7 +151,7 @@ func (h *shoppingConnectHandler) SetStoreCategories(
 		return nil, err
 	}
 
-	err = h.app.services.Shopping.SetStoreCategories(
+	err = h.shopping.SetStoreCategories(
 		ctx, userID, storeID, categoryIDs,
 	)
 	if err != nil {

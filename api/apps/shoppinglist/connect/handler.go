@@ -1,4 +1,4 @@
-package shoppinglist
+package connect
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 
-	"tools.xdoubleu.com/apps/shoppinglist/internal/repositories"
+	fmtamount "tools.xdoubleu.com/apps/shoppinglist/internal/amount"
 	"tools.xdoubleu.com/apps/shoppinglist/internal/services"
 	shoppinglistv1 "tools.xdoubleu.com/gen/shoppinglist/v1"
 	"tools.xdoubleu.com/gen/shoppinglist/v1/shoppinglistv1connect"
@@ -18,18 +18,24 @@ import (
 	sharedmodels "tools.xdoubleu.com/internal/models"
 )
 
-type shoppingConnectHandler struct {
-	app *ShoppingList
+// Handler serves the ShoppingListService RPCs.
+type Handler struct {
+	shopping *services.ShoppingService
 }
 
-var _ shoppinglistv1connect.ShoppingListServiceHandler = (*shoppingConnectHandler)(nil)
+// NewHandler returns a Handler backed by svc.
+func NewHandler(svc *services.ShoppingService) *Handler {
+	return &Handler{shopping: svc}
+}
+
+var _ shoppinglistv1connect.ShoppingListServiceHandler = (*Handler)(nil)
 
 func getUser(ctx context.Context) *sharedmodels.User {
 	return contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
 }
 
 // callerID returns the authenticated caller's user ID.
-func (h *shoppingConnectHandler) callerID(ctx context.Context) (string, error) {
+func (h *Handler) callerID(ctx context.Context) (string, error) {
 	user := getUser(ctx)
 	if user == nil {
 		return "", errUnauthenticated()
@@ -40,11 +46,11 @@ func (h *shoppingConnectHandler) callerID(ctx context.Context) (string, error) {
 func mapError(err error) error {
 	return connecttools.MapError(
 		err,
-		connecttools.Code(repositories.ErrSelfAlias, connect.CodeInvalidArgument),
+		connecttools.Code(services.ErrSelfAlias, connect.CodeInvalidArgument),
 	)
 }
 
-func (h *shoppingConnectHandler) GetCustomList(
+func (h *Handler) GetCustomList(
 	ctx context.Context,
 	_ *shoppinglistv1.GetCustomListRequest,
 ) (*shoppinglistv1.GetCustomListResponse, error) {
@@ -53,7 +59,7 @@ func (h *shoppingConnectHandler) GetCustomList(
 		return nil, err
 	}
 
-	items, err := h.app.services.Shopping.GetCustomList(ctx, userID)
+	items, err := h.shopping.GetCustomList(ctx, userID)
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -63,7 +69,7 @@ func (h *shoppingConnectHandler) GetCustomList(
 		pb[i] = &shoppinglistv1.ShoppingItem{
 			Id:     item.ID,
 			Name:   item.Name,
-			Amount: toAmount(item.Amount),
+			Amount: fmtamount.Format(item.Amount),
 			Unit:   item.Unit,
 		}
 	}
@@ -71,7 +77,7 @@ func (h *shoppingConnectHandler) GetCustomList(
 	return &shoppinglistv1.GetCustomListResponse{Items: pb}, nil
 }
 
-func (h *shoppingConnectHandler) CreateShoppingItem(
+func (h *Handler) CreateShoppingItem(
 	ctx context.Context,
 	req *shoppinglistv1.CreateShoppingItemRequest,
 ) (*shoppinglistv1.CreateShoppingItemResponse, error) {
@@ -100,7 +106,7 @@ func (h *shoppingConnectHandler) CreateShoppingItem(
 		return nil, err
 	}
 
-	item, err := h.app.services.Shopping.AddItem(
+	item, err := h.shopping.AddItem(
 		ctx, userID, id, req.Name, req.Unit, amount,
 	)
 	if err != nil {
@@ -111,13 +117,13 @@ func (h *shoppingConnectHandler) CreateShoppingItem(
 		Item: &shoppinglistv1.ShoppingItem{
 			Id:     item.ID,
 			Name:   item.Name,
-			Amount: toAmount(item.Amount),
+			Amount: fmtamount.Format(item.Amount),
 			Unit:   item.Unit,
 		},
 	}, nil
 }
 
-func (h *shoppingConnectHandler) UpdateShoppingItem(
+func (h *Handler) UpdateShoppingItem(
 	ctx context.Context,
 	req *shoppinglistv1.UpdateShoppingItemRequest,
 ) (*shoppinglistv1.UpdateShoppingItemResponse, error) {
@@ -149,7 +155,7 @@ func (h *shoppingConnectHandler) UpdateShoppingItem(
 		return nil, err
 	}
 
-	item, err := h.app.services.Shopping.UpdateItem(
+	item, err := h.shopping.UpdateItem(
 		ctx, userID, itemID, req.Name, req.Unit, amount,
 	)
 	if err != nil {
@@ -160,13 +166,13 @@ func (h *shoppingConnectHandler) UpdateShoppingItem(
 		Item: &shoppinglistv1.ShoppingItem{
 			Id:     item.ID,
 			Name:   item.Name,
-			Amount: toAmount(item.Amount),
+			Amount: fmtamount.Format(item.Amount),
 			Unit:   item.Unit,
 		},
 	}, nil
 }
 
-func (h *shoppingConnectHandler) DeleteShoppingItem(
+func (h *Handler) DeleteShoppingItem(
 	ctx context.Context,
 	req *shoppinglistv1.DeleteShoppingItemRequest,
 ) (*shoppinglistv1.DeleteShoppingItemResponse, error) {
@@ -183,14 +189,14 @@ func (h *shoppingConnectHandler) DeleteShoppingItem(
 		return nil, err
 	}
 
-	if err = h.app.services.Shopping.DeleteItem(ctx, userID, itemID); err != nil {
+	if err = h.shopping.DeleteItem(ctx, userID, itemID); err != nil {
 		return nil, mapError(err)
 	}
 
 	return &shoppinglistv1.DeleteShoppingItemResponse{}, nil
 }
 
-func (h *shoppingConnectHandler) GetMealPlanExportItems(
+func (h *Handler) GetMealPlanExportItems(
 	ctx context.Context,
 	req *shoppinglistv1.GetMealPlanExportItemsRequest,
 ) (*shoppinglistv1.GetMealPlanExportItemsResponse, error) {
@@ -212,7 +218,7 @@ func (h *shoppingConnectHandler) GetMealPlanExportItems(
 
 	today, end, pastSlots := services.ExportWindow(time.Now().UTC())
 
-	items, err := h.app.services.Shopping.GetMealPlanExportItems(
+	items, err := h.shopping.GetMealPlanExportItems(
 		ctx, planID, user.ID, today, end, pastSlots, req.ExcludedGroups,
 	)
 	if err != nil {
@@ -223,7 +229,7 @@ func (h *shoppingConnectHandler) GetMealPlanExportItems(
 	for i, item := range items {
 		pb[i] = &shoppinglistv1.ShoppingItem{
 			Name:       item.Name,
-			Amount:     toAmount(item.Amount),
+			Amount:     fmtamount.Format(item.Amount),
 			Unit:       item.Unit,
 			RecipeName: item.RecipeName,
 			GroupName:  item.GroupName,
@@ -235,7 +241,7 @@ func (h *shoppingConnectHandler) GetMealPlanExportItems(
 	}, nil
 }
 
-func (h *shoppingConnectHandler) GetPlanIngredientGroups(
+func (h *Handler) GetPlanIngredientGroups(
 	ctx context.Context,
 	req *shoppinglistv1.GetPlanIngredientGroupsRequest,
 ) (*shoppinglistv1.GetPlanIngredientGroupsResponse, error) {
@@ -257,7 +263,7 @@ func (h *shoppingConnectHandler) GetPlanIngredientGroups(
 
 	today, end, pastSlots := services.ExportWindow(time.Now().UTC())
 
-	groups, err := h.app.services.Shopping.GetPlanIngredientGroups(
+	groups, err := h.shopping.GetPlanIngredientGroups(
 		ctx, planID, user.ID, today, end, pastSlots,
 	)
 	if err != nil {
