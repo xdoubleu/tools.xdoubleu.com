@@ -640,3 +640,39 @@ func TestPollingLinkedPullRequestsSendsAFixedNumberOfQueries(t *testing.T) {
 	many := pollQueries(t, 12)
 	assert.Equal(t, few, many)
 }
+
+// mergedPollQueries is how many statements one poll sends with n merged pull
+// requests, each linking its own task.
+func mergedPollQueries(t *testing.T, n int) int64 {
+	t.Helper()
+	env, gh := githubEnv(t)
+	_, err := testDB.Exec(context.Background(), "DELETE FROM factory.linked_pull_requests")
+	require.NoError(t, err)
+	tasks := make([]*factoryv1.Task, n)
+	for i := range tasks {
+		tasks[i] = env.newTask(t, fmt.Sprintf("merged %d", i))
+		gh.mergeAs(pullURL(200+i), "Task: merged ("+tasks[i].Id+")", "")
+	}
+
+	var count atomic.Int64
+	app := factory.New(
+		context.Background(),
+		sharedmocks.NewMockedAdminAuthService(adminID),
+		logging.NewNopLogger(),
+		testCfg,
+		countingDB{DB: testDB, n: &count},
+		factory.WithGitHub(gh),
+	)
+	require.NoError(t, app.PollPullRequestsNow(context.Background()))
+
+	for _, task := range tasks {
+		require.Len(t, env.task(t, task.Id).PullRequests, 1)
+	}
+	return count.Load()
+}
+
+func TestPollingMergedPullRequestsSendsAFixedNumberOfQueries(t *testing.T) {
+	few := mergedPollQueries(t, 2)
+	many := mergedPollQueries(t, 12)
+	assert.Equal(t, few, many)
+}
