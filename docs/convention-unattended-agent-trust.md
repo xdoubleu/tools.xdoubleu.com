@@ -13,6 +13,12 @@
   `factory_create_task` files straight into Ready. Features and epics move to Ready only
   when the owner has said so. `routine-feedback` items stay in Backlog until
   then. On GitHub, only a human moves an issue to Ready.
+- **A self-fixing agent re-queues its own work.** When the only thing that
+  blocked a task is fixed (the job's own sandbox fix shipped, or the
+  dependency it waited on landed), the agent moves the task to Ready itself
+  and says why. Needs you is for decisions only a person can make, never a
+  parking space for a blocker an agent can clear. A task the runner parks
+  while a new job image ships resumes on its own.
 - **The factory runner picks up a Ready task only if its repo opted in** (auto
   pickup, off by default) and the board isn't paused. It runs the title and body as
   they stood at the Ready move, not later edits, and skips a task whose title or

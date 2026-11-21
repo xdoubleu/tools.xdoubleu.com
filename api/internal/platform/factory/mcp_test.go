@@ -593,3 +593,21 @@ func TestAgentNeedsTheFactoryGrantAndWriteLevel(t *testing.T) {
 	})
 	require.Error(t, err)
 }
+
+func TestMoveTaskDescriptionAllowsReady(t *testing.T) {
+	session := mcpSessionAs(t, asUser(models.RoleAgent))
+	list, err := session.ListTools(context.Background(), nil)
+	require.NoError(t, err)
+	for _, tool := range list.Tools {
+		if tool.Name != "factory_move_task" {
+			continue
+		}
+		assert.NotContains(t, tool.Description, "only a person")
+		assert.Contains(t, tool.Description, "ready")
+		schema, err := json.Marshal(tool.InputSchema)
+		require.NoError(t, err)
+		assert.Contains(t, string(schema), "backlog, ready, in_progress")
+		return
+	}
+	t.Fatal("factory_move_task not listed")
+}

@@ -11,7 +11,8 @@
 
 The factory board lets agents file and move tasks, but never approve work: only
 a human in a browser session moves a task into Ready
-([#2701](https://github.com/xdoubleu/tools.xdoubleu.com/issues/2701) decision 5).
+([#2701](https://github.com/xdoubleu/tools.xdoubleu.com/issues/2701) decision 5;
+later relaxed so an agent account may too, [ADR-0040](adr-0040-factory-mcp-tools.md)).
 An MCP bearer token resolves to the same `models.User` as the person's cookie
 session, so an agent signed in as the person could do anything the person can.
 [ADR-0025](adr-0025-machine-client-credentials-service-role.md) gave routines a

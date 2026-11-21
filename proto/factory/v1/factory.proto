@@ -145,7 +145,7 @@ message UpdateTaskResponse {
   Task task = 1;
 }
 
-// Moving into Ready needs a human admin in a browser session.
+// Moving into Ready is allowed for a human admin or an agent account; the actor is recorded.
 message MoveTaskRequest {
   string id = 1;
   TaskStatus status = 2;

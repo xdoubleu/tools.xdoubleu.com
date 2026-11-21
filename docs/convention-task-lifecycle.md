@@ -20,6 +20,11 @@ what it did and what is left. The host checks the work, pushes it and opens the 
 the unshipped-work nudge stand aside when `FACTORY_JOB` is set; the sandbox is the
 boundary.
 
+A job whose blocker is cleared (its sandbox fix shipped, or the dependency
+landed) re-queues the task by moving it to Ready with `factory_move_task` and a
+comment saying why; it doesn't park it in Needs you
+([`convention-unattended-agent-trust`](convention-unattended-agent-trust.md)).
+
 ## Starting
 
 1. **Start from freshly fetched `main`** — never edit on `main` or another
