@@ -1,6 +1,6 @@
 //go:build container
 
-package runner_test
+package vm_test
 
 import (
 	"bytes"
@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"tools.xdoubleu.com/factory-runner/internal/runner"
+	"tools.xdoubleu.com/wardcase/vm"
 )
 
 // seen is one request that reached the fake upstream.
@@ -65,7 +65,7 @@ func agentRun(
 	command []string,
 ) string {
 	t.Helper()
-	proxy, err := runner.NewEgressProxy(runner.EgressConfig{
+	proxy, err := vm.NewEgressProxy(vm.EgressConfig{
 		Server:        up.srv.URL,
 		MCPToken:      func(context.Context) (string, error) { return "board-token", nil },
 		OpenRouterKey: func() (string, error) { return "real-openrouter-key", nil },
@@ -74,9 +74,9 @@ func agentRun(
 	})
 	require.NoError(t, err)
 
-	box := &runner.ContainerSandbox{
-		Image: "factory-job:dev", Exec: runner.OSExecer{BinDirs: nil}, Proxy: nil,
-		ProxyPort: runner.EgressProxyPort, GoModCache: "", NPMCache: "",
+	box := &vm.ContainerSandbox{
+		Image: "factory-job:dev", Exec: vm.OSExecer{BinDirs: nil}, Proxy: nil,
+		ProxyPort: vm.EgressProxyPort, GoModCache: "", NPMCache: "",
 		CPUs: "", Memory: "", TempDir: t.TempDir(),
 	}
 	dir := t.TempDir()
@@ -89,7 +89,7 @@ func agentRun(
 	}
 	env["FACTORY_JOB"] = "realvm-agent"
 	var log bytes.Buffer
-	_, err = box.Run(context.Background(), runner.SandboxSpec{
+	_, err = box.Run(context.Background(), vm.SandboxSpec{
 		CloneDir: dirs[0], OutcomeDir: dirs[1], SessionDir: dirs[2], Env: env, Command: append([]string{"timeout", "90"}, command...),
 		Proxy: proxy, Stdin: "say ok\n", Log: &log,
 	})
@@ -99,10 +99,10 @@ func agentRun(
 
 func TestRealVMClaudeReachesItsModelAndTheBoardOnlyThroughTheProxy(t *testing.T) {
 	up := newRecordingUpstream(t)
-	env := runner.ClaudeCode{}.SessionEnv(runner.SandboxSessionDir)
+	env := vm.ClaudeCode{}.SessionEnv(vm.SandboxSessionDir)
 	env["CLAUDE_CODE_OAUTH_TOKEN"] = "vm-setup-token-value"
 
-	out := agentRun(t, up, env, runner.ClaudeCode{}.Command())
+	out := agentRun(t, up, env, vm.ClaudeCode{}.Command())
 
 	model := up.find("/v1/messages")
 	require.NotEmpty(t, model, "Claude's model call went through /anthropic: %s", out)
@@ -117,8 +117,8 @@ func TestRealVMClaudeReachesItsModelAndTheBoardOnlyThroughTheProxy(t *testing.T)
 
 func TestRealVMOpenCodeReachesOpenRouterAndTheBoardOnlyThroughTheProxy(t *testing.T) {
 	up := newRecordingUpstream(t)
-	h := runner.OpenCode{Model: "vendor/model"}
-	env := h.SessionEnv(runner.SandboxSessionDir)
+	h := vm.OpenCode{Model: "vendor/model"}
+	env := h.SessionEnv(vm.SandboxSessionDir)
 
 	out := agentRun(t, up, env, h.Command())
 

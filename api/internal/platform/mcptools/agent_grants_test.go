@@ -306,7 +306,7 @@ func TestCanObserveByRoleAndGrant(t *testing.T) {
 }
 
 // A per-user app's tools and resources run as the person the agent acts for,
-// while factory_ and admin tools keep the agent's own identity (adr-0055).
+// while factory_ and admin tools keep the agent's own identity (adr-0056).
 func TestAgentActsAsItsPrincipalOnPerUserApps(t *testing.T) {
 	ctx := context.Background()
 	seen := map[string]string{}

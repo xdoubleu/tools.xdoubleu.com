@@ -41,7 +41,7 @@ it does for people: granted per app, revoked the same way.
   or any agent-management RPC; use admin or observability tools
   (`RequireAdmin` and `RequireObservability` exclude it); move a task into
   Ready; or read another person's data except its principal's
-  ([ADR-0055](adr-0055-agents-act-for-their-principal.md)).
+  ([ADR-0056](adr-0056-agents-act-for-their-principal.md)).
 - **Job accounts.** Unchanged and never granted apps: the store refuses app
   access for a row with `job_id`. A job's account holds only the task-scoped
   `factory` grant.

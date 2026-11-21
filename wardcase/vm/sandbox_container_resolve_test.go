@@ -1,4 +1,4 @@
-package runner_test
+package vm_test
 
 import (
 	"bytes"
@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"tools.xdoubleu.com/factory-runner/internal/runner"
+	"tools.xdoubleu.com/wardcase/vm"
 )
 
 func writeTool(t *testing.T, dir string, mode os.FileMode) {
@@ -28,7 +28,7 @@ func TestOSExecerFindsACommandOutsidePathInTheFallbackDirs(t *testing.T) {
 	writeTool(t, fallback, 0o755)
 
 	var out bytes.Buffer
-	code, err := runner.OSExecer{BinDirs: []string{missing, fallback}}.Exec(
+	code, err := vm.OSExecer{BinDirs: []string{missing, fallback}}.Exec(
 		context.Background(), []string{"factory-fake-tool"}, nil, &out)
 
 	require.NoError(t, err)
@@ -46,7 +46,7 @@ func TestOSExecerPrefersPathOverTheFallbackDirs(t *testing.T) {
 	t.Setenv("PATH", onPath+":/usr/bin:/bin")
 
 	var out bytes.Buffer
-	_, err := runner.OSExecer{BinDirs: []string{fallback}}.Exec(
+	_, err := vm.OSExecer{BinDirs: []string{fallback}}.Exec(
 		context.Background(), []string{"factory-fake-tool"}, nil, &out)
 
 	require.NoError(t, err)
@@ -58,7 +58,7 @@ func TestOSExecerIgnoresANonExecutableFallbackAndNamesTheCommand(t *testing.T) {
 	fallback := t.TempDir()
 	writeTool(t, fallback, 0o644)
 
-	code, err := runner.OSExecer{BinDirs: []string{fallback}}.Exec(
+	code, err := vm.OSExecer{BinDirs: []string{fallback}}.Exec(
 		context.Background(), []string{"factory-fake-tool"}, nil, &bytes.Buffer{})
 
 	assert.Equal(t, -1, code)

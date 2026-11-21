@@ -1,4 +1,4 @@
-package runner_test
+package vm_test
 
 import (
 	"os"
@@ -10,11 +10,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"tools.xdoubleu.com/factory-runner/internal/runner"
+	"tools.xdoubleu.com/wardcase/vm"
 )
 
 func TestOpenCodeRunsHeadlessOnOpenRouterWithTheModelAsAParameter(t *testing.T) {
-	h := runner.OpenCode{Model: "vendor/model:free"}
+	h := vm.OpenCode{Model: "vendor/model:free"}
 
 	start := h.Command()
 	assert.Equal(t, []string{"sh", "-c"}, start[:2])
@@ -31,13 +31,13 @@ func TestOpenCodeRunsHeadlessOnOpenRouterWithTheModelAsAParameter(t *testing.T) 
 }
 
 func TestOpenCodeKeepsItsSessionsInThePerTaskDirectoryWithoutTheRealKey(t *testing.T) {
-	env := runner.OpenCode{Model: "a/b"}.SessionEnv("/session")
+	env := vm.OpenCode{Model: "a/b"}.SessionEnv("/session")
 	assert.Equal(t, "/session", env["XDG_DATA_HOME"])
 	assert.Equal(t, "replaced-by-the-host-proxy", env["OPENROUTER_API_KEY"])
 }
 
 func TestOpenCodeReadsTheSessionIDFromAnyEvent(t *testing.T) {
-	h := runner.OpenCode{Model: "a/b"}
+	h := vm.OpenCode{Model: "a/b"}
 	for name, tc := range map[string]struct{ line, want string }{
 		"camel case":    {`{"type":"step_start","sessionID":"ses_1","part":{}}`, "ses_1"},
 		"snake case":    {`{"type":"text","session_id":"ses_2"}`, "ses_2"},
@@ -80,7 +80,7 @@ func runScript(t *testing.T, argv []string, stdin string) string {
 func TestTheShellStepHandsOpenCodeTheModelAndPromptAsSingleArguments(t *testing.T) {
 	prompt := "You are running unattended.\n\n" +
 		"# Task: it's \"quoted\" $(touch pwned) `id` ; rm -rf /\n"
-	got := runScript(t, runner.OpenCode{Model: "vendor/model"}.Command(), prompt)
+	got := runScript(t, vm.OpenCode{Model: "vendor/model"}.Command(), prompt)
 
 	assert.Equal(t, strings.Join([]string{
 		"[run]", "[--standalone]", "[--format]", "[json]", "[--auto]", "[-m]",
@@ -91,7 +91,7 @@ func TestTheShellStepHandsOpenCodeTheModelAndPromptAsSingleArguments(t *testing.
 }
 
 func TestTheShellStepResumesTheSessionWithoutSplicingItIntoTheScript(t *testing.T) {
-	got := runScript(t, runner.OpenCode{Model: "a/b"}.Resume("ses_x"), "more\n")
+	got := runScript(t, vm.OpenCode{Model: "a/b"}.Resume("ses_x"), "more\n")
 
 	assert.Contains(t, got, "[--session]\n[ses_x]\n")
 	assert.True(t, strings.HasSuffix(got, "[more]\n"), got)

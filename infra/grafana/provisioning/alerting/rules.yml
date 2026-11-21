@@ -464,11 +464,14 @@ groups:
         labels:
           severity: warning
         annotations:
-          summary: A transaction's p95 at least doubled week over week
+          summary: >-
+            {{ $labels.transaction }}: p95 at least doubled week over week
           description: >-
             {{ $labels.transaction }} ({{ $labels.project }}) averaged a p95
-            {{ $values.A }}x the prior week's over the last 7 days. See
-            get_slow_transactions' trending list.
+            {{ $values.A }}x the prior week's (recent {{ $values.B }}s). Both
+            come from transaction_p95_seconds, the same averages
+            get_slow_transactions' trending list shows (recent 7 days vs the 7
+            before), so a ratio that disagrees with it is stale.
         noDataState: OK
         execErrState: Alerting
         data:
@@ -488,6 +491,18 @@ groups:
                 and ignoring(window)
                 transaction_p95_seconds{window="recent", transaction!="POST /apps/mcp"}
                 >= 2
+          - refId: B
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              refId: B
+              instant: true
+              expr: >-
+                sum without(window) (
+                transaction_p95_seconds{window="recent", transaction!="POST /apps/mcp"}
+                )
           - refId: C
             datasourceUid: __expr__
             model:
@@ -706,8 +721,11 @@ groups:
         labels:
           severity: warning
         annotations:
-          summary: Unresolved Sentry issues present
-          description: "{{ $values.A }} unresolved Sentry issue(s)."
+          summary: Unresolved error-level Sentry issues present
+          description: >-
+            {{ $values.A }} unresolved error- or fatal-level Sentry issue(s).
+            Info and warning issues are not counted. See get_sentry_issues for
+            titles.
         noDataState: OK
         execErrState: Alerting
         data:

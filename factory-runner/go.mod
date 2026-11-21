@@ -5,8 +5,11 @@ go 1.27.4
 require (
 	github.com/stretchr/testify v1.12.1
 	tools.xdoubleu.com/selfupdate v0.0.0
+	tools.xdoubleu.com/wardcase v0.0.0
 )
 
 require go.yaml.in/yaml/v3 v3.0.5 // indirect
 
 replace tools.xdoubleu.com/selfupdate => ../selfupdate
+
+replace tools.xdoubleu.com/wardcase => ../wardcase

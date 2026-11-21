@@ -16,9 +16,7 @@ internal/runner/
   jobloop.go, pullstatus.go, gates.go, routines.go  attempts until merge; CI verdict; routines
   gitclone.go, hostcheck.go   clone; host checks
   events.go, publish.go       board log lines; push, open the PR
-  harness.go, sandbox.go      Claude Code/OpenCode commands; Sandbox
-  sandbox_container.go        one Apple `container` VM per job
-  egress_proxy.go, mcp_token.go  the VM's way out; board token
+  vm.go, mcp_token.go         the job VM, proxy and harnesses (../wardcase/vm); board token
   validate.go, config.go      job validator; config; cli_link.go PATH link
   token.go, launchagent.go, update.go  keychain; plist; update
 ```

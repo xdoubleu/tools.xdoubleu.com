@@ -28,9 +28,6 @@ func RunForTest(
 	return run(ctx, hb, token, log, opts, clock{sleep: sleep, now: clk})
 }
 
-// NPMInstallScriptForTest is the VM setup step that installs node_modules.
-func NPMInstallScriptForTest() string { return npmInstallScript }
-
 // NewCaffeinateWith returns a Caffeinate with its process starter replaced.
 func NewCaffeinateWith(start func(pid int) (func(), error)) *Caffeinate {
 	return &Caffeinate{start: start}
@@ -88,15 +85,6 @@ func (g *Git) GitEnvForTest(
 	ctx context.Context, dir string, env []string, args ...string,
 ) ([]byte, error) {
 	return g.gitEnv(ctx, dir, env, args...)
-}
-
-// FreeSubnets lists the job subnets free of the given `netstat` routes.
-func FreeSubnets(routes string, n int) []string {
-	var out []string
-	for _, p := range freeSubnets(routes, n) {
-		out = append(out, p.String())
-	}
-	return out
 }
 
 // ChecksFailureForTest exposes checksFailure.

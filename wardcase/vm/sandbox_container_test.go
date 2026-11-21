@@ -1,4 +1,4 @@
-package runner_test
+package vm_test
 
 import (
 	"bytes"
@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"tools.xdoubleu.com/factory-runner/internal/runner"
+	"tools.xdoubleu.com/wardcase/vm"
 )
 
 // scriptedExec records every host command and answers from a handler.
@@ -95,9 +95,9 @@ default            192.168.128.1      UGScg                 en0
 192.168.128/23     link#11            UCS                   en0      !
 `
 
-func sandboxWith(t *testing.T, exec *scriptedExec) *runner.ContainerSandbox {
+func sandboxWith(t *testing.T, exec *scriptedExec) *vm.ContainerSandbox {
 	t.Helper()
-	return &runner.ContainerSandbox{
+	return &vm.ContainerSandbox{
 		Image:      "factory-job:test",
 		Exec:       exec,
 		Proxy:      nil,
@@ -110,17 +110,19 @@ func sandboxWith(t *testing.T, exec *scriptedExec) *runner.ContainerSandbox {
 	}
 }
 
-func spec(t *testing.T, log io.Writer) runner.SandboxSpec {
+func spec(t *testing.T, log io.Writer) vm.SandboxSpec {
 	t.Helper()
-	return runner.SandboxSpec{
-		CloneDir:   "/data/jobs/j1/clone",
-		OutcomeDir: "/data/jobs/j1/outcome",
-		SessionDir: "/data/sessions/t1",
-		Env:        map[string]string{"FACTORY_JOB": "0a1b2c3d-4e5f", "SECRET": "s3cret"},
-		Command:    []string{"claude", "-p"},
-		Proxy:      nil,
-		Stdin:      "do the thing",
-		Log:        log,
+	return vm.SandboxSpec{
+		CloneDir:    "/data/jobs/j1/clone",
+		OutcomeDir:  "/data/jobs/j1/outcome",
+		SessionDir:  "/data/sessions/t1",
+		Env:         map[string]string{"FACTORY_JOB": "0a1b2c3d-4e5f", "SECRET": "s3cret"},
+		Command:     []string{"claude", "-p"},
+		Proxy:       nil,
+		Stdin:       "do the thing",
+		Log:         log,
+		Mounts:      nil,
+		SkipInstall: false,
 	}
 }
 
@@ -265,7 +267,7 @@ func TestSetupInstallsNodeModulesForEachLockfileThatLacksThem(t *testing.T) {
 	require.NoError(t, os.WriteFile(filepath.Join(bin, "npm"), []byte(npm), 0o700))
 	calls := filepath.Join(t.TempDir(), "calls")
 
-	cmd := osexec.Command("sh", "-c", runner.NPMInstallScriptForTest())
+	cmd := osexec.Command("sh", "-c", vm.NPMInstallScriptForTest())
 	cmd.Dir = clone
 	cmd.Env = append(os.Environ(), "PATH="+bin+":"+os.Getenv("PATH"), "CALLS="+calls)
 	out, err := cmd.CombinedOutput()
@@ -423,12 +425,12 @@ func TestSubnetsAvoidEveryHostRouteThatOverlaps(t *testing.T) {
 		"10.231.8.0/22     link#21            UC            utun3\n" +
 		"10.231.20.5       link#21            UHW           utun3\n" +
 		"192.168           link#2             UC            en1\n"
-	got := runner.FreeSubnets(routes, 3)
+	got := vm.FreeSubnets(routes, 3)
 	assert.Equal(t, []string{"10.231.12.0/24", "10.231.13.0/24", "10.231.14.0/24"}, got)
 }
 
 func TestARouteTableWithNoOverlapStartsAtTheFirstSubnet(t *testing.T) {
-	assert.Equal(t, []string{"10.231.7.0/24"}, runner.FreeSubnets(hostRoutes, 1))
+	assert.Equal(t, []string{"10.231.7.0/24"}, vm.FreeSubnets(hostRoutes, 1))
 }
 
 func TestAVPNHoldingTenSlashEightMovesTheJobNetworkToAnotherRange(t *testing.T) {
@@ -449,12 +451,12 @@ func TestAVPNHoldingTenSlashEightMovesTheJobNetworkToAnotherRange(t *testing.T) 
 }
 
 func TestASpecTheVMCannotCarryFaithfullyIsRefusedBeforeAnythingStarts(t *testing.T) {
-	for name, mutate := range map[string]func(*runner.SandboxSpec){
-		"bad env name":  func(s *runner.SandboxSpec) { s.Env["A=B"] = "x" },
-		"empty env":     func(s *runner.SandboxSpec) { s.Env[""] = "x" },
-		"comma clone":   func(s *runner.SandboxSpec) { s.CloneDir = "/data/a,b/clone" },
-		"comma outcome": func(s *runner.SandboxSpec) { s.OutcomeDir = "/data/a,b" },
-		"newline home":  func(s *runner.SandboxSpec) { s.SessionDir = "/data/a\nb" },
+	for name, mutate := range map[string]func(*vm.SandboxSpec){
+		"bad env name":  func(s *vm.SandboxSpec) { s.Env["A=B"] = "x" },
+		"empty env":     func(s *vm.SandboxSpec) { s.Env[""] = "x" },
+		"comma clone":   func(s *vm.SandboxSpec) { s.CloneDir = "/data/a,b/clone" },
+		"comma outcome": func(s *vm.SandboxSpec) { s.OutcomeDir = "/data/a,b" },
+		"newline home":  func(s *vm.SandboxSpec) { s.SessionDir = "/data/a\nb" },
 	} {
 		exec := newExecScript(routesAnswer)
 		s := spec(t, io.Discard)

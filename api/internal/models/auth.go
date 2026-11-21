@@ -29,7 +29,7 @@ type User struct {
 	// binds agents only, since a person's access is always both.
 	WriteAccess []string `json:"write_access"`
 	// PrincipalID is the person a standing agent acts for; per-user app data
-	// resolves to them (adr-0055). Empty for everyone else.
+	// resolves to them (adr-0056). Empty for everyone else.
 	PrincipalID string `json:"principal_id"`
 	HasMFA      bool   `json:"has_mfa"`
 	DisplayName string `json:"display_name"`
