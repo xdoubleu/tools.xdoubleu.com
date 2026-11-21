@@ -52,7 +52,9 @@ the map has titles; ids go in a closing comment (step 5).
 - **Size** against `finish-task`'s manual-review threshold (~150–200 changed
   lines / 8 files).
 - **The first slice is usable on its own** in the browser, not scaffolding.
-- Order them; each body names its dependency by title and id.
+- Order them; each body names its dependencies as `Depends on: T-n, T-m`,
+  its own sentence, since auto pickup reads only that form. Never put a
+  decision only in a comment: a job's prompt is the title and body.
 - A sub-task ending in a user-only step (third-party registration, API key,
   webhook, deploy secret) states it under an exact `## Follow-up: your turn`
   heading — `finish-task` keys on it to move the task to "Needs you".
