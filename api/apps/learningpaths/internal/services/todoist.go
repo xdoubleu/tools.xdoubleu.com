@@ -341,19 +341,44 @@ func activeModule(modules []models.Module) int {
 	return -1
 }
 
-// pathNextItem is a path's first incomplete item, or nil when paused or done.
+// pathNextItem is a path's next item, or nil when paused or done: the first
+// incomplete item of the active module, unless a book in that module is
+// already being read, in which case the furthest-along one.
 func pathNextItem(p pathPlan) *models.Item {
 	if p.lp.Paused {
 		return nil
 	}
-	for i := range p.modules {
-		for j := range p.modules[i].Items {
-			if !p.modules[i].Items[j].Completed {
-				return &p.modules[i].Items[j]
-			}
+	active := activeModule(p.modules)
+	if active < 0 {
+		return nil
+	}
+	items := p.modules[active].Items
+	var next, started *models.Item
+	for j := range items {
+		it := &items[j]
+		if it.Completed {
+			continue
+		}
+		if next == nil {
+			next = it
+		}
+		if bookProgress(*it) > 0 &&
+			(started == nil || bookProgress(*it) > bookProgress(*started)) {
+			started = it
 		}
 	}
-	return nil
+	if started != nil {
+		return started
+	}
+	return next
+}
+
+// bookProgress is a linked book's reading progress, 0 when not book-linked.
+func bookProgress(it models.Item) int {
+	if it.LinkedBook == nil {
+		return 0
+	}
+	return it.LinkedBook.ProgressPercent
 }
 
 func hasTask(it models.Item) bool {

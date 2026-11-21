@@ -144,9 +144,10 @@ Everything operates only on the calling user's own paths (scoped server-side).
   completes the checkpoint (and thus the module). A module without a quiz
   still completes on its items.
 - Suggest whole books only — never a partial-book checkpoint.
-- Reminders: when Todoist is connected, each path's next incomplete item
-  becomes a task in its section of the user's "Learning paths" project, due
-  per reminder_schedules[type] unless the item sets its own due. Only one
+- Reminders: when Todoist is connected, each path's next incomplete item (a
+  book already being read in the active module goes first) becomes a task
+  in its section of the user's "Learning paths" project, due per
+  reminder_schedules[type] unless the item sets its own due. Only one
   task per item type is open across all paths (one book at a time), so
   order items so each next step stands alone, and keep item types consistent
   (read, do, checkpoint) since they decide the balancing. Derive
