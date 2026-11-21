@@ -1,7 +1,9 @@
 # Every tool CI, the job image and local dev use. nixpkgs (flake.lock) is the pin:
 # bump it and all three move together. Go is nixpkgs' patch, so go.mod keeps
-# major.minor. PostgreSQL is not here: the job image installs it and CI uses a
-# service container. `nix develop`, or `make flake/build`.
+# major.minor. PostgreSQL (production's major) is for the api tests of jobs without
+# docker; CI uses a service container. Playwright's browsers are nixpkgs'
+# `playwright-driver`, whose version must match web/package.json's @playwright/test.
+# `nix develop`, or `make flake/build`.
 {
   description = "The repo's toolchain: one pin source for CI, the job image and local dev";
 
@@ -95,6 +97,8 @@
           pkgs.findutils
           pkgs.gnused
           pkgs.gnugrep
+          pkgs.postgresql_17
+          pkgs.playwright-driver.browsers
           pkgs.ruby
           pkgs.bundler
         ];
@@ -105,6 +109,8 @@
           packages = tools nixpkgs.legacyPackages.${system};
           # nixpkgs' Go is the repo's toolchain; never download another one.
           GOTOOLCHAIN = "local";
+          PLAYWRIGHT_BROWSERS_PATH = "${nixpkgs.legacyPackages.${system}.playwright-driver.browsers}";
+          PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS = "true";
         };
       });
       # The same tools as a plain bin/, for the job image's read-only store.
