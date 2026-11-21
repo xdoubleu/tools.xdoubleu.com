@@ -176,7 +176,7 @@ func (h hostCLI) Exec(
 // testHost fails any container call; a test that needs the CLI builds its own.
 func testHost() host {
 	return host{
-		exec: listExec{out: "", code: 1, err: nil}, secrets: memSecrets{}, open: nil,
+		exec: listExec{out: "", code: 1, err: nil}, secrets: memSecrets{},
 	}
 }
 
@@ -194,7 +194,7 @@ func TestARunWithoutTheClaudeTokenStopsBeforeTheVM(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 	h := host{
 		exec:    hostCLI{version: "container CLI version 1.6.0 (build: release)"},
-		secrets: memSecrets{}, open: nil,
+		secrets: memSecrets{},
 	}
 	var errOut bytes.Buffer
 	code := run(context.Background(), h, []string{"--print", "claude", "hi"},
@@ -207,7 +207,7 @@ func TestAnOldContainerCLIIsRefused(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 	h := host{
 		exec:    hostCLI{version: "container CLI version 0.9.0"},
-		secrets: memSecrets{}, open: nil,
+		secrets: memSecrets{},
 	}
 	var errOut bytes.Buffer
 	code := run(context.Background(), h, []string{"opencode"}, emptyFile(t),
@@ -220,7 +220,7 @@ func TestInPlaceIsAFlagBeforeTheHarness(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 	h := host{
 		exec:    hostCLI{version: "container CLI version 1.6.0 (build: release)"},
-		secrets: memSecrets{}, open: nil,
+		secrets: memSecrets{},
 	}
 	var errOut bytes.Buffer
 	code := run(context.Background(), h, []string{"--in-place", "--print", "claude", "hi"},

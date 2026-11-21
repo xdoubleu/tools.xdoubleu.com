@@ -67,13 +67,11 @@ const exitUsage = 2
 type host struct {
 	exec    vm.Execer
 	secrets ward.Secrets
-	// open shows a URL in the user's browser; nil is macOS's `open`.
-	open func(url string) error
 }
 
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	h := host{exec: vm.OSExecer{BinDirs: nil}, secrets: ward.NewKeychain(), open: nil}
+	h := host{exec: vm.OSExecer{BinDirs: nil}, secrets: ward.NewKeychain()}
 	code := run(ctx, h, os.Args[1:], os.Stdin, os.Stdout, os.Stderr)
 	stop()
 	os.Exit(code)
