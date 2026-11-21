@@ -40,6 +40,7 @@ type RefreshTokenRow struct {
 	ID        uuid.UUID
 	UserID    string
 	AAL       string
+	AuthTime  time.Time
 	ExpiresAt time.Time
 }
 
@@ -81,7 +82,7 @@ type usersStore interface {
 	DeleteRecoveryCodes(ctx context.Context, userID string) error
 
 	CreateRefreshToken(
-		ctx context.Context, userID, tokenHash, aal string, expiresAt time.Time,
+		ctx context.Context, userID, tokenHash, aal string, authTime, expiresAt time.Time,
 	) error
 	GetRefreshTokenByHash(
 		ctx context.Context, tokenHash string,
@@ -89,6 +90,8 @@ type usersStore interface {
 	DeleteRefreshToken(ctx context.Context, id uuid.UUID) (bool, error)
 	DeleteAllRefreshTokensForUser(ctx context.Context, userID string) error
 	RevokeOAuthGrants(ctx context.Context, userID string) error
+
+	passkeyStore
 
 	CreatePasswordResetToken(
 		ctx context.Context, userID, tokenHash string, expiresAt time.Time,
@@ -344,12 +347,13 @@ func (r *Repository) DeleteRecoveryCodes(
 func (r *Repository) CreateRefreshToken(
 	ctx context.Context,
 	userID, tokenHash, aal string,
-	expiresAt time.Time,
+	authTime, expiresAt time.Time,
 ) error {
 	_, err := r.db.Exec(ctx, `
-		INSERT INTO auth.refresh_tokens (user_id, token_hash, aal, expires_at)
-		VALUES ($1, $2, $3, $4)
-	`, userID, tokenHash, aal, expiresAt)
+		INSERT INTO auth.refresh_tokens
+			(user_id, token_hash, aal, auth_time, expires_at)
+		VALUES ($1, $2, $3, $4, $5)
+	`, userID, tokenHash, aal, authTime, expiresAt)
 	return err
 }
 
@@ -359,9 +363,9 @@ func (r *Repository) GetRefreshTokenByHash(
 ) (*RefreshTokenRow, error) {
 	var t RefreshTokenRow
 	err := r.db.QueryRow(ctx, `
-		SELECT id, user_id, aal, expires_at FROM auth.refresh_tokens
+		SELECT id, user_id, aal, auth_time, expires_at FROM auth.refresh_tokens
 		WHERE token_hash = $1
-	`, tokenHash).Scan(&t.ID, &t.UserID, &t.AAL, &t.ExpiresAt)
+	`, tokenHash).Scan(&t.ID, &t.UserID, &t.AAL, &t.AuthTime, &t.ExpiresAt)
 	if err != nil {
 		return nil, wrapNotFound(err)
 	}

@@ -21,6 +21,7 @@ import { ErrorState, LoadingState } from '@/components/ui/states'
 import { swrKeys } from '@/lib/swrKeys'
 import { PageContainer } from '@/components/ui/page-container'
 import { McpSetupSection } from '@/components/settings/McpSetupSection'
+import { PasskeysSection } from '@/components/settings/PasskeysSection'
 import { TabBarSection } from '@/components/settings/TabBarSection'
 import { AppearanceSection } from '@/components/settings/AppearanceSection'
 import RecoveryCodesDialog from '@/components/settings/RecoveryCodesDialog'
@@ -325,6 +326,8 @@ export default function SettingsPage() {
             </div>
           ) : null}
         </SettingsSection>
+
+        <PasskeysSection />
 
         <TabBarSection />
 

@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file auth/v1/auth.proto.
  */
 export const file_auth_v1_auth: GenFile = /*@__PURE__*/
-  fileDesc("ChJhdXRoL3YxL2F1dGgucHJvdG8SB2F1dGgudjEiVwoNU2lnbkluUmVxdWVzdBINCgVlbWFpbBgBIAEoCRIQCghwYXNzd29yZBgCIAEoCRITCgtyZW1lbWJlcl9tZRgDIAEoCBIQCghyZWRpcmVjdBgEIAEoCSI3Cg5TaWduSW5SZXNwb25zZRIRCgluZWVkc19tZmEYASABKAgSEgoKZW5yb2xsX21mYRgCIAEoCCISChBNRkFFbnJvbGxSZXF1ZXN0IkYKEU1GQUVucm9sbFJlc3BvbnNlEg4KBnFyX3N2ZxgBIAEoCRIOCgZzZWNyZXQYAiABKAkSEQoJZmFjdG9yX2lkGAMgASgJIjkKFk1GQUVucm9sbFZlcmlmeVJlcXVlc3QSEQoJZmFjdG9yX2lkGAEgASgJEgwKBGNvZGUYAiABKAkiMQoXTUZBRW5yb2xsVmVyaWZ5UmVzcG9uc2USFgoOcmVjb3ZlcnlfY29kZXMYASADKAkiFgoUTUZBRW5yb2xsU2tpcFJlcXVlc3QiFwoVTUZBRW5yb2xsU2tpcFJlc3BvbnNlIiIKEk1GQVVuZW5yb2xsUmVxdWVzdBIMCgRjb2RlGAEgASgJIhUKE01GQVVuZW5yb2xsUmVzcG9uc2UiIwoTTUZBQ2hhbGxlbmdlUmVxdWVzdBIMCgRjb2RlGAEgASgJIhYKFE1GQUNoYWxsZW5nZVJlc3BvbnNlIiYKFUZvcmdvdFBhc3N3b3JkUmVxdWVzdBINCgVlbWFpbBgBIAEoCSIYChZGb3Jnb3RQYXNzd29yZFJlc3BvbnNlIkMKFEV4Y2hhbmdlVG9rZW5SZXF1ZXN0EhQKDGFjY2Vzc190b2tlbhgBIAEoCRIVCg1yZWZyZXNoX3Rva2VuGAIgASgJIioKFUV4Y2hhbmdlVG9rZW5SZXNwb25zZRIRCgluZWVkc19tZmEYASABKAgiRwoVVXBkYXRlUGFzc3dvcmRSZXF1ZXN0EhQKDG5ld19wYXNzd29yZBgBIAEoCRIYChBjdXJyZW50X3Bhc3N3b3JkGAIgASgJIhgKFlVwZGF0ZVBhc3N3b3JkUmVzcG9uc2UiEAoOU2lnbk91dFJlcXVlc3QiEQoPU2lnbk91dFJlc3BvbnNlIhcKFUdldEN1cnJlbnRVc2VyUmVxdWVzdCK5AQoWR2V0Q3VycmVudFVzZXJSZXNwb25zZRIMCgRyb2xlGAEgASgJEhIKCmFwcF9hY2Nlc3MYAiADKAkSDwoHaGFzX21mYRgDIAEoCBIUCgxkaXNwbGF5X25hbWUYBCABKAkSDwoHdXNlcl9pZBgFIAEoCRIQCgh0YWJfcGlucxgGIAMoCRIbChN0YWJfcGluc19jdXN0b21pc2VkGAcgASgIEhYKDnN1Z2dlc3RlZF9waW5zGAggAygJIiMKFFJlY29yZEFwcE9wZW5SZXF1ZXN0EgsKA2FwcBgBIAEoCSIXChVSZWNvcmRBcHBPcGVuUmVzcG9uc2UiJQoRU2V0VGFiUGluc1JlcXVlc3QSEAoIdGFiX3BpbnMYASADKAkiFAoSU2V0VGFiUGluc1Jlc3BvbnNlIjsKFFJlc2V0UGFzc3dvcmRSZXF1ZXN0Eg0KBXRva2VuGAEgASgJEhQKDG5ld19wYXNzd29yZBgCIAEoCSIXChVSZXNldFBhc3N3b3JkUmVzcG9uc2UiLgoeUmVnZW5lcmF0ZVJlY292ZXJ5Q29kZXNSZXF1ZXN0EgwKBGNvZGUYASABKAkiOQofUmVnZW5lcmF0ZVJlY292ZXJ5Q29kZXNSZXNwb25zZRIWCg5yZWNvdmVyeV9jb2RlcxgBIAMoCTKlCQoLQXV0aFNlcnZpY2USOQoGU2lnbkluEhYuYXV0aC52MS5TaWduSW5SZXF1ZXN0GhcuYXV0aC52MS5TaWduSW5SZXNwb25zZRJCCglNRkFFbnJvbGwSGS5hdXRoLnYxLk1GQUVucm9sbFJlcXVlc3QaGi5hdXRoLnYxLk1GQUVucm9sbFJlc3BvbnNlElQKD01GQUVucm9sbFZlcmlmeRIfLmF1dGgudjEuTUZBRW5yb2xsVmVyaWZ5UmVxdWVzdBogLmF1dGgudjEuTUZBRW5yb2xsVmVyaWZ5UmVzcG9uc2USTgoNTUZBRW5yb2xsU2tpcBIdLmF1dGgudjEuTUZBRW5yb2xsU2tpcFJlcXVlc3QaHi5hdXRoLnYxLk1GQUVucm9sbFNraXBSZXNwb25zZRJLCgxNRkFDaGFsbGVuZ2USHC5hdXRoLnYxLk1GQUNoYWxsZW5nZVJlcXVlc3QaHS5hdXRoLnYxLk1GQUNoYWxsZW5nZVJlc3BvbnNlEkgKC01GQVVuZW5yb2xsEhsuYXV0aC52MS5NRkFVbmVucm9sbFJlcXVlc3QaHC5hdXRoLnYxLk1GQVVuZW5yb2xsUmVzcG9uc2USUQoORm9yZ290UGFzc3dvcmQSHi5hdXRoLnYxLkZvcmdvdFBhc3N3b3JkUmVxdWVzdBofLmF1dGgudjEuRm9yZ290UGFzc3dvcmRSZXNwb25zZRJOCg1FeGNoYW5nZVRva2VuEh0uYXV0aC52MS5FeGNoYW5nZVRva2VuUmVxdWVzdBoeLmF1dGgudjEuRXhjaGFuZ2VUb2tlblJlc3BvbnNlElEKDlVwZGF0ZVBhc3N3b3JkEh4uYXV0aC52MS5VcGRhdGVQYXNzd29yZFJlcXVlc3QaHy5hdXRoLnYxLlVwZGF0ZVBhc3N3b3JkUmVzcG9uc2USPAoHU2lnbk91dBIXLmF1dGgudjEuU2lnbk91dFJlcXVlc3QaGC5hdXRoLnYxLlNpZ25PdXRSZXNwb25zZRJRCg5HZXRDdXJyZW50VXNlchIeLmF1dGgudjEuR2V0Q3VycmVudFVzZXJSZXF1ZXN0Gh8uYXV0aC52MS5HZXRDdXJyZW50VXNlclJlc3BvbnNlEk4KDVJlc2V0UGFzc3dvcmQSHS5hdXRoLnYxLlJlc2V0UGFzc3dvcmRSZXF1ZXN0Gh4uYXV0aC52MS5SZXNldFBhc3N3b3JkUmVzcG9uc2USbAoXUmVnZW5lcmF0ZVJlY292ZXJ5Q29kZXMSJy5hdXRoLnYxLlJlZ2VuZXJhdGVSZWNvdmVyeUNvZGVzUmVxdWVzdBooLmF1dGgudjEuUmVnZW5lcmF0ZVJlY292ZXJ5Q29kZXNSZXNwb25zZRJFCgpTZXRUYWJQaW5zEhouYXV0aC52MS5TZXRUYWJQaW5zUmVxdWVzdBobLmF1dGgudjEuU2V0VGFiUGluc1Jlc3BvbnNlEk4KDVJlY29yZEFwcE9wZW4SHS5hdXRoLnYxLlJlY29yZEFwcE9wZW5SZXF1ZXN0Gh4uYXV0aC52MS5SZWNvcmRBcHBPcGVuUmVzcG9uc2VCJ1oldG9vbHMueGRvdWJsZXUuY29tL2dlbi9hdXRoL3YxO2F1dGh2MWIGcHJvdG8z");
+  fileDesc("ChJhdXRoL3YxL2F1dGgucHJvdG8SB2F1dGgudjEiVwoNU2lnbkluUmVxdWVzdBINCgVlbWFpbBgBIAEoCRIQCghwYXNzd29yZBgCIAEoCRITCgtyZW1lbWJlcl9tZRgDIAEoCBIQCghyZWRpcmVjdBgEIAEoCSI3Cg5TaWduSW5SZXNwb25zZRIRCgluZWVkc19tZmEYASABKAgSEgoKZW5yb2xsX21mYRgCIAEoCCISChBNRkFFbnJvbGxSZXF1ZXN0IkYKEU1GQUVucm9sbFJlc3BvbnNlEg4KBnFyX3N2ZxgBIAEoCRIOCgZzZWNyZXQYAiABKAkSEQoJZmFjdG9yX2lkGAMgASgJIjkKFk1GQUVucm9sbFZlcmlmeVJlcXVlc3QSEQoJZmFjdG9yX2lkGAEgASgJEgwKBGNvZGUYAiABKAkiMQoXTUZBRW5yb2xsVmVyaWZ5UmVzcG9uc2USFgoOcmVjb3ZlcnlfY29kZXMYASADKAkiFgoUTUZBRW5yb2xsU2tpcFJlcXVlc3QiFwoVTUZBRW5yb2xsU2tpcFJlc3BvbnNlIiIKEk1GQVVuZW5yb2xsUmVxdWVzdBIMCgRjb2RlGAEgASgJIhUKE01GQVVuZW5yb2xsUmVzcG9uc2UiIwoTTUZBQ2hhbGxlbmdlUmVxdWVzdBIMCgRjb2RlGAEgASgJIhYKFE1GQUNoYWxsZW5nZVJlc3BvbnNlIiYKFUZvcmdvdFBhc3N3b3JkUmVxdWVzdBINCgVlbWFpbBgBIAEoCSIYChZGb3Jnb3RQYXNzd29yZFJlc3BvbnNlIkMKFEV4Y2hhbmdlVG9rZW5SZXF1ZXN0EhQKDGFjY2Vzc190b2tlbhgBIAEoCRIVCg1yZWZyZXNoX3Rva2VuGAIgASgJIioKFUV4Y2hhbmdlVG9rZW5SZXNwb25zZRIRCgluZWVkc19tZmEYASABKAgiRwoVVXBkYXRlUGFzc3dvcmRSZXF1ZXN0EhQKDG5ld19wYXNzd29yZBgBIAEoCRIYChBjdXJyZW50X3Bhc3N3b3JkGAIgASgJIhgKFlVwZGF0ZVBhc3N3b3JkUmVzcG9uc2UiEAoOU2lnbk91dFJlcXVlc3QiEQoPU2lnbk91dFJlc3BvbnNlIhcKFUdldEN1cnJlbnRVc2VyUmVxdWVzdCK5AQoWR2V0Q3VycmVudFVzZXJSZXNwb25zZRIMCgRyb2xlGAEgASgJEhIKCmFwcF9hY2Nlc3MYAiADKAkSDwoHaGFzX21mYRgDIAEoCBIUCgxkaXNwbGF5X25hbWUYBCABKAkSDwoHdXNlcl9pZBgFIAEoCRIQCgh0YWJfcGlucxgGIAMoCRIbChN0YWJfcGluc19jdXN0b21pc2VkGAcgASgIEhYKDnN1Z2dlc3RlZF9waW5zGAggAygJIiMKFFJlY29yZEFwcE9wZW5SZXF1ZXN0EgsKA2FwcBgBIAEoCSIXChVSZWNvcmRBcHBPcGVuUmVzcG9uc2UiJQoRU2V0VGFiUGluc1JlcXVlc3QSEAoIdGFiX3BpbnMYASADKAkiFAoSU2V0VGFiUGluc1Jlc3BvbnNlIjsKFFJlc2V0UGFzc3dvcmRSZXF1ZXN0Eg0KBXRva2VuGAEgASgJEhQKDG5ld19wYXNzd29yZBgCIAEoCSIXChVSZXNldFBhc3N3b3JkUmVzcG9uc2UiLgoeUmVnZW5lcmF0ZVJlY292ZXJ5Q29kZXNSZXF1ZXN0EgwKBGNvZGUYASABKAkiOQofUmVnZW5lcmF0ZVJlY292ZXJ5Q29kZXNSZXNwb25zZRIWCg5yZWNvdmVyeV9jb2RlcxgBIAMoCSIdChtQYXNza2V5UmVnaXN0ZXJCZWdpblJlcXVlc3QiNAocUGFzc2tleVJlZ2lzdGVyQmVnaW5SZXNwb25zZRIUCgxvcHRpb25zX2pzb24YASABKAkiRQocUGFzc2tleVJlZ2lzdGVyRmluaXNoUmVxdWVzdBIXCg9jcmVkZW50aWFsX2pzb24YASABKAkSDAoEbmFtZRgCIAEoCSJCCh1QYXNza2V5UmVnaXN0ZXJGaW5pc2hSZXNwb25zZRIhCgdwYXNza2V5GAEgASgLMhAuYXV0aC52MS5QYXNza2V5Ik0KB1Bhc3NrZXkSCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRISCgpjcmVhdGVkX2F0GAMgASgJEhQKDGxhc3RfdXNlZF9hdBgEIAEoCSIVChNMaXN0UGFzc2tleXNSZXF1ZXN0IjoKFExpc3RQYXNza2V5c1Jlc3BvbnNlEiIKCHBhc3NrZXlzGAEgAygLMhAuYXV0aC52MS5QYXNza2V5IjAKFFJlbmFtZVBhc3NrZXlSZXF1ZXN0EgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkiFwoVUmVuYW1lUGFzc2tleVJlc3BvbnNlIiIKFFJlbW92ZVBhc3NrZXlSZXF1ZXN0EgoKAmlkGAEgASgJIhcKFVJlbW92ZVBhc3NrZXlSZXNwb25zZTLfDAoLQXV0aFNlcnZpY2USOQoGU2lnbkluEhYuYXV0aC52MS5TaWduSW5SZXF1ZXN0GhcuYXV0aC52MS5TaWduSW5SZXNwb25zZRJCCglNRkFFbnJvbGwSGS5hdXRoLnYxLk1GQUVucm9sbFJlcXVlc3QaGi5hdXRoLnYxLk1GQUVucm9sbFJlc3BvbnNlElQKD01GQUVucm9sbFZlcmlmeRIfLmF1dGgudjEuTUZBRW5yb2xsVmVyaWZ5UmVxdWVzdBogLmF1dGgudjEuTUZBRW5yb2xsVmVyaWZ5UmVzcG9uc2USTgoNTUZBRW5yb2xsU2tpcBIdLmF1dGgudjEuTUZBRW5yb2xsU2tpcFJlcXVlc3QaHi5hdXRoLnYxLk1GQUVucm9sbFNraXBSZXNwb25zZRJLCgxNRkFDaGFsbGVuZ2USHC5hdXRoLnYxLk1GQUNoYWxsZW5nZVJlcXVlc3QaHS5hdXRoLnYxLk1GQUNoYWxsZW5nZVJlc3BvbnNlEkgKC01GQVVuZW5yb2xsEhsuYXV0aC52MS5NRkFVbmVucm9sbFJlcXVlc3QaHC5hdXRoLnYxLk1GQVVuZW5yb2xsUmVzcG9uc2USUQoORm9yZ290UGFzc3dvcmQSHi5hdXRoLnYxLkZvcmdvdFBhc3N3b3JkUmVxdWVzdBofLmF1dGgudjEuRm9yZ290UGFzc3dvcmRSZXNwb25zZRJOCg1FeGNoYW5nZVRva2VuEh0uYXV0aC52MS5FeGNoYW5nZVRva2VuUmVxdWVzdBoeLmF1dGgudjEuRXhjaGFuZ2VUb2tlblJlc3BvbnNlElEKDlVwZGF0ZVBhc3N3b3JkEh4uYXV0aC52MS5VcGRhdGVQYXNzd29yZFJlcXVlc3QaHy5hdXRoLnYxLlVwZGF0ZVBhc3N3b3JkUmVzcG9uc2USPAoHU2lnbk91dBIXLmF1dGgudjEuU2lnbk91dFJlcXVlc3QaGC5hdXRoLnYxLlNpZ25PdXRSZXNwb25zZRJRCg5HZXRDdXJyZW50VXNlchIeLmF1dGgudjEuR2V0Q3VycmVudFVzZXJSZXF1ZXN0Gh8uYXV0aC52MS5HZXRDdXJyZW50VXNlclJlc3BvbnNlEk4KDVJlc2V0UGFzc3dvcmQSHS5hdXRoLnYxLlJlc2V0UGFzc3dvcmRSZXF1ZXN0Gh4uYXV0aC52MS5SZXNldFBhc3N3b3JkUmVzcG9uc2USbAoXUmVnZW5lcmF0ZVJlY292ZXJ5Q29kZXMSJy5hdXRoLnYxLlJlZ2VuZXJhdGVSZWNvdmVyeUNvZGVzUmVxdWVzdBooLmF1dGgudjEuUmVnZW5lcmF0ZVJlY292ZXJ5Q29kZXNSZXNwb25zZRJFCgpTZXRUYWJQaW5zEhouYXV0aC52MS5TZXRUYWJQaW5zUmVxdWVzdBobLmF1dGgudjEuU2V0VGFiUGluc1Jlc3BvbnNlEk4KDVJlY29yZEFwcE9wZW4SHS5hdXRoLnYxLlJlY29yZEFwcE9wZW5SZXF1ZXN0Gh4uYXV0aC52MS5SZWNvcmRBcHBPcGVuUmVzcG9uc2USYwoUUGFzc2tleVJlZ2lzdGVyQmVnaW4SJC5hdXRoLnYxLlBhc3NrZXlSZWdpc3RlckJlZ2luUmVxdWVzdBolLmF1dGgudjEuUGFzc2tleVJlZ2lzdGVyQmVnaW5SZXNwb25zZRJmChVQYXNza2V5UmVnaXN0ZXJGaW5pc2gSJS5hdXRoLnYxLlBhc3NrZXlSZWdpc3RlckZpbmlzaFJlcXVlc3QaJi5hdXRoLnYxLlBhc3NrZXlSZWdpc3RlckZpbmlzaFJlc3BvbnNlEksKDExpc3RQYXNza2V5cxIcLmF1dGgudjEuTGlzdFBhc3NrZXlzUmVxdWVzdBodLmF1dGgudjEuTGlzdFBhc3NrZXlzUmVzcG9uc2USTgoNUmVuYW1lUGFzc2tleRIdLmF1dGgudjEuUmVuYW1lUGFzc2tleVJlcXVlc3QaHi5hdXRoLnYxLlJlbmFtZVBhc3NrZXlSZXNwb25zZRJOCg1SZW1vdmVQYXNza2V5Eh0uYXV0aC52MS5SZW1vdmVQYXNza2V5UmVxdWVzdBoeLmF1dGgudjEuUmVtb3ZlUGFzc2tleVJlc3BvbnNlQidaJXRvb2xzLnhkb3VibGV1LmNvbS9nZW4vYXV0aC92MTthdXRodjFiBnByb3RvMw");
 
 /**
  * @generated from message auth.v1.SignInRequest
@@ -576,6 +576,211 @@ export const RegenerateRecoveryCodesResponseSchema: GenMessage<RegenerateRecover
   messageDesc(file_auth_v1_auth, 29);
 
 /**
+ * @generated from message auth.v1.PasskeyRegisterBeginRequest
+ */
+export type PasskeyRegisterBeginRequest = Message<"auth.v1.PasskeyRegisterBeginRequest"> & {
+};
+
+/**
+ * Describes the message auth.v1.PasskeyRegisterBeginRequest.
+ * Use `create(PasskeyRegisterBeginRequestSchema)` to create a new message.
+ */
+export const PasskeyRegisterBeginRequestSchema: GenMessage<PasskeyRegisterBeginRequest> = /*@__PURE__*/
+  messageDesc(file_auth_v1_auth, 30);
+
+/**
+ * @generated from message auth.v1.PasskeyRegisterBeginResponse
+ */
+export type PasskeyRegisterBeginResponse = Message<"auth.v1.PasskeyRegisterBeginResponse"> & {
+  /**
+   * PublicKeyCredentialCreationOptionsJSON for navigator.credentials.create().
+   *
+   * @generated from field: string options_json = 1;
+   */
+  optionsJson: string;
+};
+
+/**
+ * Describes the message auth.v1.PasskeyRegisterBeginResponse.
+ * Use `create(PasskeyRegisterBeginResponseSchema)` to create a new message.
+ */
+export const PasskeyRegisterBeginResponseSchema: GenMessage<PasskeyRegisterBeginResponse> = /*@__PURE__*/
+  messageDesc(file_auth_v1_auth, 31);
+
+/**
+ * @generated from message auth.v1.PasskeyRegisterFinishRequest
+ */
+export type PasskeyRegisterFinishRequest = Message<"auth.v1.PasskeyRegisterFinishRequest"> & {
+  /**
+   * JSON of the credential navigator.credentials.create() returned
+   * (RegistrationResponseJSON).
+   *
+   * @generated from field: string credential_json = 1;
+   */
+  credentialJson: string;
+
+  /**
+   * @generated from field: string name = 2;
+   */
+  name: string;
+};
+
+/**
+ * Describes the message auth.v1.PasskeyRegisterFinishRequest.
+ * Use `create(PasskeyRegisterFinishRequestSchema)` to create a new message.
+ */
+export const PasskeyRegisterFinishRequestSchema: GenMessage<PasskeyRegisterFinishRequest> = /*@__PURE__*/
+  messageDesc(file_auth_v1_auth, 32);
+
+/**
+ * @generated from message auth.v1.PasskeyRegisterFinishResponse
+ */
+export type PasskeyRegisterFinishResponse = Message<"auth.v1.PasskeyRegisterFinishResponse"> & {
+  /**
+   * @generated from field: auth.v1.Passkey passkey = 1;
+   */
+  passkey?: Passkey | undefined;
+};
+
+/**
+ * Describes the message auth.v1.PasskeyRegisterFinishResponse.
+ * Use `create(PasskeyRegisterFinishResponseSchema)` to create a new message.
+ */
+export const PasskeyRegisterFinishResponseSchema: GenMessage<PasskeyRegisterFinishResponse> = /*@__PURE__*/
+  messageDesc(file_auth_v1_auth, 33);
+
+/**
+ * @generated from message auth.v1.Passkey
+ */
+export type Passkey = Message<"auth.v1.Passkey"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: string name = 2;
+   */
+  name: string;
+
+  /**
+   * RFC 3339.
+   *
+   * @generated from field: string created_at = 3;
+   */
+  createdAt: string;
+
+  /**
+   * RFC 3339; empty until the passkey has been used.
+   *
+   * @generated from field: string last_used_at = 4;
+   */
+  lastUsedAt: string;
+};
+
+/**
+ * Describes the message auth.v1.Passkey.
+ * Use `create(PasskeySchema)` to create a new message.
+ */
+export const PasskeySchema: GenMessage<Passkey> = /*@__PURE__*/
+  messageDesc(file_auth_v1_auth, 34);
+
+/**
+ * @generated from message auth.v1.ListPasskeysRequest
+ */
+export type ListPasskeysRequest = Message<"auth.v1.ListPasskeysRequest"> & {
+};
+
+/**
+ * Describes the message auth.v1.ListPasskeysRequest.
+ * Use `create(ListPasskeysRequestSchema)` to create a new message.
+ */
+export const ListPasskeysRequestSchema: GenMessage<ListPasskeysRequest> = /*@__PURE__*/
+  messageDesc(file_auth_v1_auth, 35);
+
+/**
+ * @generated from message auth.v1.ListPasskeysResponse
+ */
+export type ListPasskeysResponse = Message<"auth.v1.ListPasskeysResponse"> & {
+  /**
+   * @generated from field: repeated auth.v1.Passkey passkeys = 1;
+   */
+  passkeys: Passkey[];
+};
+
+/**
+ * Describes the message auth.v1.ListPasskeysResponse.
+ * Use `create(ListPasskeysResponseSchema)` to create a new message.
+ */
+export const ListPasskeysResponseSchema: GenMessage<ListPasskeysResponse> = /*@__PURE__*/
+  messageDesc(file_auth_v1_auth, 36);
+
+/**
+ * @generated from message auth.v1.RenamePasskeyRequest
+ */
+export type RenamePasskeyRequest = Message<"auth.v1.RenamePasskeyRequest"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: string name = 2;
+   */
+  name: string;
+};
+
+/**
+ * Describes the message auth.v1.RenamePasskeyRequest.
+ * Use `create(RenamePasskeyRequestSchema)` to create a new message.
+ */
+export const RenamePasskeyRequestSchema: GenMessage<RenamePasskeyRequest> = /*@__PURE__*/
+  messageDesc(file_auth_v1_auth, 37);
+
+/**
+ * @generated from message auth.v1.RenamePasskeyResponse
+ */
+export type RenamePasskeyResponse = Message<"auth.v1.RenamePasskeyResponse"> & {
+};
+
+/**
+ * Describes the message auth.v1.RenamePasskeyResponse.
+ * Use `create(RenamePasskeyResponseSchema)` to create a new message.
+ */
+export const RenamePasskeyResponseSchema: GenMessage<RenamePasskeyResponse> = /*@__PURE__*/
+  messageDesc(file_auth_v1_auth, 38);
+
+/**
+ * @generated from message auth.v1.RemovePasskeyRequest
+ */
+export type RemovePasskeyRequest = Message<"auth.v1.RemovePasskeyRequest"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+};
+
+/**
+ * Describes the message auth.v1.RemovePasskeyRequest.
+ * Use `create(RemovePasskeyRequestSchema)` to create a new message.
+ */
+export const RemovePasskeyRequestSchema: GenMessage<RemovePasskeyRequest> = /*@__PURE__*/
+  messageDesc(file_auth_v1_auth, 39);
+
+/**
+ * @generated from message auth.v1.RemovePasskeyResponse
+ */
+export type RemovePasskeyResponse = Message<"auth.v1.RemovePasskeyResponse"> & {
+};
+
+/**
+ * Describes the message auth.v1.RemovePasskeyResponse.
+ * Use `create(RemovePasskeyResponseSchema)` to create a new message.
+ */
+export const RemovePasskeyResponseSchema: GenMessage<RemovePasskeyResponse> = /*@__PURE__*/
+  messageDesc(file_auth_v1_auth, 40);
+
+/**
  * @generated from service auth.v1.AuthService
  */
 export const AuthService: GenService<{
@@ -698,6 +903,49 @@ export const AuthService: GenService<{
     methodKind: "unary";
     input: typeof RecordAppOpenRequestSchema;
     output: typeof RecordAppOpenResponseSchema;
+  },
+  /**
+   * Adding or removing a passkey needs a sign-in within the last 5 minutes
+   * (FAILED_PRECONDITION otherwise: reauthenticate and retry).
+   *
+   * @generated from rpc auth.v1.AuthService.PasskeyRegisterBegin
+   */
+  passkeyRegisterBegin: {
+    methodKind: "unary";
+    input: typeof PasskeyRegisterBeginRequestSchema;
+    output: typeof PasskeyRegisterBeginResponseSchema;
+  },
+  /**
+   * @generated from rpc auth.v1.AuthService.PasskeyRegisterFinish
+   */
+  passkeyRegisterFinish: {
+    methodKind: "unary";
+    input: typeof PasskeyRegisterFinishRequestSchema;
+    output: typeof PasskeyRegisterFinishResponseSchema;
+  },
+  /**
+   * @generated from rpc auth.v1.AuthService.ListPasskeys
+   */
+  listPasskeys: {
+    methodKind: "unary";
+    input: typeof ListPasskeysRequestSchema;
+    output: typeof ListPasskeysResponseSchema;
+  },
+  /**
+   * @generated from rpc auth.v1.AuthService.RenamePasskey
+   */
+  renamePasskey: {
+    methodKind: "unary";
+    input: typeof RenamePasskeyRequestSchema;
+    output: typeof RenamePasskeyResponseSchema;
+  },
+  /**
+   * @generated from rpc auth.v1.AuthService.RemovePasskey
+   */
+  removePasskey: {
+    methodKind: "unary";
+    input: typeof RemovePasskeyRequestSchema;
+    output: typeof RemovePasskeyResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_auth_v1_auth, 0);

@@ -18,6 +18,13 @@ service AuthService {
   rpc RegenerateRecoveryCodes(RegenerateRecoveryCodesRequest) returns (RegenerateRecoveryCodesResponse);
   rpc SetTabPins(SetTabPinsRequest) returns (SetTabPinsResponse);
   rpc RecordAppOpen(RecordAppOpenRequest) returns (RecordAppOpenResponse);
+  // Adding or removing a passkey needs a sign-in within the last 5 minutes
+  // (FAILED_PRECONDITION otherwise: reauthenticate and retry).
+  rpc PasskeyRegisterBegin(PasskeyRegisterBeginRequest) returns (PasskeyRegisterBeginResponse);
+  rpc PasskeyRegisterFinish(PasskeyRegisterFinishRequest) returns (PasskeyRegisterFinishResponse);
+  rpc ListPasskeys(ListPasskeysRequest) returns (ListPasskeysResponse);
+  rpc RenamePasskey(RenamePasskeyRequest) returns (RenamePasskeyResponse);
+  rpc RemovePasskey(RemovePasskeyRequest) returns (RemovePasskeyResponse);
 }
 
 message SignInRequest {
@@ -142,3 +149,49 @@ message RegenerateRecoveryCodesRequest {
 message RegenerateRecoveryCodesResponse {
   repeated string recovery_codes = 1;
 }
+
+message PasskeyRegisterBeginRequest {}
+
+message PasskeyRegisterBeginResponse {
+  // PublicKeyCredentialCreationOptionsJSON for navigator.credentials.create().
+  string options_json = 1;
+}
+
+message PasskeyRegisterFinishRequest {
+  // JSON of the credential navigator.credentials.create() returned
+  // (RegistrationResponseJSON).
+  string credential_json = 1;
+  string name = 2;
+}
+
+message PasskeyRegisterFinishResponse {
+  Passkey passkey = 1;
+}
+
+message Passkey {
+  string id = 1;
+  string name = 2;
+  // RFC 3339.
+  string created_at = 3;
+  // RFC 3339; empty until the passkey has been used.
+  string last_used_at = 4;
+}
+
+message ListPasskeysRequest {}
+
+message ListPasskeysResponse {
+  repeated Passkey passkeys = 1;
+}
+
+message RenamePasskeyRequest {
+  string id = 1;
+  string name = 2;
+}
+
+message RenamePasskeyResponse {}
+
+message RemovePasskeyRequest {
+  string id = 1;
+}
+
+message RemovePasskeyResponse {}

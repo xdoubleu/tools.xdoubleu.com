@@ -56,6 +56,18 @@ const (
 	AuthServiceSetTabPinsProcedure = "/auth.v1.AuthService/SetTabPins"
 	// AuthServiceRecordAppOpenProcedure is the procedure name of the AuthService's RecordAppOpen RPC.
 	AuthServiceRecordAppOpenProcedure = "/auth.v1.AuthService/RecordAppOpen"
+	// AuthServicePasskeyRegisterBeginProcedure is the procedure name of the AuthService's
+	// PasskeyRegisterBegin RPC.
+	AuthServicePasskeyRegisterBeginProcedure = "/auth.v1.AuthService/PasskeyRegisterBegin"
+	// AuthServicePasskeyRegisterFinishProcedure is the procedure name of the AuthService's
+	// PasskeyRegisterFinish RPC.
+	AuthServicePasskeyRegisterFinishProcedure = "/auth.v1.AuthService/PasskeyRegisterFinish"
+	// AuthServiceListPasskeysProcedure is the procedure name of the AuthService's ListPasskeys RPC.
+	AuthServiceListPasskeysProcedure = "/auth.v1.AuthService/ListPasskeys"
+	// AuthServiceRenamePasskeyProcedure is the procedure name of the AuthService's RenamePasskey RPC.
+	AuthServiceRenamePasskeyProcedure = "/auth.v1.AuthService/RenamePasskey"
+	// AuthServiceRemovePasskeyProcedure is the procedure name of the AuthService's RemovePasskey RPC.
+	AuthServiceRemovePasskeyProcedure = "/auth.v1.AuthService/RemovePasskey"
 )
 
 var (
@@ -164,6 +176,41 @@ var (
 			Procedure:  AuthServiceRecordAppOpenProcedure,
 		}
 	})
+	authServicePasskeyRegisterBeginSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_auth_v1_auth_proto.Services().ByName("AuthService").Methods().ByName("PasskeyRegisterBegin"),
+			Procedure:  AuthServicePasskeyRegisterBeginProcedure,
+		}
+	})
+	authServicePasskeyRegisterFinishSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_auth_v1_auth_proto.Services().ByName("AuthService").Methods().ByName("PasskeyRegisterFinish"),
+			Procedure:  AuthServicePasskeyRegisterFinishProcedure,
+		}
+	})
+	authServiceListPasskeysSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_auth_v1_auth_proto.Services().ByName("AuthService").Methods().ByName("ListPasskeys"),
+			Procedure:  AuthServiceListPasskeysProcedure,
+		}
+	})
+	authServiceRenamePasskeySpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_auth_v1_auth_proto.Services().ByName("AuthService").Methods().ByName("RenamePasskey"),
+			Procedure:  AuthServiceRenamePasskeyProcedure,
+		}
+	})
+	authServiceRemovePasskeySpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_auth_v1_auth_proto.Services().ByName("AuthService").Methods().ByName("RemovePasskey"),
+			Procedure:  AuthServiceRemovePasskeyProcedure,
+		}
+	})
 )
 
 // AuthServiceClient is a client for the auth.v1.AuthService service.
@@ -183,6 +230,13 @@ type AuthServiceClient interface {
 	RegenerateRecoveryCodes(context.Context, *v1.RegenerateRecoveryCodesRequest) (*v1.RegenerateRecoveryCodesResponse, error)
 	SetTabPins(context.Context, *v1.SetTabPinsRequest) (*v1.SetTabPinsResponse, error)
 	RecordAppOpen(context.Context, *v1.RecordAppOpenRequest) (*v1.RecordAppOpenResponse, error)
+	// Adding or removing a passkey needs a sign-in within the last 5 minutes
+	// (FAILED_PRECONDITION otherwise: reauthenticate and retry).
+	PasskeyRegisterBegin(context.Context, *v1.PasskeyRegisterBeginRequest) (*v1.PasskeyRegisterBeginResponse, error)
+	PasskeyRegisterFinish(context.Context, *v1.PasskeyRegisterFinishRequest) (*v1.PasskeyRegisterFinishResponse, error)
+	ListPasskeys(context.Context, *v1.ListPasskeysRequest) (*v1.ListPasskeysResponse, error)
+	RenamePasskey(context.Context, *v1.RenamePasskeyRequest) (*v1.RenamePasskeyResponse, error)
+	RemovePasskey(context.Context, *v1.RemovePasskeyRequest) (*v1.RemovePasskeyResponse, error)
 }
 
 // NewAuthServiceClient constructs a client for the auth.v1.AuthService service. Multiple service
@@ -208,6 +262,13 @@ type AuthServiceHandler interface {
 	RegenerateRecoveryCodes(context.Context, *v1.RegenerateRecoveryCodesRequest) (*v1.RegenerateRecoveryCodesResponse, error)
 	SetTabPins(context.Context, *v1.SetTabPinsRequest) (*v1.SetTabPinsResponse, error)
 	RecordAppOpen(context.Context, *v1.RecordAppOpenRequest) (*v1.RecordAppOpenResponse, error)
+	// Adding or removing a passkey needs a sign-in within the last 5 minutes
+	// (FAILED_PRECONDITION otherwise: reauthenticate and retry).
+	PasskeyRegisterBegin(context.Context, *v1.PasskeyRegisterBeginRequest) (*v1.PasskeyRegisterBeginResponse, error)
+	PasskeyRegisterFinish(context.Context, *v1.PasskeyRegisterFinishRequest) (*v1.PasskeyRegisterFinishResponse, error)
+	ListPasskeys(context.Context, *v1.ListPasskeysRequest) (*v1.ListPasskeysResponse, error)
+	RenamePasskey(context.Context, *v1.RenamePasskeyRequest) (*v1.RenamePasskeyResponse, error)
+	RemovePasskey(context.Context, *v1.RemovePasskeyRequest) (*v1.RemovePasskeyResponse, error)
 }
 
 // RegisterAuthServiceHandler registers svc as the auth.v1.AuthService implementation on server.
@@ -229,6 +290,11 @@ func RegisterAuthServiceHandler(server *connect.Server, svc AuthServiceHandler) 
 		connect.Method{Spec: authServiceRegenerateRecoveryCodesSpec(), Handler: adapter.regenerateRecoveryCodes},
 		connect.Method{Spec: authServiceSetTabPinsSpec(), Handler: adapter.setTabPins},
 		connect.Method{Spec: authServiceRecordAppOpenSpec(), Handler: adapter.recordAppOpen},
+		connect.Method{Spec: authServicePasskeyRegisterBeginSpec(), Handler: adapter.passkeyRegisterBegin},
+		connect.Method{Spec: authServicePasskeyRegisterFinishSpec(), Handler: adapter.passkeyRegisterFinish},
+		connect.Method{Spec: authServiceListPasskeysSpec(), Handler: adapter.listPasskeys},
+		connect.Method{Spec: authServiceRenamePasskeySpec(), Handler: adapter.renamePasskey},
+		connect.Method{Spec: authServiceRemovePasskeySpec(), Handler: adapter.removePasskey},
 	)
 }
 
@@ -293,6 +359,26 @@ func (UnimplementedAuthServiceHandler) SetTabPins(context.Context, *v1.SetTabPin
 
 func (UnimplementedAuthServiceHandler) RecordAppOpen(context.Context, *v1.RecordAppOpenRequest) (*v1.RecordAppOpenResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "auth.v1.AuthService.RecordAppOpen is not implemented")
+}
+
+func (UnimplementedAuthServiceHandler) PasskeyRegisterBegin(context.Context, *v1.PasskeyRegisterBeginRequest) (*v1.PasskeyRegisterBeginResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "auth.v1.AuthService.PasskeyRegisterBegin is not implemented")
+}
+
+func (UnimplementedAuthServiceHandler) PasskeyRegisterFinish(context.Context, *v1.PasskeyRegisterFinishRequest) (*v1.PasskeyRegisterFinishResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "auth.v1.AuthService.PasskeyRegisterFinish is not implemented")
+}
+
+func (UnimplementedAuthServiceHandler) ListPasskeys(context.Context, *v1.ListPasskeysRequest) (*v1.ListPasskeysResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "auth.v1.AuthService.ListPasskeys is not implemented")
+}
+
+func (UnimplementedAuthServiceHandler) RenamePasskey(context.Context, *v1.RenamePasskeyRequest) (*v1.RenamePasskeyResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "auth.v1.AuthService.RenamePasskey is not implemented")
+}
+
+func (UnimplementedAuthServiceHandler) RemovePasskey(context.Context, *v1.RemovePasskeyRequest) (*v1.RemovePasskeyResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "auth.v1.AuthService.RemovePasskey is not implemented")
 }
 
 type authServiceClient struct {
@@ -414,6 +500,46 @@ func (c *authServiceClient) SetTabPins(ctx context.Context, req *v1.SetTabPinsRe
 func (c *authServiceClient) RecordAppOpen(ctx context.Context, req *v1.RecordAppOpenRequest) (*v1.RecordAppOpenResponse, error) {
 	var res v1.RecordAppOpenResponse
 	if err := c.client.CallUnary(ctx, authServiceRecordAppOpenSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *authServiceClient) PasskeyRegisterBegin(ctx context.Context, req *v1.PasskeyRegisterBeginRequest) (*v1.PasskeyRegisterBeginResponse, error) {
+	var res v1.PasskeyRegisterBeginResponse
+	if err := c.client.CallUnary(ctx, authServicePasskeyRegisterBeginSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *authServiceClient) PasskeyRegisterFinish(ctx context.Context, req *v1.PasskeyRegisterFinishRequest) (*v1.PasskeyRegisterFinishResponse, error) {
+	var res v1.PasskeyRegisterFinishResponse
+	if err := c.client.CallUnary(ctx, authServicePasskeyRegisterFinishSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *authServiceClient) ListPasskeys(ctx context.Context, req *v1.ListPasskeysRequest) (*v1.ListPasskeysResponse, error) {
+	var res v1.ListPasskeysResponse
+	if err := c.client.CallUnary(ctx, authServiceListPasskeysSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *authServiceClient) RenamePasskey(ctx context.Context, req *v1.RenamePasskeyRequest) (*v1.RenamePasskeyResponse, error) {
+	var res v1.RenamePasskeyResponse
+	if err := c.client.CallUnary(ctx, authServiceRenamePasskeySpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *authServiceClient) RemovePasskey(ctx context.Context, req *v1.RemovePasskeyRequest) (*v1.RemovePasskeyResponse, error) {
+	var res v1.RemovePasskeyResponse
+	if err := c.client.CallUnary(ctx, authServiceRemovePasskeySpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -595,6 +721,66 @@ func (h authServiceHandler) recordAppOpen(ctx context.Context, _ connect.Spec, s
 		return err
 	}
 	res, err := h.svc.RecordAppOpen(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h authServiceHandler) passkeyRegisterBegin(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.PasskeyRegisterBeginRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.PasskeyRegisterBegin(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h authServiceHandler) passkeyRegisterFinish(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.PasskeyRegisterFinishRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.PasskeyRegisterFinish(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h authServiceHandler) listPasskeys(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListPasskeysRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListPasskeys(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h authServiceHandler) renamePasskey(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.RenamePasskeyRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.RenamePasskey(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h authServiceHandler) removePasskey(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.RemovePasskeyRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.RemovePasskey(ctx, &req)
 	if err != nil {
 		return err
 	}

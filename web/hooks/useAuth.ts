@@ -82,3 +82,45 @@ export function useCurrentUser() {
     revalidateOnFocus: false
   })
 }
+
+export function usePasskeys() {
+  const client = createServiceClient(AuthService)
+  return useSWR(swrKeys.passkeys, async () => (await client.listPasskeys({})).passkeys)
+}
+
+export function useRenamePasskey() {
+  const client = createServiceClient(AuthService)
+  return (id: string, name: string) => client.renamePasskey({ id, name })
+}
+
+export function useRemovePasskey() {
+  const client = createServiceClient(AuthService)
+  return (id: string) => client.removePasskey({ id })
+}
+
+/** Whether this browser can create passkeys through the JSON helpers of the WebAuthn API. */
+export function passkeysSupported(): boolean {
+  return (
+    typeof window !== 'undefined' &&
+    typeof PublicKeyCredential !== 'undefined' &&
+    'parseCreationOptionsFromJSON' in PublicKeyCredential
+  )
+}
+
+/** Creates a passkey: the server's challenge, the authenticator prompt, then the server's verification. */
+export function useRegisterPasskey() {
+  const client = createServiceClient(AuthService)
+  return async (name: string) => {
+    const { optionsJson } = await client.passkeyRegisterBegin({})
+    const credential = await navigator.credentials.create({
+      publicKey: PublicKeyCredential.parseCreationOptionsFromJSON(JSON.parse(optionsJson))
+    })
+    if (!(credential instanceof PublicKeyCredential)) throw new Error('No passkey was created.')
+    return (
+      await client.passkeyRegisterFinish({
+        name,
+        credentialJson: JSON.stringify(credential.toJSON())
+      })
+    ).passkey
+  }
+}
