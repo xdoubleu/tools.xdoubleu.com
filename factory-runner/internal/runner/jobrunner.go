@@ -171,6 +171,13 @@ const preamble = `You are running unattended in a sandbox with no network ` +
 	`with factory_move_task and say why; Needs you is only for decisions a ` +
 	`person must make. A task parked while a new job image ships resumes on ` +
 	`its own. ` +
+	`Before coding, check the task fits one job: a migration plus new RPCs ` +
+	`plus a new UI, or several apps, does not (a 60-minute timeout with ` +
+	`nothing pushed is the cost). If it is clearly larger, file slices that ` +
+	`each fit one job with factory_create_task (Backlog, label ` +
+	"`epic:<slug>`" + `), comment their ids on the task with ` +
+	`factory_comment_task, and end the outcome with "Waiting-on: <slice ids>" ` +
+	`instead of attempting a partial change. ` +
 	`Nobody can answer questions while you run.`
 
 // JobRunner claims jobs from the server and runs each one in a sandbox.

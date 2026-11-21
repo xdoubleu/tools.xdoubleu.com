@@ -118,3 +118,11 @@ func TestThePreambleOffersAlreadyFixedForAProblemThatNoLongerReproduces(t *testi
 	require.NoError(t, err)
 	assert.Contains(t, env.sandbox.specs[0].Stdin, "Already-fixed: <evidence>")
 }
+
+func TestThePreambleSplitsATaskTooBigForOneJob(t *testing.T) {
+	env := newEnv(t, writes("Did it.", 0), newJob())
+	_, err := env.runner.Next(context.Background())
+	require.NoError(t, err)
+	assert.Contains(t, env.sandbox.specs[0].Stdin, "check the task fits one job")
+	assert.Contains(t, env.sandbox.specs[0].Stdin, "epic:<slug>")
+}
