@@ -5,16 +5,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
-	"net/http"
 	"net/url"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
 
-	"tools.xdoubleu.com/internal/config"
-	"tools.xdoubleu.com/internal/kit/safedial"
+	"tools.xdoubleu.com/apps/books/pkg/sniff"
 )
 
 // ErrCoverNotFound is returned when no cover is cached for the book.
@@ -24,21 +21,6 @@ const coverPresignTTL = 24 * time.Hour
 
 // maxCoverBytes guards against a source returning something huge.
 const maxCoverBytes = 20 * 1024 * 1024
-
-// coverFetchTimeout: GetBookCover's self-heal fetches inline in the public
-// cover handler, so a dead source must fail fast rather than outlive the
-// server's write timeout.
-const coverFetchTimeout = 5 * time.Second
-
-const maxCoverRedirects = 5
-
-// newCoverClient fetches cover URLs, which can be user-supplied; private
-// addresses are reachable only outside production.
-func newCoverClient(env string) *http.Client {
-	return safedial.Client(
-		coverFetchTimeout, maxCoverRedirects, env != config.ProdEnv,
-	)
-}
 
 // GetBookCoverResult holds the outcome of a successful GetBookCover call.
 type GetBookCoverResult struct {
@@ -127,36 +109,16 @@ func (s *BookService) cacheCoverFromURL(
 		return fmt.Errorf("cover url %q: only http(s) is allowed", coverURL)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, coverURL, nil)
+	if s.coverFetcher == nil {
+		return errors.New("no cover fetcher configured")
+	}
+	data, err := s.coverFetcher.Fetch(ctx, coverURL, maxCoverBytes)
 	if err != nil {
-		return fmt.Errorf("build cover request: %w", err)
-	}
-
-	client := s.coverClient
-	if client == nil {
-		client = newCoverClient(config.ProdEnv)
-	}
-	resp, err := client.Do(req)
-	if err != nil {
-		return fmt.Errorf("fetch cover: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode < http.StatusOK ||
-		resp.StatusCode >= http.StatusMultipleChoices {
-		return fmt.Errorf("fetch cover: %s returned %d", coverURL, resp.StatusCode)
-	}
-
-	data, err := io.ReadAll(io.LimitReader(resp.Body, maxCoverBytes+1))
-	if err != nil {
-		return fmt.Errorf("read cover body: %w", err)
-	}
-	if len(data) > maxCoverBytes {
-		return fmt.Errorf("cover from %s exceeds %d bytes", coverURL, maxCoverBytes)
+		return err
 	}
 
 	// Sniffed, not the upstream header, so only raster images are stored.
-	contentType := http.DetectContentType(data)
+	contentType := sniff.ContentType(data)
 	if !strings.HasPrefix(contentType, "image/") {
 		return fmt.Errorf("cover from %s is %s, not an image", coverURL, contentType)
 	}

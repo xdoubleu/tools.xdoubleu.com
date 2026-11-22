@@ -1204,8 +1204,13 @@ func (s *BookService) writeResyncResult(
 // GetSourceStats reports per-source scan coverage and uniqueness.
 func (s *BookService) GetSourceStats(
 	ctx context.Context,
-) (*repositories.SourceStats, error) {
-	return s.resyncSource.GetSourceStats(ctx)
+) (*SourceStats, error) {
+	stats, err := s.resyncSource.GetSourceStats(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out := SourceStats(*stats)
+	return &out, nil
 }
 
 // ListBooksInExactSources returns the books found by exactly the given sources.

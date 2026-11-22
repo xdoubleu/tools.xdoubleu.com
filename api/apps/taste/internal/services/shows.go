@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/http"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -12,7 +11,6 @@ import (
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/taste/internal/models"
-	"tools.xdoubleu.com/apps/taste/internal/repositories"
 	"tools.xdoubleu.com/apps/taste/pkg/itunes"
 	"tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/kit/database"
@@ -24,12 +22,19 @@ var ErrUpstream = errors.New("iTunes is unavailable")
 // minQueryLen keeps one-letter searches from hitting iTunes.
 const minQueryLen = 2
 
-func NewShowService(repo *repositories.ShowsRepository, c itunes.Client) *ShowService {
+type showStore interface {
+	Favourited(ctx context.Context, userID string, ids []int64) (map[int64]bool, error)
+	List(ctx context.Context, userID string) ([]models.Show, error)
+	Add(ctx context.Context, show models.Show) (*models.Show, error)
+	Remove(ctx context.Context, userID string, id uuid.UUID) error
+}
+
+func NewShowService(repo showStore, c itunes.Client) *ShowService {
 	return &ShowService{repo: repo, itunes: c}
 }
 
 type ShowService struct {
-	repo   *repositories.ShowsRepository
+	repo   showStore
 	itunes itunes.Client
 }
 
@@ -40,7 +45,7 @@ type SearchResult struct {
 }
 
 func badRequest(msg string) error {
-	return &app.HTTPError{Status: http.StatusBadRequest, Message: msg}
+	return app.NewBadRequestError(msg)
 }
 
 // Search finds shows by name; a query under two characters finds none.

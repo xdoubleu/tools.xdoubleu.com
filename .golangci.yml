@@ -113,12 +113,87 @@ linters:
               desc: platform may import only kit, never apps
         # Hexagonal apps (docs/convention-hexagonal-apps.md): adapters reach
         # persistence only through services; services stay transport-free.
-        # Every converted app is listed by path.
-        hexagonal-adapters:
+        # One pair of rules per converted app, in alphabetical order, so
+        # parallel conversions merge cleanly.
+        hexagonal-books-adapters:
           files:
-            - "**/apps/shoppinglist/connect/**"
-            - "**/apps/shoppinglist/mcp/**"
-            - "**/apps/shoppinglist/http/**"
+            - "**/apps/books/connect/**"
+            - "**/apps/books/mcp/**"
+            - "**/apps/books/http/**"
+            - "!**/*_test.go"
+          deny:
+            - pkg: tools.xdoubleu.com/apps/books/internal/repositories
+              desc: adapters call services, never repositories
+            - pkg: github.com/jackc/pgx
+              desc: adapters do not touch the database
+            - pkg: tools.xdoubleu.com/internal/kit/database/postgres
+              desc: adapters do not touch the database
+        hexagonal-books-services:
+          files:
+            - "**/apps/books/internal/services/**"
+            - "!**/*_test.go"
+          deny:
+            - pkg: connectrpc.com/connect
+              desc: services know no transport
+            - pkg: tools.xdoubleu.com/gen
+              desc: services use domain types, not generated protos
+            - pkg: github.com/jackc/pgx
+              desc: services reach storage through their own interfaces
+            - pkg: net/http
+              desc: services know no transport
+        hexagonal-feeds-adapters:
+          files:
+            - "**/apps/feeds/connect/**"
+            - "**/apps/feeds/mcp/**"
+            - "**/apps/feeds/http/**"
+            - "!**/*_test.go"
+          deny:
+            - pkg: tools.xdoubleu.com/apps/feeds/internal/repositories
+              desc: adapters call services, never repositories
+            - pkg: github.com/jackc/pgx
+              desc: adapters do not touch the database
+            - pkg: tools.xdoubleu.com/internal/kit/database/postgres
+              desc: adapters do not touch the database
+        hexagonal-feeds-services:
+          files:
+            - "**/apps/feeds/internal/services/**"
+            - "!**/*_test.go"
+          deny:
+            - pkg: connectrpc.com/connect
+              desc: services know no transport
+            - pkg: tools.xdoubleu.com/gen
+              desc: services use domain types, not generated protos
+            - pkg: github.com/jackc/pgx
+              desc: services reach storage through their own interfaces
+            - pkg: net/http
+              desc: services know no transport
+        hexagonal-games-adapters:
+          files:
+            - "**/apps/games/connect/**"
+            - "**/apps/games/mcp/**"
+            - "!**/*_test.go"
+          deny:
+            - pkg: tools.xdoubleu.com/apps/games/internal/repositories
+              desc: adapters call services, never repositories
+            - pkg: github.com/jackc/pgx
+              desc: adapters do not touch the database
+            - pkg: tools.xdoubleu.com/internal/kit/database/postgres
+              desc: adapters do not touch the database
+        hexagonal-games-services:
+          files:
+            - "**/apps/games/internal/services/**"
+            - "!**/*_test.go"
+          deny:
+            - pkg: connectrpc.com/connect
+              desc: services know no transport
+            - pkg: tools.xdoubleu.com/gen
+              desc: services use domain types, not generated protos
+            - pkg: github.com/jackc/pgx
+              desc: services reach storage through their own interfaces
+            - pkg: net/http
+              desc: services know no transport
+        hexagonal-movies-adapters:
+          files:
             - "**/apps/movies/connect/**"
             - "**/apps/movies/mcp/**"
             - "**/apps/movies/http/**"
@@ -127,8 +202,6 @@ linters:
             - "**/apps/mealplans/http/**"
             - "!**/*_test.go"
           deny:
-            - pkg: tools.xdoubleu.com/apps/shoppinglist/internal/repositories
-              desc: adapters call services, never repositories
             - pkg: tools.xdoubleu.com/apps/movies/internal/repositories
               desc: adapters call services, never repositories
             - pkg: tools.xdoubleu.com/apps/mealplans/internal/repositories
@@ -137,9 +210,8 @@ linters:
               desc: adapters do not touch the database
             - pkg: tools.xdoubleu.com/internal/kit/database/postgres
               desc: adapters do not touch the database
-        hexagonal-services:
+        hexagonal-movies-services:
           files:
-            - "**/apps/shoppinglist/internal/services/**"
             - "**/apps/movies/internal/services/**"
             - "**/apps/mealplans/internal/services/**"
             - "!**/*_test.go"
@@ -152,6 +224,100 @@ linters:
               desc: services reach storage through their own interfaces
             - pkg: net/http
               desc: services know no transport
+        hexagonal-platform-factory-adapters:
+          files:
+            - "**/platform/factory/connect/**"
+            - "**/platform/factory/mcp/**"
+            - "**/platform/factory/http/**"
+            - "!**/*_test.go"
+          deny:
+            - pkg: tools.xdoubleu.com/internal/platform/factory/internal/repositories
+              desc: adapters call services, never repositories
+            - pkg: github.com/jackc/pgx
+              desc: adapters do not touch the database
+            - pkg: tools.xdoubleu.com/internal/kit/database/postgres
+              desc: adapters do not touch the database
+        hexagonal-platform-factory-services:
+          files:
+            - "**/platform/factory/internal/services/**"
+            - "!**/*_test.go"
+          deny:
+            - pkg: connectrpc.com/connect
+              desc: services know no transport
+            - pkg: tools.xdoubleu.com/gen
+              desc: services use domain types, not generated protos
+            - pkg: github.com/jackc/pgx
+              desc: services reach storage through their own interfaces
+            - pkg: net/http
+              desc: services know no transport
+        hexagonal-shoppinglist-adapters:
+          files:
+            - "**/apps/shoppinglist/connect/**"
+            - "**/apps/shoppinglist/mcp/**"
+            - "**/apps/shoppinglist/http/**"
+            - "!**/*_test.go"
+          deny:
+            - pkg: tools.xdoubleu.com/apps/shoppinglist/internal/repositories
+              desc: adapters call services, never repositories
+            - pkg: github.com/jackc/pgx
+              desc: adapters do not touch the database
+            - pkg: tools.xdoubleu.com/internal/kit/database/postgres
+              desc: adapters do not touch the database
+        hexagonal-shoppinglist-services:
+          files:
+            - "**/apps/shoppinglist/internal/services/**"
+            - "!**/*_test.go"
+          deny:
+            - pkg: connectrpc.com/connect
+              desc: services know no transport
+            - pkg: tools.xdoubleu.com/gen
+              desc: services use domain types, not generated protos
+            - pkg: github.com/jackc/pgx
+              desc: services reach storage through their own interfaces
+            - pkg: net/http
+              desc: services know no transport
+        hexagonal-taste-adapters:
+          files:
+            - "**/apps/taste/connect/**"
+            - "**/apps/taste/mcp/**"
+            - "**/apps/taste/http/**"
+            - "!**/*_test.go"
+          deny:
+            - pkg: tools.xdoubleu.com/apps/taste/internal/repositories
+              desc: adapters call services, never repositories
+            - pkg: github.com/jackc/pgx
+              desc: adapters do not touch the database
+            - pkg: tools.xdoubleu.com/internal/kit/database/postgres
+              desc: adapters do not touch the database
+        hexagonal-taste-services:
+          files:
+            - "**/apps/taste/internal/services/**"
+            - "!**/*_test.go"
+          deny:
+            - pkg: connectrpc.com/connect
+              desc: services know no transport
+            - pkg: tools.xdoubleu.com/gen
+              desc: services use domain types, not generated protos
+            - pkg: github.com/jackc/pgx
+              desc: services reach storage through their own interfaces
+            - pkg: net/http
+              desc: services know no transport
+        # The factory services import only kit and the factory's own models;
+        # agent accounts, GitHub, Slack and auth reach them through ports that
+        # the root wiring adapts, so the factory can be extracted.
+        factory-core:
+          files:
+            - "**/platform/factory/internal/services/**"
+            - "!**/*_test.go"
+          list-mode: lax
+          deny:
+            - pkg: tools.xdoubleu.com/internal
+              desc: factory services import only kit and the factory's models
+            - pkg: tools.xdoubleu.com/apps
+              desc: factory services import only kit and the factory's models
+          allow:
+            - tools.xdoubleu.com/internal/kit
+            - tools.xdoubleu.com/internal/platform/factory/internal/models
         apps-books-internal:
           files:
             - "!**/apps/books/**"

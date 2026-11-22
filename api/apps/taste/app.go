@@ -29,6 +29,7 @@ import (
 	"tools.xdoubleu.com/internal/platform/auth"
 	"tools.xdoubleu.com/internal/platform/family"
 	"tools.xdoubleu.com/internal/platform/jobqueue"
+	"tools.xdoubleu.com/internal/platform/mcptools"
 	"tools.xdoubleu.com/internal/platform/notifications"
 	"tools.xdoubleu.com/internal/platform/observability"
 )
@@ -49,12 +50,7 @@ type Taste struct {
 	app.Base
 	db       postgres.DB
 	auth     auth.Service
-	family   *family.Repository
-	log      *services.LogService
-	shows    *services.ShowService
-	profiles *services.ProfileService
-	picks    *services.RecommendService
-	notify   *services.NotifyService
+	services *services.Services
 	jobQueue *jobqueue.JobQueue
 	genJob   jobs.GenerateProfilesJob
 }
@@ -94,7 +90,7 @@ func New(
 
 // WithITunes swaps the iTunes client behind the favourite shows, for tests.
 func (a *Taste) WithITunes(c itunes.Client) *Taste {
-	a.shows = services.NewShowService(repositories.NewShowsRepository(a.db), c)
+	a.services.Shows = services.NewShowService(repositories.NewShowsRepository(a.db), c)
 	return a
 }
 
@@ -115,36 +111,48 @@ func NewInner(
 	if cfg.OpenRouterAPIKey == "" {
 		logger.Warn("OPENROUTER_API_KEY not set; taste profiles are disabled")
 	}
-	//nolint:exhaustruct // log, jobQueue, genJob initialised below
+	//nolint:exhaustruct // services, jobQueue, genJob initialised below
 	a := &Taste{
-		Base:   app.NewBase(ctx, authService, logger, cfg),
-		db:     db,
-		auth:   authService,
-		family: familyRepo,
-		shows: services.NewShowService(
+		Base: app.NewBase(ctx, authService, logger, cfg),
+		db:   db,
+		auth: authService,
+	}
+	//nolint:exhaustruct // the rest is built below
+	svc := &services.Services{
+		Shows: services.NewShowService(
 			repositories.NewShowsRepository(db), itunes.New(),
 		),
 	}
-	a.log = services.NewLogService(slices.Concat(sources, []Source{showSource{app: a}}))
+	a.services = svc
+	log := services.NewLogService(slices.Concat(sources, []Source{showSource{app: a}}))
 	profiles := repositories.NewProfilesRepository(db)
-	a.profiles = services.NewProfileService(
-		a.log, profiles, llm, cfg.TasteGeneratorModel, cfg.OpenRouterAPIKey != "",
+	recs := repositories.NewRecommendationsRepository(db)
+	svc.Profiles = services.NewProfileService(
+		log, profiles, llm, cfg.TasteGeneratorModel, cfg.OpenRouterAPIKey != "",
 	)
-	a.picks = services.NewRecommendService(
-		a.log, profiles, repositories.NewRecommendationsRepository(db), catalogs,
-		llm, cfg.TasteGeneratorModel, logger,
+	svc.Picks = services.NewRecommendService(
+		log, profiles, recs, catalogs, llm, cfg.TasteGeneratorModel, logger,
 	)
-	a.notify = services.NewNotifyService(
-		repositories.NewPreferencesRepository(db), a.picks, mail, cfg.WebURL, logger,
+	svc.Notify = services.NewNotifyService(
+		repositories.NewPreferencesRepository(db), svc.Picks, mail, cfg.WebURL, logger,
 	)
+	svc.Reads = services.NewReadService(log, svc.Picks)
+	svc.Scope = services.NewScopeService(familyRepo, mcpAccess{})
 
 	const amountOfWorkers = 1
 	const jobQueueSize = 10
 	a.jobQueue = jobqueue.NewJobQueue(a.Ctx, logger, amountOfWorkers, jobQueueSize, db)
 	a.genJob = jobs.NewGenerateProfilesJob(
-		authService, a.profiles, a.picks, a.notify, a.GetName(),
+		authService, svc.Profiles, svc.Picks, svc.Notify, a.GetName(),
 	).WithShared(sharedSubjects(sources))
 	return a
+}
+
+// mcpAccess reads the caller's app access from the request context.
+type mcpAccess struct{}
+
+func (mcpAccess) CanAccess(ctx context.Context, appName string) bool {
+	return mcptools.RequireAppAccess(ctx, appName) == nil
 }
 
 // Shutdown drains background tasks, then the job queue.

@@ -8,12 +8,65 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/internal/platform/factory/internal/models"
-	"tools.xdoubleu.com/internal/platform/githubapp"
 )
+
+// Pull request, CI and review states, as the factory shows them.
+const (
+	StateOpen   = "open"
+	StateMerged = "merged"
+	StateClosed = "closed"
+)
+
+// ErrNotInstalled is returned when the GitHub App isn't installed on the repository.
+var ErrNotInstalled = errors.New("github app is not installed on the repository")
+
+// ErrPullRequestGone is returned when GitHub has no such pull request.
+var ErrPullRequestGone = errors.New("github: pull request not found")
+
+// Token is an installation access token and when GitHub stops honouring it.
+type Token struct {
+	Value     string
+	ExpiresAt time.Time
+}
+
+// PullRequestStatus is where a pull request stands. CI and Review are empty when
+// there is nothing to report (no checks, no reviews) or once it is no longer open.
+type PullRequestStatus struct {
+	State  string
+	CI     string
+	Review string
+	// Mergeable is "conflicting" or "behind" when auto-merge is armed and the
+	// pull request still can't merge for that reason; empty otherwise.
+	Mergeable string
+	// MergeSHA is the commit a merged pull request produced; empty otherwise.
+	MergeSHA string
+}
+
+// MergedPullRequest is a merged pull request, with the title, branch and body its
+// tasks are linked from.
+type MergedPullRequest struct {
+	URL    string
+	Title  string
+	Branch string
+	Body   string
+	// MergeSHA is the commit the merge produced on the base branch.
+	MergeSHA string
+}
+
+// OpenPullRequest is an open pull request, with the title, branch and body its
+// tasks are linked from.
+type OpenPullRequest struct {
+	URL    string
+	Number int
+	Title  string
+	Branch string
+	Body   string
+}
 
 // ErrPushNotConfigured is returned when no GitHub App is set up, so a job's work
 // stays on the runner's Mac and its task goes to Needs you as before.
@@ -22,7 +75,7 @@ var ErrPushNotConfigured = errors.New("pushing is not configured")
 // JobGitHub mints the token a runner pushes a job's branch with (adr-0045). It is
 // optional: without it no job can push.
 type JobGitHub interface {
-	InstallationToken(ctx context.Context, owner, repo string) (githubapp.Token, error)
+	InstallationToken(ctx context.Context, owner, repo string) (Token, error)
 }
 
 // PullRequestSource reads where a pull request stands (adr-0045).
@@ -31,17 +84,17 @@ type PullRequestSource interface {
 		ctx context.Context,
 		owner, repo string,
 		number int,
-	) (githubapp.PullRequestStatus, error)
+	) (PullRequestStatus, error)
 	// MergedPullRequests lists the recently merged pull requests of a repo.
 	MergedPullRequests(
 		ctx context.Context,
 		owner, repo string,
-	) ([]githubapp.MergedPullRequest, error)
+	) ([]MergedPullRequest, error)
 	// OpenPullRequests lists the open pull requests of a repo.
 	OpenPullRequests(
 		ctx context.Context,
 		owner, repo string,
-	) ([]githubapp.OpenPullRequest, error)
+	) ([]OpenPullRequest, error)
 	// PullRequestFiles lists the paths a pull request changes.
 	PullRequestFiles(ctx context.Context, owner, repo string, number int) ([]string, error)
 	// Deployed reports whether release contains the commit sha.
@@ -64,30 +117,30 @@ var ErrGitHubFailed = errors.New("could not get a token from GitHub")
 func (s *JobService) PushToken(
 	ctx context.Context,
 	runnerID, jobID uuid.UUID,
-) (githubapp.Token, error) {
+) (Token, error) {
 	if s.github == nil {
-		return githubapp.Token{}, ErrPushNotConfigured
+		return Token{}, ErrPushNotConfigured
 	}
 	job, err := s.jobs.Get(ctx, jobID)
 	if err != nil {
-		return githubapp.Token{}, err
+		return Token{}, err
 	}
 	if job.Status != models.JobRunning {
-		return githubapp.Token{}, conflict("the job is no longer running")
+		return Token{}, conflict("the job is no longer running")
 	}
 	if job.RunnerID == nil || *job.RunnerID != runnerID {
-		return githubapp.Token{}, forbidden("the job was claimed by another runner")
+		return Token{}, forbidden("the job was claimed by another runner")
 	}
 	repo, err := s.repos.Get(ctx, job.RepoID)
 	if err != nil {
-		return githubapp.Token{}, err
+		return Token{}, err
 	}
 	token, err := s.github.InstallationToken(ctx, repo.Owner, repo.Name)
-	if errors.Is(err, githubapp.ErrNotInstalled) {
-		return githubapp.Token{}, err
+	if errors.Is(err, ErrNotInstalled) {
+		return Token{}, err
 	}
 	if err != nil {
-		return githubapp.Token{}, fmt.Errorf("%w: %w", ErrGitHubFailed, err)
+		return Token{}, fmt.Errorf("%w: %w", ErrGitHubFailed, err)
 	}
 	return token, nil
 }

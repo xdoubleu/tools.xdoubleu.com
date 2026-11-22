@@ -3,39 +3,43 @@ package factory
 import (
 	"net/http"
 
-	"connectrpc.com/connect/v2"
+	connectv2 "connectrpc.com/connect/v2"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"tools.xdoubleu.com/gen/factory/v1/factoryv1connect"
 	iapp "tools.xdoubleu.com/internal/app"
+	fconnect "tools.xdoubleu.com/internal/platform/factory/connect"
+	fhttp "tools.xdoubleu.com/internal/platform/factory/http"
+	fmcp "tools.xdoubleu.com/internal/platform/factory/mcp"
 )
 
 func (a *Factory) Routes(prefix string, mux *http.ServeMux) {
-	// GitHub signs its deliveries (githubWebhook checks it), so no cookie gate.
-	mux.HandleFunc("POST /"+prefix+"/github-webhook", a.githubWebhook)
+	deps := &fconnect.Deps{
+		Services:      a.services,
+		Logger:        a.Logger,
+		HeartbeatHold: a.heartbeatHold,
+		StepUp:        a.stepUp,
+	}
+	webhook := &fhttp.Webhook{
+		Jobs: a.services.Jobs, Logger: a.Logger, Secret: a.webhookSecret,
+	}
+	// GitHub signs its deliveries (Webhook checks it), so no cookie gate.
+	mux.HandleFunc("POST /"+prefix+"/github-webhook", webhook.Handle)
 	iapp.MountConnect(
 		mux,
 		a.Logger,
 		func(next http.HandlerFunc) http.HandlerFunc {
-			return a.services.Auth.AppAccess(prefix, next)
+			return a.Auth.AppAccess(prefix, next)
 		},
-		func(s *connect.Server) {
-			factoryv1connect.RegisterTaskServiceHandler(
-				s,
-				&taskConnectHandler{app: a},
-			)
-			factoryv1connect.RegisterRepoServiceHandler(
-				s,
-				&repoConnectHandler{app: a},
-			)
-			factoryv1connect.RegisterRunnerAdminServiceHandler(
-				s,
-				&runnerAdminHandler{app: a},
-			)
-		},
+		func(s *connectv2.Server) { fconnect.RegisterAdmin(s, deps) },
 	)
 	// The runner authenticates itself (pairing code, device token), so this
 	// mount has no cookie gate.
-	iapp.MountConnect(mux, a.Logger, nil, func(s *connect.Server) {
-		factoryv1connect.RegisterRunnerServiceHandler(s, &runnerHandler{app: a})
+	iapp.MountConnect(mux, a.Logger, nil, func(s *connectv2.Server) {
+		fconnect.RegisterRunner(s, deps)
 	})
+}
+
+// RegisterMCPTools exposes the board to agent accounts (docs/adr-0040).
+func (a *Factory) RegisterMCPTools(srv *mcp.Server) {
+	fmcp.Register(srv, a.services)
 }

@@ -10,7 +10,6 @@ import (
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/internal/platform/factory/internal/models"
-	"tools.xdoubleu.com/internal/platform/factory/internal/repositories"
 )
 
 const (
@@ -29,8 +28,12 @@ var (
 )
 
 type RepoService struct {
-	repo *repositories.ReposRepository
+	repo RepoStore
 }
+
+// NewRepoService is the repo rules over a store, for callers that need no other
+// service.
+func NewRepoService(repo RepoStore) *RepoService { return &RepoService{repo: repo} }
 
 // RepoInput is the editable part of a repo.
 type RepoInput struct {
@@ -128,11 +131,25 @@ func (s *RepoService) List(ctx context.Context) ([]models.Repo, error) {
 	return s.repo.List(ctx)
 }
 
+// requireSettingsWriter allows only a browser session to change a repo's
+// settings: its setup commands and instructions drive what the sandbox runs,
+// so a bearer token never may.
+func requireSettingsWriter(actor models.Actor) error {
+	if !actor.Browser {
+		return forbidden("repo settings can only be changed in a browser session")
+	}
+	return nil
+}
+
 // Create adds a repo; a repeated owner/name is a conflict.
 func (s *RepoService) Create(
 	ctx context.Context,
+	actor models.Actor,
 	in RepoInput,
 ) (*models.Repo, error) {
+	if err := requireSettingsWriter(actor); err != nil {
+		return nil, err
+	}
 	in, err := normaliseRepo(in)
 	if err != nil {
 		return nil, err
@@ -144,9 +161,13 @@ func (s *RepoService) Create(
 // defaults: a field left unset would silently overwrite the stored value.
 func (s *RepoService) Update(
 	ctx context.Context,
+	actor models.Actor,
 	id uuid.UUID,
 	in RepoInput,
 ) (*models.Repo, error) {
+	if err := requireSettingsWriter(actor); err != nil {
+		return nil, err
+	}
 	if strings.TrimSpace(in.DefaultBranch) == "" ||
 		in.TimeLimitMinutes == 0 {
 		return nil, badRequest("default branch and time limit are required")

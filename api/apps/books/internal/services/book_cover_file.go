@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"maps"
-	"net/http"
 	"path"
 	"slices"
 	"strings"
@@ -18,6 +17,7 @@ import (
 	"tools.xdoubleu.com/apps/books/internal/models"
 	"tools.xdoubleu.com/apps/books/internal/services/conversion"
 	"tools.xdoubleu.com/apps/books/pkg/ebooks"
+	"tools.xdoubleu.com/apps/books/pkg/sniff"
 	"tools.xdoubleu.com/internal/kit/database"
 )
 
@@ -107,7 +107,7 @@ func (s *BookService) cacheCoverFromFile(
 			bookCoverKey(bookID),
 			bytes.NewReader(data),
 			int64(len(data)),
-			http.DetectContentType(data),
+			sniff.ContentType(data),
 		)
 	}
 	return ErrCoverNotFound
@@ -199,7 +199,7 @@ func epubCover(zr *zip.Reader) ([]byte, error) {
 		return nil, fmt.Errorf("read %s: %w", name, err)
 	}
 	if len(data) > maxCoverBytes ||
-		!strings.HasPrefix(http.DetectContentType(data), "image/") {
+		!strings.HasPrefix(sniff.ContentType(data), "image/") {
 		return nil, ErrCoverNotFound
 	}
 	return data, nil

@@ -13,7 +13,6 @@ import (
 
 	factoryv1 "tools.xdoubleu.com/gen/factory/v1"
 	"tools.xdoubleu.com/internal/platform/factory"
-	"tools.xdoubleu.com/internal/platform/factory/internal/services"
 	"tools.xdoubleu.com/internal/platform/githubapp"
 )
 
@@ -119,7 +118,7 @@ func (f *fakeGitHub) InstallationToken(
 	}, nil
 }
 
-var _ services.JobGitHub = (*fakeGitHub)(nil)
+var _ factory.GitHub = (*fakeGitHub)(nil)
 
 func githubEnv(t *testing.T, extra ...factory.Option) (jobEnv, *fakeGitHub) {
 	t.Helper()

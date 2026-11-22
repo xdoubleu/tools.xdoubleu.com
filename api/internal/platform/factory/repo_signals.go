@@ -5,19 +5,20 @@ import (
 
 	"tools.xdoubleu.com/internal/kit/database/postgres"
 	"tools.xdoubleu.com/internal/platform/factory/internal/repositories"
+	"tools.xdoubleu.com/internal/platform/factory/internal/services"
 	"tools.xdoubleu.com/internal/platform/reposignals"
 )
 
 // RepoSignals lists the registered repos' monitoring settings.
 type RepoSignals struct {
-	repos *repositories.ReposRepository
+	repos *services.RepoService
 }
 
 var _ reposignals.Source = (*RepoSignals)(nil)
 
 // NewRepoSignals reads the repos table through db.
 func NewRepoSignals(db postgres.DB) *RepoSignals {
-	return &RepoSignals{repos: repositories.New(db).Repos}
+	return &RepoSignals{repos: services.NewRepoService(repositories.New(db).Repos)}
 }
 
 // MonitoredRepos returns every registered repo.

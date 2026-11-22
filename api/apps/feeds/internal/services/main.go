@@ -3,10 +3,8 @@ package services
 import (
 	"log/slog"
 
-	"tools.xdoubleu.com/apps/feeds/internal/repositories"
 	"tools.xdoubleu.com/internal/kit/threading"
 	"tools.xdoubleu.com/internal/kit/webfetch"
-	"tools.xdoubleu.com/internal/platform/account"
 	"tools.xdoubleu.com/internal/platform/auth"
 	"tools.xdoubleu.com/internal/platform/notifications"
 )
@@ -16,30 +14,39 @@ type Services struct {
 	Feeds *FeedService
 }
 
+// Stores are the storage ports the services run on.
+type Stores struct {
+	Feeds       feedsStore
+	Items       itemsStore
+	FilterRules filterRulesStore
+}
+
 func New(
 	logger *slog.Logger,
 	background *threading.Background,
-	repos *repositories.Repositories,
+	stores Stores,
 	webFetchClient webfetch.Client,
 	inboundDomain string,
 	authService auth.Service,
 	notifications *notifications.Service,
-	appUsersRepo *account.AppUsersRepository,
+	users userLookup,
 	webURL string,
+	mail ReceivedMail,
 ) *Services {
 	return &Services{
 		Auth: authService,
 		Feeds: NewFeedService(
 			logger,
 			background,
-			repos.Feeds,
-			repos.Items,
-			repos.FilterRules,
+			stores.Feeds,
+			stores.Items,
+			stores.FilterRules,
 			webFetchClient,
 			inboundDomain,
 			notifications,
-			appUsersRepo,
+			users,
 			webURL,
+			mail,
 		),
 	}
 }

@@ -105,3 +105,11 @@ type JobTimings struct {
 	Agent, Gates, Publish, CI, Merge, Total float64
 	GateRetries, PushRetries, CIRetries     int
 }
+
+// FailureCounts are the counts behind the factory failure gauges.
+type FailureCounts struct {
+	RedPullRequests   int
+	JobsWithoutPR     int
+	UnverifiedOutcome int
+	StuckPullRequests int
+}

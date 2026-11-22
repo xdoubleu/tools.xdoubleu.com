@@ -65,7 +65,7 @@ func TestScrapePollStoresItemsInOneBatchInsert(t *testing.T) {
 		logging.NewNopLogger(), nil,
 		repos.Feeds, repos.Items, repos.FilterRules,
 		webFetch, "",
-		nil, appUsersRepo, "",
+		nil, appUsersRepo, "", nil,
 	)
 
 	counting.itemInserts.Store(0)
@@ -105,7 +105,7 @@ func TestScrapePollStoresFetchFailuresAsBatchedSeenMarkers(t *testing.T) {
 		logging.NewNopLogger(), nil,
 		repos.Feeds, repos.Items, repos.FilterRules,
 		webFetch, "",
-		nil, appUsersRepo, "",
+		nil, appUsersRepo, "", nil,
 	)
 
 	counting.itemInserts.Store(0)

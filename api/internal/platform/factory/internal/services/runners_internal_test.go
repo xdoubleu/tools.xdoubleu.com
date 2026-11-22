@@ -7,10 +7,12 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/internal/kit/database"
+	"tools.xdoubleu.com/internal/platform/factory/internal/models"
 )
 
 func TestNewCodeIsTwoGroupsOfFromTheAlphabet(t *testing.T) {
@@ -81,8 +83,23 @@ func TestRunnerServiceRefusesBadInputBeforeTheDatabase(t *testing.T) {
 	svc := &RunnerService{repo: nil, now: nil, say: notices{out: nil, webURL: ""}}
 	ctx := context.Background()
 
-	_, _, err := svc.Create(ctx, "human:x", " ")
+	browser := models.Actor{
+		Kind: models.ActorHuman, ID: "x", Browser: true, Admin: true, Via: "",
+	}
+	confirmed := false
+	confirm := func(context.Context) error { confirmed = true; return nil }
+	_, _, err := svc.Create(ctx, browser, " ", confirm)
 	assert.Equal(t, http.StatusBadRequest, status(t, err))
+	assert.False(t, confirmed, "the step-up check waits for a valid name")
+
+	bearer := browser
+	bearer.Browser = false
+	_, _, err = svc.Create(ctx, bearer, "Home Mac", confirm)
+	assert.Equal(t, http.StatusForbidden, status(t, err))
+	_, err = svc.List(ctx, bearer)
+	assert.Equal(t, http.StatusForbidden, status(t, err))
+	_, err = svc.Revoke(ctx, bearer, uuid.New())
+	assert.Equal(t, http.StatusForbidden, status(t, err))
 
 	for _, code := range []string{"", "ABC", "ABCDE-FGHJK-M", strings.Repeat("A", 9)} {
 		_, _, err = svc.Pair(ctx, code, "1")
