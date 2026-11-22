@@ -30,6 +30,11 @@ landed) re-queues the task by moving it to Ready with `factory_move_task` and a
 comment saying why; it doesn't park it in Needs you
 ([`convention-unattended-agent-trust`](convention-unattended-agent-trust.md)).
 
+A `spike` task is never a factory job: the board refuses to move it to Ready for
+every actor and auto pickup skips one already there. The owner settles spikes in
+interactive sessions as part of refinement, and a spike filed during refinement
+stays in Backlog, blocking the slices that depend on it.
+
 ## Starting
 
 1. **Start from freshly fetched `main`** — never edit on `main` or another

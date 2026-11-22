@@ -20,8 +20,9 @@ P0/P1/P2 rule. Never redefine those here.
   `web/app/*` route, what it extends. Name real files and packages.
 - **Verify every external dependency** (auth, licensing, coverage, rate
   limits) via a subagent that returns only the distilled answer. Mark
-  anything unverified as such in the task body and give it its own spike
-  sub-task.
+  anything unverified as such in the task body. Settle it during the grilling
+  itself (an interactive spike), or file a `spike` task that stays in Backlog and
+  blocks the slices depending on it; a `spike` never moves to Ready.
 
 ## 2. Grill the user
 

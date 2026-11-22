@@ -225,6 +225,19 @@ func TestReadyAllowedForAdminInBrowser(t *testing.T) {
 	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_READY, moved.Status)
 }
 
+func TestNobodyMovesASpikeToReady(t *testing.T) {
+	c := browserClient(t)
+	resp, err := c.CreateTask(context.Background(), &factoryv1.CreateTaskRequest{
+		Title: "spike", Body: "body of spike", RepoId: seededRepoID(t),
+		Labels: []string{"Spike"},
+	})
+	require.NoError(t, err)
+
+	_, err = move(c, resp.Task.Id, factoryv1.TaskStatus_TASK_STATUS_READY)
+	assert.Equal(t, connect.CodePermissionDenied, code(err))
+	assert.Contains(t, err.Error(), "interactive session")
+}
+
 func TestAnAdminMarksATaskReadyOnAnyChannel(t *testing.T) {
 	browser := browserClient(t)
 	for _, channel := range []string{constants.ChannelMCP, "carrier-pigeon"} {
