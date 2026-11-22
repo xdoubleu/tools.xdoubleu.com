@@ -73,6 +73,8 @@ func newJobRunner(
 		OpenRouterKey: storedSecret(a.secrets, runner.SecretOpenRouter),
 		AuthorEmail:   cfg.BotEmail,
 		MCP:           session.JobMCPServers,
+		Sessions:      runner.NewSessionAPI,
+		OnLimit:       a.onLimit,
 		Proxy: func(
 			job *runner.ClaimedJob, servers []runner.MCPServer,
 		) (runner.ProxyListener, error) {
@@ -108,6 +110,16 @@ func newJobRunner(
 	}
 	pruneImages(ctx, cfg, exec, log)
 	return jobs, nil
+}
+
+// onLimit is what a usage limit does and the model it falls back to, read each
+// time so `config on-limit` takes effect without a restart.
+func (a *app) onLimit() (string, string) {
+	cfg, _, err := a.loadConfig()
+	if err != nil {
+		return runner.OnLimitWait, ""
+	}
+	return cfg.EffectiveOnLimit(), cfg.FallbackModel
 }
 
 // paused is whether the owner stopped this runner from the menu bar.

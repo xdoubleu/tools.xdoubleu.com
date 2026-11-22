@@ -17,6 +17,8 @@ import (
 	"sync/atomic"
 	"syscall"
 	"time"
+
+	"tools.xdoubleu.com/wardcase/session"
 )
 
 const (
@@ -217,6 +219,12 @@ type JobRunner struct {
 	OpenChat ChatOpener
 	// Activity, when set, holds the Mac awake and blocks self-update while a job runs.
 	Activity *Activity
+	// Sessions runs a Claude job's attempts through wardcase's session API; nil
+	// runs them in the job's own VM session. OnLimit says what a usage limit does:
+	// OnLimitFallback or OnLimitWait, and the OpenRouter model id it falls back to;
+	// nil waits.
+	Sessions func(session.Options) SessionAPI
+	OnLimit  func() (policy, model string)
 	// DataDir holds <DataDir>/jobs/<job id>/{clone,outcome}.
 	DataDir string
 	// DiskFree reads the free bytes of the data directory's volume; nil skips the
@@ -675,7 +683,8 @@ func (r *JobRunner) execute(ctx context.Context, job *ClaimedJob) result {
 	loop := &jobLoop{
 		r: r, job: job, dirs: dirs, since: since, launch: launch, secrets: secrets,
 		ctx: jobCtx, parent: ctx, tap: tap, events: events, stopped: &stopped,
-		session: nil, limit: r.limitFor(job), token: "", tokenAt: time.Time{},
+		session: nil, resume: job.ResumeSessionID, limit: r.limitFor(job),
+		token: "", tokenAt: time.Time{},
 		times:   phaseTimes{agent: 0, gates: 0, publish: 0, ci: 0, merge: 0, retries: nil},
 		greenAt: time.Time{}, began: time.Time{}, causes: nil,
 		sandboxFixed: false, sandboxOpened: false,
@@ -775,6 +784,8 @@ type launch struct {
 	secrets []string
 	// mcpNote names the device MCP servers the job should have had but could not.
 	mcpNote string
+	// mcp are the device MCP servers the job got.
+	mcp []MCPServer
 }
 
 // launchOf gathers a job's launch inputs; an error says why it cannot start.
@@ -794,15 +805,16 @@ func (r *JobRunner) launchOf(job *ClaimedJob) (launch, error) {
 	}
 	var proxy ProxyListener
 	var note string
+	var mcp []MCPServer
 	if r.Proxy != nil {
-		var servers []MCPServer
-		servers, note = r.deviceMCP(job, env)
-		if proxy, err = r.Proxy(job, servers); err != nil {
+		mcp, note = r.deviceMCP(job, env)
+		if proxy, err = r.Proxy(job, mcp); err != nil {
 			return launch{}, fmt.Errorf("prepare the egress proxy: %w", err)
 		}
 	}
 	return launch{
 		command: command, env: env, proxy: proxy, secrets: secrets, mcpNote: note,
+		mcp: mcp,
 	}, nil
 }
 

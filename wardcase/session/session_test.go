@@ -88,7 +88,7 @@ func TestACallerWithNoCheckoutRunsASessionFromAURLAndBranch(t *testing.T) {
 	res, err := r.Run(context.Background(), session.Request{
 		URL: origin, Base: "main", Branch: "agent/x", Token: "", Prompt: "do it",
 		Harness: session.Claude, Overflow: session.OverflowOff, Fallback: "",
-		OpenCodeModel: "", Dir: "", ResumeID: "",
+		OpenCodeModel: "", Dir: "", ResumeID: "", Extra: nil,
 	})
 	require.NoError(t, err)
 	assert.Equal(t, 1, box.runs)
@@ -107,7 +107,7 @@ func TestARequestWithoutAPromptFails(t *testing.T) {
 	_, err := r.Run(context.Background(), session.Request{
 		URL: "x", Base: "main", Branch: "b", Token: "", Prompt: "",
 		Harness: session.Claude, Overflow: "", Fallback: "", OpenCodeModel: "",
-		Dir: "", ResumeID: "",
+		Dir: "", ResumeID: "", Extra: nil,
 	})
 	require.Error(t, err)
 }
@@ -132,7 +132,7 @@ func TestASessionRunsInAnExistingCheckoutOnItsBranchAndResumes(t *testing.T) {
 	res, err := r.Run(context.Background(), session.Request{
 		Dir: dir, URL: "", Base: "", Branch: "agent/x", Token: "", Prompt: "fix",
 		Harness: session.Claude, Overflow: session.OverflowOff, Fallback: "",
-		OpenCodeModel: "", ResumeID: "s-0",
+		OpenCodeModel: "", ResumeID: "s-0", Extra: nil,
 	})
 	require.NoError(t, err)
 	assert.Equal(t, "s-1", res.SessionID)
@@ -154,7 +154,7 @@ func TestAnExistingCheckoutOnAnotherBranchFails(t *testing.T) {
 	_, err := r.Run(context.Background(), session.Request{
 		Dir: dir, URL: "", Base: "", Branch: "agent/x", Token: "", Prompt: "p",
 		Harness: session.Claude, Overflow: "", Fallback: "", OpenCodeModel: "",
-		ResumeID: "",
+		ResumeID: "", Extra: nil,
 	})
 	require.ErrorContains(t, err, "not agent/x")
 }
@@ -180,7 +180,7 @@ func TestAnExistingCheckoutKeepsItsWorkAndOverflows(t *testing.T) {
 	res, err := r.Run(context.Background(), session.Request{
 		Dir: dir, URL: "", Base: "", Branch: "", Token: "", Prompt: "p",
 		Harness: session.Claude, Overflow: session.OverflowAuto,
-		Fallback: session.OpenCode, OpenCodeModel: "vendor/model", ResumeID: "",
+		Fallback: session.OpenCode, OpenCodeModel: "vendor/model", ResumeID: "", Extra: nil,
 	})
 	require.NoError(t, err)
 	assert.Equal(t, 2, box.runs)
@@ -198,7 +198,7 @@ func TestAnExistingDirThatIsNotACheckoutOrIsDetachedFails(t *testing.T) {
 	req := session.Request{
 		Dir: t.TempDir(), URL: "", Base: "", Branch: "", Token: "", Prompt: "p",
 		Harness: session.Claude, Overflow: "", Fallback: "", OpenCodeModel: "",
-		ResumeID: "",
+		ResumeID: "", Extra: nil,
 	}
 	_, err := r.Run(context.Background(), req)
 	require.ErrorContains(t, err, "not a git checkout")
@@ -208,4 +208,31 @@ func TestAnExistingDirThatIsNotACheckoutOrIsDetachedFails(t *testing.T) {
 	git(t, req.Dir, "checkout", "-q", "--detach")
 	_, err = r.Run(context.Background(), req)
 	require.ErrorContains(t, err, "no branch checked out")
+}
+
+func TestAnExtraReachesTheVM(t *testing.T) {
+	var spec vm.SandboxSpec
+	box := &fakeBox{runs: 0, cmds: nil, act: func(s vm.SandboxSpec, _ io.Writer) int {
+		spec = s
+		return 0
+	}}
+	r := session.New(session.Options{
+		Box: box, Secrets: secrets{"anthropic": "oat"}, StateDir: t.TempDir(),
+		TempDir: "", Out: nil, Notes: nil, GH: nil,
+	})
+	dir, out := t.TempDir(), t.TempDir()
+	git(t, dir, "init", "-q", "-b", "main")
+	git(t, dir, "commit", "-q", "--allow-empty", "-m", "init")
+	_, err := r.Run(context.Background(), session.Request{
+		Dir: dir, URL: "", Base: "", Branch: "main", Token: "", Prompt: "p",
+		Harness: session.Claude, Overflow: "", Fallback: "", OpenCodeModel: "",
+		ResumeID: "",
+		Extra: &session.Extra{
+			Env: map[string]string{"FACTORY_JOB": "j"}, OutcomeDir: out,
+			SessionDir: "", Board: nil, MCP: nil,
+		},
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "j", spec.Env["FACTORY_JOB"])
+	assert.Equal(t, out, spec.OutcomeDir)
 }

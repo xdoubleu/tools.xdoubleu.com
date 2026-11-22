@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+
+	"tools.xdoubleu.com/wardcase/vm"
 )
 
 // SessionRequest is one headless run on a branch of a repository.
@@ -25,6 +27,23 @@ type SessionRequest struct {
 	Dir string
 	// ResumeID continues this session of Harness.
 	ResumeID string
+	// Extra adds to the session's VM; nil adds nothing.
+	Extra *SessionExtra
+}
+
+// SessionExtra is what a caller that owns the job around the session adds to it.
+type SessionExtra struct {
+	// Env is added to the VM's environment, over wardcase's own.
+	Env map[string]string
+	// OutcomeDir is mounted as the outcome directory and kept; empty means a
+	// temporary one wardcase removes.
+	OutcomeDir string
+	// SessionDir keeps the harness's sessions instead of wardcase's own directory
+	// for the checkout, so a session an earlier run left can be resumed.
+	SessionDir string
+	// Board and MCP are reached through the egress proxy, as in a chat.
+	Board *Board
+	MCP   []vm.MCPServer
 }
 
 // SessionResult is how a session ended.
@@ -46,6 +65,14 @@ type SessionResult struct {
 	Left Leftover
 }
 
+// chatRequest is the part of the extras that reaches the proxy, in a chat's terms.
+func (x *SessionExtra) chatRequest() ChatRequest {
+	return ChatRequest{
+		Source: nil, Dir: "", Harness: "",
+		OpenCodeModel: "", Board: x.Board, MCP: x.MCP, OnEvent: nil,
+	}
+}
+
 // RunSession clones or reuses the cached clone of the repository, runs the
 // harness headless in a new worktree of it and reports what it left.
 func (r *Runner) RunSession(
@@ -58,6 +85,7 @@ func (r *Runner) RunSession(
 	}
 	rr := *r
 	rr.Config = cfg
+	rr.extra = req.Extra
 	rr.Git = func(ctx context.Context, dir string, args ...string) (string, error) {
 		return r.Git(ctx, dir, append(safeGit(), args...)...)
 	}

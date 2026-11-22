@@ -60,6 +60,8 @@ type Runner struct {
 	Ask func(question string) bool
 	// Now is the clock; nil means time.Now.
 	Now func() time.Time
+	// extra is what RunSession's caller adds to each run's VM.
+	extra *SessionExtra
 }
 
 // Request is one wardcase invocation.
@@ -267,6 +269,26 @@ func (r *Runner) now() time.Time {
 	return time.Now()
 }
 
+// runDirs are a run's harness session directory and outcome directory, and what
+// removes the outcome directory when wardcase made it.
+func (r *Runner) runDirs(checkout, name string) (string, string, func(), error) {
+	sessionDir := r.sessionDir(checkout, name)
+	if x := r.extra; x != nil && x.SessionDir != "" {
+		sessionDir = x.SessionDir
+	}
+	if err := os.MkdirAll(sessionDir, stateDirPerm); err != nil {
+		return "", "", nil, fmt.Errorf("session directory: %w", err)
+	}
+	if x := r.extra; x != nil && x.OutcomeDir != "" {
+		return sessionDir, x.OutcomeDir, func() {}, nil
+	}
+	outcomeDir, err := os.MkdirTemp(r.TempDir, "wardcase-outcome-")
+	if err != nil {
+		return "", "", nil, fmt.Errorf("outcome directory: %w", err)
+	}
+	return sessionDir, outcomeDir, func() { _ = os.RemoveAll(outcomeDir) }, nil
+}
+
 func (r *Runner) runOnce(
 	ctx context.Context,
 	name, checkout string,
@@ -280,21 +302,21 @@ func (r *Runner) runOnce(
 	if err != nil {
 		return outcome{}, err
 	}
-	sessionDir := r.sessionDir(checkout, name)
-	if err = os.MkdirAll(sessionDir, stateDirPerm); err != nil {
-		return outcome{}, fmt.Errorf("session directory: %w", err)
-	}
-	outcomeDir, err := os.MkdirTemp(r.TempDir, "wardcase-outcome-")
+	sessionDir, outcomeDir, cleanup, err := r.runDirs(checkout, name)
 	if err != nil {
-		return outcome{}, fmt.Errorf("outcome directory: %w", err)
+		return outcome{}, err
 	}
-	defer func() { _ = os.RemoveAll(outcomeDir) }()
+	defer cleanup()
 	maps(env, h.SessionEnv(vm.SandboxSessionDir))
 	if err = r.addMCP(&egress, env, headless, checkout); err != nil {
 		return outcome{}, err
 	}
 	env["WARDCASE_RUN"] = randomID()
 	env[vm.MCPEnv] = vm.MCPOff
+	if x := r.extra; x != nil {
+		addChatMCP(&egress, env, x.chatRequest())
+		maps(env, x.Env)
+	}
 	proxy, err := r.NewProxy(egress)
 	if err != nil {
 		return outcome{}, fmt.Errorf("the egress proxy: %w", err)

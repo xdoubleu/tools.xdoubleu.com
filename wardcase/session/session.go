@@ -77,6 +77,23 @@ type Request struct {
 	// ResumeID continues this session of Harness (a Result.SessionID of an earlier
 	// run, kept in StateDir) instead of starting a new one.
 	ResumeID string
+	// Extra is what a caller that owns the job around the session adds to its VM.
+	Extra *Extra
+}
+
+// Extra is the environment, directories and MCP servers a caller adds to a
+// session's VM.
+type Extra struct {
+	// Env is added to the VM's environment.
+	Env map[string]string
+	// OutcomeDir is mounted as the VM's outcome directory and kept for the caller.
+	OutcomeDir string
+	// SessionDir keeps the harness's sessions, so an earlier run's can be resumed.
+	SessionDir string
+	// Board gives the session the board's MCP server; MCP are further servers,
+	// both reached through the egress proxy.
+	Board *Board
+	MCP   []vm.MCPServer
 }
 
 // Result is how a session ended.
@@ -138,7 +155,7 @@ func (s *Runner) Run(ctx context.Context, req Request) (Result, error) {
 		},
 		Prompt: req.Prompt, Harness: req.Harness, Fallback: req.Fallback,
 		Overflow: req.Overflow, OpenCodeModel: req.OpenCodeModel,
-		Dir: req.Dir, ResumeID: req.ResumeID,
+		Dir: req.Dir, ResumeID: req.ResumeID, Extra: extra(req.Extra),
 	})
 	return Result{
 		ExitCode: res.ExitCode, Harness: res.Harness, Continued: res.Continued,
@@ -160,5 +177,15 @@ func (readOnly) Delete(string) error { return ward.ErrNoSecret }
 func emptyConfig() ward.Config {
 	return ward.Config{
 		Order: nil, Overflow: "", OpenCode: ward.OpenCodeConfig{Model: ""}, MCP: nil,
+	}
+}
+
+func extra(x *Extra) *ward.SessionExtra {
+	if x == nil {
+		return nil
+	}
+	return &ward.SessionExtra{
+		Env: x.Env, OutcomeDir: x.OutcomeDir, SessionDir: x.SessionDir,
+		Board: x.Board, MCP: x.MCP,
 	}
 }
