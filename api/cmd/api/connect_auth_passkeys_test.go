@@ -2,7 +2,16 @@ package main
 
 import (
 	"context"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/binary"
+	"encoding/json"
 	"net/http"
+	"net/url"
+	"strings"
 	"testing"
 	"time"
 
@@ -154,4 +163,150 @@ func TestPasskeySignInRPCs_UnauthenticatedBeginAndBadFinish(t *testing.T) {
 		CredentialJson: "{}",
 	})
 	requireCode(t, err, connect.CodeUnauthenticated)
+}
+
+// softAuthenticator answers WebAuthn ceremonies for one ES256 credential.
+type softAuthenticator struct {
+	key    *ecdsa.PrivateKey
+	credID []byte
+	origin string
+	rpID   string
+}
+
+func newSoftAuthenticator(t *testing.T) *softAuthenticator {
+	t.Helper()
+	webURL, err := url.Parse(testhelper.NewTestConfig().WebURL)
+	require.NoError(t, err)
+	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	require.NoError(t, err)
+	return &softAuthenticator{
+		key:    key,
+		credID: []byte(uuid.NewString()),
+		origin: webURL.Scheme + "://" + webURL.Host,
+		rpID:   webURL.Hostname(),
+	}
+}
+
+func challengeOf(t *testing.T, optionsJSON string) string {
+	t.Helper()
+	var options struct {
+		Challenge string `json:"challenge"`
+	}
+	require.NoError(t, json.Unmarshal([]byte(optionsJSON), &options))
+	return options.Challenge
+}
+
+func (a *softAuthenticator) clientData(t *testing.T, typ, challenge string) []byte {
+	t.Helper()
+	data, err := json.Marshal(map[string]any{
+		"type": typ, "challenge": challenge, "origin": a.origin,
+	})
+	require.NoError(t, err)
+	return data
+}
+
+func (a *softAuthenticator) register(t *testing.T, optionsJSON string) string {
+	t.Helper()
+	x := a.key.X.FillBytes(make([]byte, 32))
+	y := a.key.Y.FillBytes(make([]byte, 32))
+	cose := append(
+		[]byte{0xa5, 0x01, 0x02, 0x03, 0x26, 0x20, 0x01, 0x21, 0x58, 0x20}, x...,
+	)
+	cose = append(cose, 0x22, 0x58, 0x20)
+	cose = append(cose, y...)
+
+	rpHash := sha256.Sum256([]byte(a.rpID))
+	authData := append([]byte{}, rpHash[:]...)
+	authData = append(authData, 0x45, 0, 0, 0, 0) // UP|UV|AT, sign count 0
+	authData = append(authData, make([]byte, 16)...)
+	authData = binary.BigEndian.AppendUint16(authData, uint16(len(a.credID)))
+	authData = append(authData, a.credID...)
+	authData = append(authData, cose...)
+
+	attObj := []byte{0xa3, 0x63}
+	attObj = append(attObj, "fmt"...)
+	attObj = append(attObj, 0x64)
+	attObj = append(attObj, "none"...)
+	attObj = append(attObj, 0x67)
+	attObj = append(attObj, "attStmt"...)
+	attObj = append(attObj, 0xa0, 0x68)
+	attObj = append(attObj, "authData"...)
+	attObj = append(attObj, 0x59)
+	attObj = binary.BigEndian.AppendUint16(attObj, uint16(len(authData)))
+	attObj = append(attObj, authData...)
+
+	enc := base64.RawURLEncoding.EncodeToString
+	out, err := json.Marshal(map[string]any{
+		"id": enc(a.credID), "rawId": enc(a.credID), "type": "public-key",
+		"response": map[string]any{
+			"clientDataJSON": enc(a.clientData(
+				t, "webauthn.create", challengeOf(t, optionsJSON),
+			)),
+			"attestationObject": enc(attObj),
+		},
+	})
+	require.NoError(t, err)
+	return string(out)
+}
+
+func (a *softAuthenticator) assert(
+	t *testing.T,
+	optionsJSON, userHandle string,
+) string {
+	t.Helper()
+	rpHash := sha256.Sum256([]byte(a.rpID))
+	authData := append([]byte{}, rpHash[:]...)
+	authData = append(authData, 0x05, 0, 0, 0, 0) // UP|UV, sign count 0
+
+	clientData := a.clientData(t, "webauthn.get", challengeOf(t, optionsJSON))
+	clientHash := sha256.Sum256(clientData)
+	digest := sha256.Sum256(append(append([]byte{}, authData...), clientHash[:]...))
+	sig, err := ecdsa.SignASN1(rand.Reader, a.key, digest[:])
+	require.NoError(t, err)
+
+	enc := base64.RawURLEncoding.EncodeToString
+	out, err := json.Marshal(map[string]any{
+		"id": enc(a.credID), "rawId": enc(a.credID), "type": "public-key",
+		"response": map[string]any{
+			"clientDataJSON":    enc(clientData),
+			"authenticatorData": enc(authData),
+			"signature":         enc(sig),
+			"userHandle":        enc([]byte(userHandle)),
+		},
+	})
+	require.NoError(t, err)
+	return string(out)
+}
+
+func TestPasskeySignInRPCs_SignInSetsSessionCookie(t *testing.T) {
+	client := mfaClient(t)
+	token := freshTestUser(t)
+	authenticator := newSoftAuthenticator(t)
+
+	ctx := withCookies(
+		context.Background(),
+		http.Cookie{Name: "accessToken", Value: token},
+	)
+	regBegin, err := client.PasskeyRegisterBegin(
+		ctx, &authv1.PasskeyRegisterBeginRequest{},
+	)
+	require.NoError(t, err)
+	_, err = client.PasskeyRegisterFinish(ctx, &authv1.PasskeyRegisterFinishRequest{
+		Name: "Laptop", CredentialJson: authenticator.register(t, regBegin.OptionsJson),
+	})
+	require.NoError(t, err)
+
+	anon := context.Background()
+	begin, err := client.PasskeySignInBegin(anon, &authv1.PasskeySignInBeginRequest{})
+	require.NoError(t, err)
+	anon, info := connect.NewClientContext(anon)
+	_, err = client.PasskeySignInFinish(anon, &authv1.PasskeySignInFinishRequest{
+		CredentialJson: authenticator.assert(t, begin.OptionsJson, subjectOf(t, token)),
+		RememberMe:     true,
+	})
+	require.NoError(t, err)
+
+	cookies := strings.Join(info.ResponseHeader().Values("Set-Cookie"), "\n")
+	assert.Contains(t, cookies, "accessToken=")
+	assert.Contains(t, cookies, "refreshToken=")
 }

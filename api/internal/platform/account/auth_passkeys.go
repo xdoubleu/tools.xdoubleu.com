@@ -160,16 +160,17 @@ func (h *authConnectHandler) RemovePasskey(
 
 // peerIP is the caller's address as the rate limiter sees it.
 func peerIP(info *connect.CallInfo) string {
+	return clientIP(info.PeerAddr, info.RequestHeader().Get("X-Forwarded-For"))
+}
+
+func clientIP(peerAddr, forwardedFor string) string {
 	r := &http.Request{
-		RemoteAddr: info.PeerAddr,
-		Header:     http.Header{},
-	}
-	if forwarded := info.RequestHeader().Get("X-Forwarded-For"); forwarded != "" {
-		r.Header.Set("X-Forwarded-For", forwarded)
+		RemoteAddr: peerAddr,
+		Header:     http.Header{"X-Forwarded-For": []string{forwardedFor}},
 	}
 	ip, err := middleware.ClientIP(r)
 	if err != nil {
-		return info.PeerAddr
+		return peerAddr
 	}
 	return ip
 }
