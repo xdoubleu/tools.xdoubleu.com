@@ -1,4 +1,4 @@
-package books
+package http
 
 import (
 	"context"
@@ -17,7 +17,7 @@ import (
 const coverCtxTimeout = 8 * time.Second
 
 // coverRoutes mounts the public, CDN-cacheable cover proxy; no auth.
-func (app *Books) coverRoutes(prefix string, mux *http.ServeMux) {
+func (app *Handlers) coverRoutes(prefix string, mux *http.ServeMux) {
 	mux.HandleFunc(
 		"GET /"+prefix+"/api/cover/{bookId}",
 		app.coverHandler,
@@ -26,7 +26,7 @@ func (app *Books) coverRoutes(prefix string, mux *http.ServeMux) {
 
 // coverHandler handles GET /{prefix}/api/cover/{bookId}: 302 to a presigned
 // R2 URL on a hit, 404 on a miss.
-func (app *Books) coverHandler(w http.ResponseWriter, r *http.Request) {
+func (app *Handlers) coverHandler(w http.ResponseWriter, r *http.Request) {
 	bookID, err := uuid.Parse(r.PathValue("bookId"))
 	if err != nil {
 		http.Error(w, "invalid book id", http.StatusBadRequest)

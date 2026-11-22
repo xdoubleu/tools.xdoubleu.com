@@ -51,6 +51,7 @@ func New(
 	hardcoverClient hardcover.Client,
 	objectStore objectstore.Client,
 	webFetchClient webfetch.Client,
+	coverFetcher CoverFetcher,
 	authService auth.Service,
 ) *Services {
 	koboSvc := kobo.NewService(repositories.KoboDevices)
@@ -66,7 +67,7 @@ func New(
 		uniCat:       uniCat,
 		hardcover:    hardcoverClient,
 		resyncSource: repositories.Books,
-		coverClient:  newCoverClient(config.Env),
+		coverFetcher: coverFetcher,
 		coverWarms:   singleflight.Group{},
 		seriesCache:  newSeriesCache(),
 		physical:     nil, // set once the position service exists
@@ -83,7 +84,7 @@ func New(
 
 	ingestSvc := NewIngestService(
 		logger,
-		repositories,
+		repositories.Books,
 		webFetchClient,
 	)
 

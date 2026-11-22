@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
-	"net/http"
 	"slices"
 	"strings"
 	"time"
@@ -15,7 +14,6 @@ import (
 	"golang.org/x/sync/singleflight"
 
 	"tools.xdoubleu.com/apps/books/internal/models"
-	"tools.xdoubleu.com/apps/books/internal/repositories"
 	"tools.xdoubleu.com/apps/books/pkg/authorname"
 	"tools.xdoubleu.com/apps/books/pkg/books"
 	"tools.xdoubleu.com/apps/books/pkg/hardcover"
@@ -52,14 +50,14 @@ const (
 
 type BookService struct {
 	logger       *slog.Logger
-	books        *repositories.BooksRepository
-	bookFiles    *repositories.BookFilesRepository
+	books        BookStore
+	bookFiles    BookFileStore
 	objectStore  objectstore.Client
-	readingState *repositories.BookReadingStateRepository
+	readingState ReadingStateStore
 	uniCat       unicat.Client
 	hardcover    hardcover.Client
 	resyncSource ResyncSource
-	coverClient  *http.Client
+	coverFetcher CoverFetcher
 	coverWarms   singleflight.Group
 	seriesCache  *seriesCache
 	// physical follows digital positions on a physical copy; nil in tests

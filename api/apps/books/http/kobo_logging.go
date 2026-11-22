@@ -1,4 +1,4 @@
-package books
+package http
 
 import (
 	"bytes"
@@ -155,7 +155,7 @@ func redactKoboToken(path, token string) string {
 
 // koboLogged captures a device's requests and responses into KoboLogStore
 // when debug logging is on for it.
-func (app *Books) koboLogged(next http.HandlerFunc) http.HandlerFunc {
+func (app *Handlers) koboLogged(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		//nolint:exhaustruct // zero values are the intended initial state
 		holder := &koboLogHolder{status: http.StatusOK}
