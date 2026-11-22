@@ -3,12 +3,22 @@ package mcp
 
 import (
 	"context"
+	"errors"
+	"log/slog"
 
+	"connectrpc.com/connect/v2"
+	"github.com/google/uuid"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"google.golang.org/protobuf/proto"
 
-	"tools.xdoubleu.com/apps/feeds/connect"
+	"tools.xdoubleu.com/apps/feeds/internal/protomap"
+	"tools.xdoubleu.com/apps/feeds/internal/services"
 	feedsv1 "tools.xdoubleu.com/gen/feeds/v1"
+	"tools.xdoubleu.com/internal/connecttools"
+	"tools.xdoubleu.com/internal/kit/constants"
+	"tools.xdoubleu.com/internal/kit/contexttools"
+	"tools.xdoubleu.com/internal/kit/database"
+	sharedmodels "tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/platform/mcptools"
 )
 
@@ -25,8 +35,8 @@ type mcpListItemsArgs struct {
 
 // Register exposes the app's read-only RPCs as MCP tools, scoped to the
 // caller.
-func Register(srv *mcp.Server, h *connect.Handler) {
-	t := tools{h: h}
+func Register(srv *mcp.Server, feeds *services.FeedService, logger *slog.Logger) {
+	t := tools{feeds: feeds, logger: logger}
 
 	mcptools.AddReadTool(srv, mcpAppName, "feeds_list_feeds",
 		"The user's RSS/Atom and email-newsletter feed subscriptions.",
@@ -48,52 +58,137 @@ func Register(srv *mcp.Server, h *connect.Handler) {
 		t.mcpGetFilterRuleSuggestions)
 }
 
-// tools adapts the ConnectRPC handler to MCP tool signatures.
-type tools struct{ h *connect.Handler }
+type tools struct {
+	feeds  *services.FeedService
+	logger *slog.Logger
+}
 
 type mcpGetItemArgs struct {
 	ItemID string `json:"item_id" jsonschema:"the item's id"`
 }
 
+func userID(ctx context.Context) (string, error) {
+	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
+	if user == nil {
+		return "", connect.NewError(connect.CodeUnauthenticated, "unauthorized")
+	}
+	return user.ID, nil
+}
+
+func parseID(raw, what string) (uuid.UUID, error) {
+	id, err := uuid.Parse(raw)
+	if err != nil {
+		return uuid.Nil, connect.NewError(
+			connect.CodeInvalidArgument, "invalid "+what+" ID",
+		)
+	}
+	return id, nil
+}
+
 func (t tools) mcpListFeeds(
 	ctx context.Context, _ mcptools.NoArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(t.h.ListFeeds(ctx, &feedsv1.ListFeedsRequest{}))
+	uid, err := userID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	feeds, err := t.feeds.List(ctx, uid)
+	if err != nil {
+		return nil, connecttools.MapError(err)
+	}
+	out := make([]*feedsv1.Feed, len(feeds))
+	for i, f := range feeds {
+		out[i] = protomap.Feed(f)
+	}
+	return &feedsv1.ListFeedsResponse{Feeds: out}, nil
 }
 
 func (t tools) mcpListItems(
 	ctx context.Context, args mcpListItemsArgs,
 ) (proto.Message, error) {
-	req := &feedsv1.ListFeedItemsRequest{
-		Limit:        args.Limit,
-		Offset:       args.Offset,
-		UnreadOnly:   proto.Bool(args.UnreadOnly),
-		FilteredOnly: proto.Bool(args.FilteredOnly),
+	uid, err := userID(ctx)
+	if err != nil {
+		return nil, err
 	}
+	var feedID *uuid.UUID
 	if args.FeedID != "" {
-		req.FeedId = proto.String(args.FeedID)
+		parsed, perr := parseID(args.FeedID, "feed")
+		if perr != nil {
+			return nil, perr
+		}
+		feedID = &parsed
 	}
-	return mcptools.Unwrap(t.h.ListFeedItems(ctx, req))
+	view := services.ViewInbox
+	if args.FilteredOnly {
+		view = services.ViewFiltered
+	}
+	items, hasMore, err := t.feeds.ListItems(
+		ctx, uid, args.Limit, args.Offset, args.UnreadOnly, feedID, false, view,
+	)
+	if err != nil {
+		return nil, connecttools.MapError(err)
+	}
+	out := make([]*feedsv1.Item, len(items))
+	for i, item := range items {
+		out[i] = protomap.Item(item)
+	}
+	return &feedsv1.ListFeedItemsResponse{Items: out, HasMore: hasMore}, nil
 }
 
 func (t tools) mcpGetItem(
 	ctx context.Context, args mcpGetItemArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(
-		t.h.GetFeedItem(ctx, &feedsv1.GetFeedItemRequest{ItemId: args.ItemID}),
-	)
+	uid, err := userID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	itemID, err := parseID(args.ItemID, "item")
+	if err != nil {
+		return nil, err
+	}
+	item, err := t.feeds.GetItem(ctx, uid, itemID)
+	if err != nil {
+		if errors.Is(err, database.ErrResourceNotFound) {
+			t.logger.WarnContext(ctx, "feed item not found",
+				"item_id", itemID, "user_id", uid)
+		}
+		return nil, connecttools.MapError(err)
+	}
+	return &feedsv1.GetFeedItemResponse{Item: protomap.Item(*item)}, nil
 }
 
 func (t tools) mcpListFilterRules(
 	ctx context.Context, _ mcptools.NoArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(t.h.ListFilterRules(ctx, &feedsv1.ListFilterRulesRequest{}))
+	uid, err := userID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	rules, err := t.feeds.ListFilterRules(ctx, uid)
+	if err != nil {
+		return nil, connecttools.MapError(err)
+	}
+	out := make([]*feedsv1.FilterRule, len(rules))
+	for i, r := range rules {
+		out[i] = protomap.FilterRule(r)
+	}
+	return &feedsv1.ListFilterRulesResponse{Rules: out}, nil
 }
 
 func (t tools) mcpGetFilterRuleSuggestions(
 	ctx context.Context, _ mcptools.NoArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(
-		t.h.GetFilterRuleSuggestions(ctx, &feedsv1.GetFilterRuleSuggestionsRequest{}),
-	)
+	uid, err := userID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	suggestions, err := t.feeds.GetFilterRuleSuggestions(ctx, uid)
+	if err != nil {
+		return nil, connecttools.MapError(err)
+	}
+	out := make([]*feedsv1.FilterRuleSuggestion, len(suggestions))
+	for i, sg := range suggestions {
+		out[i] = protomap.FilterRuleSuggestion(sg)
+	}
+	return &feedsv1.GetFilterRuleSuggestionsResponse{Suggestions: out}, nil
 }

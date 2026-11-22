@@ -3,6 +3,7 @@ package connect
 import (
 	"context"
 
+	"tools.xdoubleu.com/apps/feeds/internal/protomap"
 	feedsv1 "tools.xdoubleu.com/gen/feeds/v1"
 )
 
@@ -24,6 +25,6 @@ func (h *Handler) RestoreFeedItem(
 		return nil, mapError(err)
 	}
 	return &feedsv1.RestoreFeedItemResponse{
-		Item: protoItem(*item),
+		Item: protomap.Item(*item),
 	}, nil
 }
