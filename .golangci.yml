@@ -171,8 +171,6 @@ linters:
           files:
             - "**/apps/games/connect/**"
             - "**/apps/games/mcp/**"
-            - "**/apps/dashboard/connect/**"
-            - "**/apps/dashboard/mcp/**"
             - "!**/*_test.go"
           deny:
             - pkg: tools.xdoubleu.com/apps/games/internal/repositories
@@ -184,6 +182,28 @@ linters:
         hexagonal-games-services:
           files:
             - "**/apps/games/internal/services/**"
+            - "!**/*_test.go"
+          deny:
+            - pkg: connectrpc.com/connect
+              desc: services know no transport
+            - pkg: tools.xdoubleu.com/gen
+              desc: services use domain types, not generated protos
+            - pkg: github.com/jackc/pgx
+              desc: services reach storage through their own interfaces
+            - pkg: net/http
+              desc: services know no transport
+        hexagonal-dashboard-adapters:
+          files:
+            - "**/apps/dashboard/connect/**"
+            - "**/apps/dashboard/mcp/**"
+            - "!**/*_test.go"
+          deny:
+            - pkg: github.com/jackc/pgx
+              desc: adapters do not touch the database
+            - pkg: tools.xdoubleu.com/internal/kit/database/postgres
+              desc: adapters do not touch the database
+        hexagonal-dashboard-services:
+          files:
             - "**/apps/dashboard/internal/services/**"
             - "!**/*_test.go"
           deny:
