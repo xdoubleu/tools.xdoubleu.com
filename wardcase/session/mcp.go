@@ -27,5 +27,5 @@ func JobMCPServersFrom(
 	if err != nil {
 		return nil, nil, err //nolint:wrapcheck // names the path
 	}
-	return ward.MCPServers(cfg, store, true)
+	return ward.MCPServers(cfg.MCP, store, true)
 }
