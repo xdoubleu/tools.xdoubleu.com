@@ -238,33 +238,23 @@ func (h *taskConnectHandler) ListTasks(
 	ctx context.Context,
 	_ *factoryv1.ListTasksRequest,
 ) (*factoryv1.ListTasksResponse, error) {
-	if _, err := actorFrom(ctx); err != nil {
+	actor, err := actorFrom(ctx)
+	if err != nil {
 		return nil, err
 	}
-	// The board is polled while a runner may be gone, so this is where a job that
-	// stopped checking in gets noticed and its task parked in Needs you.
-	h.app.services.Jobs.SweepLost(ctx)
-	tasks, err := h.app.services.Tasks.List(ctx, "")
+	board, err := h.app.services.Board.ListTasks(ctx, actor, models.TaskFilter{
+		Query: "", Status: "", RepoID: nil, Label: "",
+	})
 	if err != nil {
 		return nil, mapError(err)
 	}
-	h.app.services.Jobs.FillDeploy(ctx, tasks)
-	out := h.app.protoTasks(ctx, tasks)
-	paused, err := h.app.services.Jobs.PickupPaused(ctx)
-	if err != nil {
-		return nil, mapError(err)
-	}
-	// The limit notice is a hint: if it cannot be read, the board still loads.
-	until, _ := h.app.services.Jobs.ActiveLimit(ctx)
 	limited := ""
-	if until != nil {
-		limited = until.UTC().Format(time.RFC3339)
+	if board.LimitedUntil != nil {
+		limited = board.LimitedUntil.UTC().Format(time.RFC3339)
 	}
-	// Also a hint, like the limit notice.
-	stalled, _ := h.app.services.Jobs.Stalled(ctx)
 	return &factoryv1.ListTasksResponse{
-		Tasks: out, PickupPaused: paused, ClaudeLimitedUntil: limited,
-		QueueStalled: stalled,
+		Tasks: h.app.protoTasks(ctx, board.Tasks), PickupPaused: board.PickupPaused,
+		ClaudeLimitedUntil: limited, QueueStalled: board.QueueStalled,
 	}, nil
 }
 
@@ -272,43 +262,33 @@ func (h *taskConnectHandler) GetTask(
 	ctx context.Context,
 	req *factoryv1.GetTaskRequest,
 ) (*factoryv1.GetTaskResponse, error) {
-	if _, err := actorFrom(ctx); err != nil {
-		return nil, err
-	}
-	id, err := h.app.taskID(ctx, req.Id)
+	actor, err := actorFrom(ctx)
 	if err != nil {
 		return nil, err
 	}
-	// The sheet polls this while a job runs, so a dead runner's job must be
-	// marked lost here too.
-	h.app.services.Jobs.SweepLost(ctx)
-	task, comments, err := h.app.services.Tasks.Get(ctx, id)
+	detail, err := h.app.services.Board.GetTask(ctx, actor, req.Id)
 	if err != nil {
 		return nil, mapError(err)
 	}
-	out := h.app.protoComments(ctx, comments)
-	filled := []models.Task{*task}
-	h.app.services.Jobs.FillDeploy(ctx, filled)
-	task = &filled[0]
-	jobs, err := h.app.services.Jobs.ByTask(ctx, id)
-	if err != nil {
-		return nil, mapError(err)
-	}
-	pulls, err := h.app.services.Jobs.PullRequestsOf(ctx, id)
-	if err != nil {
-		return nil, mapError(err)
-	}
-	pullOut := make([]*factoryv1.PullRequest, len(pulls))
-	for i := range pulls {
-		pullOut[i] = &factoryv1.PullRequest{
-			Url: pulls[i].URL, State: pulls[i].State, Ci: pulls[i].CI,
-			Review: pulls[i].Review, Mergeable: pulls[i].Mergeable,
+	return h.app.protoDetail(ctx, detail), nil
+}
+
+// protoDetail is a task with its comments, jobs and pull requests.
+func (f *Factory) protoDetail(
+	ctx context.Context,
+	d *services.TaskDetail,
+) *factoryv1.GetTaskResponse {
+	pulls := make([]*factoryv1.PullRequest, len(d.Pulls))
+	for i := range d.Pulls {
+		pulls[i] = &factoryv1.PullRequest{
+			Url: d.Pulls[i].URL, State: d.Pulls[i].State, Ci: d.Pulls[i].CI,
+			Review: d.Pulls[i].Review, Mergeable: d.Pulls[i].Mergeable,
 		}
 	}
 	return &factoryv1.GetTaskResponse{
-		Task: h.app.protoTaskOf(ctx, task), Comments: out, Jobs: protoJobs(jobs),
-		PullRequests: pullOut,
-	}, nil
+		Task: f.protoTaskOf(ctx, d.Task), Comments: f.protoComments(ctx, d.Comments),
+		Jobs: protoJobs(d.Jobs), PullRequests: pulls,
+	}
 }
 
 func (h *taskConnectHandler) CreateTask(
@@ -323,7 +303,7 @@ func (h *taskConnectHandler) CreateTask(
 	if err != nil {
 		return nil, err
 	}
-	task, err := h.app.services.Tasks.Create(ctx, actor, repoID, services.TaskInput{
+	task, err := h.app.services.Board.CreateTask(ctx, actor, repoID, services.TaskInput{
 		Title:    req.Title,
 		Body:     req.Body,
 		Priority: priorityFromProto(req.Priority),
@@ -343,15 +323,14 @@ func (h *taskConnectHandler) UpdateTask(
 	if err != nil {
 		return nil, err
 	}
-	id, err := h.app.taskID(ctx, req.Id)
-	if err != nil {
-		return nil, err
-	}
-	task, err := h.app.services.Tasks.Update(ctx, actor, id, services.TaskInput{
-		Title:    req.Title,
-		Body:     req.Body,
-		Priority: priorityFromProto(req.Priority),
-		Labels:   req.Labels,
+	priority := priorityFromProto(req.Priority)
+	task, err := h.app.services.Board.UpdateTask(ctx, actor, req.Id, services.TaskPatch{
+		Title:        &req.Title,
+		Body:         &req.Body,
+		Priority:     &priority,
+		Labels:       &req.Labels,
+		AddLabels:    nil,
+		RemoveLabels: nil,
 	})
 	if err != nil {
 		return nil, mapError(err)
@@ -367,11 +346,8 @@ func (h *taskConnectHandler) MoveTask(
 	if err != nil {
 		return nil, err
 	}
-	id, err := h.app.taskID(ctx, req.Id)
-	if err != nil {
-		return nil, err
-	}
-	task, err := h.app.services.Tasks.Move(ctx, actor, id, statusFromProto(req.Status))
+	task, err := h.app.services.Board.MoveTask(
+		ctx, actor, req.Id, statusFromProto(req.Status))
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -386,11 +362,7 @@ func (h *taskConnectHandler) AddComment(
 	if err != nil {
 		return nil, err
 	}
-	id, err := h.app.taskID(ctx, req.TaskId)
-	if err != nil {
-		return nil, err
-	}
-	comment, err := h.app.services.Tasks.Comment(ctx, actor, id, req.Body)
+	comment, err := h.app.services.Board.AddComment(ctx, actor, req.TaskId, req.Body)
 	if err != nil {
 		return nil, mapError(err)
 	}
