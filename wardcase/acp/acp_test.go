@@ -343,3 +343,16 @@ func TestAServerThatCannotOpenItsSessionAllowsANewTry(t *testing.T) {
 	_, err = client.NewSession(ctx, "/x")
 	assert.NoError(t, err)
 }
+
+func TestASessionAuthenticatesWhenTheAgentAsksFirst(t *testing.T) {
+	w := newWire(t, "")
+	w.agent.RequireAuth = true
+	ctx := context.Background()
+	require.NoError(t, w.client.Initialize(ctx))
+
+	id, err := w.client.NewSession(ctx, "/work")
+
+	require.NoError(t, err)
+	assert.NotEmpty(t, id)
+	assert.Equal(t, "api-key", w.agent.AuthenticatedWith())
+}

@@ -319,14 +319,14 @@ func (r *Runner) runOnce(
 
 // harness builds the named harness, its environment and the proxy's credentials.
 // Claude Code's token goes in the VM, which can send it only to Anthropic through
-// the proxy (adr-0043); OpenRouter's and OpenAI's keys stay on the host and the
+// the proxy (adr-0043); OpenRouter's, OpenAI's and Gemini's keys stay on the host and the
 // proxy adds them.
 func (r *Runner) harness(
 	name string,
 ) (interactive, map[string]string, vm.EgressConfig, error) {
 	egress := vm.EgressConfig{
-		Server: "", MCPToken: nil, OpenRouterKey: nil, OpenAIKey: nil, MCPServers: nil,
-		MCPRejected: nil, Transport: nil, Anthropic: "", OpenRouter: "", OpenAI: "",
+		Server: "", MCPToken: nil, OpenRouterKey: nil, OpenAIKey: nil, GeminiKey: nil, MCPServers: nil,
+		MCPRejected: nil, Transport: nil, Anthropic: "", OpenRouter: "", OpenAI: "", Gemini: "",
 		GoProxy: "", NPM: "", RubyGems: "", NixCache: "", NixSrc: "", Log: nil,
 	}
 	switch name {
@@ -354,6 +354,12 @@ func (r *Runner) harness(
 		}
 		egress.OpenAIKey = func() (string, error) { return r.Secrets.Get(SecretOpenAI) }
 		return vm.Codex{}, map[string]string{}, egress, nil
+	case Gemini:
+		if _, err := r.Secrets.Get(SecretGemini); err != nil {
+			return nil, nil, egress, secretErr(SecretGemini, err)
+		}
+		egress.GeminiKey = func() (string, error) { return r.Secrets.Get(SecretGemini) }
+		return vm.Gemini{}, map[string]string{}, egress, nil
 	}
 	return nil, nil, egress, fmt.Errorf("unknown harness %q", name)
 }

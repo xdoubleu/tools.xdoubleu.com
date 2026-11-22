@@ -7,7 +7,10 @@ import (
 	"time"
 )
 
-const codexBin = "codex"
+const (
+	codexBin    = "codex"
+	codexACPBin = "codex-acp"
+)
 
 // openAIPlaceholder stands in for OpenAI's key inside the sandbox: the host proxy
 // puts the real one on the request (adr-0043), so the VM never holds it.
@@ -28,6 +31,8 @@ const (
 	codexAgain = `sid="$1"
 ` + codexProxyArgs + `exec codex "$@" exec --json ` +
 		`--dangerously-bypass-approvals-and-sandbox --skip-git-repo-check resume "$sid" -`
+	codexACP = codexProxyArgs + `exec codex-acp "$@" -c approval_policy=never ` +
+		`-c sandbox_mode=danger-full-access`
 	codexTerminal = `if [ -n "${FACTORY_PROXY:-}" ]; then
   exec codex -c "openai_base_url=\"$FACTORY_PROXY/openai/v1\"" ` +
 		`--dangerously-bypass-approvals-and-sandbox "$@"
@@ -44,8 +49,10 @@ type Codex struct{}
 // Command implements Harness.
 func (Codex) Command() []string { return []string{"sh", "-c", codexStart, codexBin} }
 
-// ACP implements Harness: Codex has no ACP server of its own.
-func (Codex) ACP() []string { return nil }
+// ACP implements Harness: Codex has no ACP server of its own, so the `codex-acp`
+// adapter in the image drives it, on the same proxy route and with the VM as the
+// only sandbox.
+func (Codex) ACP() []string { return []string{"sh", "-c", codexACP, codexACPBin} }
 
 // Resume implements Harness.
 func (Codex) Resume(sessionID string) []string {

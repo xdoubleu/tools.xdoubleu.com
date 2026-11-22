@@ -12,7 +12,7 @@ import (
 	"tools.xdoubleu.com/wardcase/internal/ward"
 )
 
-const acpUsage = "usage: wardcase acp [opencode]"
+const acpUsage = "usage: wardcase acp [opencode|codex|gemini]"
 
 // acpCommand runs `wardcase acp`: an ACP agent on stdio whose session runs in the
 // VM, for an ADE that adds wardcase as an agent.

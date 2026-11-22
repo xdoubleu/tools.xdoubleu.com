@@ -12,11 +12,11 @@ import (
 type Event = acp.Event
 
 // ChatRequest is one interactive session: the harness's ACP server runs in the
-// VM, on a new branch in its own worktree. Only OpenCode has one.
+// VM, on a new branch in its own worktree. OpenCode, Codex and Gemini have one.
 type ChatRequest struct {
 	// URL, Base, Branch and Token are as in Request.
 	URL, Base, Branch, Token string
-	// Harness is OpenCode.
+	// Harness is OpenCode, Codex or Gemini.
 	Harness string
 	// OpenCodeModel is the OpenRouter model id.
 	OpenCodeModel string
