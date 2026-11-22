@@ -319,6 +319,32 @@ linters:
               desc: services reach storage through their own interfaces
             - pkg: net/http
               desc: services know no transport
+        hexagonal-recipes-adapters:
+          files:
+            - "**/apps/recipes/connect/**"
+            - "**/apps/recipes/mcp/**"
+            - "**/apps/recipes/http/**"
+            - "!**/*_test.go"
+          deny:
+            - pkg: tools.xdoubleu.com/apps/recipes/internal/repositories
+              desc: adapters call services, never repositories
+            - pkg: github.com/jackc/pgx
+              desc: adapters do not touch the database
+            - pkg: tools.xdoubleu.com/internal/kit/database/postgres
+              desc: adapters do not touch the database
+        hexagonal-recipes-services:
+          files:
+            - "**/apps/recipes/internal/services/**"
+            - "!**/*_test.go"
+          deny:
+            - pkg: connectrpc.com/connect
+              desc: services know no transport
+            - pkg: tools.xdoubleu.com/gen
+              desc: services use domain types, not generated protos
+            - pkg: github.com/jackc/pgx
+              desc: services reach storage through their own interfaces
+            - pkg: net/http
+              desc: services know no transport
         hexagonal-shoppinglist-adapters:
           files:
             - "**/apps/shoppinglist/connect/**"

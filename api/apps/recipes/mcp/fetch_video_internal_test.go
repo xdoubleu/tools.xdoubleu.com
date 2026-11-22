@@ -1,4 +1,4 @@
-package recipes
+package mcp
 
 import (
 	"context"
@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/structpb"
 
+	"tools.xdoubleu.com/apps/recipes/internal/services"
 	"tools.xdoubleu.com/apps/recipes/pkg/videofetch"
 )
 
@@ -26,9 +27,9 @@ func (s *stubVideoFetcher) Fetch(
 	return s.video, s.err
 }
 
-func handlerWithFetcher(f videoFetcher) *recipesConnectHandler {
-	//nolint:exhaustruct // only the fetcher is used
-	return &recipesConnectHandler{app: &Recipes{videos: f}}
+func handlerWithFetcher(f services.VideoFetcher) *tools {
+	//nolint:exhaustruct // only videos are used
+	return &tools{videos: services.NewVideoService(f)}
 }
 
 func TestMCPFetchVideo(t *testing.T) {
