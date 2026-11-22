@@ -35,6 +35,8 @@ type fakeBox struct {
 	runs    []run
 	act     func(i int, r run, out io.Writer) int
 	openErr error
+	// stream plays a harness that talks over its stdio while it runs.
+	stream func(r run, in io.Reader, out io.Writer) int
 }
 
 func (b *fakeBox) Run(ctx context.Context, spec vm.SandboxSpec) (int, error) {
@@ -69,6 +71,11 @@ func (s *fakeSession) Exec(
 func (s *fakeSession) Attach(
 	_ context.Context, command []string, in io.Reader, out io.Writer, tty bool,
 ) (int, error) {
+	if s.box.stream != nil {
+		r := run{spec: s.spec, command: command, stdin: "", tty: tty}
+		s.box.runs = append(s.box.runs, r)
+		return s.box.stream(r, in, out), nil
+	}
 	typed, _ := io.ReadAll(in)
 	r := run{spec: s.spec, command: command, stdin: string(typed), tty: tty}
 	return s.record(r, out), nil
@@ -129,7 +136,7 @@ type fixture struct {
 func newFixture(t *testing.T, overflow string, answer bool) *fixture {
 	t.Helper()
 	f := &fixture{
-		box: &fakeBox{runs: nil, act: nil, openErr: nil},
+		box: &fakeBox{runs: nil, act: nil, openErr: nil, stream: nil},
 		r:   nil, out: bytes.Buffer{}, notes: bytes.Buffer{}, asked: nil,
 	}
 	f.r = &ward.Runner{
