@@ -30,7 +30,7 @@ func (f *fakeTokens) ResolveToken(
 }
 
 func TestShareService_Resolve(t *testing.T) {
-	tokens := &fakeTokens{}
+	tokens := &fakeTokens{err: nil, called: false, kind: ""}
 	svc := services.NewShareService(tokens)
 
 	id, name, err := svc.Resolve(t.Context(), "tok", sharedmodels.DashboardKindGames)
@@ -42,7 +42,7 @@ func TestShareService_Resolve(t *testing.T) {
 }
 
 func TestShareService_EmptyTokenSkipsLookup(t *testing.T) {
-	tokens := &fakeTokens{}
+	tokens := &fakeTokens{err: nil, called: false, kind: ""}
 	svc := services.NewShareService(tokens)
 
 	_, _, err := svc.Resolve(t.Context(), "", sharedmodels.DashboardKindGames)
@@ -52,7 +52,8 @@ func TestShareService_EmptyTokenSkipsLookup(t *testing.T) {
 }
 
 func TestShareService_NotFoundIsUnknownDashboard(t *testing.T) {
-	svc := services.NewShareService(&fakeTokens{err: database.ErrResourceNotFound})
+	tokens := &fakeTokens{err: database.ErrResourceNotFound, called: false, kind: ""}
+	svc := services.NewShareService(tokens)
 
 	_, _, err := svc.Resolve(t.Context(), "x", sharedmodels.DashboardKindReading)
 
@@ -61,7 +62,7 @@ func TestShareService_NotFoundIsUnknownDashboard(t *testing.T) {
 
 func TestShareService_OtherErrorsPassThrough(t *testing.T) {
 	boom := errors.New("db down")
-	svc := services.NewShareService(&fakeTokens{err: boom})
+	svc := services.NewShareService(&fakeTokens{err: boom, called: false, kind: ""})
 
 	_, _, err := svc.Resolve(t.Context(), "x", sharedmodels.DashboardKindReading)
 

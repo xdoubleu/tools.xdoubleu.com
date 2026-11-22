@@ -70,7 +70,7 @@ type todayBlock struct {
 // Get loads one block per app user can use, concurrently. A block that fails
 // is logged and left unset so one slow or broken app can't blank the page.
 func (s *TodayService) Get(ctx context.Context, user *sharedmodels.User) *Today {
-	out := &Today{}
+	out := new(Today)
 	var g errgroup.Group
 	for _, b := range s.blocks(user, out, s.now()) {
 		if !CanUse(user, b.app) {

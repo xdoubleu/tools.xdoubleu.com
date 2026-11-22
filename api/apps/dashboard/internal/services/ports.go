@@ -55,12 +55,16 @@ type AttentionTask struct {
 
 // ReadingSource lists the books a user is reading.
 type ReadingSource interface {
-	ListCurrentlyReading(ctx context.Context, userID string, limit int) ([]ReadingBook, error)
+	ListCurrentlyReading(
+		ctx context.Context, userID string, limit int,
+	) ([]ReadingBook, error)
 }
 
 // FeedsSource summarises a user's unread feed items.
 type FeedsSource interface {
-	BuildTodayUnread(ctx context.Context, userID string, limit int32) (int, []FeedItem, error)
+	BuildTodayUnread(
+		ctx context.Context, userID string, limit int32,
+	) (int, []FeedItem, error)
 }
 
 // MealsSource lists a user's meals around today.
@@ -80,7 +84,9 @@ type WatchingSource interface {
 
 // LearningSource lists a user's active learning paths.
 type LearningSource interface {
-	ListActivePaths(ctx context.Context, userID string, limit int32) ([]LearningPath, error)
+	ListActivePaths(
+		ctx context.Context, userID string, limit int32,
+	) ([]LearningPath, error)
 }
 
 // AttentionSource lists the board tasks waiting on a person.
