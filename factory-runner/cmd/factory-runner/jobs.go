@@ -50,6 +50,7 @@ func newJobRunner(
 	}
 	jobs := &runner.JobRunner{
 		NoCIGrace: 0,
+		OpenChat:  nil,
 		API:       runner.NewClient(cfg.Server, Release),
 		Token:     token,
 		// Read each time, so `config repos add` takes effect without a restart.

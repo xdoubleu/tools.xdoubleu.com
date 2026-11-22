@@ -637,7 +637,11 @@ type ClaimedJob struct {
 	ResumeSessionId string `protobuf:"bytes,13,opt,name=resume_session_id,json=resumeSessionId,proto3" json:"resume_session_id,omitempty"`
 	// Set for a routine's job, which has no task (task_id is empty). The runner
 	// runs only a routine it knows by name and builds the prompt itself.
-	Routine       string `protobuf:"bytes,15,opt,name=routine,proto3" json:"routine,omitempty"`
+	Routine string `protobuf:"bytes,15,opt,name=routine,proto3" json:"routine,omitempty"`
+	// Set for a chat session's job (task_id is empty): the session the runner
+	// bridges to a harness over /factory/chats/{chat_id}/runner. The job holds a
+	// slot until the session ends; branch, repo and the account are the session's.
+	ChatId        string `protobuf:"bytes,16,opt,name=chat_id,json=chatId,proto3" json:"chat_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -752,6 +756,13 @@ func (x *ClaimedJob) GetResumeSessionId() string {
 func (x *ClaimedJob) GetRoutine() string {
 	if x != nil {
 		return x.Routine
+	}
+	return ""
+}
+
+func (x *ClaimedJob) GetChatId() string {
+	if x != nil {
+		return x.ChatId
 	}
 	return ""
 }
@@ -1472,6 +1483,96 @@ func (*CompleteJobResponse) Descriptor() ([]byte, []int) {
 	return file_factory_v1_runners_proto_rawDescGZIP(), []int{23}
 }
 
+// The runner closes a chat session it ran. A session still going is stopped; the
+// report, of what the VM left behind, is added to the person's.
+type EndChatRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ChatId        string                 `protobuf:"bytes,1,opt,name=chat_id,json=chatId,proto3" json:"chat_id,omitempty"`
+	Report        string                 `protobuf:"bytes,2,opt,name=report,proto3" json:"report,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *EndChatRequest) Reset() {
+	*x = EndChatRequest{}
+	mi := &file_factory_v1_runners_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EndChatRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EndChatRequest) ProtoMessage() {}
+
+func (x *EndChatRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_factory_v1_runners_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EndChatRequest.ProtoReflect.Descriptor instead.
+func (*EndChatRequest) Descriptor() ([]byte, []int) {
+	return file_factory_v1_runners_proto_rawDescGZIP(), []int{24}
+}
+
+func (x *EndChatRequest) GetChatId() string {
+	if x != nil {
+		return x.ChatId
+	}
+	return ""
+}
+
+func (x *EndChatRequest) GetReport() string {
+	if x != nil {
+		return x.Report
+	}
+	return ""
+}
+
+type EndChatResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *EndChatResponse) Reset() {
+	*x = EndChatResponse{}
+	mi := &file_factory_v1_runners_proto_msgTypes[25]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EndChatResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EndChatResponse) ProtoMessage() {}
+
+func (x *EndChatResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_factory_v1_runners_proto_msgTypes[25]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EndChatResponse.ProtoReflect.Descriptor instead.
+func (*EndChatResponse) Descriptor() ([]byte, []int) {
+	return file_factory_v1_runners_proto_rawDescGZIP(), []int{25}
+}
+
 // Of the tasks the runner keeps session state for, the ones that are Done or no
 // longer exist, whose state it can delete. At most 500 ids; unknown ids count as
 // gone.
@@ -1484,7 +1585,7 @@ type ListFinishedTasksRequest struct {
 
 func (x *ListFinishedTasksRequest) Reset() {
 	*x = ListFinishedTasksRequest{}
-	mi := &file_factory_v1_runners_proto_msgTypes[24]
+	mi := &file_factory_v1_runners_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1496,7 +1597,7 @@ func (x *ListFinishedTasksRequest) String() string {
 func (*ListFinishedTasksRequest) ProtoMessage() {}
 
 func (x *ListFinishedTasksRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_factory_v1_runners_proto_msgTypes[24]
+	mi := &file_factory_v1_runners_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1509,7 +1610,7 @@ func (x *ListFinishedTasksRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListFinishedTasksRequest.ProtoReflect.Descriptor instead.
 func (*ListFinishedTasksRequest) Descriptor() ([]byte, []int) {
-	return file_factory_v1_runners_proto_rawDescGZIP(), []int{24}
+	return file_factory_v1_runners_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *ListFinishedTasksRequest) GetTaskIds() []string {
@@ -1528,7 +1629,7 @@ type ListFinishedTasksResponse struct {
 
 func (x *ListFinishedTasksResponse) Reset() {
 	*x = ListFinishedTasksResponse{}
-	mi := &file_factory_v1_runners_proto_msgTypes[25]
+	mi := &file_factory_v1_runners_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1540,7 +1641,7 @@ func (x *ListFinishedTasksResponse) String() string {
 func (*ListFinishedTasksResponse) ProtoMessage() {}
 
 func (x *ListFinishedTasksResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_factory_v1_runners_proto_msgTypes[25]
+	mi := &file_factory_v1_runners_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1553,7 +1654,7 @@ func (x *ListFinishedTasksResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListFinishedTasksResponse.ProtoReflect.Descriptor instead.
 func (*ListFinishedTasksResponse) Descriptor() ([]byte, []int) {
-	return file_factory_v1_runners_proto_rawDescGZIP(), []int{25}
+	return file_factory_v1_runners_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *ListFinishedTasksResponse) GetTaskIds() []string {
@@ -1576,7 +1677,7 @@ type GetPushTokenRequest struct {
 
 func (x *GetPushTokenRequest) Reset() {
 	*x = GetPushTokenRequest{}
-	mi := &file_factory_v1_runners_proto_msgTypes[26]
+	mi := &file_factory_v1_runners_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1588,7 +1689,7 @@ func (x *GetPushTokenRequest) String() string {
 func (*GetPushTokenRequest) ProtoMessage() {}
 
 func (x *GetPushTokenRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_factory_v1_runners_proto_msgTypes[26]
+	mi := &file_factory_v1_runners_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1601,7 +1702,7 @@ func (x *GetPushTokenRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPushTokenRequest.ProtoReflect.Descriptor instead.
 func (*GetPushTokenRequest) Descriptor() ([]byte, []int) {
-	return file_factory_v1_runners_proto_rawDescGZIP(), []int{26}
+	return file_factory_v1_runners_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *GetPushTokenRequest) GetJobId() string {
@@ -1622,7 +1723,7 @@ type GetPushTokenResponse struct {
 
 func (x *GetPushTokenResponse) Reset() {
 	*x = GetPushTokenResponse{}
-	mi := &file_factory_v1_runners_proto_msgTypes[27]
+	mi := &file_factory_v1_runners_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1634,7 +1735,7 @@ func (x *GetPushTokenResponse) String() string {
 func (*GetPushTokenResponse) ProtoMessage() {}
 
 func (x *GetPushTokenResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_factory_v1_runners_proto_msgTypes[27]
+	mi := &file_factory_v1_runners_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1647,7 +1748,7 @@ func (x *GetPushTokenResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPushTokenResponse.ProtoReflect.Descriptor instead.
 func (*GetPushTokenResponse) Descriptor() ([]byte, []int) {
-	return file_factory_v1_runners_proto_rawDescGZIP(), []int{27}
+	return file_factory_v1_runners_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *GetPushTokenResponse) GetToken() string {
@@ -1706,7 +1807,7 @@ const file_factory_v1_runners_proto_rawDesc = "" +
 	"\x0erepos_reported\x18\x03 \x01(\bR\rreposReported\"4\n" +
 	"\x11HeartbeatResponse\x12\x1f\n" +
 	"\vqueued_jobs\x18\x01 \x01(\x05R\n" +
-	"queuedJobs\"\xbe\x03\n" +
+	"queuedJobs\"\xd7\x03\n" +
 	"\n" +
 	"ClaimedJob\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
@@ -1722,7 +1823,8 @@ const file_factory_v1_runners_proto_rawDesc = "" +
 	"\rmcp_client_id\x18\v \x01(\tR\vmcpClientId\x12*\n" +
 	"\x11mcp_client_secret\x18\f \x01(\tR\x0fmcpClientSecret\x12*\n" +
 	"\x11resume_session_id\x18\r \x01(\tR\x0fresumeSessionId\x12\x18\n" +
-	"\aroutine\x18\x0f \x01(\tR\aroutineJ\x04\b\x06\x10\aJ\x04\b\t\x10\n" +
+	"\aroutine\x18\x0f \x01(\tR\aroutine\x12\x17\n" +
+	"\achat_id\x18\x10 \x01(\tR\x06chatIdJ\x04\b\x06\x10\aJ\x04\b\t\x10\n" +
 	"J\x04\b\x0e\x10\x0fR\aharnessR\x05modelR\x0esetup_commands\"q\n" +
 	"\x0fClaimJobRequest\x12\x19\n" +
 	"\bmax_jobs\x18\x01 \x01(\x05R\amaxJobs\x12-\n" +
@@ -1774,7 +1876,11 @@ const file_factory_v1_runners_proto_rawDesc = "" +
 	"\n" +
 	"ci_retries\x18\b \x01(\x05R\tciRetries\x12#\n" +
 	"\rgates_seconds\x18\t \x01(\x01R\fgatesSeconds\"\x15\n" +
-	"\x13CompleteJobResponse\"5\n" +
+	"\x13CompleteJobResponse\"A\n" +
+	"\x0eEndChatRequest\x12\x17\n" +
+	"\achat_id\x18\x01 \x01(\tR\x06chatId\x12\x16\n" +
+	"\x06report\x18\x02 \x01(\tR\x06report\"\x11\n" +
+	"\x0fEndChatResponse\"5\n" +
 	"\x18ListFinishedTasksRequest\x12\x19\n" +
 	"\btask_ids\x18\x01 \x03(\tR\ataskIds\"6\n" +
 	"\x19ListFinishedTasksResponse\x12\x19\n" +
@@ -1788,7 +1894,7 @@ const file_factory_v1_runners_proto_rawDesc = "" +
 	"\x12RunnerAdminService\x12N\n" +
 	"\vListRunners\x12\x1e.factory.v1.ListRunnersRequest\x1a\x1f.factory.v1.ListRunnersResponse\x12Q\n" +
 	"\fCreateRunner\x12\x1f.factory.v1.CreateRunnerRequest\x1a .factory.v1.CreateRunnerResponse\x12Q\n" +
-	"\fRevokeRunner\x12\x1f.factory.v1.RevokeRunnerRequest\x1a .factory.v1.RevokeRunnerResponse2\xd6\x05\n" +
+	"\fRevokeRunner\x12\x1f.factory.v1.RevokeRunnerRequest\x1a .factory.v1.RevokeRunnerResponse2\x9a\x06\n" +
 	"\rRunnerService\x129\n" +
 	"\x04Pair\x12\x17.factory.v1.PairRequest\x1a\x18.factory.v1.PairResponse\x12H\n" +
 	"\tHeartbeat\x12\x1c.factory.v1.HeartbeatRequest\x1a\x1d.factory.v1.HeartbeatResponse\x12E\n" +
@@ -1797,7 +1903,8 @@ const file_factory_v1_runners_proto_rawDesc = "" +
 	"\x0fAppendJobEvents\x12\".factory.v1.AppendJobEventsRequest\x1a#.factory.v1.AppendJobEventsResponse\x12Q\n" +
 	"\fGetPushToken\x12\x1f.factory.v1.GetPushTokenRequest\x1a .factory.v1.GetPushTokenResponse\x12T\n" +
 	"\rAddJobComment\x12 .factory.v1.AddJobCommentRequest\x1a!.factory.v1.AddJobCommentResponse\x12N\n" +
-	"\vCompleteJob\x12\x1e.factory.v1.CompleteJobRequest\x1a\x1f.factory.v1.CompleteJobResponse\x12`\n" +
+	"\vCompleteJob\x12\x1e.factory.v1.CompleteJobRequest\x1a\x1f.factory.v1.CompleteJobResponse\x12B\n" +
+	"\aEndChat\x12\x1a.factory.v1.EndChatRequest\x1a\x1b.factory.v1.EndChatResponse\x12`\n" +
 	"\x11ListFinishedTasks\x12$.factory.v1.ListFinishedTasksRequest\x1a%.factory.v1.ListFinishedTasksResponseB-Z+tools.xdoubleu.com/gen/factory/v1;factoryv1b\x06proto3"
 
 var (
@@ -1812,7 +1919,7 @@ func file_factory_v1_runners_proto_rawDescGZIP() []byte {
 	return file_factory_v1_runners_proto_rawDescData
 }
 
-var file_factory_v1_runners_proto_msgTypes = make([]protoimpl.MessageInfo, 28)
+var file_factory_v1_runners_proto_msgTypes = make([]protoimpl.MessageInfo, 30)
 var file_factory_v1_runners_proto_goTypes = []any{
 	(*Runner)(nil),                    // 0: factory.v1.Runner
 	(*ListRunnersRequest)(nil),        // 1: factory.v1.ListRunnersRequest
@@ -1838,17 +1945,19 @@ var file_factory_v1_runners_proto_goTypes = []any{
 	(*CompleteJobRequest)(nil),        // 21: factory.v1.CompleteJobRequest
 	(*JobTimings)(nil),                // 22: factory.v1.JobTimings
 	(*CompleteJobResponse)(nil),       // 23: factory.v1.CompleteJobResponse
-	(*ListFinishedTasksRequest)(nil),  // 24: factory.v1.ListFinishedTasksRequest
-	(*ListFinishedTasksResponse)(nil), // 25: factory.v1.ListFinishedTasksResponse
-	(*GetPushTokenRequest)(nil),       // 26: factory.v1.GetPushTokenRequest
-	(*GetPushTokenResponse)(nil),      // 27: factory.v1.GetPushTokenResponse
-	(Harness)(0),                      // 28: factory.v1.Harness
+	(*EndChatRequest)(nil),            // 24: factory.v1.EndChatRequest
+	(*EndChatResponse)(nil),           // 25: factory.v1.EndChatResponse
+	(*ListFinishedTasksRequest)(nil),  // 26: factory.v1.ListFinishedTasksRequest
+	(*ListFinishedTasksResponse)(nil), // 27: factory.v1.ListFinishedTasksResponse
+	(*GetPushTokenRequest)(nil),       // 28: factory.v1.GetPushTokenRequest
+	(*GetPushTokenResponse)(nil),      // 29: factory.v1.GetPushTokenResponse
+	(Harness)(0),                      // 30: factory.v1.Harness
 }
 var file_factory_v1_runners_proto_depIdxs = []int32{
 	0,  // 0: factory.v1.ListRunnersResponse.runners:type_name -> factory.v1.Runner
 	0,  // 1: factory.v1.CreateRunnerResponse.runner:type_name -> factory.v1.Runner
 	0,  // 2: factory.v1.RevokeRunnerResponse.runner:type_name -> factory.v1.Runner
-	28, // 3: factory.v1.ClaimJobRequest.harness:type_name -> factory.v1.Harness
+	30, // 3: factory.v1.ClaimJobRequest.harness:type_name -> factory.v1.Harness
 	11, // 4: factory.v1.ClaimJobResponse.job:type_name -> factory.v1.ClaimedJob
 	16, // 5: factory.v1.AppendJobEventsRequest.lines:type_name -> factory.v1.JobLine
 	22, // 6: factory.v1.CompleteJobRequest.timings:type_name -> factory.v1.JobTimings
@@ -1860,24 +1969,26 @@ var file_factory_v1_runners_proto_depIdxs = []int32{
 	12, // 12: factory.v1.RunnerService.ClaimJob:input_type -> factory.v1.ClaimJobRequest
 	14, // 13: factory.v1.RunnerService.CheckIn:input_type -> factory.v1.CheckInRequest
 	17, // 14: factory.v1.RunnerService.AppendJobEvents:input_type -> factory.v1.AppendJobEventsRequest
-	26, // 15: factory.v1.RunnerService.GetPushToken:input_type -> factory.v1.GetPushTokenRequest
+	28, // 15: factory.v1.RunnerService.GetPushToken:input_type -> factory.v1.GetPushTokenRequest
 	19, // 16: factory.v1.RunnerService.AddJobComment:input_type -> factory.v1.AddJobCommentRequest
 	21, // 17: factory.v1.RunnerService.CompleteJob:input_type -> factory.v1.CompleteJobRequest
-	24, // 18: factory.v1.RunnerService.ListFinishedTasks:input_type -> factory.v1.ListFinishedTasksRequest
-	2,  // 19: factory.v1.RunnerAdminService.ListRunners:output_type -> factory.v1.ListRunnersResponse
-	4,  // 20: factory.v1.RunnerAdminService.CreateRunner:output_type -> factory.v1.CreateRunnerResponse
-	6,  // 21: factory.v1.RunnerAdminService.RevokeRunner:output_type -> factory.v1.RevokeRunnerResponse
-	8,  // 22: factory.v1.RunnerService.Pair:output_type -> factory.v1.PairResponse
-	10, // 23: factory.v1.RunnerService.Heartbeat:output_type -> factory.v1.HeartbeatResponse
-	13, // 24: factory.v1.RunnerService.ClaimJob:output_type -> factory.v1.ClaimJobResponse
-	15, // 25: factory.v1.RunnerService.CheckIn:output_type -> factory.v1.CheckInResponse
-	18, // 26: factory.v1.RunnerService.AppendJobEvents:output_type -> factory.v1.AppendJobEventsResponse
-	27, // 27: factory.v1.RunnerService.GetPushToken:output_type -> factory.v1.GetPushTokenResponse
-	20, // 28: factory.v1.RunnerService.AddJobComment:output_type -> factory.v1.AddJobCommentResponse
-	23, // 29: factory.v1.RunnerService.CompleteJob:output_type -> factory.v1.CompleteJobResponse
-	25, // 30: factory.v1.RunnerService.ListFinishedTasks:output_type -> factory.v1.ListFinishedTasksResponse
-	19, // [19:31] is the sub-list for method output_type
-	7,  // [7:19] is the sub-list for method input_type
+	24, // 18: factory.v1.RunnerService.EndChat:input_type -> factory.v1.EndChatRequest
+	26, // 19: factory.v1.RunnerService.ListFinishedTasks:input_type -> factory.v1.ListFinishedTasksRequest
+	2,  // 20: factory.v1.RunnerAdminService.ListRunners:output_type -> factory.v1.ListRunnersResponse
+	4,  // 21: factory.v1.RunnerAdminService.CreateRunner:output_type -> factory.v1.CreateRunnerResponse
+	6,  // 22: factory.v1.RunnerAdminService.RevokeRunner:output_type -> factory.v1.RevokeRunnerResponse
+	8,  // 23: factory.v1.RunnerService.Pair:output_type -> factory.v1.PairResponse
+	10, // 24: factory.v1.RunnerService.Heartbeat:output_type -> factory.v1.HeartbeatResponse
+	13, // 25: factory.v1.RunnerService.ClaimJob:output_type -> factory.v1.ClaimJobResponse
+	15, // 26: factory.v1.RunnerService.CheckIn:output_type -> factory.v1.CheckInResponse
+	18, // 27: factory.v1.RunnerService.AppendJobEvents:output_type -> factory.v1.AppendJobEventsResponse
+	29, // 28: factory.v1.RunnerService.GetPushToken:output_type -> factory.v1.GetPushTokenResponse
+	20, // 29: factory.v1.RunnerService.AddJobComment:output_type -> factory.v1.AddJobCommentResponse
+	23, // 30: factory.v1.RunnerService.CompleteJob:output_type -> factory.v1.CompleteJobResponse
+	25, // 31: factory.v1.RunnerService.EndChat:output_type -> factory.v1.EndChatResponse
+	27, // 32: factory.v1.RunnerService.ListFinishedTasks:output_type -> factory.v1.ListFinishedTasksResponse
+	20, // [20:33] is the sub-list for method output_type
+	7,  // [7:20] is the sub-list for method input_type
 	7,  // [7:7] is the sub-list for extension type_name
 	7,  // [7:7] is the sub-list for extension extendee
 	0,  // [0:7] is the sub-list for field type_name
@@ -1895,7 +2006,7 @@ func file_factory_v1_runners_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_factory_v1_runners_proto_rawDesc), len(file_factory_v1_runners_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   28,
+			NumMessages:   30,
 			NumExtensions: 0,
 			NumServices:   2,
 		},

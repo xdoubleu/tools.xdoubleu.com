@@ -296,3 +296,39 @@ func (r *ChatsRepository) StopForJob(
 	}
 	return r.Stop(ctx, id, report, models.JobLost)
 }
+
+// ClaimFor marks the oldest unclaimed, unstopped session pinned to the runner as
+// claimed and returns it; none is not found.
+func (r *ChatsRepository) ClaimFor(
+	ctx context.Context,
+	runnerID uuid.UUID,
+) (*models.ChatSession, error) {
+	return scanChat(r.db.QueryRow(ctx, `
+		UPDATE factory.chat_sessions SET claimed_at = now()
+		WHERE id = (
+			SELECT id FROM factory.chat_sessions
+			WHERE runner_id = $1 AND claimed_at IS NULL AND state <> 'stopped'
+			ORDER BY created_at, id LIMIT 1 FOR UPDATE SKIP LOCKED
+		)
+		RETURNING `+chatColumns, runnerID))
+}
+
+// AppendReport adds text to a session's report, after what a person's stop set.
+func (r *ChatsRepository) AppendReport(
+	ctx context.Context,
+	id uuid.UUID,
+	text string,
+) error {
+	tag, err := r.db.Exec(ctx, `
+		UPDATE factory.chat_sessions
+		SET report = CASE WHEN report = '' THEN $2 ELSE report || E'\n\n' || $2 END,
+			updated_at = now()
+		WHERE id = $1`, id, text)
+	if err != nil {
+		return postgres.PgxErrorToHTTPError(err)
+	}
+	if tag.RowsAffected() == 0 {
+		return database.ErrResourceNotFound
+	}
+	return nil
+}

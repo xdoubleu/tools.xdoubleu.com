@@ -91,6 +91,7 @@ func (b *chatBackend) Open(
 	}
 	chat, err := b.r.OpenChat(ctx, ward.ChatRequest{
 		Source: nil, Dir: cwd, Harness: b.harness, OpenCodeModel: "",
+		Board: nil, MCP: nil,
 		OnEvent: func(e acp.Event) {
 			if e.Kind == "update" {
 				emit(e.Update)

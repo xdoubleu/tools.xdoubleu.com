@@ -62,6 +62,9 @@ type ClaimedJob struct {
 	MCPClientSecret string
 	// ResumeSessionID is the harness session to continue, for a Reply's job.
 	ResumeSessionID string
+	// ChatID is set when the job is a chat session's: the runner bridges it to a
+	// harness session instead of running a prompt.
+	ChatID uuid.UUID
 }
 
 func conflict(msg string) error {
@@ -252,6 +255,9 @@ func (s *JobService) ClaimQueued(
 	model string,
 ) (*ClaimedJob, error) {
 	model = strings.TrimSpace(model)
+	if claimed, err := s.claimChat(ctx, runnerID); claimed != nil || err != nil {
+		return claimed, err
+	}
 	// A Claude job claimed in a limit would only fail the same way.
 	until, limitErr := s.jobs.ActiveLimit(ctx)
 	if limitErr != nil {
@@ -282,7 +288,41 @@ func (s *JobService) ClaimQueued(
 		resume = parent.SessionID
 	}
 	claimed := &ClaimedJob{Job: *job, Repo: *repo, MCPClientID: "", MCPClientSecret: "",
-		ResumeSessionID: resume}
+		ResumeSessionID: resume, ChatID: uuid.Nil}
+	if s.accounts != nil {
+		if err = s.issueAccount(ctx, claimed, runnerID); err != nil {
+			return nil, err
+		}
+	}
+	return claimed, nil
+}
+
+// claimChat hands the runner a chat session pinned to it that no one has taken
+// over yet. Its job is running since the session started, so it holds a slot
+// already and the runner's cap does not apply.
+func (s *JobService) claimChat(
+	ctx context.Context,
+	runnerID uuid.UUID,
+) (*ClaimedJob, error) {
+	session, err := s.chats.ClaimFor(ctx, runnerID)
+	if errors.Is(err, database.ErrResourceNotFound) {
+		return nil, nil //nolint:nilnil // no chat is an answer, not an error
+	}
+	if err != nil {
+		return nil, err
+	}
+	job, err := s.jobs.Get(ctx, session.JobID)
+	if err != nil {
+		return nil, err
+	}
+	repo, err := s.repos.Get(ctx, session.RepoID)
+	if err != nil {
+		return nil, err
+	}
+	// The account reads the session's task, when it has one.
+	job.TaskID = session.TaskID
+	claimed := &ClaimedJob{Job: *job, Repo: *repo, MCPClientID: "", MCPClientSecret: "",
+		ResumeSessionID: "", ChatID: session.ID}
 	if s.accounts != nil {
 		if err = s.issueAccount(ctx, claimed, runnerID); err != nil {
 			return nil, err

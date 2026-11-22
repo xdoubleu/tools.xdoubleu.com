@@ -19,6 +19,7 @@ type memChats struct {
 	sessions map[uuid.UUID]*models.ChatSession
 	events   map[uuid.UUID][]models.ChatEvent
 	started  []models.ChatSession
+	claimed  map[uuid.UUID]bool
 	full     bool
 }
 
@@ -26,7 +27,7 @@ func newMemChats() *memChats {
 	m := &memChats{
 		sessions: map[uuid.UUID]*models.ChatSession{},
 		events:   map[uuid.UUID][]models.ChatEvent{},
-		started:  nil, full: false,
+		started:  nil, claimed: map[uuid.UUID]bool{}, full: false,
 	}
 	return m
 }
@@ -133,6 +134,31 @@ func (m *memChats) StopForJob(
 		}
 	}
 	return nil, database.ErrResourceNotFound
+}
+
+func (m *memChats) ClaimFor(
+	_ context.Context, runnerID uuid.UUID,
+) (*models.ChatSession, error) {
+	for _, c := range m.sessions {
+		if c.RunnerID == runnerID && !m.claimed[c.ID] && c.State != models.ChatStopped {
+			m.claimed[c.ID] = true
+			out := *c
+			return &out, nil
+		}
+	}
+	return nil, database.ErrResourceNotFound
+}
+
+func (m *memChats) AppendReport(_ context.Context, id uuid.UUID, text string) error {
+	c, ok := m.sessions[id]
+	if !ok {
+		return database.ErrResourceNotFound
+	}
+	if c.Report != "" {
+		c.Report += "\n\n"
+	}
+	c.Report += text
+	return nil
 }
 
 type chatRepos struct {
@@ -477,4 +503,54 @@ func TestStoppedIsConflictOnlyMapsConflicts(t *testing.T) {
 	assert.ErrorIs(t, stoppedIsConflict(database.ErrResourceConflict), ErrConflict)
 	assert.ErrorIs(t, stoppedIsConflict(database.ErrResourceNotFound),
 		database.ErrResourceNotFound)
+}
+
+func TestChatEndStopsASessionTheRunnerEnded(t *testing.T) {
+	e := newChatEnv(t)
+	s := e.start(t)
+
+	stopped, err := e.svc.End(context.Background(), e.runner.ID, s.ID, " left 2 files ")
+
+	require.NoError(t, err)
+	require.NotNil(t, stopped)
+	assert.Equal(t, models.ChatStopped, stopped.State)
+	assert.Equal(t, "left 2 files", stopped.Report)
+}
+
+func TestChatEndAddsToAPersonsReport(t *testing.T) {
+	e := newChatEnv(t)
+	s := e.start(t)
+	_, err := e.svc.Stop(context.Background(), e.admin, s.ID, "done for today")
+	require.NoError(t, err)
+
+	stopped, err := e.svc.End(context.Background(), e.runner.ID, s.ID, "1 commit unpushed")
+
+	require.NoError(t, err)
+	assert.Nil(t, stopped)
+	got, err := e.chats.Get(context.Background(), s.ID)
+	require.NoError(t, err)
+	assert.Equal(t, "done for today\n\n1 commit unpushed", got.Report)
+}
+
+func TestChatEndWithNothingLeftChangesNothing(t *testing.T) {
+	e := newChatEnv(t)
+	s := e.start(t)
+	_, err := e.svc.Stop(context.Background(), e.admin, s.ID, "bye")
+	require.NoError(t, err)
+
+	_, err = e.svc.End(context.Background(), e.runner.ID, s.ID, "")
+
+	require.NoError(t, err)
+	got, err := e.chats.Get(context.Background(), s.ID)
+	require.NoError(t, err)
+	assert.Equal(t, "bye", got.Report)
+}
+
+func TestChatEndIsForTheirOwnRunnerOnly(t *testing.T) {
+	e := newChatEnv(t)
+	s := e.start(t)
+
+	_, err := e.svc.End(context.Background(), uuid.New(), s.ID, "x")
+
+	require.ErrorIs(t, err, ErrForbidden)
 }

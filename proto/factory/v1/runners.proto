@@ -100,6 +100,10 @@ message ClaimedJob {
   // Set for a routine's job, which has no task (task_id is empty). The runner
   // runs only a routine it knows by name and builds the prompt itself.
   string routine = 15;
+  // Set for a chat session's job (task_id is empty): the session the runner
+  // bridges to a harness over /factory/chats/{chat_id}/runner. The job holds a
+  // slot until the session ends; branch, repo and the account are the session's.
+  string chat_id = 16;
 }
 
 message ClaimJobRequest {
@@ -189,6 +193,14 @@ message JobTimings {
 }
 message CompleteJobResponse {}
 
+// The runner closes a chat session it ran. A session still going is stopped; the
+// report, of what the VM left behind, is added to the person's.
+message EndChatRequest {
+  string chat_id = 1;
+  string report = 2;
+}
+message EndChatResponse {}
+
 // Of the tasks the runner keeps session state for, the ones that are Done or no
 // longer exist, whose state it can delete. At most 500 ids; unknown ids count as
 // gone.
@@ -227,5 +239,6 @@ service RunnerService {
   rpc GetPushToken(GetPushTokenRequest) returns (GetPushTokenResponse);
   rpc AddJobComment(AddJobCommentRequest) returns (AddJobCommentResponse);
   rpc CompleteJob(CompleteJobRequest) returns (CompleteJobResponse);
+  rpc EndChat(EndChatRequest) returns (EndChatResponse);
   rpc ListFinishedTasks(ListFinishedTasksRequest) returns (ListFinishedTasksResponse);
 }

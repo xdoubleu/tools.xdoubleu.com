@@ -343,8 +343,8 @@ func TestScrubRemovesTheTokenAndItsBasicAuthForm(t *testing.T) {
 
 func TestPullRequestTextTakesTheTitleFromTheFirstLine(t *testing.T) {
 	job := &runner.ClaimedJob{
-		Routine: "",
-		ID:      "job-1", TaskID: "task-1", Branch: "agent/x",
+		Routine: "", ChatID: "",
+		ID: "job-1", TaskID: "task-1", Branch: "agent/x",
 		RepoOwner: "", RepoName: "", DefaultBranch: "", Prompt: "", TimeLimitMinutes: 0,
 		MCPClientID: "", MCPClientSecret: "",
 		ResumeSessionID: "",
@@ -712,8 +712,8 @@ func TestAStoppedRunnerDoesNotWaitOutItsRetries(t *testing.T) {
 
 func TestAPullRequestTitleLabelWinsWhereverItIs(t *testing.T) {
 	job := &runner.ClaimedJob{
-		Routine: "",
-		ID:      "j", TaskID: "t", Branch: "agent/x", RepoOwner: "", RepoName: "",
+		Routine: "", ChatID: "",
+		ID: "j", TaskID: "t", Branch: "agent/x", RepoOwner: "", RepoName: "",
 		DefaultBranch: "", Prompt: "",
 		TimeLimitMinutes: 0, MCPClientID: "", MCPClientSecret: "",
 		ResumeSessionID: "",
@@ -753,8 +753,8 @@ func TestMentionsAndClosingKeywordsInAgentTextAreDefused(t *testing.T) {
 
 	// And it reaches the pull request's body.
 	job := &runner.ClaimedJob{
-		Routine: "",
-		ID:      "j", TaskID: "t", Branch: "agent/x", RepoOwner: "", RepoName: "",
+		Routine: "", ChatID: "",
+		ID: "j", TaskID: "t", Branch: "agent/x", RepoOwner: "", RepoName: "",
 		DefaultBranch: "", Prompt: "",
 		TimeLimitMinutes: 0, MCPClientID: "", MCPClientSecret: "",
 		ResumeSessionID: "",

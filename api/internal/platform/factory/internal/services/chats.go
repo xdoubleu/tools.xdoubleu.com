@@ -347,3 +347,33 @@ func (s *ChatService) ForRunner(
 	}
 	return session, nil
 }
+
+// End is the pinned runner closing a session it ran: it stops one that is still
+// going, which the runner does when its harness died, and adds the report of what
+// the session left behind to what a person's stop kept. It returns the stopped
+// session when it stopped one.
+func (s *ChatService) End(
+	ctx context.Context,
+	runnerID, id uuid.UUID,
+	report string,
+) (*models.ChatSession, error) {
+	report = strings.TrimSpace(report)
+	if utf8.RuneCountInString(report) > maxChatReportLen {
+		report = string([]rune(report)[:maxChatReportLen])
+	}
+	session, err := s.ForRunner(ctx, runnerID, id)
+	if err != nil {
+		return nil, err
+	}
+	if session.State != models.ChatStopped {
+		stopped, stopErr := s.chats.Stop(ctx, id, report, models.JobSucceeded)
+		if !errors.Is(stopErr, database.ErrResourceConflict) {
+			return stopped, stopErr
+		}
+		// Stopped meanwhile: the report is added to the person's.
+	}
+	if report == "" {
+		return nil, nil //nolint:nilnil // nothing to add
+	}
+	return nil, s.chats.AppendReport(ctx, id, report)
+}

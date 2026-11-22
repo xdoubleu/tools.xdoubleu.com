@@ -58,7 +58,7 @@ func TestAChatFromAURLStreamsATurnAndReportsWhatItLeft(t *testing.T) {
 	ctx := context.Background()
 	chat, err := r.Start(ctx, session.ChatRequest{
 		URL: origin, Base: "main", Branch: "agent/chat", Token: "",
-		Harness: session.OpenCode, OpenCodeModel: "vendor/model",
+		Harness: session.OpenCode, OpenCodeModel: "vendor/model", Board: nil, MCP: nil,
 		OnEvent: func(e acp.Event) {
 			mu.Lock()
 			kinds = append(kinds, e.Kind)
@@ -88,7 +88,7 @@ func TestAChatOnClaudeIsRefused(t *testing.T) {
 	})
 	_, err := r.Start(context.Background(), session.ChatRequest{
 		URL: "/nowhere", Base: "main", Branch: "b", Token: "",
-		Harness: session.Claude, OpenCodeModel: "", OnEvent: nil,
+		Harness: session.Claude, OpenCodeModel: "", Board: nil, MCP: nil, OnEvent: nil,
 	})
 	require.ErrorContains(t, err, "no ACP server")
 }

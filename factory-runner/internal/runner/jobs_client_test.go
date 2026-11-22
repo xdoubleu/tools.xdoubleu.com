@@ -34,8 +34,8 @@ func TestClaimJobReadsAJobOrNone(t *testing.T) {
 	)
 	require.NoError(t, err)
 	assert.Equal(t, &runner.ClaimedJob{
-		Routine: "",
-		ID:      "j1", TaskID: "t1", RepoOwner: "o", RepoName: "n", DefaultBranch: "main",
+		Routine: "", ChatID: "",
+		ID: "j1", TaskID: "t1", RepoOwner: "o", RepoName: "n", DefaultBranch: "main",
 		Prompt: "p", Branch: "agent/x",
 		TimeLimitMinutes: 45,
 		MCPClientID:      "agent-1", MCPClientSecret: "s3cret-value",
