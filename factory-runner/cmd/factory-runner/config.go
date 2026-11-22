@@ -1,6 +1,7 @@
 package main
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 	"io"
@@ -15,7 +16,7 @@ import (
 var errConfigUsage = errors.New(
 	"usage: factory-runner config show | mode off|claude | server <url> | " +
 		"repos add|remove <owner/name> | repos list | image <ref> | max-jobs <n> | " +
-		"on-limit wait|fallback | " +
+		"on-limit wait|fallback | fallback-model <openrouter-model-id>|none | " +
 		"data|gocache|npmcache <dir> | bot-email <address> | " +
 		"secret claude|openrouter",
 )
@@ -35,13 +36,16 @@ func (a *app) config(args []string) error {
 			cfg.Server, cfg.Repos, cfg.JobImage(), cfg.DataPath(a.home))
 		fmt.Fprintf(a.stdout, "gocache: %s\nnpmcache: %s\nbot-email: %s\nmode: %s\n",
 			orNone(cfg.GoModCache), orNone(cfg.NPMCache), cfg.AuthorEmail(), cfg.EffectiveMode())
-		fmt.Fprintf(a.stdout, "max-jobs: %d\non-limit: %s\n", cfg.EffectiveMaxJobs(),
-			cfg.EffectiveOnLimit())
+		fmt.Fprintf(a.stdout, "max-jobs: %d\non-limit: %s\nfallback-model: %s\n",
+			cfg.EffectiveMaxJobs(), cfg.EffectiveOnLimit(),
+			cmp.Or(cfg.FallbackModel, "none"))
 		return nil
 	case verb == "mode" && len(rest) == 1:
 		err = a.setMode(&cfg, rest[0])
 	case verb == "on-limit" && len(rest) == 1:
 		err = cfg.SetOnLimit(rest[0])
+	case verb == "fallback-model" && len(rest) == 1:
+		err = cfg.SetFallbackModel(rest[0])
 	case verb == "max-jobs" && len(rest) == 1:
 		err = a.setMaxJobs(&cfg, rest[0])
 	case verb == "server" && len(rest) == 1:

@@ -16,7 +16,7 @@ func emptyConfig() runner.Config {
 		BotEmail: "",
 		Mode:     "",
 		MaxJobs:  0,
-		OnLimit:  "",
+		OnLimit:  "", FallbackModel: "",
 	}
 }
 

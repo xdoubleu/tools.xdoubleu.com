@@ -26,7 +26,7 @@ func TestPruneImagesRunsOnlyForTheImplicitReleaseImage(t *testing.T) {
 	t.Cleanup(func() { Release = old })
 	cfg := runner.Config{
 		Server: "", Repos: nil, Image: "", DataDir: "", GoModCache: "", NPMCache: "",
-		BotEmail: "", Mode: "", MaxJobs: 0, OnLimit: "",
+		BotEmail: "", Mode: "", MaxJobs: 0, OnLimit: "", FallbackModel: "",
 	}
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 
