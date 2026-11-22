@@ -65,6 +65,14 @@ type SessionResult struct {
 	Left Leftover
 }
 
+// chatRequest is the part of the extras that reaches the proxy, in a chat's terms.
+func (x *SessionExtra) chatRequest() ChatRequest {
+	return ChatRequest{
+		Source: nil, Dir: "", Harness: "",
+		OpenCodeModel: "", Board: x.Board, MCP: x.MCP, OnEvent: nil,
+	}
+}
+
 // RunSession clones or reuses the cached clone of the repository, runs the
 // harness headless in a new worktree of it and reports what it left.
 func (r *Runner) RunSession(
