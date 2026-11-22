@@ -11,64 +11,8 @@ import (
 	factoryv1 "tools.xdoubleu.com/gen/factory/v1"
 	"tools.xdoubleu.com/internal/platform/factory/internal/models"
 	"tools.xdoubleu.com/internal/platform/factory/internal/services"
+	"tools.xdoubleu.com/internal/platform/factory/present"
 )
-
-func jobStatusToProto(s models.JobStatus) factoryv1.JobStatus {
-	switch s {
-	case models.JobQueued:
-		return factoryv1.JobStatus_JOB_STATUS_QUEUED
-	case models.JobRunning:
-		return factoryv1.JobStatus_JOB_STATUS_RUNNING
-	case models.JobSucceeded:
-		return factoryv1.JobStatus_JOB_STATUS_SUCCEEDED
-	case models.JobFailed:
-		return factoryv1.JobStatus_JOB_STATUS_FAILED
-	case models.JobCancelled:
-		return factoryv1.JobStatus_JOB_STATUS_CANCELLED
-	case models.JobLost:
-		return factoryv1.JobStatus_JOB_STATUS_LOST
-	}
-	return factoryv1.JobStatus_JOB_STATUS_UNSPECIFIED
-}
-
-// ProtoJob is a job as the board shows it.
-func ProtoJob(j *models.Job) *factoryv1.Job {
-	limitResetsAt := ""
-	if j.LimitResetsAt != nil {
-		limitResetsAt = j.LimitResetsAt.UTC().Format(time.RFC3339)
-	}
-	taskID := ""
-	if !j.IsRoutine() {
-		taskID = models.TaskRef(j.TaskNumber)
-	}
-	return &factoryv1.Job{
-		Id:        j.ID.String(),
-		TaskId:    taskID,
-		Routine:   j.Routine,
-		Status:    jobStatusToProto(j.Status),
-		Branch:    j.Branch,
-		CreatedAt: j.CreatedAt.Format(time.RFC3339),
-		PrUrl:     j.PRURL,
-		PrState:   j.PRState,
-		PrCi:      j.PRCI,
-		PrReview:  j.PRReview,
-		Harness:   harnessToProto(j.Harness),
-		Model:     j.Model,
-
-		Limited:       j.Limited,
-		LimitResetsAt: limitResetsAt,
-		Outcome:       truncateOutcome(j.Outcome),
-	}
-}
-
-// ProtoJobs converts jobs with ProtoJob.
-func ProtoJobs(jobs []models.Job) []*factoryv1.Job {
-	out := make([]*factoryv1.Job, len(jobs))
-	for i := range jobs {
-		out[i] = ProtoJob(&jobs[i])
-	}
-	return out
-}
 
 func (h *taskConnectHandler) RunTask(
 	ctx context.Context,
@@ -88,9 +32,9 @@ func (h *taskConnectHandler) RunTask(
 		id,
 	)
 	if err != nil {
-		return nil, MapError(err)
+		return nil, present.MapError(err)
 	}
-	return &factoryv1.RunTaskResponse{Job: ProtoJob(job)}, nil
+	return &factoryv1.RunTaskResponse{Job: present.ProtoJob(job)}, nil
 }
 
 func (h *taskConnectHandler) SetPickupPaused(
@@ -102,7 +46,7 @@ func (h *taskConnectHandler) SetPickupPaused(
 		return nil, err
 	}
 	if err = h.app.Services.Jobs.SetPickupPaused(ctx, actor, req.GetPaused()); err != nil {
-		return nil, MapError(err)
+		return nil, present.MapError(err)
 	}
 	return &factoryv1.SetPickupPausedResponse{Paused: req.GetPaused()}, nil
 }
@@ -121,9 +65,9 @@ func (h *taskConnectHandler) StopJob(
 	}
 	job, err := h.app.Services.Jobs.Stop(ctx, actor, id)
 	if err != nil {
-		return nil, MapError(err)
+		return nil, present.MapError(err)
 	}
-	return &factoryv1.StopJobResponse{Job: ProtoJob(job)}, nil
+	return &factoryv1.StopJobResponse{Job: present.ProtoJob(job)}, nil
 }
 
 func (h *taskConnectHandler) ListJobEvents(
@@ -134,29 +78,15 @@ func (h *taskConnectHandler) ListJobEvents(
 	if err != nil {
 		return nil, err
 	}
-	id, err := ParseID(req.GetJobId())
+	id, err := present.ParseID(req.GetJobId())
 	if err != nil {
 		return nil, err
 	}
 	events, err := h.app.Services.Jobs.ListEvents(ctx, actor, id, int(req.GetAfterSeq()))
 	if err != nil {
-		return nil, MapError(err)
+		return nil, present.MapError(err)
 	}
-	return &factoryv1.ListJobEventsResponse{Events: ProtoJobEvents(events)}, nil
-}
-
-// ProtoJobEvents converts a job log page.
-func ProtoJobEvents(events []models.JobEvent) []*factoryv1.JobEvent {
-	out := make([]*factoryv1.JobEvent, len(events))
-	for i := range events {
-		out[i] = &factoryv1.JobEvent{
-			Seq:       int32(events[i].Seq), //nolint:gosec // capped per job
-			Kind:      events[i].Kind,
-			Payload:   events[i].Payload,
-			CreatedAt: events[i].CreatedAt.Format(time.RFC3339),
-		}
-	}
-	return out
+	return &factoryv1.ListJobEventsResponse{Events: present.ProtoJobEvents(events)}, nil
 }
 
 // claimedJobToProto is the job as the runner receives it.
@@ -195,7 +125,7 @@ func (h *runnerHandler) ClaimJob(
 		req.GetModel(), h.app.HeartbeatHold,
 	)
 	if err != nil {
-		return nil, MapError(err)
+		return nil, present.MapError(err)
 	}
 	if claimed == nil {
 		return &factoryv1.ClaimJobResponse{}, nil
@@ -210,13 +140,13 @@ func (h *runnerHandler) CheckIn(
 	if _, err := h.runnerFrom(ctx); err != nil {
 		return nil, err
 	}
-	id, err := ParseID(req.GetJobId())
+	id, err := present.ParseID(req.GetJobId())
 	if err != nil {
 		return nil, err
 	}
 	stop, err := h.app.Services.Jobs.CheckIn(ctx, id, req.GetSessionId())
 	if err != nil {
-		return nil, MapError(err)
+		return nil, present.MapError(err)
 	}
 	return &factoryv1.CheckInResponse{Stop: stop}, nil
 }
@@ -228,7 +158,7 @@ func (h *runnerHandler) AppendJobEvents(
 	if _, err := h.runnerFrom(ctx); err != nil {
 		return nil, err
 	}
-	id, err := ParseID(req.GetJobId())
+	id, err := present.ParseID(req.GetJobId())
 	if err != nil {
 		return nil, err
 	}
@@ -237,7 +167,7 @@ func (h *runnerHandler) AppendJobEvents(
 		lines[i] = models.JobLine{Seq: int(l.GetSeq()), Line: l.GetLine()}
 	}
 	if err = h.app.Services.Jobs.AppendEvents(ctx, id, lines); err != nil {
-		return nil, MapError(err)
+		return nil, present.MapError(err)
 	}
 	return &factoryv1.AppendJobEventsResponse{}, nil
 }
@@ -250,7 +180,7 @@ func (h *runnerHandler) GetPushToken(
 	if err != nil {
 		return nil, err
 	}
-	id, err := ParseID(req.GetJobId())
+	id, err := present.ParseID(req.GetJobId())
 	if err != nil {
 		return nil, err
 	}
@@ -265,7 +195,7 @@ func (h *runnerHandler) GetPushToken(
 		return nil, connect.NewError(connect.CodeUnavailable,
 			services.ErrGitHubFailed.Error())
 	case err != nil:
-		return nil, MapError(err)
+		return nil, present.MapError(err)
 	}
 	return &factoryv1.GetPushTokenResponse{
 		Token:     token.Value,
@@ -298,7 +228,7 @@ func (h *runnerHandler) ListFinishedTasks(
 	}
 	done, err := h.app.Services.Jobs.FinishedTasks(ctx, ids)
 	if err != nil {
-		return nil, MapError(err)
+		return nil, present.MapError(err)
 	}
 	// Answer in the references the runner asked with.
 	out := make([]string, len(done))
@@ -316,7 +246,7 @@ func (h *runnerHandler) CompleteJob(
 	if err != nil {
 		return nil, err
 	}
-	id, err := ParseID(req.GetJobId())
+	id, err := present.ParseID(req.GetJobId())
 	if err != nil {
 		return nil, err
 	}
@@ -329,7 +259,7 @@ func (h *runnerHandler) CompleteJob(
 		req.GetPrUrl(), req.GetLimited(), resetsAt,
 	)
 	if err != nil {
-		return nil, MapError(err)
+		return nil, present.MapError(err)
 	}
 	// The job is already over, so a report that fails must not fail the call.
 	_ = h.app.Services.Jobs.ReportBlocked(
@@ -354,13 +284,13 @@ func (h *runnerHandler) AddJobComment(
 	if err != nil {
 		return nil, err
 	}
-	id, err := ParseID(req.GetJobId())
+	id, err := present.ParseID(req.GetJobId())
 	if err != nil {
 		return nil, err
 	}
 	err = h.app.Services.Jobs.AddProgressNote(ctx, runner.ID, id, req.GetBody())
 	if err != nil {
-		return nil, MapError(err)
+		return nil, present.MapError(err)
 	}
 	return &factoryv1.AddJobCommentResponse{}, nil
 }

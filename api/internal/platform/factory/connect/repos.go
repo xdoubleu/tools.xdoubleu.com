@@ -7,6 +7,7 @@ import (
 	"tools.xdoubleu.com/gen/factory/v1/factoryv1connect"
 	"tools.xdoubleu.com/internal/platform/factory/internal/models"
 	"tools.xdoubleu.com/internal/platform/factory/internal/services"
+	"tools.xdoubleu.com/internal/platform/factory/present"
 )
 
 type repoConnectHandler struct {
@@ -14,18 +15,6 @@ type repoConnectHandler struct {
 }
 
 var _ factoryv1connect.RepoServiceHandler = (*repoConnectHandler)(nil)
-
-func harnessToProto(h models.Harness) factoryv1.Harness {
-	switch h {
-	case models.HarnessClaudeCode:
-		return factoryv1.Harness_HARNESS_CLAUDE_CODE
-	case models.HarnessOpenCode:
-		return factoryv1.Harness_HARNESS_OPENCODE
-	case models.HarnessInvalid:
-		return factoryv1.Harness_HARNESS_UNSPECIFIED
-	}
-	return factoryv1.Harness_HARNESS_UNSPECIFIED
-}
 
 // harnessFromProto reads unspecified as Claude Code, what a runner that does not
 // report one ran; an unknown value maps to one the service rejects.
@@ -76,7 +65,7 @@ func (h *repoConnectHandler) ListRepos(
 	}
 	repos, err := h.app.Services.Repos.List(ctx)
 	if err != nil {
-		return nil, MapError(err)
+		return nil, present.MapError(err)
 	}
 	out := make([]*factoryv1.Repo, len(repos))
 	for i := range repos {
@@ -95,7 +84,7 @@ func (h *repoConnectHandler) CreateRepo(
 	}
 	repo, err := h.app.Services.Repos.Create(ctx, actor, repoInput(req.GetRepo()))
 	if err != nil {
-		return nil, MapError(err)
+		return nil, present.MapError(err)
 	}
 	return &factoryv1.CreateRepoResponse{Repo: protoRepo(repo)}, nil
 }
@@ -108,13 +97,13 @@ func (h *repoConnectHandler) UpdateRepo(
 	if err != nil {
 		return nil, err
 	}
-	id, err := ParseID(req.GetRepo().GetId())
+	id, err := present.ParseID(req.GetRepo().GetId())
 	if err != nil {
 		return nil, err
 	}
 	repo, err := h.app.Services.Repos.Update(ctx, actor, id, repoInput(req.GetRepo()))
 	if err != nil {
-		return nil, MapError(err)
+		return nil, present.MapError(err)
 	}
 	return &factoryv1.UpdateRepoResponse{Repo: protoRepo(repo)}, nil
 }

@@ -345,3 +345,29 @@ func TestListChatsReturnsTheNewestFirst(t *testing.T) {
 	require.Len(t, active.GetChats(), 1)
 	assert.Equal(t, second.GetId(), active.GetChats()[0].GetId())
 }
+
+func TestChatRPCsRejectABadOrUnknownChatID(t *testing.T) {
+	e := newChatSocketEnv(t, true, constants.ChannelBrowser)
+	ctx := context.Background()
+	unknown := "00000000-0000-0000-0000-000000000000"
+
+	_, err := e.client.SendChatMessage(ctx,
+		&factoryv1.SendChatMessageRequest{Id: "nope", Text: "hi"})
+	assert.Equal(t, connect.CodeInvalidArgument, code(err))
+	_, err = e.client.SendChatMessage(ctx,
+		&factoryv1.SendChatMessageRequest{Id: unknown, Text: "hi"})
+	require.Error(t, err)
+	assert.NotEqual(t, connect.CodeUnknown, code(err))
+
+	_, err = e.client.StopChat(ctx, &factoryv1.StopChatRequest{Id: "nope"})
+	assert.Equal(t, connect.CodeInvalidArgument, code(err))
+	_, err = e.client.StopChat(ctx, &factoryv1.StopChatRequest{Id: unknown})
+	require.Error(t, err)
+	assert.NotEqual(t, connect.CodeUnknown, code(err))
+
+	_, err = e.client.StartChat(ctx, &factoryv1.StartChatRequest{RepoId: "nope"})
+	assert.Equal(t, connect.CodeInvalidArgument, code(err))
+	_, err = e.client.StartChat(ctx, &factoryv1.StartChatRequest{RepoId: unknown})
+	require.Error(t, err)
+	assert.NotEqual(t, connect.CodeUnknown, code(err))
+}

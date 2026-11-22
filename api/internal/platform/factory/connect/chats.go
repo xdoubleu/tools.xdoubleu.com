@@ -10,6 +10,7 @@ import (
 	"tools.xdoubleu.com/gen/factory/v1/factoryv1connect"
 	"tools.xdoubleu.com/internal/platform/factory/internal/models"
 	"tools.xdoubleu.com/internal/platform/factory/internal/services"
+	"tools.xdoubleu.com/internal/platform/factory/present"
 )
 
 // ChatPublisher pushes a chat's new events to the sockets watching it.
@@ -28,7 +29,7 @@ func protoChat(c *models.ChatSession) *factoryv1.Chat {
 		Id:        c.ID.String(),
 		RepoId:    c.RepoID.String(),
 		TaskId:    "",
-		Harness:   harnessToProto(c.Harness),
+		Harness:   present.HarnessToProto(c.Harness),
 		RunnerId:  c.RunnerID.String(),
 		State:     string(c.State),
 		Branch:    c.Branch,
@@ -59,17 +60,17 @@ func (h *chatConnectHandler) StartChat(
 	if err != nil {
 		return nil, err
 	}
-	repoID, err := ParseID(req.GetRepoId())
+	repoID, err := present.ParseID(req.GetRepoId())
 	if err != nil {
 		return nil, err
 	}
-	runnerID, err := ParseID(req.GetRunnerId())
+	runnerID, err := present.ParseID(req.GetRunnerId())
 	if err != nil {
 		return nil, err
 	}
 	taskID := uuid.Nil
 	if req.GetTaskId() != "" {
-		if taskID, err = ParseID(req.GetTaskId()); err != nil {
+		if taskID, err = present.ParseID(req.GetTaskId()); err != nil {
 			return nil, err
 		}
 	}
@@ -78,7 +79,7 @@ func (h *chatConnectHandler) StartChat(
 		Harness: harnessFromProto(req.GetHarness()),
 	})
 	if err != nil {
-		return nil, MapError(err)
+		return nil, present.MapError(err)
 	}
 	return &factoryv1.StartChatResponse{Chat: protoChat(session)}, nil
 }
@@ -120,12 +121,12 @@ func (h *chatConnectHandler) reply(
 	if err != nil {
 		return uuid.Nil, err
 	}
-	id, err := ParseID(rawID)
+	id, err := present.ParseID(rawID)
 	if err != nil {
 		return uuid.Nil, err
 	}
 	if err = do(ctx, actor, id, text); err != nil {
-		return uuid.Nil, MapError(err)
+		return uuid.Nil, present.MapError(err)
 	}
 	return id, nil
 }
@@ -138,13 +139,13 @@ func (h *chatConnectHandler) StopChat(
 	if err != nil {
 		return nil, err
 	}
-	id, err := ParseID(req.GetId())
+	id, err := present.ParseID(req.GetId())
 	if err != nil {
 		return nil, err
 	}
 	session, err := h.app.Services.Chats.Stop(ctx, actor, id, req.GetReport())
 	if err != nil {
-		return nil, MapError(err)
+		return nil, present.MapError(err)
 	}
 	h.publish(id)
 	return &factoryv1.StopChatResponse{Chat: protoChat(session)}, nil
@@ -160,7 +161,7 @@ func (h *chatConnectHandler) ListChats(
 	}
 	sessions, err := h.app.Services.Chats.List(ctx, actor, req.GetActiveOnly())
 	if err != nil {
-		return nil, MapError(err)
+		return nil, present.MapError(err)
 	}
 	out := make([]*factoryv1.Chat, len(sessions))
 	for i := range sessions {

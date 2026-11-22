@@ -14,6 +14,7 @@ import (
 	"tools.xdoubleu.com/internal/kit/database"
 	"tools.xdoubleu.com/internal/platform/auth"
 	"tools.xdoubleu.com/internal/platform/factory/internal/models"
+	"tools.xdoubleu.com/internal/platform/factory/present"
 )
 
 // StepUp checks a TOTP or recovery code for the signed-in user's session.
@@ -65,7 +66,7 @@ func (h *runnerAdminHandler) ListRunners(
 	}
 	runners, err := h.app.Services.Runners.List(ctx, actor)
 	if err != nil {
-		return nil, MapError(err)
+		return nil, present.MapError(err)
 	}
 	now := h.app.Services.Runners.Now()
 	out := make([]*factoryv1.Runner, len(runners))
@@ -122,13 +123,13 @@ func (h *runnerAdminHandler) RevokeRunner(
 	if err != nil {
 		return nil, err
 	}
-	id, err := ParseID(req.GetId())
+	id, err := present.ParseID(req.GetId())
 	if err != nil {
 		return nil, err
 	}
 	runner, err := h.app.Services.Runners.Revoke(ctx, actor, id)
 	if err != nil {
-		return nil, MapError(err)
+		return nil, present.MapError(err)
 	}
 	return &factoryv1.RevokeRunnerResponse{
 		Runner: protoRunner(runner, h.app.Services.Runners.Now()),
@@ -144,7 +145,7 @@ func mapRunnerError(err error) error {
 			"a runner is already active: revoke it before pairing another",
 		).WithCause(err)
 	}
-	return MapError(err)
+	return present.MapError(err)
 }
 
 // stepUpCode maps a failed step-up check to a Connect code.
@@ -180,7 +181,7 @@ func (h *runnerHandler) Pair(
 		)
 	}
 	if err != nil {
-		return nil, MapError(err)
+		return nil, present.MapError(err)
 	}
 	return &factoryv1.PairResponse{DeviceToken: token, RunnerName: runner.Name}, nil
 }
@@ -197,7 +198,7 @@ func (h *runnerHandler) runnerFrom(ctx context.Context) (*models.Runner, error) 
 		return nil, connect.NewError(connect.CodeUnauthenticated, "unknown device token")
 	}
 	if err != nil {
-		return nil, MapError(err)
+		return nil, present.MapError(err)
 	}
 	return runner, nil
 }
@@ -215,7 +216,7 @@ func (h *runnerHandler) Heartbeat(
 		h.app.HeartbeatHold,
 	)
 	if err != nil {
-		return nil, MapError(err)
+		return nil, present.MapError(err)
 	}
 	//nolint:gosec // a count of jobs fits an int32
 	return &factoryv1.HeartbeatResponse{QueuedJobs: int32(queued)}, nil
