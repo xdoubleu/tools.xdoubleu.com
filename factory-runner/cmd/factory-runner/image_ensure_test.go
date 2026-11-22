@@ -29,7 +29,7 @@ func TestEnsureImagePullsTheBaseImageOfTheStampedVersion(t *testing.T) {
 	t.Cleanup(func() { WardcaseVersion = old })
 	WardcaseVersion = "1.2.3"
 	x := &pullExec{cmds: nil}
-	require.NoError(t, ensureImage(context.Background(), runner.Config{}, x))
+	require.NoError(t, ensureImage(context.Background(), bareConfig(), x))
 	assert.Equal(t, []string{"inspect", "pull"}, x.cmds)
 }
 
@@ -38,8 +38,21 @@ func TestEnsureImageSkipsADevBuildAndAnOverride(t *testing.T) {
 	t.Cleanup(func() { WardcaseVersion = old })
 	x := &pullExec{cmds: nil}
 	WardcaseVersion = runner.DevRelease
-	require.NoError(t, ensureImage(context.Background(), runner.Config{}, x))
+	require.NoError(t, ensureImage(context.Background(), bareConfig(), x))
 	WardcaseVersion = "1.2.3"
-	require.NoError(t, ensureImage(context.Background(), runner.Config{Image: "my:1"}, x))
+	require.NoError(t, ensureImage(context.Background(), withImage("my:1"), x))
 	assert.Empty(t, x.cmds)
+}
+
+func bareConfig() runner.Config {
+	return runner.Config{
+		Server: "", Repos: nil, Image: "", DataDir: "", GoModCache: "", NPMCache: "",
+		BotEmail: "", Mode: "", MaxJobs: 0, OnLimit: "", FallbackModel: "",
+	}
+}
+
+func withImage(ref string) runner.Config {
+	cfg := bareConfig()
+	cfg.Image = ref
+	return cfg
 }

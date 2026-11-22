@@ -490,9 +490,10 @@ fi
 `
 
 // postgresScript starts a throwaway trust-auth cluster on the tmpfs, reachable as
-// postgres@localhost:5432, when the image or the flake's dev shell has Postgres. A failure is reported, not
-// fatal. A cluster left by an earlier exec of the same job has every non-public
-// schema dropped, so half-migrated state cannot fail the next gate.
+// postgres@localhost:5432, when the image or the flake's dev shell has Postgres.
+// A failure is reported, not fatal. A cluster left by an earlier exec of the same
+// job has every non-public schema dropped, so half-migrated state cannot fail the
+// next gate.
 const postgresScript = `pgbin=$(ls -d /usr/lib/postgresql/*/bin 2>/dev/null | tail -n 1)
 if [ -z "$pgbin" ] && command -v initdb >/dev/null 2>&1; then
   pgbin=$(dirname "$(command -v initdb)")
