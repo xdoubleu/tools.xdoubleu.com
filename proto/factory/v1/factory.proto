@@ -204,6 +204,10 @@ message Job {
   // How the job ended, as the agent wrote it, or why it failed, was lost or was
   // stopped; empty while it runs. Truncated.
   string outcome = 15;
+  // The harness and model that finished the job when it continued on the fallback
+  // after the first hit its usage limit; unspecified and empty otherwise.
+  Harness finished_harness = 16;
+  string finished_model = 17;
 }
 
 // One event of a job's log: a line of the harness's stream-json output.

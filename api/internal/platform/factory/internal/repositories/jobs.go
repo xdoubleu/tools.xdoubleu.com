@@ -23,7 +23,7 @@ const jobColumns = `id,
 	finished_at, pr_url, runner_id, pr_state, pr_ci, pr_review, parent_job_id,
 	model, limited, limit_resets_at,
 	COALESCE((SELECT number FROM factory.tasks WHERE id = task_id), 0), routine,
-	kind`
+	kind, finished_harness, finished_model`
 
 func scanJob(row rowScanner) (*models.Job, error) {
 	var j models.Job
@@ -33,6 +33,7 @@ func scanJob(row rowScanner) (*models.Job, error) {
 		&j.LastCheckIn, &j.FinishedAt, &j.PRURL,
 		&j.RunnerID, &j.PRState, &j.PRCI, &j.PRReview, &j.ParentJobID,
 		&j.Model, &j.Limited, &j.LimitResetsAt, &j.TaskNumber, &j.Routine, &j.Kind,
+		&j.FinishedHarness, &j.FinishedModel,
 	)
 	if err != nil {
 		return nil, postgres.PgxErrorToHTTPError(err)
@@ -405,6 +406,27 @@ func (r *JobsRepository) CancelRoutine(
 		UPDATE factory.jobs SET status = 'cancelled', finished_at = now()
 		WHERE routine = $1 AND status IN ('queued', 'running')
 		RETURNING `+jobColumns, routine))
+}
+
+// RecordFinishedBy stores what finished a job that continued on the fallback, for
+// the runner that ran it, once the job is over.
+func (r *JobsRepository) RecordFinishedBy(
+	ctx context.Context,
+	id, runnerID uuid.UUID,
+	harness models.Harness,
+	model string,
+) error {
+	tag, err := r.db.Exec(ctx, `
+		UPDATE factory.jobs SET finished_harness = $3, finished_model = $4
+		WHERE id = $1 AND status NOT IN ('queued', 'running') AND runner_id = $2`,
+		id, runnerID, harness, model)
+	if err != nil {
+		return postgres.PgxErrorToHTTPError(err)
+	}
+	if tag.RowsAffected() == 0 {
+		return database.ErrResourceNotFound
+	}
+	return nil
 }
 
 // RecordTimings stores a finished job's phase times, for the runner that ran it,

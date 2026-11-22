@@ -138,6 +138,7 @@ func (s *JobService) requeue(
 		ParentJobID: last.ParentJobID, PRURL: "", RunnerID: nil, PRState: "",
 		PRCI: "", PRReview: "", CreatedBy: lostRequeueAuthor, CreatedAt: time.Time{},
 		Routine: "", Limited: false, LimitResetsAt: nil,
+		FinishedHarness: "", FinishedModel: "",
 		StartedAt: nil, LastCheckIn: nil, FinishedAt: nil,
 	}
 	if last.SessionID != "" {

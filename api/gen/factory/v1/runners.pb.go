@@ -1232,9 +1232,13 @@ type CompleteJobRequest struct {
 	Timings *JobTimings `protobuf:"bytes,9,opt,name=timings,proto3" json:"timings,omitempty"`
 	// Tasks (T-n) the job's task waits for, from the agent's Waiting-on line. The
 	// server moves the task to Backlog with a comment naming them and files nothing.
-	WaitingOn     []string `protobuf:"bytes,10,rep,name=waiting_on,json=waitingOn,proto3" json:"waiting_on,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	WaitingOn []string `protobuf:"bytes,10,rep,name=waiting_on,json=waitingOn,proto3" json:"waiting_on,omitempty"`
+	// Set only when the job continued on the fallback after its harness hit its usage
+	// limit: the harness and model that finished it. Unset when the first one did.
+	FinishedHarness Harness `protobuf:"varint,11,opt,name=finished_harness,json=finishedHarness,proto3,enum=factory.v1.Harness" json:"finished_harness,omitempty"`
+	FinishedModel   string  `protobuf:"bytes,12,opt,name=finished_model,json=finishedModel,proto3" json:"finished_model,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *CompleteJobRequest) Reset() {
@@ -1335,6 +1339,20 @@ func (x *CompleteJobRequest) GetWaitingOn() []string {
 		return x.WaitingOn
 	}
 	return nil
+}
+
+func (x *CompleteJobRequest) GetFinishedHarness() Harness {
+	if x != nil {
+		return x.FinishedHarness
+	}
+	return Harness_HARNESS_UNSPECIFIED
+}
+
+func (x *CompleteJobRequest) GetFinishedModel() string {
+	if x != nil {
+		return x.FinishedModel
+	}
+	return ""
 }
 
 // JobTimings are a job's phase durations in seconds and how many attempts were
@@ -1848,7 +1866,7 @@ const file_factory_v1_runners_proto_rawDesc = "" +
 	"\x14AddJobCommentRequest\x12\x15\n" +
 	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x12\x12\n" +
 	"\x04body\x18\x02 \x01(\tR\x04body\"\x17\n" +
-	"\x15AddJobCommentResponse\"\xc6\x02\n" +
+	"\x15AddJobCommentResponse\"\xad\x03\n" +
 	"\x12CompleteJobRequest\x12\x15\n" +
 	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x12\x1c\n" +
 	"\tsucceeded\x18\x02 \x01(\bR\tsucceeded\x12\x18\n" +
@@ -1862,7 +1880,9 @@ const file_factory_v1_runners_proto_rawDesc = "" +
 	"\atimings\x18\t \x01(\v2\x16.factory.v1.JobTimingsR\atimings\x12\x1d\n" +
 	"\n" +
 	"waiting_on\x18\n" +
-	" \x03(\tR\twaitingOn\"\xcd\x02\n" +
+	" \x03(\tR\twaitingOn\x12>\n" +
+	"\x10finished_harness\x18\v \x01(\x0e2\x13.factory.v1.HarnessR\x0ffinishedHarness\x12%\n" +
+	"\x0efinished_model\x18\f \x01(\tR\rfinishedModel\"\xcd\x02\n" +
 	"\n" +
 	"JobTimings\x12#\n" +
 	"\ragent_seconds\x18\x01 \x01(\x01R\fagentSeconds\x12'\n" +
@@ -1961,37 +1981,38 @@ var file_factory_v1_runners_proto_depIdxs = []int32{
 	11, // 4: factory.v1.ClaimJobResponse.job:type_name -> factory.v1.ClaimedJob
 	16, // 5: factory.v1.AppendJobEventsRequest.lines:type_name -> factory.v1.JobLine
 	22, // 6: factory.v1.CompleteJobRequest.timings:type_name -> factory.v1.JobTimings
-	1,  // 7: factory.v1.RunnerAdminService.ListRunners:input_type -> factory.v1.ListRunnersRequest
-	3,  // 8: factory.v1.RunnerAdminService.CreateRunner:input_type -> factory.v1.CreateRunnerRequest
-	5,  // 9: factory.v1.RunnerAdminService.RevokeRunner:input_type -> factory.v1.RevokeRunnerRequest
-	7,  // 10: factory.v1.RunnerService.Pair:input_type -> factory.v1.PairRequest
-	9,  // 11: factory.v1.RunnerService.Heartbeat:input_type -> factory.v1.HeartbeatRequest
-	12, // 12: factory.v1.RunnerService.ClaimJob:input_type -> factory.v1.ClaimJobRequest
-	14, // 13: factory.v1.RunnerService.CheckIn:input_type -> factory.v1.CheckInRequest
-	17, // 14: factory.v1.RunnerService.AppendJobEvents:input_type -> factory.v1.AppendJobEventsRequest
-	28, // 15: factory.v1.RunnerService.GetPushToken:input_type -> factory.v1.GetPushTokenRequest
-	19, // 16: factory.v1.RunnerService.AddJobComment:input_type -> factory.v1.AddJobCommentRequest
-	21, // 17: factory.v1.RunnerService.CompleteJob:input_type -> factory.v1.CompleteJobRequest
-	24, // 18: factory.v1.RunnerService.EndChat:input_type -> factory.v1.EndChatRequest
-	26, // 19: factory.v1.RunnerService.ListFinishedTasks:input_type -> factory.v1.ListFinishedTasksRequest
-	2,  // 20: factory.v1.RunnerAdminService.ListRunners:output_type -> factory.v1.ListRunnersResponse
-	4,  // 21: factory.v1.RunnerAdminService.CreateRunner:output_type -> factory.v1.CreateRunnerResponse
-	6,  // 22: factory.v1.RunnerAdminService.RevokeRunner:output_type -> factory.v1.RevokeRunnerResponse
-	8,  // 23: factory.v1.RunnerService.Pair:output_type -> factory.v1.PairResponse
-	10, // 24: factory.v1.RunnerService.Heartbeat:output_type -> factory.v1.HeartbeatResponse
-	13, // 25: factory.v1.RunnerService.ClaimJob:output_type -> factory.v1.ClaimJobResponse
-	15, // 26: factory.v1.RunnerService.CheckIn:output_type -> factory.v1.CheckInResponse
-	18, // 27: factory.v1.RunnerService.AppendJobEvents:output_type -> factory.v1.AppendJobEventsResponse
-	29, // 28: factory.v1.RunnerService.GetPushToken:output_type -> factory.v1.GetPushTokenResponse
-	20, // 29: factory.v1.RunnerService.AddJobComment:output_type -> factory.v1.AddJobCommentResponse
-	23, // 30: factory.v1.RunnerService.CompleteJob:output_type -> factory.v1.CompleteJobResponse
-	25, // 31: factory.v1.RunnerService.EndChat:output_type -> factory.v1.EndChatResponse
-	27, // 32: factory.v1.RunnerService.ListFinishedTasks:output_type -> factory.v1.ListFinishedTasksResponse
-	20, // [20:33] is the sub-list for method output_type
-	7,  // [7:20] is the sub-list for method input_type
-	7,  // [7:7] is the sub-list for extension type_name
-	7,  // [7:7] is the sub-list for extension extendee
-	0,  // [0:7] is the sub-list for field type_name
+	30, // 7: factory.v1.CompleteJobRequest.finished_harness:type_name -> factory.v1.Harness
+	1,  // 8: factory.v1.RunnerAdminService.ListRunners:input_type -> factory.v1.ListRunnersRequest
+	3,  // 9: factory.v1.RunnerAdminService.CreateRunner:input_type -> factory.v1.CreateRunnerRequest
+	5,  // 10: factory.v1.RunnerAdminService.RevokeRunner:input_type -> factory.v1.RevokeRunnerRequest
+	7,  // 11: factory.v1.RunnerService.Pair:input_type -> factory.v1.PairRequest
+	9,  // 12: factory.v1.RunnerService.Heartbeat:input_type -> factory.v1.HeartbeatRequest
+	12, // 13: factory.v1.RunnerService.ClaimJob:input_type -> factory.v1.ClaimJobRequest
+	14, // 14: factory.v1.RunnerService.CheckIn:input_type -> factory.v1.CheckInRequest
+	17, // 15: factory.v1.RunnerService.AppendJobEvents:input_type -> factory.v1.AppendJobEventsRequest
+	28, // 16: factory.v1.RunnerService.GetPushToken:input_type -> factory.v1.GetPushTokenRequest
+	19, // 17: factory.v1.RunnerService.AddJobComment:input_type -> factory.v1.AddJobCommentRequest
+	21, // 18: factory.v1.RunnerService.CompleteJob:input_type -> factory.v1.CompleteJobRequest
+	24, // 19: factory.v1.RunnerService.EndChat:input_type -> factory.v1.EndChatRequest
+	26, // 20: factory.v1.RunnerService.ListFinishedTasks:input_type -> factory.v1.ListFinishedTasksRequest
+	2,  // 21: factory.v1.RunnerAdminService.ListRunners:output_type -> factory.v1.ListRunnersResponse
+	4,  // 22: factory.v1.RunnerAdminService.CreateRunner:output_type -> factory.v1.CreateRunnerResponse
+	6,  // 23: factory.v1.RunnerAdminService.RevokeRunner:output_type -> factory.v1.RevokeRunnerResponse
+	8,  // 24: factory.v1.RunnerService.Pair:output_type -> factory.v1.PairResponse
+	10, // 25: factory.v1.RunnerService.Heartbeat:output_type -> factory.v1.HeartbeatResponse
+	13, // 26: factory.v1.RunnerService.ClaimJob:output_type -> factory.v1.ClaimJobResponse
+	15, // 27: factory.v1.RunnerService.CheckIn:output_type -> factory.v1.CheckInResponse
+	18, // 28: factory.v1.RunnerService.AppendJobEvents:output_type -> factory.v1.AppendJobEventsResponse
+	29, // 29: factory.v1.RunnerService.GetPushToken:output_type -> factory.v1.GetPushTokenResponse
+	20, // 30: factory.v1.RunnerService.AddJobComment:output_type -> factory.v1.AddJobCommentResponse
+	23, // 31: factory.v1.RunnerService.CompleteJob:output_type -> factory.v1.CompleteJobResponse
+	25, // 32: factory.v1.RunnerService.EndChat:output_type -> factory.v1.EndChatResponse
+	27, // 33: factory.v1.RunnerService.ListFinishedTasks:output_type -> factory.v1.ListFinishedTasksResponse
+	21, // [21:34] is the sub-list for method output_type
+	8,  // [8:21] is the sub-list for method input_type
+	8,  // [8:8] is the sub-list for extension type_name
+	8,  // [8:8] is the sub-list for extension extendee
+	0,  // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_factory_v1_runners_proto_init() }

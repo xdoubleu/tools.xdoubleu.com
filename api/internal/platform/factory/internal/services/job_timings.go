@@ -73,6 +73,17 @@ func (s *JobService) RecordTimings(
 	return nil
 }
 
+// RecordFinishedBy stores the harness and model that finished a job after a
+// fallback. Only the runner that ran the job may report for it.
+func (s *JobService) RecordFinishedBy(
+	ctx context.Context,
+	runnerID, jobID uuid.UUID,
+	harness models.Harness,
+	model string,
+) error {
+	return s.jobs.RecordFinishedBy(ctx, jobID, runnerID, harness, model)
+}
+
 func clampSeconds(v float64) float64 {
 	if math.IsNaN(v) || v < 0 {
 		return 0

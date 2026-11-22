@@ -325,6 +325,7 @@ func failed(outcome string) result {
 	return result{
 		succeeded: false, outcome: outcome, session: "", prURL: "",
 		limited: false, resetsAt: time.Time{}, blocked: "", waitingOn: nil,
+		finishedHarness: "", finishedModel: "",
 		failure: "", retry: false, head: "", cause: "", times: nil, total: 0,
 	}
 }
@@ -356,6 +357,10 @@ type result struct {
 	blocked string
 	// waitingOn is the tasks this one depends on, from the agent's Waiting-on line.
 	waitingOn []string
+	// finishedHarness and finishedModel name what finished the job after it
+	// continued on the fallback; empty when the first harness did.
+	finishedHarness string
+	finishedModel   string
 	// failure is why a finished attempt did not publish, for the agent's next
 	// attempt; retry says another attempt may fix it. head is the branch tip the
 	// host reviewed, "" when it never got that far.
@@ -520,7 +525,9 @@ func (r *JobRunner) run(ctx context.Context, job *ClaimedJob) {
 	err := r.API.CompleteJob(done, r.Token, job.ID, JobEnd{
 		Succeeded: res.succeeded, Outcome: res.outcome, SessionID: res.session,
 		PRURL: res.prURL, Limited: res.limited, ResetsAt: res.resetsAt,
-		Blocked: res.blocked, WaitingOn: res.waitingOn, Times: res.times, Total: res.total,
+		Blocked: res.blocked, WaitingOn: res.waitingOn,
+		FinishedHarness: res.finishedHarness, FinishedModel: res.finishedModel,
+		Times: res.times, Total: res.total,
 	})
 	if err != nil {
 		r.Log.Warn("could not report the job", "job", job.ID, "error", err)

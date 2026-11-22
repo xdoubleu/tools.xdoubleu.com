@@ -384,6 +384,15 @@ describe('board', () => {
     expect(ran(2)).toBe('OpenCode')
   })
 
+  it('says what finished a job that continued on the fallback', () => {
+    const job = create(JobSchema, {
+      harness: 1,
+      finishedHarness: 2,
+      finishedModel: 'vendor/model'
+    })
+    expect(jobRunner(job)).toBe('Claude Code → OpenCode · vendor/model')
+  })
+
   it('flags only an unapproved Ready task of a repo with auto pickup on', () => {
     const repos = [
       create(RepoSchema, { id: 'on', autoPickup: true }),

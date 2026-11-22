@@ -68,8 +68,12 @@ type Job struct {
 	// LimitResetsAt is when it lifts, nil if unsaid.
 	Limited       bool
 	LimitResetsAt *time.Time
-	CreatedBy     string
-	CreatedAt     time.Time
+	// FinishedHarness and FinishedModel are what finished the job after it
+	// continued on the fallback; empty when the first harness did.
+	FinishedHarness Harness
+	FinishedModel   string
+	CreatedBy       string
+	CreatedAt       time.Time
 	// StartedAt, LastCheckIn and FinishedAt are nil until they happen.
 	StartedAt   *time.Time
 	LastCheckIn *time.Time
