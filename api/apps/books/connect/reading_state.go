@@ -12,7 +12,6 @@ import (
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
 	"tools.xdoubleu.com/internal/kit/constants"
 	"tools.xdoubleu.com/internal/kit/contexttools"
-	"tools.xdoubleu.com/internal/kit/database"
 	sharedmodels "tools.xdoubleu.com/internal/models"
 )
 
@@ -90,23 +89,11 @@ func (h *Handler) GetReadingState(
 			"invalid book ID",
 		)
 	}
-	state, err := h.services.Books.GetReadingState(ctx, user.ID, bookID)
-	if errors.Is(err, database.ErrResourceNotFound) {
-		return &booksv1.GetReadingStateResponse{}, nil
-	}
+	view, err := h.services.Library.ReadingState(ctx, user.ID, bookID)
 	if err != nil {
 		return nil, mapError(err)
 	}
-	out := readingStateToProto(state)
-	if state.Position != nil {
-		out.PhysicalPage, out.PhysicalExcerpt = h.physicalAt(
-			ctx, user.ID, bookID, *state.Position,
-		)
-		out.Position = readingPositionToProto(h.services.Positions.ReaderPosition(
-			ctx, user.ID, bookID, *state.Position,
-		))
-	}
-	return &booksv1.GetReadingStateResponse{State: out}, nil
+	return ReadingStateResponse(view), nil
 }
 
 // TranslateReadingPosition adds the forms GetReadingState would.
@@ -135,23 +122,11 @@ func (h *Handler) TranslateReadingPosition(
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
-	pos := h.services.Positions.ReaderPosition(ctx, user.ID, bookID, *position)
-	page, _ := h.physicalAt(ctx, user.ID, bookID, *position)
+	pos, page := h.services.Library.TranslatePosition(ctx, user.ID, bookID, *position)
 	return &booksv1.TranslateReadingPositionResponse{
 		Position:     readingPositionToProto(pos),
-		PhysicalPage: page,
+		PhysicalPage: Int32FromInt(page),
 	}, nil
-}
-
-// physicalAt is the physical copy's page at pos and the sentence there.
-func (h *Handler) physicalAt(
-	ctx context.Context,
-	userID string,
-	bookID uuid.UUID,
-	pos models.ReadingPosition,
-) (int32, string) {
-	page, excerpt := h.services.Physical.Locate(ctx, userID, bookID, pos)
-	return Int32FromInt(page), excerpt
 }
 
 func readingPositionToProto(p models.ReadingPosition) *booksv1.ReadingPosition {

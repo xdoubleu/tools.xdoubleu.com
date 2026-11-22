@@ -60,18 +60,19 @@ func (h *Handler) GetKoboDeviceLogs(
 	ctx context.Context,
 	req *booksv1.GetKoboDeviceLogsRequest,
 ) (*booksv1.GetKoboDeviceLogsResponse, error) {
-	deviceID, err := h.koboDeviceForLogging(ctx, req.Id)
+	user := caller(ctx)
+	if user == nil {
+		return nil, connect.NewError(connect.CodeUnauthenticated, "unauthorized")
+	}
+	deviceID, err := uuid.Parse(req.Id)
 	if err != nil {
-		return nil, err
+		return nil, connect.NewError(connect.CodeInvalidArgument, "invalid device ID")
 	}
-	entries := h.services.KoboLog.List(deviceID.String())
-	resp := &booksv1.GetKoboDeviceLogsResponse{
-		Entries: make([]*booksv1.KoboLogEntry, len(entries)),
+	entries, err := h.services.Library.KoboDeviceLogs(ctx, user.ID, deviceID)
+	if err != nil {
+		return nil, mapError(err)
 	}
-	for i, e := range entries {
-		resp.Entries[i] = koboLogEntryProto(e)
-	}
-	return resp, nil
+	return KoboLogsResponse(entries), nil
 }
 
 func (h *Handler) ClearKoboDeviceLogs(

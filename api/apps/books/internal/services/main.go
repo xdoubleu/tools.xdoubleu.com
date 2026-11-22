@@ -32,6 +32,7 @@ type Services struct {
 	Positions  *positions.PositionService
 	Physical   *positions.PhysicalService
 	Progress   *ProgressService
+	Library    *LibraryService
 	Kobo       *kobo.Service
 	KoboLog    *kobo.LogStore
 	Ingest     *IngestService
@@ -93,22 +94,36 @@ func New(
 		logger, background, repositories.Books, repositories.ReadingState, positionSvc,
 	)
 
+	progressSvc := NewProgressService(repositories.Progress)
+	kepubQueue := conversion.NewKEPUBQueue(
+		logger, repositories.KEPUBRequests, conversionSvc,
+	)
+
 	return &Services{
 		Auth:       authService,
 		Books:      booksSvc,
 		Catalog:    nil, // set once the resync job exists
 		Conversion: conversionSvc,
-		KEPUBQueue: conversion.NewKEPUBQueue(
-			logger, repositories.KEPUBRequests, conversionSvc,
-		),
-		Figures:   conversion.NewFigureService(logger, repositories.BookFiles, objectStore),
-		Positions: positionSvc,
-		Physical:  booksSvc.physical,
-		Progress:  NewProgressService(repositories.Progress),
-		Kobo:      koboSvc,
-		KoboLog:   koboLog,
-		Ingest:    ingestSvc,
-		WebPub:    webpub.NewService(repositories.BookFiles, booksSvc.openStoredZip),
+		KEPUBQueue: kepubQueue,
+		Figures:    conversion.NewFigureService(logger, repositories.BookFiles, objectStore),
+		Positions:  positionSvc,
+		Physical:   booksSvc.physical,
+		Progress:   progressSvc,
+		Library: &LibraryService{
+			logger:    logger,
+			books:     booksSvc,
+			ingest:    ingestSvc,
+			progress:  progressSvc,
+			positions: positionSvc,
+			physical:  booksSvc.physical,
+			kepubs:    kepubQueue,
+			kobo:      koboSvc,
+			koboLog:   koboLog,
+		},
+		Kobo:    koboSvc,
+		KoboLog: koboLog,
+		Ingest:  ingestSvc,
+		WebPub:  webpub.NewService(repositories.BookFiles, booksSvc.openStoredZip),
 		WebSocket: progressws.NewService(
 			ctx,
 			logger,

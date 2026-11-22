@@ -46,8 +46,7 @@ func (a *Books) Routes(prefix string, mux *http.ServeMux) {
 func (a *Books) RegisterMCPTools(srv *mcp.Server) {
 	booksmcp.Register(
 		srv,
-		a.connectHandler(),
-		a.services.Catalog,
+		a.services,
 		a.clients.PublicAPIBaseURL,
 	)
 }

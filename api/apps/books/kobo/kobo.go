@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -63,6 +64,15 @@ func (s *Service) ListKoboDevices(
 	userID string,
 ) ([]models.KoboDevice, error) {
 	return s.repo.ListKoboDevices(ctx, userID)
+}
+
+// LastSeenAt is the most recent sync across the user's devices, or nil when
+// none has synced.
+func (s *Service) LastSeenAt(
+	ctx context.Context,
+	userID string,
+) (*time.Time, error) {
+	return s.repo.GetLastSeenAt(ctx, userID)
 }
 
 // DisconnectKoboDevice deletes the device record, revoking its token.

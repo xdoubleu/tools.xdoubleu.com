@@ -3,7 +3,9 @@ package mcp
 
 import (
 	"context"
+	"strings"
 
+	"github.com/google/uuid"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"google.golang.org/protobuf/proto"
 
@@ -59,10 +61,11 @@ type mcpDeviceIDArgs struct {
 	ID string `json:"id" jsonschema:"Kobo device id"`
 }
 
-// tools adapts the ConnectRPC handler and the catalog service to MCP tool
-// signatures.
+// tools adapts the books services to MCP tool signatures.
 type tools struct {
-	h            *connect.Handler
+	books        *services.BookService
+	library      *services.LibraryService
+	progress     *services.ProgressService
 	catalog      *services.CatalogService
 	coverBaseURL string
 }
@@ -72,11 +75,16 @@ type tools struct {
 // tools need an admin.
 func Register(
 	srv *mcp.Server,
-	h *connect.Handler,
-	catalog *services.CatalogService,
+	svc *services.Services,
 	coverBaseURL string,
 ) {
-	t := &tools{h: h, catalog: catalog, coverBaseURL: coverBaseURL}
+	t := &tools{
+		books:        svc.Books,
+		library:      svc.Library,
+		progress:     svc.Progress,
+		catalog:      svc.Catalog,
+		coverBaseURL: coverBaseURL,
+	}
 	registerReadingLibraryTools(srv, t)
 	registerReadingCatalogTools(srv, t)
 }
@@ -149,58 +157,141 @@ func mcpOptStr(s string) *string {
 	return &s
 }
 
+// authed returns the calling user's ID, or the unauthenticated error.
+func authed(ctx context.Context) (string, error) {
+	user := caller(ctx)
+	if user == nil {
+		return "", connect.MapError(services.ErrUnauthenticated)
+	}
+	return user.ID, nil
+}
+
+// authedBook is authed plus the parsed book_id argument.
+func authedBook(ctx context.Context, rawBookID string) (string, uuid.UUID, error) {
+	userID, err := authed(ctx)
+	if err != nil {
+		return "", uuid.Nil, err
+	}
+	bookID, err := connect.ParseBookID(rawBookID)
+	if err != nil {
+		return "", uuid.Nil, err
+	}
+	return userID, bookID, nil
+}
+
 func (h *tools) mcpGetLibrary(
 	ctx context.Context, _ mcptools.NoArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.h.GetLibrary(ctx, &booksv1.GetLibraryRequest{}))
+	userID, err := authed(ctx)
+	if err != nil {
+		return nil, err
+	}
+	data, err := h.books.LibraryView(ctx, userID)
+	if err != nil {
+		return nil, connect.MapError(err)
+	}
+	return &booksv1.GetLibraryResponse{
+		Library: connect.LibraryResponse(data, h.coverBaseURL),
+	}, nil
 }
 
 func (h *tools) mcpGetBooksProgress(
 	ctx context.Context, args mcpProgressArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.h.GetBooksProgress(ctx, &booksv1.GetBooksProgressRequest{
-		DateStart: args.DateStart,
-		DateEnd:   args.DateEnd,
-	}))
+	userID, err := authed(ctx)
+	if err != nil {
+		return nil, err
+	}
+	start, end := services.ParseProgressRange(args.DateStart, args.DateEnd)
+	labels, values, err := h.progress.GetByDates(ctx, userID, start, end)
+	if err != nil {
+		return nil, connect.MapError(err)
+	}
+	return &booksv1.GetBooksProgressResponse{
+		Progress: connect.ProgressResponse(labels, values, start, end),
+	}, nil
 }
 
 func (h *tools) mcpSearchLibrary(
 	ctx context.Context, args mcpQueryArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(
-		h.h.SearchLibrary(ctx, &booksv1.SearchLibraryRequest{Query: args.Query}),
-	)
+	userID, err := authed(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if args.Query == "" {
+		return &booksv1.SearchLibraryResponse{Books: []*booksv1.UserBook{}}, nil
+	}
+	results, hasMore, err := h.books.SearchLibrary(ctx, userID, args.Query, 0, 0)
+	if err != nil {
+		return nil, connect.MapError(err)
+	}
+	return &booksv1.SearchLibraryResponse{
+		Books:   connect.ProtoUserBooks(results, h.coverBaseURL),
+		HasMore: hasMore,
+	}, nil
 }
 
 func (h *tools) mcpSearchExternal(
 	ctx context.Context, args mcpQueryArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(
-		h.h.SearchExternal(ctx, &booksv1.SearchExternalRequest{Query: args.Query}),
+	if _, err := authed(ctx); err != nil {
+		return nil, err
+	}
+	if args.Query == "" {
+		return &booksv1.SearchExternalResponse{
+			Results: []*booksv1.ExternalBookResult{},
+		}, nil
+	}
+	results := services.FilterExternalByQuery(
+		args.Query, h.books.SearchExternal(ctx, args.Query),
 	)
+	return connect.ExternalBooksResponse(results), nil
 }
 
 func (h *tools) mcpGetSeries(
 	ctx context.Context, args mcpSeriesArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.h.GetSeries(ctx, &booksv1.GetSeriesRequest{Name: args.Name}))
+	userID, err := authed(ctx)
+	if err != nil {
+		return nil, err
+	}
+	name := strings.TrimSpace(args.Name)
+	if name == "" {
+		return nil, connect.MapError(services.ErrSeriesNameRequired)
+	}
+	view, err := h.books.GetSeries(ctx, userID, name)
+	if err != nil {
+		return nil, connect.MapError(err)
+	}
+	return connect.SeriesResponse(view, h.coverBaseURL), nil
 }
 
 func (h *tools) mcpGetExternalBook(
 	ctx context.Context, args mcpExternalBookArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.h.GetExternalBook(ctx, &booksv1.GetExternalBookRequest{
-		Provider:   args.Provider,
-		ProviderId: args.ProviderID,
-	}))
+	if _, err := authed(ctx); err != nil {
+		return nil, err
+	}
+	book, err := h.books.GetExternal(ctx, args.Provider, args.ProviderID)
+	if err != nil {
+		return nil, connect.MapError(err)
+	}
+	return connect.ExternalBookResponse(*book), nil
 }
 
 func (h *tools) mcpGetReadingState(
 	ctx context.Context, args mcpBookIDArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(
-		h.h.GetReadingState(ctx, &booksv1.GetReadingStateRequest{BookId: args.BookID}),
-	)
+	userID, bookID, err := authedBook(ctx, args.BookID)
+	if err != nil {
+		return nil, err
+	}
+	view, err := h.library.ReadingState(ctx, userID, bookID)
+	if err != nil {
+		return nil, connect.MapError(err)
+	}
+	return connect.ReadingStateResponse(view), nil
 }
 
 func (h *tools) mcpListResyncProposals(
@@ -266,40 +357,73 @@ func (h *tools) mcpFindDuplicates(
 func (h *tools) mcpGetBookFile(
 	ctx context.Context, args mcpBookFileArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(
-		h.h.GetBookFile(
-			ctx,
-			&booksv1.GetBookFileRequest{BookId: args.BookID, Format: args.Format},
-		),
-	)
+	userID, bookID, err := authedBook(ctx, args.BookID)
+	if err != nil {
+		return nil, err
+	}
+	result, err := h.books.GetBookFile(ctx, userID, bookID, args.Format)
+	if err != nil {
+		return nil, connect.MapError(err)
+	}
+	return connect.BookFileResponse(result), nil
 }
 
 func (h *tools) mcpGetKEPUBStatus(
 	ctx context.Context, args mcpBookIDArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(
-		h.h.GetKEPUBStatus(ctx, &booksv1.GetKEPUBStatusRequest{BookId: args.BookID}),
-	)
+	userID, bookID, err := authedBook(ctx, args.BookID)
+	if err != nil {
+		return nil, err
+	}
+	view, err := h.library.KEPUBStatus(ctx, userID, bookID)
+	if err != nil {
+		return nil, connect.MapError(err)
+	}
+	return connect.KEPUBStatusResponse(view), nil
 }
 
 func (h *tools) mcpListKoboDevices(
 	ctx context.Context, _ mcptools.NoArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.h.ListKoboDevices(ctx, &booksv1.ListKoboDevicesRequest{}))
+	userID, err := authed(ctx)
+	if err != nil {
+		return nil, err
+	}
+	devices, err := h.library.KoboDevices(ctx, userID)
+	if err != nil {
+		return nil, connect.MapError(err)
+	}
+	return connect.KoboDevicesResponse(devices), nil
 }
 
 func (h *tools) mcpListKoboStoreBooks(
 	ctx context.Context, _ mcptools.NoArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(
-		h.h.ListKoboStoreBooks(ctx, &booksv1.ListKoboStoreBooksRequest{}),
-	)
+	userID, err := authed(ctx)
+	if err != nil {
+		return nil, err
+	}
+	books, err := h.books.ListKoboStoreBooks(ctx, userID)
+	if err != nil {
+		return nil, connect.MapError(err)
+	}
+	return connect.KoboStoreBooksResponse(books), nil
 }
 
 func (h *tools) mcpGetKoboDeviceLogs(
 	ctx context.Context, args mcpDeviceIDArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(
-		h.h.GetKoboDeviceLogs(ctx, &booksv1.GetKoboDeviceLogsRequest{Id: args.ID}),
-	)
+	userID, err := authed(ctx)
+	if err != nil {
+		return nil, err
+	}
+	deviceID, err := uuid.Parse(args.ID)
+	if err != nil {
+		return nil, connect.MapError(services.ErrInvalidDeviceID)
+	}
+	entries, err := h.library.KoboDeviceLogs(ctx, userID, deviceID)
+	if err != nil {
+		return nil, connect.MapError(err)
+	}
+	return connect.KoboLogsResponse(entries), nil
 }

@@ -23,7 +23,7 @@ func (app *Books) BuildSharedLibrary(
 		return nil, "", err
 	}
 
-	lastSeen, err := app.repositories.KoboDevices.GetLastSeenAt(ctx, userID)
+	lastSeen, err := app.services.Library.KoboLastSeen(ctx, userID)
 	if err != nil {
 		return nil, "", err
 	}
