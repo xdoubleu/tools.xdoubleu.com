@@ -158,10 +158,13 @@ func TestNormaliseRepoSignalSettings(t *testing.T) {
 
 func TestRepoSettingsNeedABrowserSession(t *testing.T) {
 	svc := &RepoService{repo: nil}
-	bearer := models.Actor{Kind: models.ActorHuman, ID: "x", Browser: false, Admin: true, Via: ""}
+	bearer := models.Actor{
+		Kind: models.ActorHuman, ID: "x", Browser: false, Admin: true, Via: "",
+	}
+	in := repoInput(func(*RepoInput) {})
 
-	_, err := svc.Create(context.Background(), bearer, repoInput(func(*RepoInput) {}))
+	_, err := svc.Create(context.Background(), bearer, in)
 	assert.Equal(t, http.StatusForbidden, status(t, err))
-	_, err = svc.Update(context.Background(), bearer, uuid.New(), repoInput(func(*RepoInput) {}))
+	_, err = svc.Update(context.Background(), bearer, uuid.New(), in)
 	assert.Equal(t, http.StatusForbidden, status(t, err))
 }

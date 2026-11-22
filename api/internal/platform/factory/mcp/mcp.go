@@ -98,7 +98,9 @@ type mcpRunRoutineArgs struct {
 // tools act as the agent, which may move a task into Ready; the move is
 // recorded as a comment.
 func Register(srv *mcp.Server, svc *services.Services) {
-	t := &mcpTools{svc: svc, present: &fconnect.Deps{Services: svc}}
+	t := &mcpTools{svc: svc, present: &fconnect.Deps{
+		Services: svc, Logger: nil, HeartbeatHold: 0, StepUp: nil,
+	}}
 
 	mcptools.AddAgentReadTool(srv, mcpAppName, "factory_list_repos",
 		"The repos the factory works on: id, owner, name and default branch. "+
@@ -291,7 +293,9 @@ func (t *mcpTools) commentTask(
 	if err != nil {
 		return nil, connecttools.MapError(err)
 	}
-	return &factoryv1.AddCommentResponse{Comment: t.present.ProtoCommentOf(ctx, comment)}, nil
+	return &factoryv1.AddCommentResponse{
+		Comment: t.present.ProtoCommentOf(ctx, comment),
+	}, nil
 }
 
 func (t *mcpTools) moveTask(

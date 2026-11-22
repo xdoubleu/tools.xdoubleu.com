@@ -7,10 +7,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/internal/kit/database"
 	"tools.xdoubleu.com/internal/platform/factory/internal/models"
@@ -84,7 +83,9 @@ func TestRunnerServiceRefusesBadInputBeforeTheDatabase(t *testing.T) {
 	svc := &RunnerService{repo: nil, now: nil, say: notices{out: nil, webURL: ""}}
 	ctx := context.Background()
 
-	browser := models.Actor{Kind: models.ActorHuman, ID: "x", Browser: true, Admin: true, Via: ""}
+	browser := models.Actor{
+		Kind: models.ActorHuman, ID: "x", Browser: true, Admin: true, Via: "",
+	}
 	confirmed := false
 	confirm := func(context.Context) error { confirmed = true; return nil }
 	_, _, err := svc.Create(ctx, browser, " ", confirm)
