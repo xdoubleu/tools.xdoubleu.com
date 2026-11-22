@@ -1,8 +1,9 @@
-package feeds
+package connect
 
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"time"
 
 	"connectrpc.com/connect/v2"
@@ -19,12 +20,29 @@ import (
 	sharedmodels "tools.xdoubleu.com/internal/models"
 )
 
-// feedsConnectHandler serves feeds.v1.FeedService.
-type feedsConnectHandler struct {
-	app *Feeds
+// Handler serves feeds.v1.FeedService.
+type Handler struct {
+	feeds  *services.FeedService
+	logger *slog.Logger
 }
 
-var _ feedsv1connect.FeedServiceHandler = (*feedsConnectHandler)(nil)
+// NewHandler returns a Handler backed by feeds.
+func NewHandler(feeds *services.FeedService, logger *slog.Logger) *Handler {
+	return &Handler{feeds: feeds, logger: logger}
+}
+
+var _ feedsv1connect.FeedServiceHandler = (*Handler)(nil)
+
+// feedKinds maps proto kinds to models.FeedSource*; UNSPECIFIED maps to ""
+// and creates an RSS/Atom feed.
+//
+//nolint:gochecknoglobals // static lookup table, read-only after init
+var feedKinds = map[feedsv1.FeedKind]string{
+	feedsv1.FeedKind_FEED_KIND_UNSPECIFIED: "",
+	feedsv1.FeedKind_FEED_KIND_RSS:         models.FeedSourceRSS,
+	feedsv1.FeedKind_FEED_KIND_EMAIL:       models.FeedSourceEmail,
+	feedsv1.FeedKind_FEED_KIND_SCRAPE:      models.FeedSourceScrape,
+}
 
 func protoFeed(f models.Feed) *feedsv1.Feed {
 	lastFetched := ""
@@ -160,10 +178,12 @@ func mapError(err error) error {
 			services.ErrEmailFeedsNotConfigured, connect.CodeFailedPrecondition,
 		),
 		connecttools.Code(services.ErrItemNotFiltered, connect.CodeFailedPrecondition),
+		connecttools.Code(services.ErrEmailFeedHasURL, connect.CodeInvalidArgument),
+		connecttools.Code(services.ErrAdminRequired, connect.CodePermissionDenied),
 	)
 }
 
-func (h *feedsConnectHandler) ListFeeds(
+func (h *Handler) ListFeeds(
 	ctx context.Context,
 	_ *feedsv1.ListFeedsRequest,
 ) (*feedsv1.ListFeedsResponse, error) {
@@ -172,7 +192,7 @@ func (h *feedsConnectHandler) ListFeeds(
 		return nil, cerr
 	}
 
-	feeds, err := h.app.Services.Feeds.List(ctx, user.ID)
+	feeds, err := h.feeds.List(ctx, user.ID)
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -184,7 +204,7 @@ func (h *feedsConnectHandler) ListFeeds(
 	return &feedsv1.ListFeedsResponse{Feeds: out}, nil
 }
 
-func (h *feedsConnectHandler) CreateFeed(
+func (h *Handler) CreateFeed(
 	ctx context.Context,
 	req *feedsv1.CreateFeedRequest,
 ) (*feedsv1.CreateFeedResponse, error) {
@@ -193,44 +213,11 @@ func (h *feedsConnectHandler) CreateFeed(
 		return nil, cerr
 	}
 
-	if req.Kind == feedsv1.FeedKind_FEED_KIND_EMAIL {
-		return h.createEmailFeed(ctx, user.ID, req)
-	}
-	if req.Kind == feedsv1.FeedKind_FEED_KIND_SCRAPE {
-		feed, err := h.app.Services.Feeds.CreateScrape(ctx, user.ID, req.Url)
-		if err != nil {
-			return nil, mapError(err)
-		}
-		return &feedsv1.CreateFeedResponse{
-			Feed: protoFeed(*feed),
-		}, nil
-	}
-
-	feed, err := h.app.Services.Feeds.Create(
-		ctx, user.ID, req.Url, req.Title,
-	)
-	if err != nil {
-		return nil, mapError(err)
-	}
-
-	return &feedsv1.CreateFeedResponse{
-		Feed: protoFeed(*feed),
-	}, nil
-}
-
-func (h *feedsConnectHandler) createEmailFeed(
-	ctx context.Context,
-	userID string,
-	req *feedsv1.CreateFeedRequest,
-) (*feedsv1.CreateFeedResponse, error) {
-	if req.Url != "" {
-		return nil, connect.NewError(
-			connect.CodeInvalidArgument,
-			"url must be empty for an email feed",
-		)
-	}
-
-	feed, address, err := h.app.Services.Feeds.CreateEmail(ctx, userID, req.Title)
+	feed, address, err := h.feeds.CreateFeed(ctx, user.ID, services.NewFeed{
+		Kind:  feedKinds[req.Kind],
+		URL:   req.Url,
+		Title: req.Title,
+	})
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -240,7 +227,7 @@ func (h *feedsConnectHandler) createEmailFeed(
 	return &feedsv1.CreateFeedResponse{Feed: proto}, nil
 }
 
-func (h *feedsConnectHandler) UpdateFeed(
+func (h *Handler) UpdateFeed(
 	ctx context.Context,
 	req *feedsv1.UpdateFeedRequest,
 ) (*feedsv1.UpdateFeedResponse, error) {
@@ -258,7 +245,7 @@ func (h *feedsConnectHandler) UpdateFeed(
 		days := int(req.GetExpiryDays())
 		expiryDays = &days
 	}
-	if err := h.app.Services.Feeds.Update(
+	if err := h.feeds.Update(
 		ctx, user.ID, feedID, req.Title, expiryDays,
 	); err != nil {
 		return nil, mapError(err)
@@ -266,7 +253,7 @@ func (h *feedsConnectHandler) UpdateFeed(
 	return &feedsv1.UpdateFeedResponse{}, nil
 }
 
-func (h *feedsConnectHandler) DeleteFeed(
+func (h *Handler) DeleteFeed(
 	ctx context.Context,
 	req *feedsv1.DeleteFeedRequest,
 ) (*feedsv1.DeleteFeedResponse, error) {
@@ -279,13 +266,13 @@ func (h *feedsConnectHandler) DeleteFeed(
 		return nil, cerr
 	}
 
-	if err := h.app.Services.Feeds.Delete(ctx, user.ID, feedID); err != nil {
+	if err := h.feeds.Delete(ctx, user.ID, feedID); err != nil {
 		return nil, mapError(err)
 	}
 	return &feedsv1.DeleteFeedResponse{}, nil
 }
 
-func (h *feedsConnectHandler) RefreshFeed(
+func (h *Handler) RefreshFeed(
 	ctx context.Context,
 	req *feedsv1.RefreshFeedRequest,
 ) (*feedsv1.RefreshFeedResponse, error) {
@@ -298,7 +285,7 @@ func (h *feedsConnectHandler) RefreshFeed(
 		return nil, cerr
 	}
 
-	ingested, err := h.app.Services.Feeds.Refresh(ctx, user.ID, feedID)
+	ingested, err := h.feeds.Refresh(ctx, user.ID, feedID)
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -307,7 +294,7 @@ func (h *feedsConnectHandler) RefreshFeed(
 	}, nil
 }
 
-func (h *feedsConnectHandler) ListFeedItems(
+func (h *Handler) ListFeedItems(
 	ctx context.Context,
 	req *feedsv1.ListFeedItemsRequest,
 ) (*feedsv1.ListFeedItemsResponse, error) {
@@ -325,7 +312,7 @@ func (h *feedsConnectHandler) ListFeedItems(
 		feedID = &parsed
 	}
 
-	items, hasMore, err := h.app.Services.Feeds.ListItems(
+	items, hasMore, err := h.feeds.ListItems(
 		ctx, user.ID, req.Limit, req.Offset, req.GetUnreadOnly(),
 		feedID, req.GetBookmarkedOnly(), listView(req),
 	)
@@ -344,7 +331,7 @@ func (h *feedsConnectHandler) ListFeedItems(
 }
 
 // GetFeedItem is the only RPC returning an item's article body.
-func (h *feedsConnectHandler) GetFeedItem(
+func (h *Handler) GetFeedItem(
 	ctx context.Context,
 	req *feedsv1.GetFeedItemRequest,
 ) (*feedsv1.GetFeedItemResponse, error) {
@@ -357,12 +344,12 @@ func (h *feedsConnectHandler) GetFeedItem(
 		return nil, cerr
 	}
 
-	item, err := h.app.Services.Feeds.GetItem(ctx, user.ID, itemID)
+	item, err := h.feeds.GetItem(ctx, user.ID, itemID)
 	if err != nil {
 		if errors.Is(err, database.ErrResourceNotFound) {
 			// A cached list can reference a deleted item; not_found emits no
 			// Sentry event, so log it.
-			h.app.Logger.WarnContext(ctx, "feed item not found",
+			h.logger.WarnContext(ctx, "feed item not found",
 				"item_id", itemID, "user_id", user.ID)
 		}
 		return nil, mapError(err)
@@ -372,7 +359,7 @@ func (h *feedsConnectHandler) GetFeedItem(
 	}, nil
 }
 
-func (h *feedsConnectHandler) UpdateItem(
+func (h *Handler) UpdateItem(
 	ctx context.Context,
 	req *feedsv1.UpdateItemRequest,
 ) (*feedsv1.UpdateItemResponse, error) {
@@ -385,7 +372,7 @@ func (h *feedsConnectHandler) UpdateItem(
 		return nil, cerr
 	}
 
-	item, err := h.app.Services.Feeds.UpdateItem(
+	item, err := h.feeds.UpdateItem(
 		ctx, user.ID, itemID, req.Read, req.Dismissed, req.Bookmarked,
 		req.ReadProgressPct,
 	)
@@ -397,7 +384,7 @@ func (h *feedsConnectHandler) UpdateItem(
 	}, nil
 }
 
-func (h *feedsConnectHandler) GetFeedStats(
+func (h *Handler) GetFeedStats(
 	ctx context.Context,
 	_ *feedsv1.GetFeedStatsRequest,
 ) (*feedsv1.GetFeedStatsResponse, error) {
@@ -406,7 +393,7 @@ func (h *feedsConnectHandler) GetFeedStats(
 		return nil, cerr
 	}
 
-	stats, perDay, err := h.app.Services.Feeds.GetStats(ctx, user.ID)
+	stats, perDay, err := h.feeds.GetStats(ctx, user.ID)
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -436,37 +423,26 @@ func (h *feedsConnectHandler) GetFeedStats(
 	}, nil
 }
 
-// requireFeedsAdmin gates GetUnhealthyFeeds, which spans all users.
-func requireFeedsAdmin(ctx context.Context) *connect.Error {
-	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
-	if user == nil || user.Role != sharedmodels.RoleAdmin {
-		return connect.NewError(
-			connect.CodePermissionDenied,
-			"admin access required",
-		)
-	}
-	return nil
-}
-
-func (h *feedsConnectHandler) GetUnhealthyFeeds(
+func (h *Handler) GetUnhealthyFeeds(
 	ctx context.Context,
 	_ *feedsv1.GetUnhealthyFeedsRequest,
 ) (*feedsv1.GetUnhealthyFeedsResponse, error) {
-	if cerr := requireFeedsAdmin(ctx); cerr != nil {
-		return nil, cerr
-	}
-
-	unhealthy, err := h.app.ListUnhealthy(ctx)
+	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
+	unhealthy, err := h.feeds.ListUnhealthyAs(ctx, user)
 	if err != nil {
 		return nil, mapError(err)
 	}
 
 	protoFeeds := make([]*feedsv1.UnhealthyFeed, len(unhealthy))
 	for i, feed := range unhealthy {
+		lastError := ""
+		if feed.LastError != nil {
+			lastError = *feed.LastError
+		}
 		protoFeeds[i] = &feedsv1.UnhealthyFeed{
 			Title:     feed.Title,
 			Url:       feed.URL,
-			LastError: feed.LastError,
+			LastError: lastError,
 			//nolint:gosec // failure counts fit int32
 			ConsecutiveFailures: int32(feed.ConsecutiveFailures),
 		}
@@ -490,7 +466,7 @@ func listView(req *feedsv1.ListFeedItemsRequest) services.ListView {
 }
 
 // ListTopFeedItems ranks today's best items from the caller's history.
-func (h *feedsConnectHandler) ListTopFeedItems(
+func (h *Handler) ListTopFeedItems(
 	ctx context.Context,
 	_ *feedsv1.ListTopFeedItemsRequest,
 ) (*feedsv1.ListTopFeedItemsResponse, error) {
@@ -498,7 +474,7 @@ func (h *feedsConnectHandler) ListTopFeedItems(
 	if cerr != nil {
 		return nil, cerr
 	}
-	items, err := h.app.Services.Feeds.ListTopItems(ctx, user.ID)
+	items, err := h.feeds.ListTopItems(ctx, user.ID)
 	if err != nil {
 		return nil, mapError(err)
 	}

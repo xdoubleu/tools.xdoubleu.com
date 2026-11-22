@@ -1,13 +1,10 @@
-package feeds
+package feedshttp
 
 import (
-	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
-	"encoding/json"
 	"net/http"
-	"net/http/httptest"
 	"strconv"
 	"testing"
 	"time"
@@ -121,106 +118,4 @@ func TestVerifyResendSignature_MalformedSignatureField(t *testing.T) {
 func TestParseUnixTimestamp_Invalid(t *testing.T) {
 	_, err := parseUnixTimestamp("not-a-timestamp")
 	require.Error(t, err)
-}
-
-func TestFetchReceivedEmailHTML_ConnectionError(t *testing.T) {
-	SetResendAPIBaseURL("http://127.0.0.1:1")
-	t.Cleanup(func() { SetResendAPIBaseURL("https://api.resend.com") })
-
-	_, err := fetchReceivedEmailHTML(context.Background(), "key", "email-1")
-	require.Error(t, err)
-}
-
-func TestFetchReceivedEmailHTML_NonOKStatus(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(
-		func(w http.ResponseWriter, _ *http.Request) {
-			w.WriteHeader(http.StatusInternalServerError)
-			_, _ = w.Write([]byte("upstream error"))
-		},
-	))
-	t.Cleanup(server.Close)
-	SetResendAPIBaseURL(server.URL)
-	t.Cleanup(func() { SetResendAPIBaseURL("https://api.resend.com") })
-
-	_, err := fetchReceivedEmailHTML(context.Background(), "key", "email-1")
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "upstream error")
-}
-
-func TestFetchReceivedEmailHTML_MalformedJSON(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(
-		func(w http.ResponseWriter, _ *http.Request) {
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte("not json"))
-		},
-	))
-	t.Cleanup(server.Close)
-	SetResendAPIBaseURL(server.URL)
-	t.Cleanup(func() { SetResendAPIBaseURL("https://api.resend.com") })
-
-	_, err := fetchReceivedEmailHTML(context.Background(), "key", "email-1")
-	require.Error(t, err)
-}
-
-func TestFetchReceivedEmailHTML_TextFallback(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(
-		func(w http.ResponseWriter, _ *http.Request) {
-			w.WriteHeader(http.StatusOK)
-			_ = json.NewEncoder(w).Encode(map[string]string{
-				"text": "plain text body",
-			})
-		},
-	))
-	t.Cleanup(server.Close)
-	SetResendAPIBaseURL(server.URL)
-	t.Cleanup(func() { SetResendAPIBaseURL("https://api.resend.com") })
-
-	html, err := fetchReceivedEmailHTML(context.Background(), "key", "email-1")
-	require.NoError(t, err)
-	assert.Equal(t, "<pre>plain text body</pre>", html)
-}
-
-func TestFetchReceivedEmailHTML_NoHTMLOrText(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(
-		func(w http.ResponseWriter, _ *http.Request) {
-			w.WriteHeader(http.StatusOK)
-			_ = json.NewEncoder(w).Encode(map[string]string{})
-		},
-	))
-	t.Cleanup(server.Close)
-	SetResendAPIBaseURL(server.URL)
-	t.Cleanup(func() { SetResendAPIBaseURL("https://api.resend.com") })
-
-	_, err := fetchReceivedEmailHTML(context.Background(), "key", "email-1")
-	require.Error(t, err)
-}
-
-func TestInboundTokenFromAddress(t *testing.T) {
-	tests := []struct {
-		name      string
-		addr      string
-		wantToken string
-		wantOK    bool
-	}{
-		{"valid alias", "reading+abc123@mail.example.com", "abc123", true},
-		// No "+" required: whole local part is the token.
-		{"no plus", "abc123@mail.example.com", "abc123", true},
-		{"no at", "reading+abc123", "", false},
-		{"empty token after plus", "reading+@mail.example.com", "", false},
-		{"empty local part", "@mail.example.com", "", false},
-		// Tokens are case-folded, surviving relays that lowercase.
-		{
-			"mixed case folded to lowercase",
-			"reading+AbC123@mail.example.com",
-			"abc123",
-			true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			token, ok := inboundTokenFromAddress(tt.addr)
-			assert.Equal(t, tt.wantOK, ok)
-			assert.Equal(t, tt.wantToken, token)
-		})
-	}
 }

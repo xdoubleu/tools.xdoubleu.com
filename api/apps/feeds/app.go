@@ -11,6 +11,7 @@ import (
 
 	"tools.xdoubleu.com/apps/feeds/internal/jobs"
 	"tools.xdoubleu.com/apps/feeds/internal/repositories"
+	"tools.xdoubleu.com/apps/feeds/internal/resend"
 	"tools.xdoubleu.com/apps/feeds/internal/services"
 	"tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/config"
@@ -91,13 +92,18 @@ func NewInner(
 	a.Services = services.New(
 		logger,
 		a.Background,
-		repos,
+		services.Stores{
+			Feeds:       repos.Feeds,
+			Items:       repos.Items,
+			FilterRules: repos.FilterRules,
+		},
 		webFetchClient,
 		cfg.EmailInboundDomain,
 		authService,
 		notifications,
 		appUsersRepo,
 		cfg.WebURL,
+		resend.New(cfg.ResendAPIKey),
 	)
 	a.feedPollJob = jobs.NewFeedPollJob(a.Services.Feeds)
 	a.expiryJob = jobs.NewFeedExpiryJob(a.Services.Feeds)
