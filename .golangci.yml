@@ -125,6 +125,9 @@ linters:
             - "**/apps/feeds/connect/**"
             - "**/apps/feeds/mcp/**"
             - "**/apps/feeds/http/**"
+            - "**/apps/taste/connect/**"
+            - "**/apps/taste/mcp/**"
+            - "**/apps/taste/http/**"
             - "**/apps/games/connect/**"
             - "**/apps/games/mcp/**"
             - "!**/*_test.go"
@@ -134,6 +137,8 @@ linters:
             - pkg: tools.xdoubleu.com/apps/movies/internal/repositories
               desc: adapters call services, never repositories
             - pkg: tools.xdoubleu.com/apps/feeds/internal/repositories
+              desc: adapters call services, never repositories
+            - pkg: tools.xdoubleu.com/apps/taste/internal/repositories
               desc: adapters call services, never repositories
             - pkg: tools.xdoubleu.com/apps/games/internal/repositories
               desc: adapters call services, never repositories
@@ -146,6 +151,7 @@ linters:
             - "**/apps/shoppinglist/internal/services/**"
             - "**/apps/movies/internal/services/**"
             - "**/apps/feeds/internal/services/**"
+            - "**/apps/taste/internal/services/**"
             - "**/apps/games/internal/services/**"
             - "!**/*_test.go"
           deny:
