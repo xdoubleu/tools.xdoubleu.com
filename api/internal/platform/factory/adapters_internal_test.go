@@ -1,4 +1,4 @@
-package services
+package factory
 
 import (
 	"net/http"
@@ -12,13 +12,13 @@ import (
 func TestManifestDigestReadsTheSecondField(t *testing.T) {
 	body, status := "abc123 deadbeef\n", http.StatusOK
 	handler := func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, "/downloads/"+JobImageManifest, r.URL.Path)
+		assert.Equal(t, "/downloads/"+jobImageManifest, r.URL.Path)
 		w.WriteHeader(status)
 		_, _ = w.Write([]byte(body))
 	}
 	srv := httptest.NewServer(http.HandlerFunc(handler))
 	t.Cleanup(srv.Close)
-	src := ManifestDigest(srv.URL+"/", srv.Client())
+	src := manifestDigest(srv.URL+"/", srv.Client())
 
 	got, err := src(t.Context())
 	require.NoError(t, err)

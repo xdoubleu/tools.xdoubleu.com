@@ -10,7 +10,6 @@ import (
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/internal/platform/factory/internal/models"
-	"tools.xdoubleu.com/internal/platform/factory/internal/repositories"
 )
 
 const (
@@ -29,8 +28,12 @@ var (
 )
 
 type RepoService struct {
-	repo *repositories.ReposRepository
+	repo RepoStore
 }
+
+// NewRepoService is the repo rules over a store, for callers that need no other
+// service.
+func NewRepoService(repo RepoStore) *RepoService { return &RepoService{repo: repo} }
 
 // RepoInput is the editable part of a repo.
 type RepoInput struct {

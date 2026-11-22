@@ -6,7 +6,6 @@ import (
 	"unicode/utf8"
 
 	"tools.xdoubleu.com/internal/platform/factory/internal/models"
-	"tools.xdoubleu.com/internal/platform/slack"
 )
 
 // maxNotifyDetail caps the outcome quoted in a notification.
@@ -36,7 +35,7 @@ func firstLine(text string) string {
 
 // taskLink is a Slack link to the task on the board, labelled with its title.
 func (n notices) taskLink(number int64, title string) string {
-	return "<" + n.webURL + "/factory?task=" + models.TaskRef(number) + "|" + slack.Escape(
+	return "<" + n.webURL + "/factory?task=" + models.TaskRef(number) + "|" + escape(
 		title,
 	) + ">"
 }
@@ -46,4 +45,10 @@ func (n notices) say(ctx context.Context, text string) {
 	if n.out != nil {
 		n.out.Notify(ctx, text)
 	}
+}
+
+// escape makes text safe to put in a Slack message: Slack reads <...> as a link
+// or a mention (<!channel>), so the brackets and & are escaped.
+func escape(text string) string {
+	return strings.NewReplacer("&", "&amp;", "<", "&lt;", ">", "&gt;").Replace(text)
 }

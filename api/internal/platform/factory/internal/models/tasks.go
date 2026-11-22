@@ -2,6 +2,7 @@
 package models
 
 import (
+	"errors"
 	"strconv"
 	"strings"
 	"time"
@@ -180,4 +181,16 @@ func ParseTaskRef(ref string) (int64, bool) {
 	ref = strings.TrimPrefix(strings.TrimPrefix(ref, "t"), "-")
 	n, err := strconv.ParseInt(ref, 10, 64)
 	return n, err == nil && n > 0
+}
+
+// ErrInvalidTaskRef is a task reference that is neither a number nor a UUID.
+var ErrInvalidTaskRef = errors.New("invalid task reference")
+
+// PickupCandidate is a Ready task as a human approved it.
+type PickupCandidate struct {
+	TaskID uuid.UUID
+	Number int64
+	RepoID uuid.UUID
+	Title  string
+	Body   string
 }

@@ -163,6 +163,7 @@ linters:
             - "**/apps/feeds/internal/services/**"
             - "**/apps/taste/internal/services/**"
             - "**/apps/games/internal/services/**"
+            - "**/platform/factory/internal/services/**"
             - "**/apps/books/internal/services/**"
             - "!**/*_test.go"
           deny:
@@ -174,6 +175,22 @@ linters:
               desc: services reach storage through their own interfaces
             - pkg: net/http
               desc: services know no transport
+        # The factory services import only kit and the factory's own models;
+        # agent accounts, GitHub, Slack and auth reach them through ports that
+        # the root wiring adapts, so the factory can be extracted.
+        factory-core:
+          files:
+            - "**/platform/factory/internal/services/**"
+            - "!**/*_test.go"
+          list-mode: lax
+          deny:
+            - pkg: tools.xdoubleu.com/internal
+              desc: factory services import only kit and the factory's models
+            - pkg: tools.xdoubleu.com/apps
+              desc: factory services import only kit and the factory's models
+          allow:
+            - tools.xdoubleu.com/internal/kit
+            - tools.xdoubleu.com/internal/platform/factory/internal/models
         apps-books-internal:
           files:
             - "!**/apps/books/**"

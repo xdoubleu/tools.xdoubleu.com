@@ -15,8 +15,6 @@ import (
 
 	"tools.xdoubleu.com/internal/kit/database"
 	"tools.xdoubleu.com/internal/platform/factory/internal/models"
-	"tools.xdoubleu.com/internal/platform/factory/internal/repositories"
-	"tools.xdoubleu.com/internal/platform/slack"
 )
 
 const (
@@ -34,7 +32,7 @@ const (
 )
 
 type RunnerService struct {
-	repo *repositories.RunnersRepository
+	repo RunnerStore
 	now  func() time.Time
 	say  notices
 }
@@ -160,7 +158,7 @@ func (s *RunnerService) Pair(
 	if err != nil {
 		return "", nil, err
 	}
-	s.say.say(ctx, ":link: A runner paired: "+slack.Escape(runner.Name))
+	s.say.say(ctx, ":link: A runner paired: "+escape(runner.Name))
 	return token, runner, nil
 }
 
