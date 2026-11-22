@@ -291,7 +291,9 @@ func (h *tools) mcpListKoboDevices(
 func (h *tools) mcpListKoboStoreBooks(
 	ctx context.Context, _ mcptools.NoArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.h.ListKoboStoreBooks(ctx, &booksv1.ListKoboStoreBooksRequest{}))
+	return mcptools.Unwrap(
+		h.h.ListKoboStoreBooks(ctx, &booksv1.ListKoboStoreBooksRequest{}),
+	)
 }
 
 func (h *tools) mcpGetKoboDeviceLogs(

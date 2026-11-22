@@ -237,7 +237,7 @@ func (h *Handler) UpdateBookStatus(
 		return nil, mapError(err)
 	}
 	if req.Status == models.StatusRead {
-		if rebuildErr := h.services.Catalog.RebuildReadProgress(ctx, user.ID); rebuildErr != nil {
+		if rebuildErr := h.rebuild(ctx, user.ID); rebuildErr != nil {
 			return nil, mapError(rebuildErr)
 		}
 	}
@@ -283,7 +283,7 @@ func (h *Handler) UpdateFinishedAt(
 	if err != nil {
 		return nil, mapError(err)
 	}
-	if rebuildErr := h.services.Catalog.RebuildReadProgress(ctx, user.ID); rebuildErr != nil {
+	if rebuildErr := h.rebuild(ctx, user.ID); rebuildErr != nil {
 		return nil, mapError(rebuildErr)
 	}
 	return &booksv1.UpdateFinishedAtResponse{}, nil
@@ -310,7 +310,7 @@ func (h *Handler) RemoveBook(
 	if err = h.services.Books.RemoveFromLibrary(ctx, user.ID, bookID); err != nil {
 		return nil, mapError(err)
 	}
-	if rebuildErr := h.services.Catalog.RebuildReadProgress(ctx, user.ID); rebuildErr != nil {
+	if rebuildErr := h.rebuild(ctx, user.ID); rebuildErr != nil {
 		return nil, mapError(rebuildErr)
 	}
 	return &booksv1.RemoveBookResponse{}, nil

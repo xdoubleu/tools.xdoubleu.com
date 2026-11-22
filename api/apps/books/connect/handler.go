@@ -82,3 +82,7 @@ func mapISBNError(err error) error {
 		"ISBN is already assigned to another book",
 	))
 }
+
+func (h *Handler) rebuild(ctx context.Context, userID string) error {
+	return h.services.Catalog.RebuildReadProgress(ctx, userID)
+}
