@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+//nolint:exhaustruct // zero values are the point of these tests
 func TestToModules_ExternalBookAndDue(t *testing.T) {
 	//nolint:exhaustruct //fixture sets only the fields under test
 	modules := toModules([]mcpModuleArg{{Items: []mcpItemArg{
@@ -32,6 +33,7 @@ func TestToModules_ExternalBookAndDue(t *testing.T) {
 	assert.Equal(t, 2, items[2].SortOrder)
 }
 
+//nolint:exhaustruct // zero values are the point of these tests
 func TestToModules_LinkedBookIDAndQuiz(t *testing.T) {
 	good := "6f0cc9f8-1c1b-4a3e-bf5f-1c8a0a5b0c11"
 	bad := "not-a-uuid"
@@ -52,12 +54,14 @@ func TestToModules_LinkedBookIDAndQuiz(t *testing.T) {
 	assert.Equal(t, 1, modules[0].Quiz[0].CorrectAnswerIndex)
 }
 
+//nolint:exhaustruct // zero values are the point of these tests
 func TestToResources_OrderedByPosition(t *testing.T) {
 	resources := toResources([]mcpResourceArg{{Text: "a"}, {Text: "b"}})
 	assert.Equal(t, "b", resources[1].Text)
 	assert.Equal(t, 1, resources[1].SortOrder)
 }
 
+//nolint:exhaustruct // zero values are the point of these tests
 func TestTools_Unauthenticated(t *testing.T) {
 	h := &tools{paths: nil, todoist: nil}
 	ctx := context.Background()
@@ -81,6 +85,8 @@ func TestTools_Unauthenticated(t *testing.T) {
 // TestMCPAuthoringGuide_ResourceExistsAndReads: the guide is served as an MCP
 // resource, and the write-tool descriptions embed its essentials for clients
 // that only read tool metadata.
+//
+//nolint:exhaustruct // zero values are the point of these tests
 func TestMCPAuthoringGuide_ResourceExistsAndReads(t *testing.T) {
 	require.Contains(t, mcpCreatePathDescription, "confirm the full proposed tree")
 	require.Contains(t, mcpCreatePathDescription, "modules")
@@ -104,6 +110,8 @@ func TestMCPAuthoringGuide_ResourceExistsAndReads(t *testing.T) {
 
 // TestMCPAuthoringGuide_RegisteredOnServer: registration doesn't panic
 // (srv.AddResource panics on an invalid URI).
+//
+//nolint:exhaustruct // zero values are the point of these tests
 func TestMCPAuthoringGuide_RegisteredOnServer(t *testing.T) {
 	//nolint:exhaustruct // Name/Version identify the server; nothing else matters here
 	srv := mcp.NewServer(&mcp.Implementation{Name: "test"}, nil)

@@ -3,7 +3,8 @@
 # (apps/<app>/{connect,mcp,http}) call services and never import the app's
 # internal/repositories, and an app's root package imports it only in app.go,
 # where the wiring lives. depguard cannot glob an import path, so this covers
-# every app, including a new one. Test files are exempt.
+# every app, including a new one. mcp/ packages also never import a connect
+# package: tools call services and map to DTOs themselves. Test files are exempt.
 set -euo pipefail
 
 # Paths below are relative to api/.
@@ -28,4 +29,12 @@ for app in apps/*/; do
     fi
   done
 done
+
+# MCP adapters (apps and platform modules) never import a connect package.
+while IFS= read -r f; do
+  if grep -qE '"tools\.xdoubleu\.com/[^"]*/connect"' "$f"; then
+    echo "$f: imports a connect package; call a service and map to the DTO"
+    status=1
+  fi
+done < <(find apps internal/platform -path '*/mcp/*' -name '*.go' ! -name '*_test.go')
 exit $status

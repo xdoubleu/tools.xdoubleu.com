@@ -2,12 +2,12 @@ package connect
 
 import (
 	"context"
-	"time"
 
 	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/feeds/internal/models"
+	"tools.xdoubleu.com/apps/feeds/internal/protomap"
 	feedsv1 "tools.xdoubleu.com/gen/feeds/v1"
 )
 
@@ -19,25 +19,6 @@ var filterRuleKinds = map[feedsv1.FilterRuleKind]string{
 	feedsv1.FilterRuleKind_FILTER_RULE_KIND_UNSPECIFIED: "",
 	feedsv1.FilterRuleKind_FILTER_RULE_KIND_CATEGORY:    models.FilterRuleKindCategory,
 	feedsv1.FilterRuleKind_FILTER_RULE_KIND_TITLE:       models.FilterRuleKindTitle,
-}
-
-func protoFilterRule(r models.FilterRule) *feedsv1.FilterRule {
-	kind := feedsv1.FilterRuleKind_FILTER_RULE_KIND_TITLE
-	if r.Kind == models.FilterRuleKindCategory {
-		kind = feedsv1.FilterRuleKind_FILTER_RULE_KIND_CATEGORY
-	}
-	feedID := ""
-	if r.FeedID != nil {
-		feedID = r.FeedID.String()
-	}
-	return &feedsv1.FilterRule{
-		Id:            r.ID.String(),
-		FeedId:        feedID,
-		Kind:          kind,
-		Value:         r.Value,
-		CreatedAt:     r.CreatedAt.Format(time.RFC3339),
-		FilteredCount: int32(r.FilteredCount), //nolint:gosec // item counts fit int32
-	}
 }
 
 func (h *Handler) ListFilterRules(
@@ -56,7 +37,7 @@ func (h *Handler) ListFilterRules(
 
 	out := make([]*feedsv1.FilterRule, len(rules))
 	for i, r := range rules {
-		out[i] = protoFilterRule(r)
+		out[i] = protomap.FilterRule(r)
 	}
 	return &feedsv1.ListFilterRulesResponse{Rules: out}, nil
 }
@@ -86,7 +67,7 @@ func (h *Handler) CreateFilterRule(
 		return nil, mapError(err)
 	}
 	return &feedsv1.CreateFilterRuleResponse{
-		Rule: protoFilterRule(*rule),
+		Rule: protomap.FilterRule(*rule),
 	}, nil
 }
 

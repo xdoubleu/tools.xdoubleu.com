@@ -8,5 +8,5 @@ import (
 
 // RegisterMCPTools exposes the Today summary as a read-only MCP tool.
 func (a *Dashboard) RegisterMCPTools(srv *mcp.Server) {
-	dashboardmcp.Register(srv, a.todayHandler)
+	dashboardmcp.Register(srv, a.todaySvc)
 }

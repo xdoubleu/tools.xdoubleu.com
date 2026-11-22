@@ -35,5 +35,5 @@ func (a *Taste) handler() *connect.Handler {
 // RegisterMCPTools exposes the consumption log and its stats, scoped to the
 // caller.
 func (a *Taste) RegisterMCPTools(srv *mcp.Server) {
-	tastemcp.Register(srv, a.handler())
+	tastemcp.Register(srv, a.services)
 }

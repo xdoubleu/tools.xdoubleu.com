@@ -6,7 +6,7 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 
-	recipesconnect "tools.xdoubleu.com/apps/recipes/connect"
+	"tools.xdoubleu.com/apps/recipes/internal/protomap"
 )
 
 const mcpFetchVideoDescription = "Title and description of a YouTube short " +
@@ -26,7 +26,7 @@ func (h *tools) mcpFetchVideo(
 ) (proto.Message, error) {
 	video, err := h.videos.Fetch(ctx, args.URL)
 	if err != nil {
-		return nil, recipesconnect.MapError(err)
+		return nil, protomap.MapError(err)
 	}
 
 	return structpb.NewStruct(map[string]any{

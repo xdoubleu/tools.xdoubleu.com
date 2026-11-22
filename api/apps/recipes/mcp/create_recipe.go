@@ -5,7 +5,7 @@ import (
 
 	"google.golang.org/protobuf/proto"
 
-	recipesconnect "tools.xdoubleu.com/apps/recipes/connect"
+	"tools.xdoubleu.com/apps/recipes/internal/protomap"
 	"tools.xdoubleu.com/apps/recipes/internal/services"
 	recipesv1 "tools.xdoubleu.com/gen/recipes/v1"
 )
@@ -58,7 +58,7 @@ type mcpCreateRecipeArgs struct {
 func (h *tools) mcpCreateRecipe(
 	ctx context.Context, args mcpCreateRecipeArgs,
 ) (proto.Message, error) {
-	userID, err := recipesconnect.CallerID(ctx)
+	userID, err := callerID(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -72,10 +72,10 @@ func (h *tools) mcpCreateRecipe(
 	}
 	created, err := h.recipes.Create(ctx, userID, in, services.AsAgentDraft())
 	if err != nil {
-		return nil, recipesconnect.MapError(err)
+		return nil, protomap.MapError(err)
 	}
 	return &recipesv1.CreateRecipeResponse{
-		Recipe: recipesconnect.ProtoRecipe(created),
+		Recipe: protomap.Recipe(created),
 	}, nil
 }
 

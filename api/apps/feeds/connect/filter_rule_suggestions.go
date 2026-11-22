@@ -3,23 +3,9 @@ package connect
 import (
 	"context"
 
-	"tools.xdoubleu.com/apps/feeds/internal/models"
+	"tools.xdoubleu.com/apps/feeds/internal/protomap"
 	feedsv1 "tools.xdoubleu.com/gen/feeds/v1"
 )
-
-func protoFilterRuleSuggestion(
-	s models.FilterRuleSuggestion,
-) *feedsv1.FilterRuleSuggestion {
-	return &feedsv1.FilterRuleSuggestion{
-		FeedId:    s.FeedID.String(),
-		FeedTitle: s.FeedTitle,
-		FeedUrl:   s.FeedURL,
-		Category:  s.Category,
-		ItemCount: int32(s.ItemCount), //nolint:gosec // item counts fit int32
-		ReadCount: int32(s.ReadCount), //nolint:gosec // item counts fit int32
-		ReadRate:  float64(s.ReadCount) / float64(s.ItemCount),
-	}
-}
 
 func (h *Handler) GetFilterRuleSuggestions(
 	ctx context.Context,
@@ -37,7 +23,7 @@ func (h *Handler) GetFilterRuleSuggestions(
 
 	out := make([]*feedsv1.FilterRuleSuggestion, len(suggestions))
 	for i, s := range suggestions {
-		out[i] = protoFilterRuleSuggestion(s)
+		out[i] = protomap.FilterRuleSuggestion(s)
 	}
 	return &feedsv1.GetFilterRuleSuggestionsResponse{
 		Suggestions: out,

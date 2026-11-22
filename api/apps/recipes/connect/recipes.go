@@ -6,6 +6,7 @@ import (
 	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 
+	"tools.xdoubleu.com/apps/recipes/internal/protomap"
 	"tools.xdoubleu.com/apps/recipes/internal/services"
 	recipesv1 "tools.xdoubleu.com/gen/recipes/v1"
 	"tools.xdoubleu.com/internal/connecttools"
@@ -24,11 +25,11 @@ func (h *Handler) ListRecipes(
 		ctx, userID, req.MealType, req.Effort, req.Limit, req.Offset,
 	)
 	if err != nil {
-		return nil, MapError(err)
+		return nil, protomap.MapError(err)
 	}
 
 	return &recipesv1.ListRecipesResponse{
-		Recipes: protoRecipes(list),
+		Recipes: protomap.Recipes(list),
 		HasMore: hasMore,
 	}, nil
 }
@@ -57,10 +58,10 @@ func (h *Handler) GetRecipe(
 		int(req.Servings),
 	)
 	if err != nil {
-		return nil, MapError(err)
+		return nil, protomap.MapError(err)
 	}
 
-	return ScaledRecipeResponse(userID, &services.ScaledRecipe{
+	return protomap.ScaledRecipeResponse(userID, &services.ScaledRecipe{
 		Recipe: recipe, CanEdit: canEdit, Servings: servings, Ingredients: scaledIngredients,
 	}), nil
 }
@@ -87,11 +88,11 @@ func (h *Handler) CreateRecipe(
 
 	created, err := h.recipes.Create(ctx, userID, in)
 	if err != nil {
-		return nil, MapError(err)
+		return nil, protomap.MapError(err)
 	}
 
 	return &recipesv1.CreateRecipeResponse{
-		Recipe: ProtoRecipe(created),
+		Recipe: protomap.Recipe(created),
 	}, nil
 }
 
@@ -121,7 +122,7 @@ func (h *Handler) UpdateRecipe(
 
 	err = h.recipes.Update(ctx, userID, in)
 	if err != nil {
-		return nil, MapError(err)
+		return nil, protomap.MapError(err)
 	}
 
 	return &recipesv1.UpdateRecipeResponse{}, nil
@@ -146,7 +147,7 @@ func (h *Handler) DeleteRecipe(
 
 	err = h.recipes.Delete(ctx, id, userID)
 	if err != nil {
-		return nil, MapError(err)
+		return nil, protomap.MapError(err)
 	}
 
 	return &recipesv1.DeleteRecipeResponse{}, nil

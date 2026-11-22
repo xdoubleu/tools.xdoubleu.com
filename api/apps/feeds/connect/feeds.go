@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/feeds/internal/models"
+	"tools.xdoubleu.com/apps/feeds/internal/protomap"
 	"tools.xdoubleu.com/apps/feeds/internal/services"
 	feedsv1 "tools.xdoubleu.com/gen/feeds/v1"
 	"tools.xdoubleu.com/gen/feeds/v1/feedsv1connect"
@@ -42,93 +43,6 @@ var feedKinds = map[feedsv1.FeedKind]string{
 	feedsv1.FeedKind_FEED_KIND_RSS:         models.FeedSourceRSS,
 	feedsv1.FeedKind_FEED_KIND_EMAIL:       models.FeedSourceEmail,
 	feedsv1.FeedKind_FEED_KIND_SCRAPE:      models.FeedSourceScrape,
-}
-
-func protoFeed(f models.Feed) *feedsv1.Feed {
-	lastFetched := ""
-	if f.LastFetchedAt != nil {
-		lastFetched = f.LastFetchedAt.Format(time.RFC3339)
-	}
-	lastError := ""
-	if f.LastError != nil {
-		lastError = *f.LastError
-	}
-	etag := ""
-	if f.ETag != nil {
-		etag = *f.ETag
-	}
-	lastModified := ""
-	if f.LastModified != nil {
-		lastModified = *f.LastModified
-	}
-	notifiedAt := ""
-	if f.NotifiedAt != nil {
-		notifiedAt = f.NotifiedAt.Format(time.RFC3339)
-	}
-	//nolint:gosec // failure count never approaches int32 range
-	consecutiveFailures := int32(f.ConsecutiveFailures)
-	return &feedsv1.Feed{
-		Id:                  f.ID.String(),
-		Url:                 f.URL,
-		Title:               f.Title,
-		LastFetchedAt:       lastFetched,
-		LastError:           lastError,
-		CreatedAt:           f.CreatedAt.Format(time.RFC3339),
-		SourceType:          f.SourceType,
-		Etag:                etag,
-		LastModified:        lastModified,
-		ConsecutiveFailures: consecutiveFailures,
-		ExpiryDays:          int32(f.ExpiryDays), //nolint:gosec // capped at 3650
-		NotifiedAt:          notifiedAt,
-	}
-}
-
-func protoItem(item models.Item) *feedsv1.Item {
-	readAt := ""
-	if item.ReadAt != nil {
-		readAt = item.ReadAt.Format(time.RFC3339)
-	}
-	ingestError := ""
-	if item.IngestError != nil {
-		ingestError = *item.IngestError
-	}
-	publishedAt := ""
-	if !item.PublishedAt.IsZero() {
-		publishedAt = item.PublishedAt.Format(time.RFC3339)
-	}
-	var filterRule *feedsv1.FilterRule
-	if item.FilterRule != nil {
-		filterRule = protoFilterRule(*item.FilterRule)
-	}
-	return &feedsv1.Item{
-		Id:              item.ID.String(),
-		FeedId:          item.FeedID.String(),
-		Title:           item.Title,
-		SourceUrl:       item.SourceURL,
-		ContentHtml:     item.ContentHTML,
-		PublishedAt:     publishedAt,
-		ReadAt:          readAt,
-		Dismissed:       item.Dismissed,
-		Bookmarked:      item.Bookmarked,
-		IngestError:     ingestError,
-		CreatedAt:       item.CreatedAt.Format(time.RFC3339),
-		ReadProgressPct: int32(item.ReadProgressPct), //nolint:gosec // clamped [0,100]
-		HasContent:      item.HasContent,
-		Categories:      item.Categories,
-		FilteredAt:      formatOptionalTime(item.FilteredAt),
-		FilterRule:      filterRule,
-		RestoredAt:      formatOptionalTime(item.RestoredAt),
-		ExpiredAt:       formatOptionalTime(item.ExpiredAt),
-		ExpiresAt:       formatOptionalTime(item.ExpiresAt),
-	}
-}
-
-// formatOptionalTime formats t as RFC3339, or "" when nil.
-func formatOptionalTime(t *time.Time) string {
-	if t == nil {
-		return ""
-	}
-	return t.Format(time.RFC3339)
 }
 
 // parseItemID mirrors parseFeedID for the item-scoped RPCs.
@@ -199,7 +113,7 @@ func (h *Handler) ListFeeds(
 
 	out := make([]*feedsv1.Feed, len(feeds))
 	for i, f := range feeds {
-		out[i] = protoFeed(f)
+		out[i] = protomap.Feed(f)
 	}
 	return &feedsv1.ListFeedsResponse{Feeds: out}, nil
 }
@@ -222,7 +136,7 @@ func (h *Handler) CreateFeed(
 		return nil, mapError(err)
 	}
 
-	proto := protoFeed(*feed)
+	proto := protomap.Feed(*feed)
 	proto.InboundAddress = address
 	return &feedsv1.CreateFeedResponse{Feed: proto}, nil
 }
@@ -322,7 +236,7 @@ func (h *Handler) ListFeedItems(
 
 	out := make([]*feedsv1.Item, len(items))
 	for i, item := range items {
-		out[i] = protoItem(item)
+		out[i] = protomap.Item(item)
 	}
 	return &feedsv1.ListFeedItemsResponse{
 		Items:   out,
@@ -355,7 +269,7 @@ func (h *Handler) GetFeedItem(
 		return nil, mapError(err)
 	}
 	return &feedsv1.GetFeedItemResponse{
-		Item: protoItem(*item),
+		Item: protomap.Item(*item),
 	}, nil
 }
 
@@ -380,7 +294,7 @@ func (h *Handler) UpdateItem(
 		return nil, mapError(err)
 	}
 	return &feedsv1.UpdateItemResponse{
-		Item: protoItem(*item),
+		Item: protomap.Item(*item),
 	}, nil
 }
 
@@ -480,7 +394,7 @@ func (h *Handler) ListTopFeedItems(
 	}
 	out := make([]*feedsv1.Item, len(items))
 	for i, item := range items {
-		out[i] = protoItem(item)
+		out[i] = protomap.Item(item)
 	}
 	return &feedsv1.ListTopFeedItemsResponse{Items: out}, nil
 }

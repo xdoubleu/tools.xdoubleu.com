@@ -1,4 +1,4 @@
-package connect
+package protomap
 
 import (
 	"fmt"
@@ -57,10 +57,6 @@ func ToFraction(f float64) string {
 		return fmt.Sprintf("%d", whole)
 	}
 	return fmt.Sprintf("%d%s", whole, symbol)
-}
-
-func toFraction(f float64) string {
-	return ToFraction(f)
 }
 
 // ToFractionCeiling converts a float64 to a Unicode cooking fraction,

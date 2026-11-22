@@ -3,11 +3,19 @@ package mcp
 import (
 	"context"
 
+	"connectrpc.com/connect/v2"
+	"github.com/google/uuid"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"google.golang.org/protobuf/proto"
 
-	"tools.xdoubleu.com/apps/taste/connect"
+	"tools.xdoubleu.com/apps/internal/consumption"
+	"tools.xdoubleu.com/apps/taste/internal/protomap"
+	"tools.xdoubleu.com/apps/taste/internal/services"
 	tastev1 "tools.xdoubleu.com/gen/taste/v1"
+	"tools.xdoubleu.com/internal/connecttools"
+	"tools.xdoubleu.com/internal/kit/constants"
+	"tools.xdoubleu.com/internal/kit/contexttools"
+	sharedmodels "tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/platform/mcptools"
 )
 
@@ -44,13 +52,12 @@ type mcpRemoveFavouriteShowArgs struct {
 }
 
 type tools struct {
-	*connect.Handler
+	svc *services.Services
 }
 
 // Register exposes the consumption log and its stats, scoped to the caller.
-// Each tool calls the Connect handler, so both share one set of rules.
-func Register(srv *mcp.Server, handler *connect.Handler) {
-	h := &tools{Handler: handler}
+func Register(srv *mcp.Server, svc *services.Services) {
+	h := &tools{svc: svc}
 
 	mcptools.AddReadTool(srv, mcpAppName, "taste_get_stats",
 		"The user's consumption across books, feeds, games, movies, series and "+
@@ -86,62 +93,167 @@ func Register(srv *mcp.Server, handler *connect.Handler) {
 		h.mcpRemoveFavouriteShow)
 }
 
+func userID(ctx context.Context) (string, error) {
+	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
+	if user == nil {
+		return "", connect.NewError(
+			connect.CodeUnauthenticated, "user not authenticated",
+		)
+	}
+	return user.ID, nil
+}
+
+func mapError(err error) error {
+	return connecttools.MapError(
+		err,
+		connecttools.Code(services.ErrNotConfigured, connect.CodeFailedPrecondition),
+		connecttools.Code(services.ErrNoProfile, connect.CodeFailedPrecondition),
+		connecttools.Code(services.ErrUpstream, connect.CodeUnavailable),
+		connecttools.Code(services.ErrPickNotFound, connect.CodeNotFound),
+	)
+}
+
+func (h *tools) scopeOf(ctx context.Context, shared bool) (services.Scope, error) {
+	uid, err := userID(ctx)
+	if err != nil {
+		return services.Scope{}, err
+	}
+	sc, err := h.svc.Scope.Resolve(ctx, uid, shared)
+	if err != nil {
+		return services.Scope{}, mapError(err)
+	}
+	return sc, nil
+}
+
 func (h *tools) mcpListFavouriteShows(
 	ctx context.Context, _ mcptools.NoArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(
-		h.ListFavouriteShows(ctx, &tastev1.ListFavouriteShowsRequest{}),
-	)
+	uid, err := userID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	shows, err := h.svc.Shows.List(ctx, uid)
+	if err != nil {
+		return nil, mapError(err)
+	}
+	out := make([]*tastev1.FavouriteShow, len(shows))
+	for i := range shows {
+		out[i] = protomap.FavouriteShow(&shows[i])
+	}
+	return &tastev1.ListFavouriteShowsResponse{Favourites: out}, nil
 }
 
 func (h *tools) mcpAddFavouriteShow(
 	ctx context.Context, args mcpAddFavouriteShowArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.AddFavouriteShow(
-		ctx, &tastev1.AddFavouriteShowRequest{ItunesId: args.ITunesID},
-	))
+	uid, err := userID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	show, err := h.svc.Shows.Add(ctx, uid, args.ITunesID)
+	if err != nil {
+		return nil, mapError(err)
+	}
+	return &tastev1.AddFavouriteShowResponse{
+		Favourite: protomap.FavouriteShow(show),
+	}, nil
 }
 
 func (h *tools) mcpRemoveFavouriteShow(
 	ctx context.Context, args mcpRemoveFavouriteShowArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.RemoveFavouriteShow(
-		ctx, &tastev1.RemoveFavouriteShowRequest{Id: args.ID},
-	))
+	uid, err := userID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	id, err := uuid.Parse(args.ID)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, "invalid id")
+	}
+	if err = h.svc.Shows.Remove(ctx, uid, id); err != nil {
+		return nil, mapError(err)
+	}
+	return &tastev1.RemoveFavouriteShowResponse{}, nil
 }
 
 func (h *tools) mcpListRecommendations(
 	ctx context.Context, args mcpListRecommendationsArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.ListRecommendations(ctx, &tastev1.ListRecommendationsRequest{
-		Domain: args.Domain, Track: args.Track, SavedOnly: args.SavedOnly,
-		Shared: args.Shared,
-	}))
+	sc, err := h.scopeOf(ctx, args.Shared)
+	if err != nil {
+		return nil, err
+	}
+	recs, st, err := h.svc.Picks.Visible(
+		ctx, sc, args.Domain, args.Track, args.SavedOnly,
+	)
+	if err != nil {
+		return nil, mapError(err)
+	}
+	out := make([]*tastev1.Recommendation, 0, len(recs))
+	for _, r := range recs {
+		out = append(out, protomap.Recommendation(r))
+	}
+	emailNewPicks, err := h.svc.Notify.EmailNewPicks(ctx, sc.User)
+	if err != nil {
+		return nil, mapError(err)
+	}
+	return &tastev1.ListRecommendationsResponse{
+		Recommendations: out,
+		GeneratedAt:     protomap.TimePtr(st.GeneratedAt),
+		LastError:       st.Error,
+		EmailNewPicks:   emailNewPicks,
+		Pending:         st.Pending,
+		NextRefreshAt:   protomap.NextRefreshAt(st.RequestedAt),
+	}, nil
 }
 
 func (h *tools) mcpGetProfile(
 	ctx context.Context, args mcpSharedArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.GetProfile(ctx, &tastev1.GetProfileRequest{
-		Shared: args.Shared,
-	}))
+	sc, err := h.scopeOf(ctx, args.Shared)
+	if err != nil {
+		return nil, err
+	}
+	out := &tastev1.GetProfileResponse{Configured: h.svc.Profiles.Configured()}
+	if !out.Configured {
+		return out, nil
+	}
+	p, err := h.svc.Profiles.Get(ctx, sc.Subject)
+	if err != nil {
+		return nil, mapError(err)
+	}
+	if p != nil {
+		protomap.FillProfile(out, p)
+	}
+	return out, nil
 }
 
 func (h *tools) mcpGetStats(
 	ctx context.Context, args mcpSharedArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.GetStats(ctx, &tastev1.GetStatsRequest{
-		Shared: args.Shared,
-	}))
+	sc, err := h.scopeOf(ctx, args.Shared)
+	if err != nil {
+		return nil, err
+	}
+	stats, rates, err := h.svc.Reads.Stats(ctx, sc)
+	if err != nil {
+		return nil, mapError(err)
+	}
+	return protomap.Stats(stats, rates), nil
 }
 
 func (h *tools) mcpListEvents(
 	ctx context.Context, args mcpListEventsArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.ListEvents(ctx, &tastev1.ListEventsRequest{
-		Domain: args.Domain,
-		Limit:  args.Limit,
-		Offset: args.Offset,
-		Shared: args.Shared,
-	}))
+	sc, err := h.scopeOf(ctx, args.Shared)
+	if err != nil {
+		return nil, err
+	}
+	page, hasMore, err := h.svc.Reads.Events(
+		ctx, sc, consumption.Domain(args.Domain), args.Limit, args.Offset,
+	)
+	if err != nil {
+		return nil, mapError(err)
+	}
+	return protomap.Events(page, hasMore), nil
 }

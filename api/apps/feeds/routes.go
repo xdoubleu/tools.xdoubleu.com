@@ -40,7 +40,7 @@ func (a *Feeds) Routes(prefix string, mux *http.ServeMux) {
 // RegisterMCPTools exposes the app's read-only RPCs as MCP tools, scoped to
 // the caller.
 func (a *Feeds) RegisterMCPTools(srv *mcp.Server) {
-	feedsmcp.Register(srv, a.connectHandler())
+	feedsmcp.Register(srv, a.Services.Feeds, a.Logger)
 }
 
 func (a *Feeds) connectHandler() *connect.Handler {
