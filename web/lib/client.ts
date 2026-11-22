@@ -2,6 +2,7 @@ import { createConnectTransport } from '@connectrpc/connect-web'
 import { createClient, type Client } from '@connectrpc/connect'
 import type { DescService } from '@bufbuild/protobuf'
 import { getApiUrl } from './env'
+import { fetchSurvivingRefreshRace } from './refreshRace'
 
 // kamal-proxy answers 502 while the api container restarts, before the
 // request reaches a handler, so retrying any method is safe.
@@ -23,11 +24,13 @@ const createTransport = (keepalive: boolean) =>
     // exceed the server cap).
     useBinaryFormat: true,
     fetch: (input, init) =>
-      fetchRetrying502(input, {
-        ...init,
-        credentials: 'include',
-        keepalive
-      })
+      fetchSurvivingRefreshRace(input, () =>
+        fetchRetrying502(input, {
+          ...init,
+          credentials: 'include',
+          keepalive
+        })
+      )
   })
 
 export const transport = createTransport(false)
