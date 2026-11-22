@@ -103,7 +103,9 @@ type inboundFixture struct {
 
 func newInboundFixture() *inboundFixture {
 	//nolint:exhaustruct // only the fields under test
-	feed := models.Feed{ID: uuid.New(), UserID: "u1", SourceType: models.FeedSourceEmail}
+	feed := models.Feed{
+		ID: uuid.New(), UserID: "u1", SourceType: models.FeedSourceEmail,
+	}
 	//nolint:exhaustruct // fakes record into their zero-valued slices
 	feeds := &fakeFeeds{byHash: map[string]models.Feed{tokenHash("abc123"): feed}}
 	//nolint:exhaustruct // fakes record into their zero-valued slices
