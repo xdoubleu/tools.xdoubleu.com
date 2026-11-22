@@ -99,6 +99,14 @@ func (s *TaskService) List(ctx context.Context, query string) ([]models.Task, er
 	return s.repo.List(ctx, query)
 }
 
+// Find is List narrowed by a filter, run in SQL.
+func (s *TaskService) Find(
+	ctx context.Context,
+	f models.TaskFilter,
+) ([]models.Task, error) {
+	return s.repo.Find(ctx, f)
+}
+
 // Resolve turns a task reference ("T-142", "142" or a legacy UUID) into its key.
 func (s *TaskService) Resolve(ctx context.Context, ref string) (uuid.UUID, error) {
 	id, err := s.repo.Resolve(ctx, ref)

@@ -101,6 +101,16 @@ func (a Actor) CanManageRoutines() bool {
 	return a.Kind == ActorAgent || a.CanMoveToReady()
 }
 
+// TaskFilter narrows a task listing; every empty field keeps all tasks.
+type TaskFilter struct {
+	// Query matches the title or body, ignoring case.
+	Query  string
+	Status Status
+	RepoID *uuid.UUID
+	// Label matches one of the task's labels, ignoring case.
+	Label string
+}
+
 type Task struct {
 	ID uuid.UUID
 	// Number is the human-readable id, shown as T-<Number>.

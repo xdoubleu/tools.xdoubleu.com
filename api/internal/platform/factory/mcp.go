@@ -3,11 +3,7 @@ package factory
 import (
 	"context"
 	"errors"
-	"slices"
-	"strconv"
-	"strings"
 
-	"github.com/google/uuid"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -16,7 +12,6 @@ import (
 	"tools.xdoubleu.com/internal/connecttools"
 	"tools.xdoubleu.com/internal/kit/constants"
 	"tools.xdoubleu.com/internal/kit/contexttools"
-	"tools.xdoubleu.com/internal/kit/database"
 	sharedmodels "tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/platform/factory/internal/models"
 	"tools.xdoubleu.com/internal/platform/factory/internal/services"
@@ -26,7 +21,7 @@ import (
 // mcpAppName is the app whose grant the factory_ tools need.
 const mcpAppName = "factory"
 
-const statusNames = "backlog, ready, in_progress, in_review, needs_you, testing or done"
+const statusNames = services.StatusNames
 
 //nolint:lll // struct tags can't wrap
 type mcpListTasksArgs struct {
@@ -98,9 +93,6 @@ type mcpRunRoutineArgs struct {
 	Name string `json:"name" jsonschema:"routine name, from factory_list_routines"`
 }
 
-// maxBulkMove bounds one factory_move_tasks call.
-const maxBulkMove = 200
-
 // RegisterMCPTools exposes the board to agent accounts (docs/adr-0040). The
 // tools act as the agent, which may move a task into Ready; the move is
 // recorded as a comment.
@@ -154,9 +146,6 @@ func (a *Factory) RegisterMCPTools(srv *mcp.Server) {
 			"queued or running is a conflict.", t.runRoutine)
 }
 
-// shortJobID is how many characters of a job id name it in a notice.
-const shortJobID = 8
-
 type mcpTools struct {
 	app *Factory
 }
@@ -183,53 +172,6 @@ func agentActor(ctx context.Context) (models.Actor, error) {
 	}, nil
 }
 
-// errTaskNotFound is what a job's account hears for any task but its own: the
-// same as for one that doesn't exist, so it can't tell them apart.
-var errTaskNotFound = connecttools.MapError(database.ErrResourceNotFound)
-
-// scopedTask is the one task the calling account is confined to: a job's own
-// account. The bool is false for an account made by a person.
-func (t *mcpTools) scopedTask(ctx context.Context) (uuid.UUID, bool, error) {
-	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
-	if user == nil {
-		return uuid.Nil, false, errors.New("this tool is for agent accounts only")
-	}
-	userID, err := uuid.Parse(user.ID)
-	if err != nil {
-		return uuid.Nil, false, errors.New("this tool is for agent accounts only")
-	}
-	id, err := t.app.services.Jobs.TaskScope(ctx, userID)
-	if err != nil {
-		return uuid.Nil, false, connecttools.MapError(err)
-	}
-	if id == nil {
-		return uuid.Nil, false, nil
-	}
-	return *id, true, nil
-}
-
-// confined reports whether the account may touch only its own task. A routine
-// job's account has no task, so it reads, files and comments board-wide, and
-// refuseScoped still keeps it from moving or editing tasks.
-func confined(own uuid.UUID, scoped bool) bool {
-	return scoped && own != uuid.Nil
-}
-
-// onlyOwnTask refuses a task other than the scoped one, if there is a scope.
-func (t *mcpTools) onlyOwnTask(ctx context.Context, id uuid.UUID) error {
-	own, scoped, err := t.scopedTask(ctx)
-	if err != nil {
-		return err
-	}
-	if confined(own, scoped) && id != own {
-		task, _, getErr := t.app.services.Tasks.Get(ctx, id)
-		if getErr != nil || !services.IsSandboxTask(task) {
-			return errTaskNotFound
-		}
-	}
-	return nil
-}
-
 func (t *mcpTools) listRepos(
 	ctx context.Context, _ mcptools.NoArgs,
 ) (proto.Message, error) {
@@ -253,97 +195,59 @@ func (t *mcpTools) listRepos(
 func (t *mcpTools) listTasks(
 	ctx context.Context, args mcpListTasksArgs,
 ) (proto.Message, error) {
-	if args.Status != "" && !models.Status(args.Status).Valid() {
-		return nil, errors.New("status must be one of " + statusNames)
-	}
-	var repoID uuid.UUID
-	if args.RepoID != "" {
-		var err error
-		if repoID, err = parseID(args.RepoID); err != nil {
-			return nil, err
-		}
-	}
-	own, scoped, err := t.scopedTask(ctx)
+	actor, err := agentActor(ctx)
 	if err != nil {
 		return nil, err
 	}
-	tasks, err := t.app.services.Tasks.List(ctx, args.Query)
+	filter := models.TaskFilter{
+		Query: args.Query, Status: models.Status(args.Status), RepoID: nil,
+		Label: args.Label,
+	}
+	if args.RepoID != "" {
+		repoID, idErr := parseID(args.RepoID)
+		if idErr != nil {
+			return nil, idErr
+		}
+		filter.RepoID = &repoID
+	}
+	board, err := t.app.services.Board.ListTasks(ctx, actor, filter)
 	if err != nil {
 		return nil, connecttools.MapError(err)
 	}
-	kept := []models.Task{}
-	for i := range tasks {
-		if confined(own, scoped) && tasks[i].ID != own &&
-			!services.IsSandboxTask(&tasks[i]) {
-			continue
-		}
-		if args.Status != "" && string(tasks[i].Status) != args.Status {
-			continue
-		}
-		if args.RepoID != "" && tasks[i].RepoID != repoID {
-			continue
-		}
-		if !matchesLabel(&tasks[i], args.Label) {
-			continue
-		}
-		kept = append(kept, tasks[i])
-	}
-	return &factoryv1.ListTasksResponse{Tasks: t.app.protoTasks(ctx, kept)}, nil
-}
-
-// matchesLabel keeps every task when label is empty.
-func matchesLabel(task *models.Task, label string) bool {
-	if label == "" {
-		return true
-	}
-	return slices.ContainsFunc(task.Labels, func(l string) bool {
-		return strings.EqualFold(l, label)
-	})
+	return &factoryv1.ListTasksResponse{
+		Tasks: t.app.protoTasks(ctx, board.Tasks), PickupPaused: board.PickupPaused,
+		ClaudeLimitedUntil: "", QueueStalled: board.QueueStalled,
+	}, nil
 }
 
 func (t *mcpTools) getTask(
 	ctx context.Context, args mcpTaskArgs,
 ) (proto.Message, error) {
-	id, err := t.app.taskID(ctx, args.ID)
+	actor, err := agentActor(ctx)
 	if err != nil {
 		return nil, err
 	}
-	if err = t.onlyOwnTask(ctx, id); err != nil {
-		return nil, err
-	}
-	task, comments, err := t.app.services.Tasks.Get(ctx, id)
+	detail, err := t.app.services.Board.GetTask(ctx, actor, args.ID)
 	if err != nil {
 		return nil, connecttools.MapError(err)
 	}
-	jobs, err := t.app.services.Jobs.ByTask(ctx, id)
-	if err != nil {
-		return nil, connecttools.MapError(err)
-	}
-	return &factoryv1.GetTaskResponse{
-		Task:     t.app.protoTaskOf(ctx, task),
-		Comments: t.app.protoComments(ctx, comments),
-		Jobs:     protoJobs(jobs),
-	}, nil
+	return t.app.protoDetail(ctx, detail), nil
 }
 
 func (t *mcpTools) getJob(
 	ctx context.Context, args mcpJobArgs,
 ) (proto.Message, error) {
+	actor, err := agentActor(ctx)
+	if err != nil {
+		return nil, err
+	}
 	id, err := parseID(args.JobID)
 	if err != nil {
 		return nil, err
 	}
-	tail := args.Tail
-	if tail <= 0 {
-		tail = services.DefaultTailEvents
-	}
-	job, events, err := t.app.services.Jobs.TailEvents(ctx, id, tail)
+	job, events, err := t.app.services.Board.GetJob(ctx, actor, id, args.Tail)
 	if err != nil {
 		return nil, connecttools.MapError(err)
-	}
-	// A job's own account reads only its own task's jobs, as for the task itself.
-	if err = t.onlyOwnTask(ctx, job.TaskID); err != nil {
-		return nil, err
 	}
 	return &factoryv1.GetJobResponse{
 		Job:    protoJob(job),
@@ -362,21 +266,7 @@ func (t *mcpTools) createTask(
 	if err != nil {
 		return nil, err
 	}
-	own, scoped, err := t.scopedTask(ctx)
-	if err != nil {
-		return nil, err
-	}
-	if confined(own, scoped) {
-		// A job's account may only report a sandbox problem: the label, priority and
-		// column are fixed, and a repeat comments on the open task.
-		task, _, repErr := t.app.services.Tasks.ReportSandbox(
-			ctx, actor, repoID, args.Title, args.Body)
-		if repErr != nil {
-			return nil, connecttools.MapError(repErr)
-		}
-		return &factoryv1.CreateTaskResponse{Task: t.app.protoTaskOf(ctx, task)}, nil
-	}
-	task, err := t.app.services.Tasks.Create(ctx, actor, repoID, services.TaskInput{
+	task, err := t.app.services.Board.CreateTask(ctx, actor, repoID, services.TaskInput{
 		Title:    args.Title,
 		Body:     args.Body,
 		Priority: models.Priority(args.Priority),
@@ -395,14 +285,7 @@ func (t *mcpTools) commentTask(
 	if err != nil {
 		return nil, err
 	}
-	id, err := t.app.taskID(ctx, args.TaskID)
-	if err != nil {
-		return nil, err
-	}
-	if err = t.onlyOwnTask(ctx, id); err != nil {
-		return nil, err
-	}
-	comment, err := t.app.services.Tasks.Comment(ctx, actor, id, args.Body)
+	comment, err := t.app.services.Board.AddComment(ctx, actor, args.TaskID, args.Body)
 	if err != nil {
 		return nil, connecttools.MapError(err)
 	}
@@ -416,19 +299,8 @@ func (t *mcpTools) moveTask(
 	if err != nil {
 		return nil, err
 	}
-	id, err := t.app.taskID(ctx, args.ID)
-	if err != nil {
-		return nil, err
-	}
-	_, scoped, err := t.scopedTask(ctx)
-	if err != nil {
-		return nil, err
-	}
-	if scoped {
-		return nil, errors.New(
-			"a job can't move tasks: the factory moves its task when the job ends")
-	}
-	task, err := t.app.services.Tasks.Move(ctx, actor, id, models.Status(args.Status))
+	task, err := t.app.services.Board.MoveTask(
+		ctx, actor, args.ID, models.Status(args.Status))
 	if err != nil {
 		return nil, connecttools.MapError(err)
 	}
@@ -442,108 +314,26 @@ func (t *mcpTools) updateTask(
 	if err != nil {
 		return nil, err
 	}
-	if err = t.refuseScoped(ctx, "edit tasks"); err != nil {
-		return nil, err
-	}
-	id, err := t.app.taskID(ctx, args.ID)
-	if err != nil {
-		return nil, err
-	}
-	current, _, err := t.app.services.Tasks.Get(ctx, id)
-	if err != nil {
-		return nil, connecttools.MapError(err)
-	}
-	// A person approved this title and body when moving it to Ready.
-	if current.Status == models.StatusReady && (args.Title != "" || args.Body != "") {
-		return nil, errors.New("the title and body of a Ready task can't be changed")
-	}
-	in := services.TaskInput{
-		Title:    current.Title,
-		Body:     current.Body,
-		Priority: current.Priority,
-		Labels:   mergeLabels(current.Labels, args.AddLabels, args.RemoveLabels),
+	// An omitted field is left as it is.
+	patch := services.TaskPatch{
+		Title: nil, Body: nil, Priority: nil, Labels: nil,
+		AddLabels: args.AddLabels, RemoveLabels: args.RemoveLabels,
 	}
 	if args.Title != "" {
-		in.Title = args.Title
+		patch.Title = &args.Title
 	}
 	if args.Body != "" {
-		in.Body = args.Body
+		patch.Body = &args.Body
 	}
 	if args.Priority != "" {
-		in.Priority = models.Priority(args.Priority)
+		priority := models.Priority(args.Priority)
+		patch.Priority = &priority
 	}
-	task, err := t.app.services.Tasks.Update(ctx, actor, id, in)
+	task, err := t.app.services.Board.UpdateTask(ctx, actor, args.ID, patch)
 	if err != nil {
 		return nil, connecttools.MapError(err)
 	}
 	return &factoryv1.UpdateTaskResponse{Task: t.app.protoTaskOf(ctx, task)}, nil
-}
-
-// mergeLabels applies the removals (ignoring case) and then the additions,
-// keeping order and dropping duplicates.
-func mergeLabels(current, add, remove []string) []string {
-	out := []string{}
-	for _, l := range current {
-		if !containsFold(remove, l) {
-			out = append(out, l)
-		}
-	}
-	for _, l := range add {
-		if !containsFold(out, l) {
-			out = append(out, l)
-		}
-	}
-	return out
-}
-
-func containsFold(list []string, label string) bool {
-	return slices.ContainsFunc(list, func(l string) bool {
-		return strings.EqualFold(l, label)
-	})
-}
-
-// refuseScoped stops a job's own account from doing what only a board-wide
-// account may.
-func (t *mcpTools) refuseScoped(ctx context.Context, what string) error {
-	_, scoped, err := t.scopedTask(ctx)
-	if err != nil {
-		return err
-	}
-	if scoped {
-		return errors.New("a job can't " + what)
-	}
-	return nil
-}
-
-// routineActor is the calling account as an actor allowed to manage routines.
-// A job's account may, but not the routine its own job runs for, so a routine
-// can't re-run or reconfigure itself. Its notices name the job and its task.
-func (t *mcpTools) routineActor(
-	ctx context.Context, routine string,
-) (models.Actor, error) {
-	actor, err := agentActor(ctx)
-	if err != nil {
-		return actor, err
-	}
-	userID, err := uuid.Parse(actor.ID)
-	if err != nil {
-		return actor, errors.New("this tool is for agent accounts only")
-	}
-	job, err := t.app.services.Jobs.JobOf(ctx, userID)
-	if err != nil {
-		return actor, connecttools.MapError(err)
-	}
-	if job == nil {
-		return actor, nil
-	}
-	if job.Routine != "" && job.Routine == routine {
-		return actor, errors.New("a job can't run or change the routine it runs for")
-	}
-	actor.Via = "job " + job.ID.String()[:shortJobID]
-	if job.TaskNumber > 0 {
-		actor.Via += " on T-" + strconv.FormatInt(job.TaskNumber, 10)
-	}
-	return actor, nil
 }
 
 func (t *mcpTools) moveTasks(
@@ -553,28 +343,18 @@ func (t *mcpTools) moveTasks(
 	if err != nil {
 		return nil, err
 	}
-	if err = t.refuseScoped(ctx, "move tasks"); err != nil {
-		return nil, err
+	res, err := t.app.services.Board.MoveTasks(
+		ctx, actor, args.IDs, models.Status(args.Status))
+	if err != nil {
+		return nil, connecttools.MapError(err)
 	}
-	if len(args.IDs) == 0 || len(args.IDs) > maxBulkMove {
-		return nil, errors.New("ids must hold between 1 and 200 task ids")
+	moved := make([]any, len(res.Moved))
+	for i, id := range res.Moved {
+		moved[i] = id
 	}
-	status := models.Status(args.Status)
-	if !status.Valid() {
-		return nil, errors.New("status must be one of " + statusNames)
-	}
-	moved := make([]any, 0, len(args.IDs))
-	failed := []any{}
-	for _, raw := range slices.Compact(slices.Sorted(slices.Values(args.IDs))) {
-		id, perr := t.app.taskID(ctx, raw)
-		if perr == nil {
-			_, perr = t.app.services.Tasks.Move(ctx, actor, id, status)
-		}
-		if perr != nil {
-			failed = append(failed, map[string]any{"id": raw, "error": perr.Error()})
-			continue
-		}
-		moved = append(moved, raw)
+	failed := make([]any, len(res.Failed))
+	for i, f := range res.Failed {
+		failed[i] = map[string]any{"id": f.ID, "error": f.Error}
 	}
 	return structpb.NewStruct(map[string]any{"moved": moved, "failed": failed})
 }
@@ -582,7 +362,7 @@ func (t *mcpTools) moveTasks(
 func (t *mcpTools) listRoutines(
 	ctx context.Context, _ mcptools.NoArgs,
 ) (proto.Message, error) {
-	list, err := t.app.services.Jobs.ListRoutines(ctx)
+	list, err := t.app.services.Board.ListRoutines(ctx)
 	if err != nil {
 		return nil, connecttools.MapError(err)
 	}
@@ -596,7 +376,7 @@ func (t *mcpTools) listRoutines(
 func (t *mcpTools) setRoutine(
 	ctx context.Context, args mcpSetRoutineArgs,
 ) (proto.Message, error) {
-	actor, err := t.routineActor(ctx, args.Name)
+	actor, err := agentActor(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -604,7 +384,7 @@ func (t *mcpTools) setRoutine(
 	if err != nil {
 		return nil, err
 	}
-	routine, err := t.app.services.Jobs.SaveRoutine(ctx, actor, services.RoutineInput{
+	routine, err := t.app.services.Board.SaveRoutine(ctx, actor, services.RoutineInput{
 		Name: args.Name, RepoID: repoID, Enabled: args.Enabled,
 		IntervalMinutes: args.IntervalMinutes,
 	})
@@ -617,11 +397,11 @@ func (t *mcpTools) setRoutine(
 func (t *mcpTools) deleteRoutine(
 	ctx context.Context, args mcpDeleteRoutineArgs,
 ) (proto.Message, error) {
-	actor, err := t.routineActor(ctx, args.Name)
+	actor, err := agentActor(ctx)
 	if err != nil {
 		return nil, err
 	}
-	if err = t.app.services.Jobs.DeleteRoutine(ctx, actor, args.Name); err != nil {
+	if err = t.app.services.Board.DeleteRoutine(ctx, actor, args.Name); err != nil {
 		return nil, connecttools.MapError(err)
 	}
 	return &factoryv1.DeleteRoutineResponse{}, nil
@@ -630,11 +410,11 @@ func (t *mcpTools) deleteRoutine(
 func (t *mcpTools) runRoutine(
 	ctx context.Context, args mcpRunRoutineArgs,
 ) (proto.Message, error) {
-	actor, err := t.routineActor(ctx, args.Name)
+	actor, err := agentActor(ctx)
 	if err != nil {
 		return nil, err
 	}
-	job, err := t.app.services.Jobs.RunRoutine(ctx, actor, args.Name)
+	job, err := t.app.services.Board.RunRoutine(ctx, actor, args.Name)
 	if err != nil {
 		return nil, connecttools.MapError(err)
 	}

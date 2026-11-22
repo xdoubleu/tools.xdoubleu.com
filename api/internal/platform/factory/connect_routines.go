@@ -40,7 +40,7 @@ func (h *taskConnectHandler) ListRoutines(
 	if _, err := actorFrom(ctx); err != nil {
 		return nil, err
 	}
-	list, err := h.app.services.Jobs.ListRoutines(ctx)
+	list, err := h.app.services.Board.ListRoutines(ctx)
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -63,7 +63,7 @@ func (h *taskConnectHandler) SaveRoutine(
 	if err != nil {
 		return nil, err
 	}
-	routine, err := h.app.services.Jobs.SaveRoutine(ctx, actor, services.RoutineInput{
+	routine, err := h.app.services.Board.SaveRoutine(ctx, actor, services.RoutineInput{
 		Name: req.GetName(), RepoID: repoID, Enabled: req.GetEnabled(),
 		IntervalMinutes: int(req.GetIntervalMinutes()),
 	})
@@ -81,7 +81,7 @@ func (h *taskConnectHandler) RunRoutine(
 	if err != nil {
 		return nil, err
 	}
-	job, err := h.app.services.Jobs.RunRoutine(ctx, actor, req.GetName())
+	job, err := h.app.services.Board.RunRoutine(ctx, actor, req.GetName())
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -96,7 +96,7 @@ func (h *taskConnectHandler) DeleteRoutine(
 	if err != nil {
 		return nil, err
 	}
-	if err = h.app.services.Jobs.DeleteRoutine(ctx, actor, req.GetName()); err != nil {
+	if err = h.app.services.Board.DeleteRoutine(ctx, actor, req.GetName()); err != nil {
 		return nil, mapError(err)
 	}
 	return &factoryv1.DeleteRoutineResponse{}, nil

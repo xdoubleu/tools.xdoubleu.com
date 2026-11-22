@@ -77,11 +77,26 @@ func (r *TasksRepository) List(
 	ctx context.Context,
 	query string,
 ) ([]models.Task, error) {
+	return r.Find(ctx, models.TaskFilter{
+		Query: query, Status: "", RepoID: nil, Label: "",
+	})
+}
+
+// Find is List narrowed by every non-empty field of the filter.
+func (r *TasksRepository) Find(
+	ctx context.Context,
+	f models.TaskFilter,
+) ([]models.Task, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT `+listColumns+`
 		FROM factory.tasks t
-		WHERE $1 = '' OR position(lower($1) in lower(t.title || E'\n' || t.body)) > 0
-		ORDER BY updated_at DESC, id`, query)
+		WHERE ($1 = '' OR position(lower($1) in lower(t.title || E'\n' || t.body)) > 0)
+			AND ($2::text = '' OR t.status::text = $2::text)
+			AND ($3::uuid IS NULL OR t.repo_id = $3::uuid)
+			AND ($4 = '' OR EXISTS (
+				SELECT 1 FROM unnest(t.labels) l WHERE lower(l) = lower($4)))
+		ORDER BY updated_at DESC, id`,
+		f.Query, string(f.Status), f.RepoID, f.Label)
 	if err != nil {
 		return nil, err
 	}
