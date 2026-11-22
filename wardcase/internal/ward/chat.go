@@ -106,7 +106,7 @@ func (r *Runner) startChat(
 		_ = os.RemoveAll(outcomeDir)
 		return nil, err
 	}
-	env["FACTORY_JOB"] = "wardcase-" + randomID()
+	env["WARDCASE_RUN"] = randomID()
 	env[vm.MCPEnv] = vm.MCPOff
 	proxy, err := r.NewProxy(egress)
 	if err != nil {

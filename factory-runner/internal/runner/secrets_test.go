@@ -110,13 +110,13 @@ func TestAJobProxyReplacesTheSandboxsOwnAndTheEnvFileIsInAStableOrder(t *testing
 		"npm_config_cache=/tmp/npmcache",
 		"npm_config_prefer_offline=true",
 		"npm_config_registry=http://10.231.7.1:8118/npm/",
-		"FACTORY_GATEWAY=10.231.7.1", "FACTORY_PROXY=http://10.231.7.1:8118",
-		"FACTORY_JOB=0a1b2c3d-4e5f", "SECRET=s3cret", "",
+		"WARDCASE_GATEWAY=10.231.7.1", "WARDCASE_PROXY=http://10.231.7.1:8118",
+		"SECRET=s3cret", "WARDCASE_RUN=0a1b2c3d-4e5f", "",
 	}, "\n"), envBody)
 }
 
 func TestTheSandboxOwnsTheVariablesThatSayWhereItsProxyIs(t *testing.T) {
-	for _, key := range []string{"FACTORY_GATEWAY", "FACTORY_PROXY"} {
+	for _, key := range []string{"WARDCASE_GATEWAY", "WARDCASE_PROXY"} {
 		exec := newExecScript(routesAnswer)
 		s := spec(t, io.Discard)
 		s.Env[key] = "http://evil.example"

@@ -77,7 +77,7 @@ func claudeEnv(t *testing.T, withProxy bool) []string {
 	require.NoError(t, os.WriteFile(settings, []byte("{}"), 0o600))
 	env := []string{"CLAUDE_CONFIG_DIR=" + t.TempDir(), "CLAUDE_CONFIG_SEED=" + seed}
 	if withProxy {
-		env = append(env, "FACTORY_PROXY="+proxyURL)
+		env = append(env, "WARDCASE_PROXY="+proxyURL)
 	}
 	return env
 }
@@ -150,7 +150,7 @@ func TestWithoutAProxyClaudeIsLeftAlone(t *testing.T) {
 
 func openCodeEnv(withProxy bool) []string {
 	if withProxy {
-		return []string{"FACTORY_PROXY=" + proxyURL}
+		return []string{"WARDCASE_PROXY=" + proxyURL}
 	}
 	return nil
 }
@@ -249,7 +249,7 @@ func TestOnlyClaudeHasNoACPServerForAChat(t *testing.T) {
 
 func TestCodexServesACPThroughTheAdapterOnTheProxy(t *testing.T) {
 	got := runHarness(t, "codex-acp", vm.Codex{}.ACP(),
-		[]string{"FACTORY_PROXY=" + proxyURL}, nil, "none")
+		[]string{"WARDCASE_PROXY=" + proxyURL}, nil, "none")
 
 	assert.Equal(t, []string{
 		"-c", `openai_base_url="` + proxyURL + `/openai/v1"`,
@@ -259,7 +259,7 @@ func TestCodexServesACPThroughTheAdapterOnTheProxy(t *testing.T) {
 
 func TestGeminiServesACPOnTheProxyRoute(t *testing.T) {
 	got := runHarness(t, "gemini", vm.Gemini{}.ACP(),
-		[]string{"FACTORY_PROXY=" + proxyURL}, []string{"GOOGLE_GEMINI_BASE_URL"}, "none")
+		[]string{"WARDCASE_PROXY=" + proxyURL}, []string{"GOOGLE_GEMINI_BASE_URL"}, "none")
 
 	assert.Equal(t, []string{"--acp"}, got.args)
 	assert.Equal(t, proxyURL+"/gemini", got.env["GOOGLE_GEMINI_BASE_URL"])

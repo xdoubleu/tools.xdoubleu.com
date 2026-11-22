@@ -276,7 +276,7 @@ func (r *Runner) runOnce(
 	if err = r.addMCP(&egress, env, headless); err != nil {
 		return outcome{}, err
 	}
-	env["FACTORY_JOB"] = "wardcase-" + randomID()
+	env["WARDCASE_RUN"] = randomID()
 	env[vm.MCPEnv] = vm.MCPOff
 	proxy, err := r.NewProxy(egress)
 	if err != nil {

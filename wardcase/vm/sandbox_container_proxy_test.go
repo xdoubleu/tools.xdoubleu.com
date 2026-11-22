@@ -53,11 +53,11 @@ func TestTheVMLearnsWhereTheProxyListens(t *testing.T) {
 	_, err := box.Run(context.Background(), spec(t, io.Discard))
 	require.NoError(t, err)
 	assert.Equal(t, 8118, port, "the sandbox picks the port it also tells the VM")
-	assert.Contains(t, envBody, "FACTORY_PROXY=http://10.231.7.1:8118\n")
+	assert.Contains(t, envBody, "WARDCASE_PROXY=http://10.231.7.1:8118\n")
 
 	envBody = ""
 	box.Proxy = nil
 	_, err = box.Run(context.Background(), spec(t, io.Discard))
 	require.NoError(t, err)
-	assert.False(t, strings.Contains(envBody, "FACTORY_PROXY"), envBody)
+	assert.False(t, strings.Contains(envBody, "WARDCASE_PROXY"), envBody)
 }

@@ -127,7 +127,7 @@ func spec(t *testing.T, log io.Writer) runner.SandboxSpec {
 		CloneDir:    "/data/jobs/j1/clone",
 		OutcomeDir:  "/data/jobs/j1/outcome",
 		SessionDir:  "/data/sessions/t1",
-		Env:         map[string]string{"FACTORY_JOB": "0a1b2c3d-4e5f", "SECRET": "s3cret"},
+		Env:         map[string]string{"WARDCASE_RUN": "0a1b2c3d-4e5f", "SECRET": "s3cret"},
 		Command:     []string{"claude", "-p"},
 		Proxy:       nil,
 		Stdin:       "do the thing",

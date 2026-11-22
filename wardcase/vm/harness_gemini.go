@@ -14,8 +14,8 @@ const geminiBin = "gemini"
 const geminiPlaceholder = "replaced-by-the-host-proxy"
 
 // geminiPrelude points Gemini at the proxy's /gemini route when the sandbox has one.
-const geminiPrelude = `if [ -n "${FACTORY_PROXY:-}" ]; then
-  export GOOGLE_GEMINI_BASE_URL="$FACTORY_PROXY/gemini"
+const geminiPrelude = `if [ -n "${WARDCASE_PROXY:-}" ]; then
+  export GOOGLE_GEMINI_BASE_URL="$WARDCASE_PROXY/gemini"
 fi
 `
 

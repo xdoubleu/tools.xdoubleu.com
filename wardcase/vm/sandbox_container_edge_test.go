@@ -36,17 +36,17 @@ func TestOSExecerErrorsWhenTheCommandCannotRunAtAll(t *testing.T) {
 func TestAJobIDIsReducedToASafeVMName(t *testing.T) {
 	exec := newExecScript(routesAnswer)
 	s := spec(t, io.Discard)
-	s.Env["FACTORY_JOB"] = "../../Job/X"
+	s.Env["WARDCASE_RUN"] = "../../Job/X"
 	_, err := sandboxWith(t, exec).Run(context.Background(), s)
 	require.NoError(t, err)
-	assert.Equal(t, "factory-job-jobx", exec.find("run")[0][5])
+	assert.Equal(t, "wardcase-jobx", exec.find("run")[0][5])
 
 	// Without any id there is nothing to name the VM by, and two such jobs would
 	// share one: it is refused before anything starts.
 	exec = newExecScript(routesAnswer)
-	delete(s.Env, "FACTORY_JOB")
+	delete(s.Env, "WARDCASE_RUN")
 	_, err = sandboxWith(t, exec).Run(context.Background(), s)
-	require.ErrorContains(t, err, "FACTORY_JOB")
+	require.ErrorContains(t, err, "WARDCASE_RUN")
 	assert.Empty(t, exec.calls)
 }
 

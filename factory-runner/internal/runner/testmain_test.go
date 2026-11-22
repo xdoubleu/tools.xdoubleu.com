@@ -16,7 +16,8 @@ func TestMain(m *testing.M) {
 	}
 	// Variables a job VM sets would leak into child processes (proxy, git identity).
 	for _, k := range []string{
-		"FACTORY_PROXY", "FACTORY_GATEWAY", "FACTORY_JOB", "ANTHROPIC_BASE_URL",
+		"WARDCASE_PROXY", "WARDCASE_GATEWAY", "FACTORY_JOB", "WARDCASE_RUN",
+		"ANTHROPIC_BASE_URL",
 		"GIT_AUTHOR_NAME", "GIT_AUTHOR_EMAIL", "GIT_COMMITTER_NAME",
 		"GIT_COMMITTER_EMAIL",
 	} {

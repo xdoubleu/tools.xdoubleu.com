@@ -103,19 +103,19 @@ const (
 // servers the proxy routes at /mcp-<name>; names are validated (MCPServerName), so
 // they are safe in the shell and the JSON.
 const (
-	MCPEnv        = "FACTORY_MCP"
+	MCPEnv        = "WARDCASE_MCP"
 	MCPOff        = "off"
-	MCPServersEnv = "FACTORY_MCP_SERVERS"
+	MCPServersEnv = "WARDCASE_MCP_SERVERS"
 )
 
 // mcpList builds $list, the JSON members of the servers to configure, each shaped by
 // the printf format $mfmt (given the name and the proxy URL); empty if there are none.
 const mcpList = `list=""; sep=""
-  if [ "${FACTORY_MCP:-}" != off ]; then
-    list=$(printf "$mfmt" board "$FACTORY_PROXY/mcp"); sep=,
+  if [ "${WARDCASE_MCP:-}" != off ]; then
+    list=$(printf "$mfmt" board "$WARDCASE_PROXY/mcp"); sep=,
   fi
-  for n in ${FACTORY_MCP_SERVERS:-}; do
-    list="$list$sep$(printf "$mfmt" "$n" "$FACTORY_PROXY/mcp-$n")"; sep=,
+  for n in ${WARDCASE_MCP_SERVERS:-}; do
+    list="$list$sep$(printf "$mfmt" "$n" "$WARDCASE_PROXY/mcp-$n")"; sep=,
   done`
 
 // claudeStart seeds the config once, then, when the sandbox has a proxy, points Claude
@@ -124,8 +124,8 @@ const mcpList = `list=""; sep=""
 const claudeStart = `[ -e "$CLAUDE_CONFIG_DIR/.seeded" ] || ` +
 	`{ cp -R "$CLAUDE_CONFIG_SEED/." "$CLAUDE_CONFIG_DIR/" && ` +
 	`touch "$CLAUDE_CONFIG_DIR/.seeded"; } || exit 1
-if [ -n "${FACTORY_PROXY:-}" ]; then
-  export ANTHROPIC_BASE_URL="$FACTORY_PROXY/anthropic"
+if [ -n "${WARDCASE_PROXY:-}" ]; then
+  export ANTHROPIC_BASE_URL="$WARDCASE_PROXY/anthropic"
   mfmt='"%s":{"type":"http","url":"%s"}'
   ` + mcpList + `
   [ -n "$list" ] || exec "$@"
@@ -300,9 +300,9 @@ type OpenCode struct {
 // needs the network), and the board's (unless switched off) and the configured MCP
 // servers through /mcp and /mcp-<name>. The model id is validated, so it is safe inside
 // the JSON string.
-const openCodePrelude = `if [ -n "${FACTORY_PROXY:-}" ]; then
+const openCodePrelude = `if [ -n "${WARDCASE_PROXY:-}" ]; then
   cfg="$HOME/opencode-job.json"
-  p="$FACTORY_PROXY"
+  p="$WARDCASE_PROXY"
   mfmt='"%s":{"type":"remote","url":"%s","oauth":false}'
   ` + mcpList + `
   mcp=""

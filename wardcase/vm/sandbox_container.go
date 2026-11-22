@@ -138,8 +138,8 @@ func (e OSExecer) Exec(
 // ContainerSandbox runs each job in its own Apple `container` VM on its own
 // host-only network (docs/adr-0043). The VM starts as a placeholder so the host side
 // of its network exists, Proxy is served there, and then the job runs in it with
-// `container exec`. The job gets the gateway address as FACTORY_GATEWAY and the
-// proxy's bound address as FACTORY_PROXY.
+// `container exec`. The job gets the gateway address as WARDCASE_GATEWAY and the
+// proxy's bound address as WARDCASE_PROXY.
 type ContainerSandbox struct {
 	// Image is the job image, built from the Containerfile.
 	Image string
@@ -216,7 +216,7 @@ func (s *ContainerSandbox) Open(
 	if err := checkSpec(spec); err != nil {
 		return nil, err
 	}
-	name := "factory-job-" + shortID(spec.Env["FACTORY_JOB"])
+	name := "wardcase-" + shortID(spec.Env["WARDCASE_RUN"])
 	// A crashed runner may have left these behind.
 	s.cleanup(name)
 	v := &vmSession{
@@ -313,11 +313,11 @@ func (v *vmSession) Close() {
 func checkSpec(spec SandboxSpec) error {
 	// The VM and its network are named after the job, and two jobs without a name
 	// would collide.
-	if spec.Env["FACTORY_JOB"] == "" {
-		return errors.New("the job has no FACTORY_JOB id")
+	if spec.Env["WARDCASE_RUN"] == "" {
+		return errors.New("the run has no WARDCASE_RUN id")
 	}
 	for k, v := range spec.Env {
-		if k == "FACTORY_GATEWAY" || k == "FACTORY_PROXY" {
+		if k == "WARDCASE_GATEWAY" || k == "WARDCASE_PROXY" {
 			return fmt.Errorf("environment variable %q is set by the sandbox", k)
 		}
 		if !envKeyPattern.MatchString(k) {
@@ -476,10 +476,10 @@ func execArgv(
 // bundlerMirrorScript points bundler at the proxy's read-only rubygems route. The
 // mirror key is not a valid environment variable name, so `container exec
 // --env-file` drops it; bundler reads it from its user config instead.
-const bundlerMirrorScript = `if [ -n "$FACTORY_PROXY" ]; then
+const bundlerMirrorScript = `if [ -n "$WARDCASE_PROXY" ]; then
 mkdir -p "$HOME/.bundle"
 printf -- '---\nBUNDLE_MIRROR__HTTPS://RUBYGEMS__ORG/: "%s/rubygems/"\n' \
-  "$FACTORY_PROXY" > "$HOME/.bundle/config"
+  "$WARDCASE_PROXY" > "$HOME/.bundle/config"
 fi
 `
 
@@ -590,9 +590,9 @@ func (s *ContainerSandbox) writeEnvFile(
 			fmt.Fprintf(&b, "%s=%s\n", k, fixed[k])
 		}
 	}
-	fmt.Fprintf(&b, "FACTORY_GATEWAY=%s\n", gateway)
+	fmt.Fprintf(&b, "WARDCASE_GATEWAY=%s\n", gateway)
 	if proxyURL != "" {
-		fmt.Fprintf(&b, "FACTORY_PROXY=%s\n", proxyURL)
+		fmt.Fprintf(&b, "WARDCASE_PROXY=%s\n", proxyURL)
 	}
 	for _, k := range slices.Sorted(maps.Keys(env)) {
 		fmt.Fprintf(&b, "%s=%s\n", k, env[k])

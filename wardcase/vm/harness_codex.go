@@ -19,8 +19,8 @@ const openAIPlaceholder = "replaced-by-the-host-proxy"
 // codexProxyArgs points Codex at the proxy's /openai route when the sandbox has one.
 // The VM's own sandbox step is skipped: the VM is the sandbox.
 const codexProxyArgs = `set --
-if [ -n "${FACTORY_PROXY:-}" ]; then
-  set -- -c "openai_base_url=\"$FACTORY_PROXY/openai/v1\""
+if [ -n "${WARDCASE_PROXY:-}" ]; then
+  set -- -c "openai_base_url=\"$WARDCASE_PROXY/openai/v1\""
 fi
 `
 
@@ -33,8 +33,8 @@ const (
 		`--dangerously-bypass-approvals-and-sandbox --skip-git-repo-check resume "$sid" -`
 	codexACP = codexProxyArgs + `exec codex-acp "$@" -c approval_policy=never ` +
 		`-c sandbox_mode=danger-full-access`
-	codexTerminal = `if [ -n "${FACTORY_PROXY:-}" ]; then
-  exec codex -c "openai_base_url=\"$FACTORY_PROXY/openai/v1\"" ` +
+	codexTerminal = `if [ -n "${WARDCASE_PROXY:-}" ]; then
+  exec codex -c "openai_base_url=\"$WARDCASE_PROXY/openai/v1\"" ` +
 		`--dangerously-bypass-approvals-and-sandbox "$@"
 fi
 exec codex --dangerously-bypass-approvals-and-sandbox "$@"`

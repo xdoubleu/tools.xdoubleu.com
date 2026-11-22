@@ -9,8 +9,8 @@ import (
 // would leak into child processes.
 func TestMain(m *testing.M) {
 	for _, k := range []string{
-		"FACTORY_PROXY", "FACTORY_GATEWAY", "FACTORY_JOB", "ANTHROPIC_BASE_URL",
-		"FACTORY_MCP", "FACTORY_MCP_SERVERS",
+		"WARDCASE_PROXY", "WARDCASE_GATEWAY", "WARDCASE_RUN", "ANTHROPIC_BASE_URL",
+		"WARDCASE_MCP", "WARDCASE_MCP_SERVERS",
 	} {
 		_ = os.Unsetenv(k)
 	}

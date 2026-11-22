@@ -65,7 +65,7 @@ func TestExtraMountsAreBoundAndTrustedByGit(t *testing.T) {
 	assert.Contains(t, script, "safe.directory '/Users/me/repo/.git'")
 	assert.Contains(t, script, "safe.directory '/ref'")
 	assert.Contains(t, script, "BUNDLE_MIRROR__HTTPS://RUBYGEMS__ORG/")
-	assert.Contains(t, script, `"$FACTORY_PROXY" > "$HOME/.bundle/config"`)
+	assert.Contains(t, script, `"$WARDCASE_PROXY" > "$HOME/.bundle/config"`)
 }
 
 func TestAMountTargetMustBeACleanAbsolutePath(t *testing.T) {

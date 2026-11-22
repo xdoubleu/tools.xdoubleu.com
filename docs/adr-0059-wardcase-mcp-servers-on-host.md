@@ -13,7 +13,7 @@ wardcase hard-coded the board and PostHog as its MCP servers, with a stored Post
 - Servers come only from the device config: `[[mcp]]` entries (`name`, `url`, `jobs`) in config.toml. A repo can't add one; a later slice lets it opt in to configured ones.
 - `wardcase mcp login|list|logout <name>` runs the MCP authorization flow (spec 2025-06-18) on the host: Protected Resource Metadata (RFC 9728), authorization server metadata (RFC 8414), dynamic client registration (RFC 7591), authorization code with PKCE and the `resource` parameter (RFC 8707) through a loopback redirect. The keychain keeps the registration and refresh token; access tokens stay in memory.
 - The egress proxy serves each signed-in server at `/mcp-<name>`, fixed to its URL, and adds the bearer token. It refreshes on expiry, drops a token the server answered 401 to so the next request refreshes, and stores a rotated refresh token. A server not signed in has no route; the session start names it.
-- The harness prelude writes the servers (name and proxy URL, no credential) into Claude Code's `--mcp-config` and OpenCode's `mcp` with `"oauth": false`. Names reach it in `FACTORY_MCP_SERVERS`.
+- The harness prelude writes the servers (name and proxy URL, no credential) into Claude Code's `--mcp-config` and OpenCode's `mcp` with `"oauth": false`. Names reach it in `WARDCASE_MCP_SERVERS`.
 - Interactive runs get every configured server; headless runs only those with `jobs = true`.
 - PostHog is no longer built in. factory-runner registers it as a proxy-side server with its stored key; the board's `/mcp` route is unchanged.
 

@@ -363,6 +363,7 @@ func TestAJobRunsInACloneOnItsBranchAndReportsItsOutcome(t *testing.T) {
 	spec := env.sandbox.specs[0]
 	assert.Equal(t, filepath.Join(env.dir, "jobs", jobID, "clone"), spec.CloneDir)
 	assert.Equal(t, jobID, spec.Env["FACTORY_JOB"])
+	assert.Equal(t, jobID, spec.Env["WARDCASE_RUN"])
 	assert.Equal(t, runner.SandboxOutcomePath, spec.Env["FACTORY_OUTCOME_PATH"])
 	assert.Equal(t, runner.ClaudeCode{}.Command(), spec.Command)
 	assert.Contains(
