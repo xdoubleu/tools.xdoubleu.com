@@ -126,6 +126,7 @@ type JobTimings struct {
 type FailureCounts struct {
 	RedPullRequests   int
 	JobsWithoutPR     int
+	NoPRTasks         []string
 	UnverifiedOutcome int
 	StuckPullRequests int
 }

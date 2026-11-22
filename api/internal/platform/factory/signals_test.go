@@ -109,3 +109,26 @@ func TestARoutineJobIsNotCountedAsLostWork(t *testing.T) {
 	assert.InDelta(t, noPR, gaugeValue(t, "factory_jobs_finished_without_pr"), 0)
 	assert.InDelta(t, unverified, gaugeValue(t, "factory_jobs_unverified_outcome"), 0)
 }
+
+func TestADeliberateNoPROutcomeIsNotCounted(t *testing.T) {
+	env, _ := githubEnv(t)
+	ctx := context.Background()
+	require.NoError(t, env.app.CollectSignalsNow(ctx))
+	noPR := gaugeValue(t, "factory_jobs_finished_without_pr")
+
+	for _, outcome := range []string{
+		"Checked main.\nAlready-fixed: passes",
+		"Sandbox-fix: agent/sandbox-x",
+	} {
+		task := env.newTask(t, "deliberate "+outcome)
+		env.run(t, task.Id)
+		job := env.claim(t)
+		_, err := env.runner.CompleteJob(bearer(env.token), &factoryv1.CompleteJobRequest{
+			JobId: job.Id, Succeeded: true, Outcome: outcome,
+		})
+		require.NoError(t, err)
+	}
+	require.NoError(t, env.app.CollectSignalsNow(ctx))
+
+	assert.InDelta(t, noPR, gaugeValue(t, "factory_jobs_finished_without_pr"), 0)
+}

@@ -38,6 +38,11 @@ var (
 		Name: "factory_jobs_finished_without_pr",
 		Help: "Jobs that succeeded in the last 6 hours without opening a pull request.",
 	})
+	factoryJobsNoPRTask = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "factory_jobs_finished_without_pr_info",
+		Help: "1 per task (up to 10) with a job counted in " +
+			"factory_jobs_finished_without_pr.",
+	}, []string{"task"})
 	factoryJobsUnverified = promauto.NewGauge(prometheus.GaugeOpts{
 		Name: "factory_jobs_unverified_outcome",
 		Help: "Jobs finished in the last 6 hours whose outcome says not verified " +
@@ -58,6 +63,10 @@ func (s *JobService) CollectSignals(ctx context.Context) error {
 	factoryRedPRs.Set(float64(counts.RedPullRequests))
 	factoryUnmergeable.Set(float64(counts.StuckPullRequests))
 	factoryJobsNoPR.Set(float64(counts.JobsWithoutPR))
+	factoryJobsNoPRTask.Reset()
+	for _, task := range counts.NoPRTasks {
+		factoryJobsNoPRTask.WithLabelValues(task).Set(1)
+	}
 	factoryJobsUnverified.Set(float64(counts.UnverifiedOutcome))
 
 	tasks, err := s.tasks.MergedBetween(
