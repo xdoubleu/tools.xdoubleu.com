@@ -71,6 +71,8 @@ func mapError(err error, extra ...connecttools.ErrorCode) error {
 		connecttools.Code(services.ErrMetadataRequired, connect.CodeInvalidArgument),
 		connecttools.Code(services.ErrISBNLength, connect.CodeInvalidArgument),
 		connecttools.Code(services.ErrISBNDigits, connect.CodeInvalidArgument),
+		connecttools.Code(services.ErrSeriesNameRequired, connect.CodeInvalidArgument),
+		connecttools.Code(services.ErrInvalidDeviceID, connect.CodeInvalidArgument),
 	)
 	return connecttools.MapError(err, codes...)
 }
@@ -82,8 +84,4 @@ func mapISBNError(err error) error {
 		connect.CodeAlreadyExists,
 		"ISBN is already assigned to another book",
 	))
-}
-
-func (h *Handler) rebuild(ctx context.Context, userID string) error {
-	return h.services.Catalog.RebuildReadProgress(ctx, userID)
 }

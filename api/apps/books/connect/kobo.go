@@ -32,14 +32,10 @@ func (h *Handler) EnableKoboSync(
 			"invalid book ID",
 		)
 	}
-	if err = h.services.Books.EnableKoboSync(ctx, user.ID, bookID); err != nil {
-		return nil, mapError(err)
-	}
-	statusResult, err := h.services.Books.GetKEPUBStatus(ctx, user.ID, bookID)
+	kepubStatus, err := h.services.Library.EnableKoboSync(ctx, user.ID, bookID)
 	if err != nil {
 		return nil, mapError(err)
 	}
-	kepubStatus := h.maybeStartKEPUBConversion(ctx, user.ID, bookID, statusResult)
 	return &booksv1.EnableKoboSyncResponse{
 		KepubStatus: kepubStatus,
 	}, nil
@@ -79,19 +75,11 @@ func (h *Handler) ListKoboDevices(
 			"unauthorized",
 		)
 	}
-	devices, err := h.services.Kobo.ListKoboDevices(ctx, user.ID)
+	devices, err := h.services.Library.KoboDevices(ctx, user.ID)
 	if err != nil {
 		return nil, mapError(err)
 	}
-	resp := &booksv1.ListKoboDevicesResponse{
-		Devices: make([]*booksv1.KoboDevice, len(devices)),
-	}
-	for i, d := range devices {
-		// Debug-logging state lives in memory, not the DB row.
-		d.LoggingEnabled = h.services.KoboLog.IsEnabled(d.ID)
-		resp.Devices[i] = koboDeviceProto(d)
-	}
-	return resp, nil
+	return KoboDevicesResponse(devices), nil
 }
 
 func (h *Handler) DisconnectKoboDevice(
@@ -149,13 +137,7 @@ func (h *Handler) ListKoboStoreBooks(
 	if err != nil {
 		return nil, mapError(err)
 	}
-	resp := &booksv1.ListKoboStoreBooksResponse{
-		Books: make([]*booksv1.KoboStoreBook, len(books)),
-	}
-	for i, b := range books {
-		resp.Books[i] = koboStoreBookProto(b)
-	}
-	return resp, nil
+	return KoboStoreBooksResponse(books), nil
 }
 
 func koboStoreBookProto(b models.KoboStoreBookStatus) *booksv1.KoboStoreBook {
