@@ -246,6 +246,9 @@ func (s *TaskService) Move(
 		if err != nil {
 			return nil, err
 		}
+		if models.HasLabel(task.Labels, models.LabelSpike) {
+			return nil, forbidden(models.SpikeReadyMessage)
+		}
 		if err = checkRenderable(task.Title, task.Body); err != nil {
 			return nil, err
 		}

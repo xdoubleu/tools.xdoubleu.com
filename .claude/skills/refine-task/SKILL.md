@@ -49,6 +49,7 @@ Labels, scopes and the priority rule live in `.claude/github-triage.config.json`
      any the caller names (`routine-feedback`, `routine-found`,
      `posthog-provisional`). At most 10.
 5. **Don't move a task into Ready** unless the owner told you to (`bug` and `factory-retro` tasks start there already); agents may, and the actor is recorded ([convention-unattended-agent-trust](../../../docs/convention-unattended-agent-trust.md)).
+   A `spike` task never moves to Ready (the board refuses it): the owner settles it in an interactive session.
    Don't move one out of Backlog either unless your skill says so.
 6. **Report** the task title and id, and whether it was created or commented on.
 

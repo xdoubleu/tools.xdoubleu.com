@@ -3,6 +3,7 @@ package models
 
 import (
 	"errors"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -199,4 +200,18 @@ type PickupCandidate struct {
 	RepoID uuid.UUID
 	Title  string
 	Body   string
+}
+
+// LabelSpike marks a task settled by the owner in an interactive session.
+const LabelSpike = "spike"
+
+// SpikeReadyMessage says why a spike never runs as a job.
+const SpikeReadyMessage = "a spike is settled in an interactive session, " +
+	"never as a factory job; it stays out of Ready."
+
+// HasLabel reports whether labels holds label, ignoring case.
+func HasLabel(labels []string, label string) bool {
+	return slices.ContainsFunc(labels, func(l string) bool {
+		return strings.EqualFold(l, label)
+	})
 }
