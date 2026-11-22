@@ -3,13 +3,14 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"log/slog"
-	"net/http"
 	"os"
+	"path/filepath"
 
 	"tools.xdoubleu.com/factory-runner/internal/runner"
-	"tools.xdoubleu.com/selfupdate/updatesig"
 	"tools.xdoubleu.com/wardcase/session"
+	"tools.xdoubleu.com/wardcase/vm"
 )
 
 // diskFree reads a volume's free bytes; tests replace it.
@@ -30,19 +31,24 @@ func newJobRunner(
 	exec runner.Execer,
 ) (*runner.JobRunner, error) {
 	box := &runner.ContainerSandbox{
-		Image:      cfg.ReleaseImage(Release),
+		Image:      cfg.ReleaseImage(WardcaseVersion),
 		Exec:       exec,
 		Proxy:      nil,
 		ProxyPort:  runner.EgressProxyPort,
 		GoModCache: cfg.GoModCache,
 		NPMCache:   cfg.NPMCache,
-		NixStore:   "", NixStoreMax: 0,
-		CPUs:    "",
-		Memory:  "",
-		TempDir: "",
+		// The store wardcase's own sessions share, so a flake's tools are fetched once.
+		NixStore:    filepath.Join(a.home, ".local", "state", "wardcase", "nix"),
+		NixStoreMax: 0,
+		CPUs:        "",
+		Memory:      "",
+		TempDir:     "",
 	}
 	if err := box.Check(ctx); err != nil {
 		return nil, fmt.Errorf("jobs cannot run on this Mac: %w", err)
+	}
+	if err := os.MkdirAll(box.NixStore, dataDirPerm); err != nil {
+		return nil, fmt.Errorf("nix store directory: %w", err)
 	}
 	dataDir := cfg.DataPath(a.home)
 	if err := os.MkdirAll(dataDir, dataDirPerm); err != nil {
@@ -171,50 +177,28 @@ func (a *app) holdClaims() bool {
 		(a.control != nil && (a.control.Draining() || a.control.Restarting()))
 }
 
-// pruneImages drops job images of other releases once this one is in place. It
+// pruneImages drops base images of other versions once this one is in place. It
 // runs at start, so also after every self-update.
 func pruneImages(
 	ctx context.Context, cfg runner.Config, exec runner.Execer, log *slog.Logger,
 ) {
-	if !cfg.JobImageAutoDownload(Release) {
+	if !cfg.JobImageAutoDownload(WardcaseVersion) {
 		return
 	}
-	runner.PruneJobImages(ctx, exec, cfg.ReleaseImage(Release), log)
+	runner.PruneJobImages(ctx, exec, cfg.ReleaseImage(WardcaseVersion), log)
 }
 
-// ensureImage makes sure the versioned job image this release needs is present,
-// fetching it from the release server (with the update key) when it is not. An
-// explicit `config image <ref>` or a dev build skips the fetch and just uses the
-// reference, so a missing image then surfaces as a `make image` error when a job
+// ensureImage pulls the wardcase base image of this build's version when the
+// container CLI lacks it. An explicit `config image <ref>` or a dev build skips
+// the pull, so a missing image then surfaces as a `make image` error when a job
 // runs.
 func ensureImage(ctx context.Context, cfg runner.Config, exec runner.Execer) error {
-	if !cfg.JobImageAutoDownload(Release) {
+	if !cfg.JobImageAutoDownload(WardcaseVersion) {
 		return nil
 	}
-	origin, err := runner.Origin(cfg.Server)
-	if err != nil {
-		return fmt.Errorf("job image: %w", err)
-	}
-	if UpdatePublicKey == "" {
-		// No trusted key to verify a download, as with self-update: rely on a
-		// locally built image, and let a missing one surface when a job's VM
-		// starts rather than blocking every job.
-		return nil
-	}
-	publicKey, err := updatesig.ParsePublicKey(UpdatePublicKey)
-	if err != nil {
-		return fmt.Errorf("job image: %w", err)
-	}
-	ensurer := &runner.ImageEnsurer{
-		Client:    &http.Client{Timeout: runner.ImageFetchTimeout},
-		Origin:    origin,
-		Release:   Release,
-		Image:     cfg.ReleaseImage(Release),
-		PublicKey: publicKey,
-		Exec:      exec,
-	}
-	if err = ensurer.Ensure(ctx); err != nil {
-		return fmt.Errorf("job image %s: %w", ensurer.Image, err)
+	image := cfg.ReleaseImage(WardcaseVersion)
+	if err := vm.EnsureImage(ctx, exec, image, io.Discard); err != nil {
+		return fmt.Errorf("job image %s: %w", image, err)
 	}
 	return nil
 }

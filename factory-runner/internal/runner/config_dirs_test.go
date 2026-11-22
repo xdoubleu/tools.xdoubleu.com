@@ -48,7 +48,7 @@ func TestJobImageResolvesPerRelease(t *testing.T) {
 	assert.Equal(t, runner.DefaultImage, c.ReleaseImage(""))
 	assert.Equal(t, runner.DefaultImage, c.ReleaseImage(runner.DevRelease))
 	// A stamped release needs its own versioned image.
-	assert.Equal(t, "factory-job:abc123", c.ReleaseImage("abc123"))
+	assert.Equal(t, "ghcr.io/xdoubleu/wardcase:abc123", c.ReleaseImage("abc123"))
 	// Only an implicit, non-dev image is fetched from the release server.
 	assert.False(t, c.JobImageAutoDownload(""))
 	assert.False(t, c.JobImageAutoDownload(runner.DevRelease))

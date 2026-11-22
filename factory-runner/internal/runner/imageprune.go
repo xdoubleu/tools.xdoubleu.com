@@ -8,15 +8,14 @@ import (
 	"io"
 	"log/slog"
 	"strings"
+
+	"tools.xdoubleu.com/wardcase/vm"
 )
 
-// jobImageRepo is the local repository the versioned job images live in.
+// jobImageRepo is the repository the versioned base images live in.
 const (
-	jobImageRepo = "factory-job:"
+	jobImageRepo = vm.ImageRepo + ":"
 	imageDelete  = "delete"
-	// pulledImageRepo names the digest-referenced copy `container image pull`
-	// leaves next to the factory-job:<release> tag.
-	pulledImageRepo = "/factory-job-image"
 )
 
 // containerNames lists the names in a `container image list|ls --format json`
@@ -50,17 +49,12 @@ func nested(entry map[string]any, keys ...string) string {
 	return s
 }
 
-// jobImageTag returns the part from "factory-job:" on, or "" for any other
-// image. The CLI reports local tags with a docker.io/library/ prefix.
+// jobImageTag returns the base image's reference, or "" for any other image.
 func jobImageTag(name string) string {
-	_, tag, ok := strings.Cut(name, "/"+jobImageRepo)
-	if !ok {
-		if !strings.HasPrefix(name, jobImageRepo) {
-			return ""
-		}
-		tag = strings.TrimPrefix(name, jobImageRepo)
+	if !strings.HasPrefix(name, jobImageRepo) {
+		return ""
 	}
-	return jobImageRepo + tag
+	return name
 }
 
 func listContainer(ctx context.Context, exec Execer, args ...string) ([]byte, error) {
@@ -77,22 +71,9 @@ func listContainer(ctx context.Context, exec Execer, args ...string) ([]byte, er
 	return out.Bytes(), nil
 }
 
-// pulledDigest returns the sha256 digest of a pulled factory-job-image name, ""
-// for any other image. A name without a digest (an untagged one) gives "none".
-func pulledDigest(name string) string {
-	if !strings.Contains(name, pulledImageRepo) {
-		return ""
-	}
-	if _, digest, ok := strings.Cut(name, "@"); ok {
-		return digest
-	}
-	return "none"
-}
-
-// PruneJobImages removes every local factory-job:* image except image and any
-// a container (a running job's VM; several run at once) still references, and
-// the untagged factory-job-image pulls whose digest no kept image has. It logs
-// what it removed and returns nothing: a failed prune must not fail a job.
+// PruneJobImages removes every local wardcase base image except image and any
+// a container (a running job's VM; several run at once) still references. It
+// logs what it removed and returns nothing: a failed prune must not fail a job.
 func PruneJobImages(
 	ctx context.Context, exec Execer, image string, log *slog.Logger,
 ) {
@@ -126,12 +107,11 @@ func PruneJobImages(
 	for _, ref := range refs {
 		inUse[jobImageTag(ref)] = true
 	}
-	keptDigest := keptDigests(entries, inUse)
 	for _, entry := range entries {
-		if !prunable(entry, inUse, keptDigest) {
+		name := nested(entry, "configuration", "name")
+		if tag := jobImageTag(name); tag == "" || inUse[tag] {
 			continue
 		}
-		name := nested(entry, "configuration", "name")
 		code, derr := exec.Exec(
 			ctx, []string{containerCLI, "image", imageDelete, name}, nil, io.Discard,
 		)
@@ -141,30 +121,4 @@ func PruneJobImages(
 		}
 		log.Info("removed old job image", "image", name)
 	}
-}
-
-// keptDigests are the digests of the images that stay. A pulled copy shares its
-// image with the kept tag, so it stays too.
-func keptDigests(entries []map[string]any, inUse map[string]bool) map[string]bool {
-	kept := map[string]bool{}
-	for _, entry := range entries {
-		name := nested(entry, "configuration", "name")
-		if tag := jobImageTag(name); tag != "" && inUse[tag] {
-			kept[nested(entry, "descriptor", "digest")] = true
-		}
-	}
-	delete(kept, "")
-	return kept
-}
-
-// prunable says whether an image is an old job image: a factory-job tag nothing
-// uses, or a pulled factory-job-image copy no kept image shares.
-func prunable(entry map[string]any, inUse, keptDigest map[string]bool) bool {
-	name := nested(entry, "configuration", "name")
-	if tag := jobImageTag(name); tag != "" {
-		return !inUse[tag]
-	}
-	digest := pulledDigest(name)
-	return digest != "" && !keptDigest[digest] &&
-		!keptDigest[nested(entry, "descriptor", "digest")]
 }

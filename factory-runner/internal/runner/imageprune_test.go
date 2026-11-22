@@ -41,15 +41,14 @@ func (p *pruneExec) Exec(
 }
 
 const pruneImages = `[
- {"configuration":{"name":"docker.io/library/factory-job:cur"}},
- {"configuration":{"name":"docker.io/library/factory-job:old1"}},
- {"configuration":{"name":"docker.io/library/factory-job:busy"}},
- {"configuration":{"name":"docker.io/library/factory-job:dev"}},
- {"configuration":{"name":"docker.io/library/golang:1.27"}},
- {"configuration":{"name":"ghcr.io/x/factory-job-image@sha256:abc"}}]`
+ {"configuration":{"name":"ghcr.io/xdoubleu/wardcase:cur"}},
+ {"configuration":{"name":"ghcr.io/xdoubleu/wardcase:old1"}},
+ {"configuration":{"name":"ghcr.io/xdoubleu/wardcase:busy"}},
+ {"configuration":{"name":"ghcr.io/xdoubleu/wardcase:dev"}},
+ {"configuration":{"name":"docker.io/library/golang:1.27"}}]`
 
 const pruneBoxes = `[{"configuration":{"image":{"reference":
-"docker.io/library/factory-job:busy"}}},
+"ghcr.io/xdoubleu/wardcase:busy"}}},
  {"configuration":{"image":{"reference":"ghcr.io/apple/builder:0.13"}}}]`
 
 func newPrune(images, boxes string) *pruneExec {
@@ -62,30 +61,11 @@ func quiet() *slog.Logger { return slog.New(slog.NewTextHandler(io.Discard, nil)
 
 func TestPruneKeepsTheCurrentReleaseAndImagesInUse(t *testing.T) {
 	x := newPrune(pruneImages, pruneBoxes)
-	image := "factory-job:cur"
+	image := "ghcr.io/xdoubleu/wardcase:cur"
 	runner.PruneJobImages(context.Background(), x, image, quiet())
 	assert.ElementsMatch(t, []string{
-		"docker.io/library/factory-job:old1",
-		"docker.io/library/factory-job:dev",
-		"ghcr.io/x/factory-job-image@sha256:abc",
-	}, x.deleted)
-}
-
-const sharedImages = `[
- {"configuration":{"name":"docker.io/library/factory-job:cur"},
-  "descriptor":{"digest":"sha256:cur"}},
- {"configuration":{"name":"ghcr.io/x/factory-job-image@sha256:cur"},
-  "descriptor":{"digest":"sha256:cur"}},
- {"configuration":{"name":"ghcr.io/x/factory-job-image@sha256:old"},
-  "descriptor":{"digest":"sha256:old"}},
- {"configuration":{"name":"ghcr.io/x/factory-job-image"}}]`
-
-func TestPruneKeepsThePulledCopyOfTheCurrentImage(t *testing.T) {
-	x := newPrune(sharedImages, "[]")
-	runner.PruneJobImages(context.Background(), x, "factory-job:cur", quiet())
-	assert.ElementsMatch(t, []string{
-		"ghcr.io/x/factory-job-image@sha256:old",
-		"ghcr.io/x/factory-job-image",
+		"ghcr.io/xdoubleu/wardcase:old1",
+		"ghcr.io/xdoubleu/wardcase:dev",
 	}, x.deleted)
 }
 
@@ -109,7 +89,7 @@ func TestPruneNeverFails(t *testing.T) {
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
-			image := "factory-job:cur"
+			image := "ghcr.io/xdoubleu/wardcase:cur"
 			require.NotPanics(t, func() {
 				runner.PruneJobImages(context.Background(), x, image, quiet())
 			})
@@ -120,7 +100,7 @@ func TestPruneNeverFails(t *testing.T) {
 
 func TestPruneStopsWhenContainersCannotBeListed(t *testing.T) {
 	x := newPrune(pruneImages, "")
-	image := "factory-job:cur"
+	image := "ghcr.io/xdoubleu/wardcase:cur"
 	runner.PruneJobImages(context.Background(), x, image, quiet())
 	// An unreadable container list must not make an image look unused.
 	assert.NotContains(t, strings.Join(x.deleted, ","), "busy")

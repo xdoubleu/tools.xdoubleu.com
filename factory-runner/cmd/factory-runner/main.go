@@ -19,10 +19,12 @@ import (
 	"tools.xdoubleu.com/selfupdate/appbundle"
 )
 
-// Release and UpdatePublicKey are set at build time. An empty key disables
-// self-update.
+// Release, WardcaseVersion and UpdatePublicKey are set at build time. An empty
+// key disables self-update; WardcaseVersion is the wardcase release whose base
+// image jobs run in.
 var (
 	Release         = runner.DevRelease //nolint:gochecknoglobals // stamped by -ldflags
+	WardcaseVersion = runner.DevRelease //nolint:gochecknoglobals // stamped by -ldflags
 	UpdatePublicKey = ""                //nolint:gochecknoglobals // stamped by -ldflags
 )
 
