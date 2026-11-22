@@ -37,11 +37,11 @@ the opposite of what the board needs.
   tools at the write level. An agent or a person may use them; a service
   identity gets a permission error. `AgentGrants` leaves the `factory_` tools
   out of the tool list of anyone without the grant. A person acts as
-  `human:<user id>`, never a browser, so Ready and routine management stay with
-  agents and the browser.
+  `human:<user id>` with their own role, so an admin may mark tasks Ready and
+  manage routines over MCP as in the browser.
 - The tools call the services as an agent actor (`agent:<user id>`), which is
-  neither a browser nor an admin. `TaskService.Move` lets an agent or a human admin in a browser move a task into
-  Ready (not other channels) and records the actor in a comment.
+  neither a browser nor an admin. `TaskService.Move` lets an agent or an admin, on
+  any channel, move a task into Ready and records the actor in a comment.
 - `factory_list_tasks` filters by status, repo, label (any case) and `query`,
   a case-insensitive search of titles and bodies run in SQL, so a routine finds
   the task it filed earlier by a stable key (a Sentry permalink) without

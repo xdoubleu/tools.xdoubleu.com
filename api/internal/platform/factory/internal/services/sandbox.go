@@ -189,7 +189,8 @@ func (s *TaskService) reportBug(
 }
 
 // backlogWaiting moves a task whose job found it depends on other tasks to
-// Backlog, naming them. A task with a pull request stays where it is.
+// Backlog, naming them, and records them so ResumeWaiting resumes it once they
+// merge. A task with a pull request stays where it is.
 func (s *JobService) backlogWaiting(
 	ctx context.Context,
 	job *models.Job,
@@ -198,8 +199,22 @@ func (s *JobService) backlogWaiting(
 	if job.PRURL != "" {
 		return nil
 	}
-	return s.finishTask(ctx, job.TaskID, systemAuthor,
+	if err := s.finishTask(ctx, job.TaskID, systemAuthor,
 		"Waiting on "+strings.Join(waiting, ", ")+
-			"; moved to Backlog until they are done.",
-		models.StatusBacklog)
+			"; moved to Backlog, and it resumes by itself once they are merged.",
+		models.StatusBacklog); err != nil {
+		return err
+	}
+	return s.tasks.SetWaitingOn(ctx, job.TaskID, refNumbers(waiting))
+}
+
+// refNumbers is the task numbers of "T-n" refs.
+func refNumbers(refs []string) []int64 {
+	out := make([]int64, 0, len(refs))
+	for _, r := range refs {
+		if n, err := strconv.ParseInt(strings.TrimPrefix(r, "T-"), 10, 64); err == nil {
+			out = append(out, n)
+		}
+	}
+	return out
 }

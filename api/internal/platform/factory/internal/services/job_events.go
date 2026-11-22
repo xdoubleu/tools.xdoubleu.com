@@ -105,7 +105,7 @@ func (s *JobService) ListEvents(
 	jobID uuid.UUID,
 	afterSeq int,
 ) ([]models.JobEvent, error) {
-	if !actor.CanMoveToReady() {
+	if !actor.IsBrowserAdmin() {
 		return nil, forbidden("only a human admin in a browser session can read a job log")
 	}
 	if _, err := s.jobs.Get(ctx, jobID); err != nil {
