@@ -1,4 +1,3 @@
-//nolint:testpackage // testing unexported service helpers
 package services
 
 import (
@@ -56,6 +55,7 @@ func TestCatalog_RejectsNonAdminBeforeTouchingStorage(t *testing.T) {
 
 	_, err := svc.FindDuplicates(ctx, member)
 	require.ErrorIs(t, err, ErrAdminRequired)
+	//nolint:exhaustruct // only Winner needed
 	_, err = svc.MergeBooks(ctx, member, MergeRequest{Winner: id})
 	require.ErrorIs(t, err, ErrAdminRequired)
 	require.ErrorIs(t, svc.StartResync(member, true), ErrAdminRequired)
@@ -107,6 +107,8 @@ func TestCatalog_AdminEditValidation(t *testing.T) {
 	require.ErrorIs(t, err, ErrMetadataRequired)
 
 	bad := "123"
-	_, err = svc.UpdateBook(ctx, admin, id, &models.Book{ISBN13: &bad}, "")
+	//nolint:exhaustruct // only ISBN13 needed
+	withBadISBN := &models.Book{ISBN13: &bad}
+	_, err = svc.UpdateBook(ctx, admin, id, withBadISBN, "")
 	require.ErrorIs(t, err, ErrISBNLength)
 }

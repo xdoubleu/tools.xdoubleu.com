@@ -1,4 +1,3 @@
-//nolint:testpackage // testing unexported package-level helpers
 package services
 
 import (

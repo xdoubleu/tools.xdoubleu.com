@@ -51,7 +51,8 @@ func MapError(err error) error {
 }
 
 func mapError(err error, extra ...connecttools.ErrorCode) error {
-	codes := append(extra,
+	codes := append([]connecttools.ErrorCode{}, extra...)
+	codes = append(codes,
 		connecttools.Code(services.ErrProposalNotFound, connect.CodeNotFound),
 		connecttools.Code(services.ErrExternalNotFound, connect.CodeNotFound),
 		connecttools.Code(services.ErrDerivedTag, connect.CodeInvalidArgument),
