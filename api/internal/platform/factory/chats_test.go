@@ -182,3 +182,30 @@ func TestLostChatJobStopsItsSession(t *testing.T) {
 	_, status := e.jobStatus(t, s.JobID)
 	assert.Equal(t, "lost", status)
 }
+
+func TestChatFeedAndForRunnerCheckWhoAsks(t *testing.T) {
+	e := newChatEnv(t, 1)
+	ctx := context.Background()
+	s, err := e.start(t)
+	require.NoError(t, err)
+	require.NoError(t, e.svc.Chats.RecordEvents(ctx, e.runnerID, s.ID, "",
+		[]models.ChatEventInput{{Kind: "assistant", Payload: "hi"}}))
+
+	session, events, err := e.svc.Chats.Feed(ctx, s.ID, 0, 0)
+	require.NoError(t, err)
+	assert.Equal(t, s.ID, session.ID)
+	require.Len(t, events, 1)
+	_, events, err = e.svc.Chats.Feed(ctx, s.ID, 1, 0)
+	require.NoError(t, err)
+	assert.Empty(t, events)
+	_, _, err = e.svc.Chats.Feed(ctx, uuid.New(), 0, 0)
+	assert.Error(t, err)
+
+	own, err := e.svc.Chats.ForRunner(ctx, e.runnerID, s.ID)
+	require.NoError(t, err)
+	assert.Equal(t, s.ID, own.ID)
+	_, err = e.svc.Chats.ForRunner(ctx, uuid.New(), s.ID)
+	assert.ErrorIs(t, err, services.ErrForbidden)
+	_, err = e.svc.Chats.ForRunner(ctx, e.runnerID, uuid.New())
+	assert.Error(t, err)
+}
