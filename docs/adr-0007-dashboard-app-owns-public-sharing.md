@@ -18,7 +18,7 @@ had no home.
 - It **owns no schema** and reads other apps only through exported methods on
   their structs (`BuildSharedSteam`, `BuildSharedLibrary`, `BuildSummary`, …).
 - `PublicGamesDashboardService`/`PublicReadingDashboardService`
-  (`connect_public.go`) have **no auth middleware**. Each request carries an
+  (`connect/public.go`) have **no auth middleware**. Each request carries an
   opaque token (`global.profile_shares`, keyed `(user_id, app)`) resolving to
   the owner. **Public handlers must never read the user-context key.**
 - Owners manage tokens and display name via `DashboardService`

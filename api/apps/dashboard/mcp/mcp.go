@@ -1,4 +1,5 @@
-package dashboard
+// Package mcp exposes the dashboard app's Today summary as an MCP tool.
+package mcp
 
 import (
 	"context"
@@ -6,16 +7,15 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"google.golang.org/protobuf/proto"
 
+	"tools.xdoubleu.com/apps/dashboard/connect"
 	dashboardv1 "tools.xdoubleu.com/gen/dashboard/v1"
 	"tools.xdoubleu.com/internal/platform/mcptools"
 )
 
 const mcpAppName = "dashboard"
 
-// RegisterMCPTools exposes the Today summary as a read-only MCP tool.
-func (a *Dashboard) RegisterMCPTools(srv *mcp.Server) {
-	h := &todayConnectHandler{app: a}
-
+// Register exposes the Today summary as a read-only MCP tool.
+func Register(srv *mcp.Server, h *connect.TodayHandler) {
 	mcptools.AddReadTool(srv, mcpAppName, "dashboard_get_today",
 		"What needs the user's attention today across the apps they can use: "+
 			"books being read, unread feed items, today's meals, the shopping "+
