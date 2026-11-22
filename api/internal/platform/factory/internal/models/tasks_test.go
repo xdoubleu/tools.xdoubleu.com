@@ -139,3 +139,9 @@ func TestParseTaskRefRejectsNonNumbers(t *testing.T) {
 		assert.False(t, ok, ref)
 	}
 }
+
+func TestHasLabel(t *testing.T) {
+	assert.True(t, models.HasLabel([]string{"bug", "Spike"}, models.LabelSpike))
+	assert.False(t, models.HasLabel([]string{"bug"}, models.LabelSpike))
+	assert.False(t, models.HasLabel(nil, models.LabelSpike))
+}

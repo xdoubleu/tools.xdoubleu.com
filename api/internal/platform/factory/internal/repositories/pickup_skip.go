@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/internal/kit/database/postgres"
+	"tools.xdoubleu.com/internal/platform/factory/internal/models"
 )
 
 // skipPrefix marks a pickup_blocked reason NextReady set itself, so it can
@@ -100,6 +101,10 @@ func (r *TasksRepository) pickupSkipReasons(
 	for _, x := range rows {
 		if slices.Contains(x.labels, "epic") {
 			reasons[x.id] = "it is an epic; its sub-tasks are picked up instead."
+			continue
+		}
+		if models.HasLabel(x.labels, models.LabelSpike) {
+			reasons[x.id] = models.SpikeReadyMessage
 			continue
 		}
 		ids = append(ids, x.id)

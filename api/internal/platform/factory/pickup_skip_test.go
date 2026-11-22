@@ -60,6 +60,15 @@ func TestPickupSkipsAnEpic(t *testing.T) {
 	env.assertSkipped(t, epic, "epic")
 }
 
+func TestPickupSkipsASpike(t *testing.T) {
+	env := browserJobEnv(t)
+	autoPickup(t, true)
+	spike := seedTask(t, "spike", "Do it.", "ready", []string{"spike"})
+
+	assert.Nil(t, env.claim(t))
+	env.assertSkipped(t, spike, "interactive session")
+}
+
 func TestPickupSkipsTheParentOfAnotherTask(t *testing.T) {
 	env := browserJobEnv(t)
 	autoPickup(t, true)
