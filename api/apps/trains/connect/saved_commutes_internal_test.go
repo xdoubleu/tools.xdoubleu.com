@@ -1,4 +1,4 @@
-package trains
+package connect
 
 import (
 	"context"
@@ -14,7 +14,7 @@ import (
 // TestSavedCommutes_Unauthenticated: every saved-commute RPC rejects a call
 // with no user in context.
 func TestSavedCommutes_Unauthenticated(t *testing.T) {
-	h := &trainsConnectHandler{app: nil}
+	h := NewHandler(nil)
 	ctx := context.Background()
 
 	_, err := h.ListSavedCommutes(ctx, &trainsv1.ListSavedCommutesRequest{})

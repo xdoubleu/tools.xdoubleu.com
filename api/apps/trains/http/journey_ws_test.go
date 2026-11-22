@@ -1,4 +1,4 @@
-package services_test
+package http_test
 
 import (
 	"context"
@@ -10,12 +10,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	trainshttp "tools.xdoubleu.com/apps/trains/http"
 	"tools.xdoubleu.com/apps/trains/internal/models"
 	"tools.xdoubleu.com/apps/trains/internal/services"
 	"tools.xdoubleu.com/internal/kit/logging"
 )
 
-// fakeDetailFetcher lets JourneyWSService be tested without a database.
+// fakeDetailFetcher lets JourneyWS be tested without a database.
 type fakeDetailFetcher struct {
 	calls int32
 	err   error
@@ -34,9 +35,9 @@ func (f *fakeDetailFetcher) GetJourneyDetail(
 	}, nil
 }
 
-func TestJourneyWSService_EnsureTopic_IsIdempotent(t *testing.T) {
+func TestJourneyWS_EnsureTopic_IsIdempotent(t *testing.T) {
 	fake := &fakeDetailFetcher{} //nolint:exhaustruct //calls/err zero-valued deliberately
-	svc := services.NewJourneyWSService(
+	svc := trainshttp.NewJourneyWS(
 		context.Background(), logging.NewNopLogger(), []string{"*"}, fake,
 	)
 
@@ -49,9 +50,9 @@ func TestJourneyWSService_EnsureTopic_IsIdempotent(t *testing.T) {
 	assert.Equal(t, int32(1), atomic.LoadInt32(&fake.calls))
 }
 
-func TestJourneyWSService_PushAll_SkipsFailingTopicsAndContinues(t *testing.T) {
+func TestJourneyWS_PushAll_SkipsFailingTopicsAndContinues(t *testing.T) {
 	fake := &fakeDetailFetcher{} //nolint:exhaustruct //calls/err zero-valued deliberately
-	svc := services.NewJourneyWSService(
+	svc := trainshttp.NewJourneyWS(
 		context.Background(), logging.NewNopLogger(), []string{"*"}, fake,
 	)
 	svc.EnsureTopic("journey-a")
@@ -63,17 +64,17 @@ func TestJourneyWSService_PushAll_SkipsFailingTopicsAndContinues(t *testing.T) {
 	assert.GreaterOrEqual(t, atomic.LoadInt32(&fake.calls), int32(2))
 }
 
-func TestJourneyWSService_Handler_ReturnsNonNilHandlerFunc(t *testing.T) {
+func TestJourneyWS_Handler_ReturnsNonNilHandlerFunc(t *testing.T) {
 	fake := &fakeDetailFetcher{} //nolint:exhaustruct //calls/err zero-valued deliberately
-	svc := services.NewJourneyWSService(
+	svc := trainshttp.NewJourneyWS(
 		context.Background(), logging.NewNopLogger(), []string{"*"}, fake,
 	)
 	require.NotNil(t, svc.Handler())
 }
 
-func TestJourneyWSService_PushAll_DropsEndedJourneys(t *testing.T) {
+func TestJourneyWS_PushAll_DropsEndedJourneys(t *testing.T) {
 	fake := &fakeDetailFetcher{} //nolint:exhaustruct //calls/err zero-valued deliberately
-	svc := services.NewJourneyWSService(
+	svc := trainshttp.NewJourneyWS(
 		context.Background(), logging.NewNopLogger(), []string{"*"}, fake,
 	)
 	leg := func(alight time.Time) string {

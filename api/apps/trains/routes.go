@@ -4,8 +4,11 @@ import (
 	"fmt"
 	"net/http"
 
-	"connectrpc.com/connect/v2"
+	connectv2 "connectrpc.com/connect/v2"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 
+	"tools.xdoubleu.com/apps/trains/connect"
+	trainsmcp "tools.xdoubleu.com/apps/trains/mcp"
 	"tools.xdoubleu.com/gen/trains/v1/trainsv1connect"
 	iapp "tools.xdoubleu.com/internal/app"
 )
@@ -19,15 +22,21 @@ func (a *Trains) Routes(prefix string, mux *http.ServeMux) {
 		func(next http.HandlerFunc) http.HandlerFunc {
 			return a.Auth.AppAccess(prefix, next)
 		},
-		func(s *connect.Server) {
+		func(s *connectv2.Server) {
 			trainsv1connect.RegisterTrainServiceHandler(
 				s,
-				&trainsConnectHandler{app: a},
+				connect.NewHandler(a.Services),
 			)
 		},
 	)
 	mux.HandleFunc(
 		fmt.Sprintf("GET /%s/api/journeys/live", prefix),
-		a.Auth.AppAccess(prefix, a.Services.JourneyWS.Handler()),
+		a.Auth.AppAccess(prefix, a.journeyWS.Handler()),
 	)
+}
+
+// RegisterMCPTools exposes the trains read RPCs, which are public timetable
+// data for any caller with trains access.
+func (a *Trains) RegisterMCPTools(srv *mcp.Server) {
+	trainsmcp.Register(srv, a.Services)
 }

@@ -1,4 +1,5 @@
-package services
+// Package http serves the trains live-journey websocket.
+package http
 
 import (
 	"context"
@@ -8,11 +9,11 @@ import (
 	"time"
 
 	"tools.xdoubleu.com/apps/trains/internal/models"
+	"tools.xdoubleu.com/apps/trains/internal/services"
 	"tools.xdoubleu.com/internal/platform/communication/wstools"
 )
 
-// journeyDetailFetcher is the slice of JourneyDetailService JourneyWSService
-// needs.
+// journeyDetailFetcher is the slice of JourneyDetailService JourneyWS needs.
 type journeyDetailFetcher interface {
 	GetJourneyDetail(
 		ctx context.Context,
@@ -40,11 +41,11 @@ const pushInterval = 30 * time.Second
 // topicGrace is how long a journey's topic outlives its arrival time.
 const topicGrace = time.Hour
 
-// JourneyWSService serves a lazily-created wstools topic per live journey:
-// GetJourneyDetail calls EnsureTopic, and Run broadcasts fresh detail on a
-// timer. A topic is dropped once its journey has ended, so only journeys that
-// can still change are polled.
-type JourneyWSService struct {
+// JourneyWS is the services.JourneyTopics adapter: a lazily-created wstools
+// topic per live journey (opened by JourneyWatchService.Watch), with Run
+// broadcasting fresh detail on a timer. A topic is dropped once its journey
+// has ended, so only journeys that can still change are polled.
+type JourneyWS struct {
 	logger         *slog.Logger
 	detail         journeyDetailFetcher
 	handler        wstools.WebSocketHandler[journeySubscribeDto]
@@ -54,19 +55,21 @@ type JourneyWSService struct {
 	topics map[string]*wstools.Topic
 }
 
-func NewJourneyWSService(
+var _ services.JourneyTopics = (*JourneyWS)(nil)
+
+func NewJourneyWS(
 	ctx context.Context,
 	logger *slog.Logger,
 	allowedOrigins []string,
 	detail journeyDetailFetcher,
-) *JourneyWSService {
+) *JourneyWS {
 	const topicWorkers = 1
 	const topicQueueSize = 20
 	handler := wstools.CreateWebSocketHandler[journeySubscribeDto](
 		ctx, logger, topicWorkers, topicQueueSize,
 	)
 	//nolint:exhaustruct //mu is a sync.RWMutex, zero-value ready to use
-	return &JourneyWSService{
+	return &JourneyWS{
 		logger:         logger,
 		detail:         detail,
 		handler:        handler,
@@ -76,12 +79,12 @@ func NewJourneyWSService(
 }
 
 // Handler upgrades and serves subscriptions for all journey topics.
-func (s *JourneyWSService) Handler() http.HandlerFunc {
+func (s *JourneyWS) Handler() http.HandlerFunc {
 	return s.handler.Handler()
 }
 
 // EnsureTopic registers a topic for journeyID if missing.
-func (s *JourneyWSService) EnsureTopic(journeyID string) {
+func (s *JourneyWS) EnsureTopic(journeyID string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if _, ok := s.topics[journeyID]; ok {
@@ -103,7 +106,7 @@ func (s *JourneyWSService) EnsureTopic(journeyID string) {
 }
 
 // Run pushes on every tick until ctx is done.
-func (s *JourneyWSService) Run(ctx context.Context) {
+func (s *JourneyWS) Run(ctx context.Context) {
 	ticker := time.NewTicker(pushInterval)
 	defer ticker.Stop()
 	for {
@@ -118,7 +121,7 @@ func (s *JourneyWSService) Run(ctx context.Context) {
 
 // PushAll broadcasts fresh detail to every journey topic, first dropping the
 // topics of journeys that ended more than topicGrace ago.
-func (s *JourneyWSService) PushAll(ctx context.Context) {
+func (s *JourneyWS) PushAll(ctx context.Context) {
 	s.dropEnded()
 	s.mu.RLock()
 	topics := make([]*wstools.Topic, 0, len(s.topics))
@@ -140,11 +143,11 @@ func (s *JourneyWSService) PushAll(ctx context.Context) {
 	}
 }
 
-func (s *JourneyWSService) dropEnded() {
+func (s *JourneyWS) dropEnded() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	for id, topic := range s.topics {
-		refs, err := DecodeJourneyID(id)
+		refs, err := services.DecodeJourneyID(id)
 		if err != nil || time.Since(refs[len(refs)-1].AlightTime) < topicGrace {
 			continue
 		}

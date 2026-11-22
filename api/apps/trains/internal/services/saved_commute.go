@@ -9,7 +9,6 @@ import (
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/trains/internal/models"
-	"tools.xdoubleu.com/apps/trains/internal/repositories"
 )
 
 // ErrInvalidCommute is a caller-fixable request: bad label, origin equal to
@@ -18,23 +17,31 @@ var ErrInvalidCommute = errors.New("invalid saved commute")
 
 const maxCommuteLabelLen = 100
 
+// SavedCommuteStore persists saved commutes; every method is scoped by user.
+type SavedCommuteStore interface {
+	ListByUser(ctx context.Context, userID string) ([]models.SavedCommute, error)
+	Create(ctx context.Context, sc models.SavedCommute) (models.SavedCommute, error)
+	Update(ctx context.Context, sc models.SavedCommute) (models.SavedCommute, error)
+	Delete(ctx context.Context, id uuid.UUID, userID string) error
+}
+
 // SavedCommutesService backs trains.v1's saved-commute RPCs.
 type SavedCommutesService struct {
-	repos    *repositories.Repositories
+	store    SavedCommuteStore
 	stations *StationsService
 }
 
 func NewSavedCommutesService(
-	repos *repositories.Repositories, stations *StationsService,
+	store SavedCommuteStore, stations *StationsService,
 ) *SavedCommutesService {
-	return &SavedCommutesService{repos: repos, stations: stations}
+	return &SavedCommutesService{store: store, stations: stations}
 }
 
 // List returns the user's saved commutes, ordered.
 func (s *SavedCommutesService) List(
 	ctx context.Context, userID string,
 ) ([]models.SavedCommute, error) {
-	list, err := s.repos.SavedCommutes.ListByUser(ctx, userID)
+	list, err := s.store.ListByUser(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -67,7 +74,7 @@ func (s *SavedCommutesService) Create(
 		return models.SavedCommute{}, err
 	}
 	//nolint:exhaustruct // remaining fields set by the repository
-	created, err := s.repos.SavedCommutes.Create(ctx, models.SavedCommute{
+	created, err := s.store.Create(ctx, models.SavedCommute{
 		UserID:            userID,
 		Label:             label,
 		OriginStopID:      originStopID,
@@ -96,7 +103,7 @@ func (s *SavedCommutesService) Update(
 		)
 	}
 	//nolint:exhaustruct // only id/user/label/position are updated
-	updated, err := s.repos.SavedCommutes.Update(ctx, models.SavedCommute{
+	updated, err := s.store.Update(ctx, models.SavedCommute{
 		ID: id, UserID: userID, Label: label, Position: position,
 	})
 	if err != nil {
@@ -110,7 +117,7 @@ func (s *SavedCommutesService) Update(
 func (s *SavedCommutesService) Delete(
 	ctx context.Context, userID string, id uuid.UUID,
 ) error {
-	return s.repos.SavedCommutes.Delete(ctx, id, userID)
+	return s.store.Delete(ctx, id, userID)
 }
 
 func (s *SavedCommutesService) validate(

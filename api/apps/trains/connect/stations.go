@@ -1,4 +1,4 @@
-package trains
+package connect
 
 import (
 	"context"
@@ -6,11 +6,11 @@ import (
 	trainsv1 "tools.xdoubleu.com/gen/trains/v1"
 )
 
-func (h *trainsConnectHandler) SearchStations(
+func (h *Handler) SearchStations(
 	ctx context.Context,
 	req *trainsv1.SearchStationsRequest,
 ) (*trainsv1.SearchStationsResponse, error) {
-	stations, err := h.app.Services.Stations.SearchStations(ctx, req.GetQuery())
+	stations, err := h.svc.Stations.SearchStations(ctx, req.GetQuery())
 	if err != nil {
 		return nil, mapError(err)
 	}

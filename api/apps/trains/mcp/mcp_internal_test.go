@@ -1,4 +1,4 @@
-package trains
+package mcp
 
 import (
 	"context"
@@ -10,16 +10,20 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 
+	"tools.xdoubleu.com/apps/trains/connect"
 	"tools.xdoubleu.com/apps/trains/internal/mocks"
+	"tools.xdoubleu.com/apps/trains/internal/repositories"
 	"tools.xdoubleu.com/apps/trains/internal/services"
 	"tools.xdoubleu.com/internal/kit/constants"
 	"tools.xdoubleu.com/internal/kit/database/postgres"
-	"tools.xdoubleu.com/internal/kit/logging"
 	"tools.xdoubleu.com/internal/kit/testhelper"
-	sharedmocks "tools.xdoubleu.com/internal/mocks"
 	sharedmodels "tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/platform/mcptools"
 )
+
+type noTopics struct{}
+
+func (noTopics) EnsureTopic(string) {}
 
 // TestMCPTools exercises the tool wrappers over the recorded iRail responses.
 func TestMCPTools(t *testing.T) {
@@ -27,11 +31,8 @@ func TestMCPTools(t *testing.T) {
 	var pg postgres.DB = testhelper.ConnectTestDB(cfg.DBDsn)
 
 	const mcpUserID = "mcp-trains-user"
-	app := NewInner(
-		context.Background(),
-		sharedmocks.NewMockedAuthService(mcpUserID),
-		logging.NewNopLogger(), cfg, pg, mocks.NewFixtureClient(t),
-	)
+	svc := services.New(mocks.NewFixtureClient(t), repositories.New(pg).SavedCommutes)
+	svc.WatchJourneys(noTopics{})
 
 	ctx := context.WithValue(
 		context.Background(),
@@ -39,7 +40,7 @@ func TestMCPTools(t *testing.T) {
 		//nolint:exhaustruct // only ID and AppAccess matter for the gate
 		sharedmodels.User{ID: mcpUserID, AppAccess: []string{mcpAppName}},
 	)
-	h := &trainsConnectHandler{app: app}
+	h := &tools{rpc: connect.NewHandler(svc), irail: svc.Irail}
 
 	msg, err := h.mcpSearchStations(ctx, mcpSearchStationsArgs{Query: "brussel-noord"})
 	require.NoError(t, err)
@@ -71,21 +72,17 @@ func TestMCPTools(t *testing.T) {
 }
 
 func TestMCPIrailDiagnostic(t *testing.T) {
-	cfg := testhelper.NewTestConfig()
-	app := NewInner(
-		context.Background(),
-		sharedmocks.NewMockedAuthService("diag"), logging.NewNopLogger(), cfg,
-		testhelper.ConnectTestDB(cfg.DBDsn), mocks.NewFixtureClient(t),
-	)
+	svc := services.New(mocks.NewFixtureClient(t), nil)
+	h := &tools{rpc: connect.NewHandler(svc), irail: svc.Irail}
 
 	//nolint:exhaustruct //no vehicle: summary only
-	msg, err := app.mcpIrailDiagnostic(context.Background(), mcpIrailDiagnosticArgs{})
+	msg, err := h.mcpIrailDiagnostic(context.Background(), mcpIrailDiagnosticArgs{})
 	require.NoError(t, err)
 	out := mcpJSON(t, msg)
 	assert.Contains(t, out, "rate_limited")
 	assert.NotContains(t, out, "vehicle")
 
-	msg, err = app.mcpIrailDiagnostic(context.Background(), mcpIrailDiagnosticArgs{
+	msg, err = h.mcpIrailDiagnostic(context.Background(), mcpIrailDiagnosticArgs{
 		VehicleID: "IC530", Date: "2026-10-23",
 	})
 	require.NoError(t, err)
@@ -93,13 +90,13 @@ func TestMCPIrailDiagnostic(t *testing.T) {
 	assert.Contains(t, out, "BE.NMBS.IC530")
 	assert.Contains(t, out, "Welkenraedt", "the raw iRail response is included")
 
-	msg, err = app.mcpIrailDiagnostic(context.Background(), mcpIrailDiagnosticArgs{
+	msg, err = h.mcpIrailDiagnostic(context.Background(), mcpIrailDiagnosticArgs{
 		VehicleID: "IC1", Date: "2026-10-23",
 	})
 	require.NoError(t, err)
 	assert.Contains(t, mcpJSON(t, msg), "not found")
 
-	_, err = app.mcpIrailDiagnostic(context.Background(), mcpIrailDiagnosticArgs{
+	_, err = h.mcpIrailDiagnostic(context.Background(), mcpIrailDiagnosticArgs{
 		VehicleID: "IC530", Date: "yesterday",
 	})
 	require.Error(t, err)

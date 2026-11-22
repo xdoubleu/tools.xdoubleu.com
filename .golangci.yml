@@ -319,6 +319,32 @@ linters:
               desc: services reach storage through their own interfaces
             - pkg: net/http
               desc: services know no transport
+        hexagonal-trains-adapters:
+          files:
+            - "**/apps/trains/connect/**"
+            - "**/apps/trains/mcp/**"
+            - "**/apps/trains/http/**"
+            - "!**/*_test.go"
+          deny:
+            - pkg: tools.xdoubleu.com/apps/trains/internal/repositories
+              desc: adapters call services, never repositories
+            - pkg: github.com/jackc/pgx
+              desc: adapters do not touch the database
+            - pkg: tools.xdoubleu.com/internal/kit/database/postgres
+              desc: adapters do not touch the database
+        hexagonal-trains-services:
+          files:
+            - "**/apps/trains/internal/services/**"
+            - "!**/*_test.go"
+          deny:
+            - pkg: connectrpc.com/connect
+              desc: services know no transport
+            - pkg: tools.xdoubleu.com/gen
+              desc: services use domain types, not generated protos
+            - pkg: github.com/jackc/pgx
+              desc: services reach storage through their own interfaces
+            - pkg: net/http
+              desc: services know no transport
         # The factory services import only kit and the factory's own models;
         # agent accounts, GitHub, Slack and auth reach them through ports that
         # the root wiring adapts, so the factory can be extracted.

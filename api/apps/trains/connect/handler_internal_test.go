@@ -1,4 +1,4 @@
-package trains
+package connect
 
 import (
 	"errors"
