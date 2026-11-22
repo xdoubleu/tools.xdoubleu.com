@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 )
 
 // SessionRequest is one headless run on a branch of a repository.
@@ -19,6 +20,11 @@ type SessionRequest struct {
 	Overflow string
 	// OpenCodeModel is the OpenRouter model id when OpenCode runs.
 	OpenCodeModel string
+	// Dir runs the session in this existing checkout on its current branch
+	// instead of cloning Source: no new branch, and the checkout is never removed.
+	Dir string
+	// ResumeID continues this session of Harness.
+	ResumeID string
 }
 
 // SessionResult is how a session ended.
@@ -33,6 +39,9 @@ type SessionResult struct {
 	// Branch is the session's branch; Path its worktree, empty once removed.
 	Branch string
 	Path   string
+	// SessionID and Model are the last harness's, when its output named them.
+	SessionID string
+	Model     string
 	// Left is what the worktree held when the run ended.
 	Left Leftover
 }
@@ -52,18 +61,30 @@ func (r *Runner) RunSession(
 	rr.Git = func(ctx context.Context, dir string, args ...string) (string, error) {
 		return r.Git(ctx, dir, append(safeGit(), args...)...)
 	}
-	sess, err := rr.checkout(ctx, req.Source)
+	var sess session
+	if req.Dir != "" {
+		sess, err = rr.existing(ctx, req.Dir, req.Branch)
+	} else {
+		sess, err = rr.checkout(ctx, req.Source)
+	}
 	if err != nil {
 		return failed(), err
 	}
 	res, runErr := rr.loop(ctx, sess, Request{
 		Dir: sess.path, Harness: req.Harness, Args: []string{req.Prompt},
 		Print: true, InPlace: false,
-	})
-	left, removed := rr.finish(context.WithoutCancel(ctx), sess)
+	}, req.ResumeID)
+	var left Leftover
+	removed := false
+	if req.Dir != "" {
+		left = rr.inspect(context.WithoutCancel(ctx), sess)
+	} else {
+		left, removed = rr.finish(context.WithoutCancel(ctx), sess)
+	}
 	out := SessionResult{
 		ExitCode: res.code, Harness: res.harness, Continued: res.continued,
 		Limited: res.limited, Branch: sess.branch, Path: sess.path, Left: left,
+		SessionID: res.sessionID, Model: res.model,
 	}
 	if removed {
 		out.Path = ""
@@ -71,10 +92,32 @@ func (r *Runner) RunSession(
 	return out, runErr
 }
 
+// existing is the caller's own checkout on its branch, which wardcase leaves in
+// place. A non-empty branch must be the one checked out.
+func (r *Runner) existing(ctx context.Context, dir, branch string) (session, error) {
+	top, ok := r.toplevel(ctx, dir)
+	if !ok {
+		return none(), fmt.Errorf("%s is not a git checkout", dir)
+	}
+	head, err := r.Git(ctx, top, "rev-parse", "--abbrev-ref", "HEAD")
+	if err != nil {
+		return none(), fmt.Errorf("read the checkout's branch: %w", err)
+	}
+	head = strings.TrimSpace(head)
+	if head == "HEAD" {
+		return none(), errors.New("the checkout has no branch checked out")
+	}
+	if branch != "" && branch != head {
+		return none(), fmt.Errorf("the checkout is on branch %s, not %s", head, branch)
+	}
+	return session{path: top, branch: head, home: top}, nil
+}
+
 func failed() SessionResult {
 	return SessionResult{
 		ExitCode: -1, Harness: "", Continued: false, Limited: false, Branch: "",
-		Path: "", Left: Leftover{Uncommitted: 0, Unpushed: 0, Own: 0, PR: "", PRURL: ""},
+		SessionID: "", Model: "", Path: "",
+		Left: Leftover{Uncommitted: 0, Unpushed: 0, Own: 0, PR: "", PRURL: ""},
 	}
 }
 

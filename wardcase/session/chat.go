@@ -72,7 +72,7 @@ func (c *Chat) Close(ctx context.Context) Result {
 	left, removed := c.c.Close(ctx)
 	res := Result{
 		ExitCode: 0, Harness: c.harness, Continued: false, Limited: false,
-		Branch: c.c.Branch(), Path: c.c.Path(),
+		Branch: c.c.Branch(), Path: c.c.Path(), SessionID: "", Model: "",
 		Uncommitted: left.Uncommitted, Unpushed: left.Unpushed,
 	}
 	if removed {

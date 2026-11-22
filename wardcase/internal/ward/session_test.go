@@ -66,7 +66,7 @@ func (sf *sessionFixture) request(branch string) ward.SessionRequest {
 	return ward.SessionRequest{
 		Source: ward.Source{URL: sf.origin, Base: "main", Branch: branch, Token: ""},
 		Prompt: "fix it", Harness: ward.Claude, Fallback: "", Overflow: "",
-		OpenCodeModel: "",
+		OpenCodeModel: "", Dir: "", ResumeID: "",
 	}
 }
 
@@ -244,4 +244,35 @@ func TestARunnerErrorStillReportsTheWorktree(t *testing.T) {
 	require.ErrorIs(t, err, io.ErrClosedPipe)
 	assert.Equal(t, -1, res.ExitCode)
 	assert.Equal(t, "agent/a", res.Branch)
+}
+
+func TestASessionInAnExistingCheckoutKeepsItAndResumes(t *testing.T) {
+	sf := newSessionFixture(t)
+	dir, err := filepath.EvalSymlinks(originRepo(t))
+	require.NoError(t, err)
+	gitIn(t, dir, "checkout", "-q", "-b", "agent/own")
+	req := sf.request("agent/own")
+	req.Source = ward.Source{URL: "", Base: "", Branch: "agent/own", Token: ""}
+	req.Dir, req.ResumeID = dir, "s-0"
+	sf.f.box.act = func(_ int, r run, _ io.Writer) int {
+		assert.Equal(t, dir, r.spec.CloneDir)
+		return 0
+	}
+	res, err := sf.f.r.RunSession(context.Background(), req)
+	require.NoError(t, err)
+	assert.Equal(t, dir, res.Path, "an existing checkout is never removed")
+	assert.Equal(t, "agent/own", res.Branch)
+	assert.DirExists(t, dir)
+
+	req.Branch = "other"
+	_, err = sf.f.r.RunSession(context.Background(), req)
+	require.ErrorContains(t, err, "not other")
+}
+
+func TestASessionInANonCheckoutFails(t *testing.T) {
+	sf := newSessionFixture(t)
+	req := sf.request("")
+	req.Dir = t.TempDir()
+	_, err := sf.f.r.RunSession(context.Background(), req)
+	require.ErrorContains(t, err, "not a git checkout")
 }

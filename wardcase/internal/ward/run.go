@@ -81,6 +81,9 @@ type outcome struct {
 	code    int
 	limited bool
 	resets  time.Time
+	// sessionID and model are what the harness's output named, or "".
+	sessionID string
+	model     string
 }
 
 // Run runs the request, going on to the next harness at a usage limit as the
@@ -91,7 +94,7 @@ func (r *Runner) Run(ctx context.Context, req Request) (int, error) {
 		return -1, err
 	}
 	defer func() { r.finish(context.WithoutCancel(ctx), sess) }()
-	res, err := r.loop(ctx, sess, req)
+	res, err := r.loop(ctx, sess, req, "")
 	return res.code, err
 }
 
@@ -104,13 +107,18 @@ type loopResult struct {
 	continued bool
 	// limited says the last harness stopped at its usage limit too.
 	limited bool
+	// sessionID and model are the last harness's, when its output named them.
+	sessionID string
+	model     string
 }
 
 // loop runs the request in the session's worktree, handing over at a usage limit.
+// A non-empty resume continues that session of the first harness.
 func (r *Runner) loop(
 	ctx context.Context,
 	sess session,
 	req Request,
+	resume string,
 ) (loopResult, error) {
 	name := req.Harness
 	if name == "" {
@@ -127,18 +135,27 @@ func (r *Runner) loop(
 	if req.Print {
 		var err error
 		if prompt, err = r.prompt(req.Args); err != nil {
-			return loopResult{code: -1, harness: name, continued: false, limited: false}, err
+			return loopResult{
+				code: -1, harness: name, continued: false, limited: false, sessionID: "",
+				model: "",
+			}, err
 		}
 	}
 	task := prompt
-	out := loopResult{code: 0, harness: name, continued: false, limited: false}
+	out := loopResult{
+		code: 0, harness: name, continued: false, limited: false, sessionID: "",
+		model: "",
+	}
 	for {
-		res, runErr := r.runOnce(ctx, name, checkout, mounts, args, prompt, req.Print)
+		res, runErr := r.runOnce(ctx, name, checkout, mounts, args, prompt, req.Print,
+			resume)
+		resume = ""
 		if runErr != nil {
 			out.code = -1
 			return out, runErr
 		}
 		out.code, out.limited = res.code, res.limited
+		out.sessionID, out.model = res.sessionID, res.model
 		next := r.Config.next(name)
 		if !res.limited || next == "" || !r.mayOverflow(name, next, res.resets, req.Print) {
 			return out, nil
@@ -257,6 +274,7 @@ func (r *Runner) runOnce(
 	args []string,
 	prompt string,
 	headless bool,
+	resume string,
 ) (outcome, error) {
 	h, env, egress, err := r.harness(name)
 	if err != nil {
@@ -294,10 +312,20 @@ func (r *Runner) runOnce(
 
 	started := r.now()
 	if headless {
-		w := &limitWriter{h: h, out: r.Out, buf: nil, limited: false, resets: time.Time{}}
-		code, execErr := session.Exec(ctx, h.Command(), prompt, w)
+		w := &limitWriter{
+			h: h, out: r.Out, buf: nil, limited: false, resets: time.Time{},
+			sessionID: "", model: "",
+		}
+		command := h.Command()
+		if resume != "" {
+			command = h.Resume(resume)
+		}
+		code, execErr := session.Exec(ctx, command, prompt, w)
 		w.flush()
-		return outcome{code: code, limited: w.limited, resets: w.resets}, execErr
+		return outcome{
+			code: code, limited: w.limited, resets: w.resets,
+			sessionID: w.sessionID, model: w.model,
+		}, execErr
 	}
 	attacher, ok := session.(vm.Attacher)
 	if !ok {
@@ -305,7 +333,9 @@ func (r *Runner) runOnce(
 	}
 	code, err := attacher.Attach(ctx, h.Interactive(args), r.In, r.Out, r.Terminal)
 	if err != nil || name != Claude {
-		return outcome{code: code, limited: false, resets: time.Time{}}, err
+		return outcome{
+			code: code, limited: false, resets: time.Time{}, sessionID: "", model: "",
+		}, err
 	}
 	limited, resets := false, time.Time{}
 	if t := latestTranscript(sessionDir); t != "" {
@@ -313,7 +343,9 @@ func (r *Runner) runOnce(
 			limited, resets = ClaudeLimited(sessionDir)
 		}
 	}
-	return outcome{code: code, limited: limited, resets: resets}, nil
+	return outcome{
+		code: code, limited: limited, resets: resets, sessionID: "", model: "",
+	}, nil
 }
 
 // harness builds the named harness, its environment and the proxy's credentials.
@@ -389,6 +421,9 @@ type limitWriter struct {
 	buf     []byte
 	limited bool
 	resets  time.Time
+	// sessionID and model are the last the output named.
+	sessionID string
+	model     string
 }
 
 func (w *limitWriter) Write(p []byte) (int, error) {
@@ -408,6 +443,14 @@ func (w *limitWriter) Write(p []byte) (int, error) {
 }
 
 func (w *limitWriter) line(l []byte) {
+	if id := w.h.SessionID(l); id != "" {
+		w.sessionID = id
+	}
+	if m, ok := w.h.(vm.ModelReporter); ok {
+		if model := m.Model(l); model != "" {
+			w.model = model
+		}
+	}
 	if hit, at := w.h.LimitFrom(l); hit {
 		w.limited, w.resets = true, at
 	}

@@ -21,6 +21,7 @@ import (
 type fakeBox struct {
 	act  func(spec vm.SandboxSpec, out io.Writer) int
 	runs int
+	cmds [][]string
 }
 
 func (b *fakeBox) Run(ctx context.Context, spec vm.SandboxSpec) (int, error) {
@@ -40,9 +41,10 @@ type fakeSession struct {
 }
 
 func (s fakeSession) Exec(
-	_ context.Context, _ []string, _ string, out io.Writer,
+	_ context.Context, command []string, _ string, out io.Writer,
 ) (int, error) {
 	s.box.runs++
+	s.box.cmds = append(s.box.cmds, command)
 	return s.box.act(s.spec, out), nil
 }
 
@@ -51,6 +53,14 @@ func (fakeSession) Close() {}
 type secrets map[string]string
 
 func (s secrets) Get(name string) (string, error) { return s[name], nil }
+
+// realDir is a temp directory with symlinks resolved, as git reports it.
+func realDir(t *testing.T) string {
+	t.Helper()
+	dir, err := filepath.EvalSymlinks(t.TempDir())
+	require.NoError(t, err)
+	return dir
+}
 
 func git(t *testing.T, dir string, args ...string) {
 	t.Helper()
@@ -67,7 +77,7 @@ func TestACallerWithNoCheckoutRunsASessionFromAURLAndBranch(t *testing.T) {
 	git(t, origin, "add", ".")
 	git(t, origin, "commit", "-q", "-m", "init")
 
-	box := &fakeBox{runs: 0, act: func(spec vm.SandboxSpec, _ io.Writer) int {
+	box := &fakeBox{runs: 0, cmds: nil, act: func(spec vm.SandboxSpec, _ io.Writer) int {
 		git(t, spec.CloneDir, "commit", "-q", "--allow-empty", "-m", "work")
 		return 0
 	}}
@@ -78,7 +88,7 @@ func TestACallerWithNoCheckoutRunsASessionFromAURLAndBranch(t *testing.T) {
 	res, err := r.Run(context.Background(), session.Request{
 		URL: origin, Base: "main", Branch: "agent/x", Token: "", Prompt: "do it",
 		Harness: session.Claude, Overflow: session.OverflowOff, Fallback: "",
-		OpenCodeModel: "",
+		OpenCodeModel: "", Dir: "", ResumeID: "",
 	})
 	require.NoError(t, err)
 	assert.Equal(t, 1, box.runs)
@@ -91,12 +101,111 @@ func TestACallerWithNoCheckoutRunsASessionFromAURLAndBranch(t *testing.T) {
 
 func TestARequestWithoutAPromptFails(t *testing.T) {
 	r := session.New(session.Options{
-		Box: &fakeBox{runs: 0, act: nil}, Secrets: secrets{}, StateDir: t.TempDir(),
-		TempDir: "", Out: nil, Notes: nil, GH: nil,
+		Box: &fakeBox{runs: 0, cmds: nil, act: nil}, Secrets: secrets{},
+		StateDir: t.TempDir(), TempDir: "", Out: nil, Notes: nil, GH: nil,
 	})
 	_, err := r.Run(context.Background(), session.Request{
 		URL: "x", Base: "main", Branch: "b", Token: "", Prompt: "",
 		Harness: session.Claude, Overflow: "", Fallback: "", OpenCodeModel: "",
+		Dir: "", ResumeID: "",
 	})
 	require.Error(t, err)
+}
+
+func TestASessionRunsInAnExistingCheckoutOnItsBranchAndResumes(t *testing.T) {
+	dir := realDir(t)
+	git(t, dir, "init", "-q", "-b", "agent/x")
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "a.txt"), nil, 0o600))
+	git(t, dir, "add", ".")
+	git(t, dir, "commit", "-q", "-m", "init")
+
+	box := &fakeBox{runs: 0, cmds: nil, act: func(spec vm.SandboxSpec, out io.Writer) int {
+		assert.Equal(t, dir, spec.CloneDir)
+		_, _ = io.WriteString(out,
+			`{"type":"system","subtype":"init","session_id":"s-1","model":"claude-x"}`+"\n")
+		return 0
+	}}
+	r := session.New(session.Options{
+		Box: box, Secrets: secrets{"anthropic": "oat"}, StateDir: t.TempDir(),
+		TempDir: t.TempDir(), Out: nil, Notes: nil, GH: nil,
+	})
+	res, err := r.Run(context.Background(), session.Request{
+		Dir: dir, URL: "", Base: "", Branch: "agent/x", Token: "", Prompt: "fix",
+		Harness: session.Claude, Overflow: session.OverflowOff, Fallback: "",
+		OpenCodeModel: "", ResumeID: "s-0",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "s-1", res.SessionID)
+	assert.Equal(t, "claude-x", res.Model)
+	assert.Equal(t, "agent/x", res.Branch)
+	assert.Equal(t, dir, res.Path)
+	assert.DirExists(t, dir)
+	assert.Equal(t, []string{"--resume", "s-0"}, box.cmds[0][len(box.cmds[0])-2:])
+}
+
+func TestAnExistingCheckoutOnAnotherBranchFails(t *testing.T) {
+	dir := t.TempDir()
+	git(t, dir, "init", "-q", "-b", "main")
+	git(t, dir, "commit", "-q", "--allow-empty", "-m", "init")
+	r := session.New(session.Options{
+		Box: &fakeBox{runs: 0, cmds: nil, act: nil}, Secrets: secrets{},
+		StateDir: t.TempDir(), TempDir: "", Out: nil, Notes: nil, GH: nil,
+	})
+	_, err := r.Run(context.Background(), session.Request{
+		Dir: dir, URL: "", Base: "", Branch: "agent/x", Token: "", Prompt: "p",
+		Harness: session.Claude, Overflow: "", Fallback: "", OpenCodeModel: "",
+		ResumeID: "",
+	})
+	require.ErrorContains(t, err, "not agent/x")
+}
+
+func TestAnExistingCheckoutKeepsItsWorkAndOverflows(t *testing.T) {
+	dir := realDir(t)
+	git(t, dir, "init", "-q", "-b", "agent/x")
+	git(t, dir, "commit", "-q", "--allow-empty", "-m", "init")
+	limit := `{"type":"rate_limit_event","rate_limit_info":{"status":"rejected"}}` + "\n"
+	box := &fakeBox{runs: 0, cmds: nil, act: nil}
+	box.act = func(_ vm.SandboxSpec, out io.Writer) int {
+		if box.runs == 1 {
+			_, _ = io.WriteString(out, limit)
+			return 1
+		}
+		git(t, dir, "commit", "-q", "--allow-empty", "-m", "more")
+		return 0
+	}
+	r := session.New(session.Options{
+		Box: box, Secrets: secrets{"anthropic": "oat", "openrouter": "k"},
+		StateDir: t.TempDir(), TempDir: t.TempDir(), Out: nil, Notes: nil, GH: nil,
+	})
+	res, err := r.Run(context.Background(), session.Request{
+		Dir: dir, URL: "", Base: "", Branch: "", Token: "", Prompt: "p",
+		Harness: session.Claude, Overflow: session.OverflowAuto,
+		Fallback: session.OpenCode, OpenCodeModel: "vendor/model", ResumeID: "",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, 2, box.runs)
+	assert.True(t, res.Continued)
+	assert.Equal(t, session.OpenCode, res.Harness)
+	assert.Equal(t, dir, res.Path)
+	assert.DirExists(t, dir)
+}
+
+func TestAnExistingDirThatIsNotACheckoutOrIsDetachedFails(t *testing.T) {
+	r := session.New(session.Options{
+		Box: &fakeBox{runs: 0, cmds: nil, act: nil}, Secrets: secrets{},
+		StateDir: t.TempDir(), TempDir: "", Out: nil, Notes: nil, GH: nil,
+	})
+	req := session.Request{
+		Dir: t.TempDir(), URL: "", Base: "", Branch: "", Token: "", Prompt: "p",
+		Harness: session.Claude, Overflow: "", Fallback: "", OpenCodeModel: "",
+		ResumeID: "",
+	}
+	_, err := r.Run(context.Background(), req)
+	require.ErrorContains(t, err, "not a git checkout")
+
+	git(t, req.Dir, "init", "-q", "-b", "main")
+	git(t, req.Dir, "commit", "-q", "--allow-empty", "-m", "init")
+	git(t, req.Dir, "checkout", "-q", "--detach")
+	_, err = r.Run(context.Background(), req)
+	require.ErrorContains(t, err, "no branch checked out")
 }
