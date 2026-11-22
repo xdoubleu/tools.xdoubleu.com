@@ -53,6 +53,8 @@ const (
 	RunnerServiceAddJobCommentProcedure = "/factory.v1.RunnerService/AddJobComment"
 	// RunnerServiceCompleteJobProcedure is the procedure name of the RunnerService's CompleteJob RPC.
 	RunnerServiceCompleteJobProcedure = "/factory.v1.RunnerService/CompleteJob"
+	// RunnerServiceEndChatProcedure is the procedure name of the RunnerService's EndChat RPC.
+	RunnerServiceEndChatProcedure = "/factory.v1.RunnerService/EndChat"
 	// RunnerServiceListFinishedTasksProcedure is the procedure name of the RunnerService's
 	// ListFinishedTasks RPC.
 	RunnerServiceListFinishedTasksProcedure = "/factory.v1.RunnerService/ListFinishedTasks"
@@ -251,6 +253,13 @@ var (
 			Procedure:  RunnerServiceCompleteJobProcedure,
 		}
 	})
+	runnerServiceEndChatSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_factory_v1_runners_proto.Services().ByName("RunnerService").Methods().ByName("EndChat"),
+			Procedure:  RunnerServiceEndChatProcedure,
+		}
+	})
 	runnerServiceListFinishedTasksSpec = sync.OnceValue(func() connect.Spec {
 		return connect.Spec{
 			StreamType: connect.StreamTypeUnary,
@@ -273,6 +282,7 @@ type RunnerServiceClient interface {
 	GetPushToken(context.Context, *v1.GetPushTokenRequest) (*v1.GetPushTokenResponse, error)
 	AddJobComment(context.Context, *v1.AddJobCommentRequest) (*v1.AddJobCommentResponse, error)
 	CompleteJob(context.Context, *v1.CompleteJobRequest) (*v1.CompleteJobResponse, error)
+	EndChat(context.Context, *v1.EndChatRequest) (*v1.EndChatResponse, error)
 	ListFinishedTasks(context.Context, *v1.ListFinishedTasksRequest) (*v1.ListFinishedTasksResponse, error)
 }
 
@@ -295,6 +305,7 @@ type RunnerServiceHandler interface {
 	GetPushToken(context.Context, *v1.GetPushTokenRequest) (*v1.GetPushTokenResponse, error)
 	AddJobComment(context.Context, *v1.AddJobCommentRequest) (*v1.AddJobCommentResponse, error)
 	CompleteJob(context.Context, *v1.CompleteJobRequest) (*v1.CompleteJobResponse, error)
+	EndChat(context.Context, *v1.EndChatRequest) (*v1.EndChatResponse, error)
 	ListFinishedTasks(context.Context, *v1.ListFinishedTasksRequest) (*v1.ListFinishedTasksResponse, error)
 }
 
@@ -311,6 +322,7 @@ func RegisterRunnerServiceHandler(server *connect.Server, svc RunnerServiceHandl
 		connect.Method{Spec: runnerServiceGetPushTokenSpec(), Handler: adapter.getPushToken},
 		connect.Method{Spec: runnerServiceAddJobCommentSpec(), Handler: adapter.addJobComment},
 		connect.Method{Spec: runnerServiceCompleteJobSpec(), Handler: adapter.completeJob},
+		connect.Method{Spec: runnerServiceEndChatSpec(), Handler: adapter.endChat},
 		connect.Method{Spec: runnerServiceListFinishedTasksSpec(), Handler: adapter.listFinishedTasks},
 	)
 }
@@ -348,6 +360,10 @@ func (UnimplementedRunnerServiceHandler) AddJobComment(context.Context, *v1.AddJ
 
 func (UnimplementedRunnerServiceHandler) CompleteJob(context.Context, *v1.CompleteJobRequest) (*v1.CompleteJobResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "factory.v1.RunnerService.CompleteJob is not implemented")
+}
+
+func (UnimplementedRunnerServiceHandler) EndChat(context.Context, *v1.EndChatRequest) (*v1.EndChatResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "factory.v1.RunnerService.EndChat is not implemented")
 }
 
 func (UnimplementedRunnerServiceHandler) ListFinishedTasks(context.Context, *v1.ListFinishedTasksRequest) (*v1.ListFinishedTasksResponse, error) {
@@ -417,6 +433,14 @@ func (c *runnerServiceClient) AddJobComment(ctx context.Context, req *v1.AddJobC
 func (c *runnerServiceClient) CompleteJob(ctx context.Context, req *v1.CompleteJobRequest) (*v1.CompleteJobResponse, error) {
 	var res v1.CompleteJobResponse
 	if err := c.client.CallUnary(ctx, runnerServiceCompleteJobSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *runnerServiceClient) EndChat(ctx context.Context, req *v1.EndChatRequest) (*v1.EndChatResponse, error) {
+	var res v1.EndChatResponse
+	if err := c.client.CallUnary(ctx, runnerServiceEndChatSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -522,6 +546,18 @@ func (h runnerServiceHandler) completeJob(ctx context.Context, _ connect.Spec, s
 		return err
 	}
 	res, err := h.svc.CompleteJob(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h runnerServiceHandler) endChat(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.EndChatRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.EndChat(ctx, &req)
 	if err != nil {
 		return err
 	}

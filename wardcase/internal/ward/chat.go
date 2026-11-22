@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"slices"
+	"strings"
 	"sync"
 	"time"
 
@@ -27,9 +29,25 @@ type ChatRequest struct {
 	Harness string
 	// OpenCodeModel overrides the config's OpenRouter model id when set.
 	OpenCodeModel string
+	// Board, when set, gives the session the board's MCP server through the egress
+	// proxy; without it the session has none.
+	Board *Board
+	// MCP are further MCP servers the session reaches through the proxy, beside
+	// the config's.
+	MCP []vm.MCPServer
 	// OnEvent receives each session/update, and each permission request wardcase
 	// allowed. It is called one event at a time.
 	OnEvent func(acp.Event)
+}
+
+// Board is the board's MCP endpoint and the account the proxy reaches it with.
+type Board struct {
+	// Server is the API root; the endpoint is <Server>/apps/mcp.
+	Server string
+	// Token returns the access token to add; Rejected, when set, is called when the
+	// board answers 401.
+	Token    func(ctx context.Context) (string, error)
+	Rejected func()
 }
 
 // Chat is a running ACP session in its own VM and worktree.
@@ -107,7 +125,7 @@ func (r *Runner) startChat(
 		return nil, err
 	}
 	env["WARDCASE_RUN"] = randomID()
-	env[vm.MCPEnv] = vm.MCPOff
+	addChatMCP(&egress, env, req)
 	proxy, err := r.NewProxy(egress)
 	if err != nil {
 		_ = os.RemoveAll(outcomeDir)
@@ -151,6 +169,27 @@ func (r *Runner) startChat(
 		return nil, err
 	}
 	return c, nil
+}
+
+// addChatMCP adds what the request brings to the proxy: the board, or none, and
+// further MCP servers by name.
+func addChatMCP(egress *vm.EgressConfig, env map[string]string, req ChatRequest) {
+	if req.Board == nil {
+		env[vm.MCPEnv] = vm.MCPOff
+	} else {
+		egress.Server = req.Board.Server
+		egress.MCPToken, egress.MCPRejected = req.Board.Token, req.Board.Rejected
+	}
+	if len(req.MCP) == 0 {
+		return
+	}
+	egress.MCPServers = append(egress.MCPServers, req.MCP...)
+	names := make([]string, len(egress.MCPServers))
+	for i, s := range egress.MCPServers {
+		names[i] = s.Name
+	}
+	slices.Sort(names)
+	env[vm.MCPServersEnv] = strings.Join(slices.Compact(names), " ")
 }
 
 func (c *Chat) onEvent(next func(acp.Event)) func(acp.Event) {

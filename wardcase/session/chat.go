@@ -5,6 +5,7 @@ import (
 
 	"tools.xdoubleu.com/wardcase/acp"
 	"tools.xdoubleu.com/wardcase/internal/ward"
+	"tools.xdoubleu.com/wardcase/vm"
 )
 
 // Event is something the harness reported during a turn: a session/update, or a
@@ -20,9 +21,16 @@ type ChatRequest struct {
 	Harness string
 	// OpenCodeModel is the OpenRouter model id.
 	OpenCodeModel string
+	// Board, when set, gives the session the board's MCP server; MCP are further
+	// MCP servers by name, both reached through the egress proxy.
+	Board *Board
+	MCP   []vm.MCPServer
 	// OnEvent receives every event, one at a time, in order.
 	OnEvent func(Event)
 }
+
+// Board is the board's MCP endpoint and the account the proxy reaches it with.
+type Board = ward.Board
 
 // Chat is a running interactive session. Every permission request the harness
 // makes is allowed: the VM is the boundary.
@@ -38,7 +46,7 @@ func (s *Runner) Start(ctx context.Context, req ChatRequest) (*Chat, error) {
 			URL: req.URL, Base: req.Base, Branch: req.Branch, Token: req.Token,
 		},
 		Dir: "", Harness: req.Harness, OpenCodeModel: req.OpenCodeModel,
-		OnEvent: req.OnEvent,
+		Board: req.Board, MCP: req.MCP, OnEvent: req.OnEvent,
 	})
 	if err != nil {
 		return nil, err //nolint:wrapcheck // ward's errors name their step

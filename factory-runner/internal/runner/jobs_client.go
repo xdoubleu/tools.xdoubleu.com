@@ -29,6 +29,9 @@ type ClaimedJob struct {
 	ResumeSessionID string `json:"resumeSessionId"`
 	// Routine names the routine of a task-less job; TaskID is then empty.
 	Routine string `json:"routine"`
+	// ChatID is set for a chat session's job: the runner bridges the session to a
+	// harness instead of running a prompt. TaskID and Prompt are then empty.
+	ChatID string `json:"chatId"`
 }
 
 // JobAPI is the server side of running jobs.

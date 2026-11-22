@@ -264,7 +264,7 @@ func lifeJob(n int) *runner.ClaimedJob {
 		RepoOwner: "xdoubleu", RepoName: "tools.xdoubleu.com", DefaultBranch: "main",
 		Prompt: "# Task: Fix it", Branch: fmt.Sprintf("agent/%d-work", n),
 		TimeLimitMinutes: 1, MCPClientID: "", MCPClientSecret: "",
-		ResumeSessionID: "", Routine: "",
+		ResumeSessionID: "", Routine: "", ChatID: "",
 	}
 }
 
@@ -300,6 +300,7 @@ func (e *lifeEnv) start() *generation {
 		}
 		dir := e.t.TempDir()
 		jobs := &runner.JobRunner{
+			OpenChat:  nil,
 			NoCIGrace: 0,
 			API:       e.board, Token: "frt_x", Paused: a.holdClaims, MaxJobs: a.maxJobs,
 			Mode: a.mode, Harness: runner.ClaudeCode{},

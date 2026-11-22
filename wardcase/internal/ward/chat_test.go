@@ -58,7 +58,7 @@ func chatRequest(sf *sessionFixture, log *events) ward.ChatRequest {
 	return ward.ChatRequest{
 		Source:  &ward.Source{URL: sf.origin, Base: "main", Branch: "agent/chat", Token: ""},
 		Dir:     "",
-		Harness: ward.OpenCode, OpenCodeModel: "", OnEvent: log.add,
+		Harness: ward.OpenCode, OpenCodeModel: "", Board: nil, MCP: nil, OnEvent: log.add,
 	}
 }
 
@@ -238,4 +238,45 @@ func TestAGeminiChatNeedsItsSecret(t *testing.T) {
 	req.Harness = ward.Gemini
 	_, err := sf.f.r.OpenChat(context.Background(), req)
 	require.ErrorIs(t, err, ward.ErrNoSecret)
+}
+
+func TestAChatGetsTheBoardAndExtraMCPServersThroughTheProxy(t *testing.T) {
+	sf, _ := chatFixture(t)
+	var proxied vm.EgressConfig
+	sf.f.r.NewProxy = func(cfg vm.EgressConfig) (vm.ProxyListener, error) {
+		proxied = cfg
+		return vm.NewEgressProxy(cfg)
+	}
+	req := chatRequest(sf, newEvents())
+	req.Board = &ward.Board{
+		Server:   "https://board.example",
+		Token:    func(context.Context) (string, error) { return "tok", nil },
+		Rejected: nil,
+	}
+	req.MCP = []vm.MCPServer{{
+		Name: "docs", URL: "https://docs.example/mcp", Rejected: nil,
+		Token: func(context.Context) (string, error) { return "t", nil },
+	}}
+	ctx := context.Background()
+
+	chat, err := sf.f.r.OpenChat(ctx, req)
+	require.NoError(t, err)
+	defer chat.Close(ctx)
+
+	env := sf.f.box.runs[0].spec.Env
+	assert.Equal(t, "https://board.example", proxied.Server)
+	assert.NotNil(t, proxied.MCPToken)
+	assert.NotEqual(t, vm.MCPOff, env[vm.MCPEnv])
+	assert.Equal(t, "docs", env[vm.MCPServersEnv])
+}
+
+func TestAChatWithoutABoardHasNone(t *testing.T) {
+	sf, _ := chatFixture(t)
+	ctx := context.Background()
+
+	chat, err := sf.f.r.OpenChat(ctx, chatRequest(sf, newEvents()))
+	require.NoError(t, err)
+	defer chat.Close(ctx)
+
+	assert.Equal(t, vm.MCPOff, sf.f.box.runs[0].spec.Env[vm.MCPEnv])
 }

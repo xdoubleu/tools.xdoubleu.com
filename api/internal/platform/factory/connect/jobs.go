@@ -93,7 +93,11 @@ func (h *taskConnectHandler) ListJobEvents(
 func claimedJobToProto(c *services.ClaimedJob) *factoryv1.ClaimedJob {
 	timeLimit := int32(c.Repo.TimeLimitMinutes) //nolint:gosec // minutes, far below 2^31
 	taskID := ""
-	if !c.Job.IsRoutine() {
+	chatID := ""
+	if c.ChatID != uuid.Nil {
+		chatID = c.ChatID.String()
+	}
+	if !c.Job.IsRoutine() && !c.Job.IsChat() {
 		taskID = models.TaskRef(c.Job.TaskNumber)
 	}
 	return &factoryv1.ClaimedJob{
@@ -109,6 +113,7 @@ func claimedJobToProto(c *services.ClaimedJob) *factoryv1.ClaimedJob {
 		McpClientId:      c.MCPClientID,
 		McpClientSecret:  c.MCPClientSecret,
 		ResumeSessionId:  c.ResumeSessionID,
+		ChatId:           chatID,
 	}
 }
 
@@ -293,4 +298,25 @@ func (h *runnerHandler) AddJobComment(
 		return nil, present.MapError(err)
 	}
 	return &factoryv1.AddJobCommentResponse{}, nil
+}
+
+func (h *runnerHandler) EndChat(
+	ctx context.Context,
+	req *factoryv1.EndChatRequest,
+) (*factoryv1.EndChatResponse, error) {
+	runner, err := h.runnerFrom(ctx)
+	if err != nil {
+		return nil, err
+	}
+	id, err := present.ParseID(req.GetChatId())
+	if err != nil {
+		return nil, err
+	}
+	if _, err = h.app.Services.Chats.End(ctx, runner.ID, id, req.GetReport()); err != nil {
+		return nil, present.MapError(err)
+	}
+	if h.app.Chats != nil {
+		h.app.Chats.Publish(id)
+	}
+	return &factoryv1.EndChatResponse{}, nil
 }

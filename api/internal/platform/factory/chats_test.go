@@ -79,10 +79,42 @@ func TestChatStartCountsTowardTheRunnersJobs(t *testing.T) {
 	_, err = e.start(t)
 	assert.ErrorIs(t, err, services.ErrConflict, "the one slot is held")
 
-	claimed, err := e.svc.Jobs.ClaimQueued(
-		context.Background(), e.runnerID, 1, models.HarnessClaudeCode, "")
+	ctx := context.Background()
+	other, err := e.svc.Jobs.ClaimQueued(ctx, uuid.New(), 1, models.HarnessClaudeCode, "")
 	require.NoError(t, err)
-	assert.Nil(t, claimed, "a chat is never claimed as a queued job")
+	assert.Nil(t, other, "a chat goes to the runner it is pinned to")
+
+	claimed, err := e.svc.Jobs.ClaimQueued(
+		ctx, e.runnerID, 1, models.HarnessClaudeCode, "")
+	require.NoError(t, err)
+	require.NotNil(t, claimed, "the pinned runner takes it despite the full slot")
+	assert.Equal(t, s.ID, claimed.ChatID)
+	assert.Equal(t, s.JobID, claimed.Job.ID)
+	assert.Equal(t, s.Branch, claimed.Job.Branch)
+
+	again, err := e.svc.Jobs.ClaimQueued(ctx, e.runnerID, 1, models.HarnessClaudeCode, "")
+	require.NoError(t, err)
+	assert.Nil(t, again, "a session is claimed once")
+}
+
+func TestChatEndStopsASessionAndAddsTheLeftoverReport(t *testing.T) {
+	e := newChatEnv(t, 1)
+	ctx := context.Background()
+	s, err := e.start(t)
+	require.NoError(t, err)
+
+	stopped, err := e.svc.Chats.End(ctx, e.runnerID, s.ID, "2 files uncommitted")
+	require.NoError(t, err)
+	require.NotNil(t, stopped)
+	assert.Equal(t, "2 files uncommitted", stopped.Report)
+	_, status := e.jobStatus(t, s.JobID)
+	assert.Equal(t, "succeeded", status)
+
+	_, err = e.svc.Chats.End(ctx, e.runnerID, s.ID, "1 commit unpushed")
+	require.NoError(t, err)
+	got, err := e.svc.Chats.Get(ctx, e.admin, s.ID)
+	require.NoError(t, err)
+	assert.Equal(t, "2 files uncommitted\n\n1 commit unpushed", got.Report)
 }
 
 func TestChatStopFreesTheSlotAndSealsTheTranscript(t *testing.T) {

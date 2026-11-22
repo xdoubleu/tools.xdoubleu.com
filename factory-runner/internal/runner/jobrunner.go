@@ -212,6 +212,9 @@ type JobRunner struct {
 	// Proxy builds a job's egress proxy, with the MCP servers the job gets; nil
 	// gives the job none.
 	Proxy func(job *ClaimedJob, servers []MCPServer) (ProxyListener, error)
+	// OpenChat opens a chat's harness session; nil means wardcase's, in a VM from
+	// Sandbox. Tests replace it.
+	OpenChat ChatOpener
 	// Activity, when set, holds the Mac awake and blocks self-update while a job runs.
 	Activity *Activity
 	// DataDir holds <DataDir>/jobs/<job id>/{clone,outcome}.
@@ -486,6 +489,12 @@ func (r *JobRunner) run(ctx context.Context, job *ClaimedJob) {
 	}
 
 	r.running.Store(job.ID, struct{}{})
+	if job.ChatID != "" {
+		// The server finishes a chat's job when the chat ends, so no CompleteJob.
+		r.runChat(ctx, job)
+		r.running.Delete(job.ID)
+		return
+	}
 	res := r.execute(ctx, job)
 	r.running.Delete(job.ID)
 	if res.limited && job.Routine == "" {

@@ -1,6 +1,6 @@
 # factory-runner/ — the Mac-side helper of the software factory
 
-Pairs this Mac with the board and runs jobs → [`adr-0041`](../docs/adr-0041-factory-runner-pairing.md), [`adr-0044`](../docs/adr-0044-factory-jobs-queue.md). **Separate Go module**; cgo only for the menu bar. It speaks Connect JSON to `RunnerService`, never importing `api/`.
+Pairs this Mac with the board, runs jobs, chats → [`adr-0041`](../docs/adr-0041-factory-runner-pairing.md), [`adr-0044`](../docs/adr-0044-factory-jobs-queue.md), [`adr-0061`](../docs/adr-0061-factory-chat-runner-bridge.md). **Separate Go module**; cgo only for the menu bar. It speaks Connect JSON to `RunnerService`, never importing `api/`.
 
 ## Structure
 

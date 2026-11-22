@@ -284,8 +284,8 @@ func commitFile(dir, name, content string) {
 
 func newJob() *runner.ClaimedJob {
 	return &runner.ClaimedJob{
-		Routine: "",
-		ID:      jobID, TaskID: taskID, RepoOwner: "xdoubleu", RepoName: "tools.xdoubleu.com",
+		Routine: "", ChatID: "",
+		ID: jobID, TaskID: taskID, RepoOwner: "xdoubleu", RepoName: "tools.xdoubleu.com",
 		DefaultBranch: "main", Prompt: "# Task: Fix it",
 		Branch: branch, TimeLimitMinutes: 1,
 		MCPClientID: "", MCPClientSecret: "", ResumeSessionID: "",
@@ -313,7 +313,8 @@ func newEnv(
 	return &jobEnv{
 		api: api, sandbox: sb, dir: dir, remote: remote,
 		runner: &runner.JobRunner{
-			API: api, Token: "frt_x", Paused: nil, MaxJobs: nil, Mode: nil,
+			OpenChat: nil,
+			API:      api, Token: "frt_x", Paused: nil, MaxJobs: nil, Mode: nil,
 			Allowed: func() ([]string, error) {
 				return []string{"xdoubleu/tools.xdoubleu.com"}, nil
 			},

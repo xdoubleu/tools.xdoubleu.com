@@ -338,6 +338,12 @@ type ChatStore interface {
 		report string,
 		jobStatus models.JobStatus,
 	) (*models.ChatSession, error)
+	// ClaimFor marks the oldest unclaimed, unstopped session pinned to the runner
+	// as claimed and returns it; none is not found.
+	ClaimFor(ctx context.Context, runnerID uuid.UUID) (*models.ChatSession, error)
+	// AppendReport adds text to a session's report, which a person's stop may have
+	// set already.
+	AppendReport(ctx context.Context, id uuid.UUID, text string) error
 	// StopForJob stops the unstopped session of a chat job that ended without it;
 	// none is not found.
 	StopForJob(
