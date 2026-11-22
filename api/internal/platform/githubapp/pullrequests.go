@@ -47,6 +47,8 @@ type PullRequestStatus struct {
 	Mergeable string
 	// MergeSHA is the commit a merged pull request produced; empty otherwise.
 	MergeSHA string
+	// HeadSHA is the tip of an open pull request's branch; empty otherwise.
+	HeadSHA string
 }
 
 // ErrPullRequestGone is returned when GitHub has no such pull request.
@@ -116,11 +118,11 @@ func (c *Client) PullRequest(
 	case pull.Merged:
 		return PullRequestStatus{
 			State: StateMerged, CI: "", Review: "", Mergeable: "",
-			MergeSHA: pull.SHA,
+			MergeSHA: pull.SHA, HeadSHA: "",
 		}, nil
 	case pull.State != "open":
 		return PullRequestStatus{State: StateClosed, CI: "", Review: "", Mergeable: "",
-			MergeSHA: ""}, nil
+			MergeSHA: "", HeadSHA: ""}, nil
 	}
 
 	ci, err := c.checks(ctx, base, pull.Head.SHA, token)
@@ -134,7 +136,7 @@ func (c *Client) PullRequest(
 	return PullRequestStatus{
 		State: StateOpen, CI: ci, Review: review,
 		Mergeable: stuck(pull.MergeableState, pull.AutoMerge != nil),
-		MergeSHA:  "",
+		MergeSHA:  "", HeadSHA: pull.Head.SHA,
 	}, nil
 }
 

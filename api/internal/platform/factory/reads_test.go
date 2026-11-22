@@ -31,7 +31,7 @@ func messyEnv(t *testing.T) (jobEnv, messyseed.Board, *digestFeed) {
 	for _, n := range []int{1, 4} {
 		gh.answer(n, githubapp.PullRequestStatus{
 			State: githubapp.StateOpen, CI: githubapp.CIPassing, Review: "",
-			Mergeable: "", MergeSHA: "",
+			Mergeable: "", MergeSHA: "", HeadSHA: "",
 		}, nil)
 	}
 	return env, board, feed
