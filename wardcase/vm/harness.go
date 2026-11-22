@@ -163,6 +163,29 @@ func (ClaudeCode) SessionID(line []byte) string {
 	return event.SessionID
 }
 
+// ModelReporter is a Harness whose output names the model that answered.
+type ModelReporter interface {
+	// Model reads the model from one line of output, or "".
+	Model(line []byte) string
+}
+
+// Model implements ModelReporter: the init event of the stream carries it.
+func (ClaudeCode) Model(line []byte) string {
+	if !bytes.Contains(line, []byte(`"model"`)) {
+		return ""
+	}
+	var event struct {
+		Type    string `json:"type"`
+		Subtype string `json:"subtype"`
+		Model   string `json:"model"`
+	}
+	if json.Unmarshal(line, &event) != nil || event.Type != "system" ||
+		event.Subtype != "init" {
+		return ""
+	}
+	return event.Model
+}
+
 // LimitFrom implements Harness. Claude Code's stream carries a `rate_limit_event`
 // whose `rate_limit_info` has a status ("allowed", "allowed_warning" or "rejected")
 // and `resetsAt` in epoch seconds; only "rejected" is a stop. A limit can also show
