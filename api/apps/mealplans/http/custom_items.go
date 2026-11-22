@@ -1,4 +1,4 @@
-package mealplans
+package http
 
 import "strings"
 

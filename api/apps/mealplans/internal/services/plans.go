@@ -8,12 +8,24 @@ import (
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/mealplans/internal/models"
+	"tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/kit/database"
 )
 
 const (
 	daysPerWeek = 7
 	hoursPerDay = 24
+
+	// DefaultPlanName names the plan List creates for a user with none.
+	DefaultPlanName = "My Meal Plan"
+
+	defaultServings = 2
+)
+
+// ErrMealContent and ErrMealSlot are the meal rules' bad-request errors.
+var (
+	ErrMealContent = app.NewBadRequestError("recipe ID or custom name is required")
+	ErrMealSlot    = app.NewBadRequestError("invalid meal slot")
 )
 
 // WeekWindow returns the 7-day UTC window starting `offset` weeks from today.
@@ -79,7 +91,26 @@ func (s *PlanService) List(
 	if err != nil {
 		return nil, false, err
 	}
-	return s.repo.ListForFamily(ctx, familyID, limit, offset)
+	list, hasMore, err := s.repo.ListForFamily(ctx, familyID, limit, offset)
+	if err != nil {
+		return nil, false, err
+	}
+
+	// Only an empty first page means no plans yet.
+	if len(list) == 0 && offset == 0 {
+		created, createErr := s.Create(
+			ctx,
+			userID,
+			models.Plan{ //nolint:exhaustruct // other fields optional
+				Name: DefaultPlanName,
+			},
+		)
+		if createErr != nil {
+			return nil, false, createErr
+		}
+		list = []models.Plan{*created}
+	}
+	return list, hasMore, nil
 }
 
 func (s *PlanService) Get(
@@ -218,12 +249,28 @@ func (s *PlanService) Delete(
 	return s.repo.Delete(ctx, id, familyID)
 }
 
+// normalizeMeal applies the rules shared by CreateMeal and UpdateMeal: a meal
+// needs a recipe or a custom name, and defaults to two servings.
+func normalizeMeal(meal models.PlanMeal) (models.PlanMeal, error) {
+	if meal.RecipeID == nil && meal.CustomName == "" {
+		return meal, ErrMealContent
+	}
+	if meal.Servings <= 0 {
+		meal.Servings = defaultServings
+	}
+	return meal, nil
+}
+
 func (s *PlanService) CreateMeal(
 	ctx context.Context,
 	planID uuid.UUID,
 	userID string,
 	meal models.PlanMeal,
 ) error {
+	meal, err := normalizeMeal(meal)
+	if err != nil {
+		return err
+	}
 	plan, err := s.Get(ctx, planID, userID)
 	if err != nil {
 		return err
@@ -262,6 +309,10 @@ func (s *PlanService) UpdateMeal(
 	userID string,
 	meal models.PlanMeal,
 ) error {
+	meal, err := normalizeMeal(meal)
+	if err != nil {
+		return err
+	}
 	plan, err := s.Get(ctx, planID, userID)
 	if err != nil {
 		return err
@@ -293,8 +344,20 @@ func (s *PlanService) MoveMeal(
 	newDate time.Time,
 	newSlot string,
 ) error {
+	if !validSlot(newSlot) {
+		return ErrMealSlot
+	}
 	if _, err := s.Get(ctx, planID, userID); err != nil {
 		return err
 	}
 	return s.repo.MoveMeal(ctx, mealID, planID, newDate, newSlot)
+}
+
+func validSlot(slot string) bool {
+	switch slot {
+	case models.SlotBreakfast, models.SlotNoon, models.SlotEvening:
+		return true
+	default:
+		return false
+	}
 }

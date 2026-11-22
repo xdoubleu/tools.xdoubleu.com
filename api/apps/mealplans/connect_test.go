@@ -1245,3 +1245,29 @@ func TestSuggestRecipes_FreshVariesAcrossCellsAndIsStable(t *testing.T) {
 	}
 	assert.Greater(t, len(distinct), len(first), "cells offer different recipes")
 }
+
+type failingWriter struct{ header http.Header }
+
+func (w *failingWriter) Header() http.Header { return w.header }
+
+func (w *failingWriter) Write([]byte) (int, error) { return 0, errors.New("closed") }
+
+func (w *failingWriter) WriteHeader(int) {}
+
+func TestICalFeedHandler_WriteErrorIsLogged(t *testing.T) {
+	client := setupMealPlansClient(getRoutes())
+	ctx := contextWithUser(
+		context.Background(),
+		&sharedmodels.User{ //nolint:exhaustruct // only ID needed
+			ID: userID,
+		},
+	)
+	planID := createPlanInDB(t, "iCal Write Plan")
+	getResp, err := client.GetPlan(ctx, &mealplansv1.GetPlanRequest{Id: planID})
+	require.NoError(t, err)
+
+	req := httptest.NewRequest(http.MethodGet, getResp.IcalUrl, nil)
+	assert.NotPanics(t, func() {
+		getRoutes().ServeHTTP(&failingWriter{header: http.Header{}}, req)
+	})
+}
