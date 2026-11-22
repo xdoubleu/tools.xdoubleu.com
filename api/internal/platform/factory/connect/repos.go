@@ -1,9 +1,7 @@
-package factory
+package connect
 
 import (
 	"context"
-
-	"connectrpc.com/connect/v2"
 
 	factoryv1 "tools.xdoubleu.com/gen/factory/v1"
 	"tools.xdoubleu.com/gen/factory/v1/factoryv1connect"
@@ -12,27 +10,10 @@ import (
 )
 
 type repoConnectHandler struct {
-	app *Factory
+	app *Deps
 }
 
 var _ factoryv1connect.RepoServiceHandler = (*repoConnectHandler)(nil)
-
-// writerFrom is actorFrom for changes to a repo's settings: its setup commands
-// and instructions drive what the sandbox runs, so only a browser session may
-// set them, never a bearer token.
-func writerFrom(ctx context.Context) error {
-	actor, err := actorFrom(ctx)
-	if err != nil {
-		return err
-	}
-	if !actor.Browser {
-		return connect.NewError(
-			connect.CodePermissionDenied,
-			"repo settings can only be changed in a browser session",
-		)
-	}
-	return nil
-}
 
 func harnessToProto(h models.Harness) factoryv1.Harness {
 	switch h {
@@ -93,9 +74,9 @@ func (h *repoConnectHandler) ListRepos(
 	if _, err := actorFrom(ctx); err != nil {
 		return nil, err
 	}
-	repos, err := h.app.services.Repos.List(ctx)
+	repos, err := h.app.Services.Repos.List(ctx)
 	if err != nil {
-		return nil, mapError(err)
+		return nil, MapError(err)
 	}
 	out := make([]*factoryv1.Repo, len(repos))
 	for i := range repos {
@@ -108,12 +89,13 @@ func (h *repoConnectHandler) CreateRepo(
 	ctx context.Context,
 	req *factoryv1.CreateRepoRequest,
 ) (*factoryv1.CreateRepoResponse, error) {
-	if err := writerFrom(ctx); err != nil {
+	actor, err := actorFrom(ctx)
+	if err != nil {
 		return nil, err
 	}
-	repo, err := h.app.services.Repos.Create(ctx, repoInput(req.GetRepo()))
+	repo, err := h.app.Services.Repos.Create(ctx, actor, repoInput(req.GetRepo()))
 	if err != nil {
-		return nil, mapError(err)
+		return nil, MapError(err)
 	}
 	return &factoryv1.CreateRepoResponse{Repo: protoRepo(repo)}, nil
 }
@@ -122,16 +104,17 @@ func (h *repoConnectHandler) UpdateRepo(
 	ctx context.Context,
 	req *factoryv1.UpdateRepoRequest,
 ) (*factoryv1.UpdateRepoResponse, error) {
-	if err := writerFrom(ctx); err != nil {
-		return nil, err
-	}
-	id, err := parseID(req.GetRepo().GetId())
+	actor, err := actorFrom(ctx)
 	if err != nil {
 		return nil, err
 	}
-	repo, err := h.app.services.Repos.Update(ctx, id, repoInput(req.GetRepo()))
+	id, err := ParseID(req.GetRepo().GetId())
 	if err != nil {
-		return nil, mapError(err)
+		return nil, err
+	}
+	repo, err := h.app.Services.Repos.Update(ctx, actor, id, repoInput(req.GetRepo()))
+	if err != nil {
+		return nil, MapError(err)
 	}
 	return &factoryv1.UpdateRepoResponse{Repo: protoRepo(repo)}, nil
 }

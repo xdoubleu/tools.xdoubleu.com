@@ -1,4 +1,4 @@
-package factory
+package connect
 
 import (
 	"context"
@@ -13,9 +13,6 @@ import (
 	"tools.xdoubleu.com/internal/platform/factory/internal/services"
 	"tools.xdoubleu.com/internal/platform/githubapp"
 )
-
-// claimPoll is how often a held ClaimJob looks for a queued job.
-const claimPoll = time.Second
 
 func jobStatusToProto(s models.JobStatus) factoryv1.JobStatus {
 	switch s {
@@ -35,7 +32,8 @@ func jobStatusToProto(s models.JobStatus) factoryv1.JobStatus {
 	return factoryv1.JobStatus_JOB_STATUS_UNSPECIFIED
 }
 
-func protoJob(j *models.Job) *factoryv1.Job {
+// ProtoJob is a job as the board shows it.
+func ProtoJob(j *models.Job) *factoryv1.Job {
 	limitResetsAt := ""
 	if j.LimitResetsAt != nil {
 		limitResetsAt = j.LimitResetsAt.UTC().Format(time.RFC3339)
@@ -64,10 +62,11 @@ func protoJob(j *models.Job) *factoryv1.Job {
 	}
 }
 
-func protoJobs(jobs []models.Job) []*factoryv1.Job {
+// ProtoJobs converts jobs with ProtoJob.
+func ProtoJobs(jobs []models.Job) []*factoryv1.Job {
 	out := make([]*factoryv1.Job, len(jobs))
 	for i := range jobs {
-		out[i] = protoJob(&jobs[i])
+		out[i] = ProtoJob(&jobs[i])
 	}
 	return out
 }
@@ -84,15 +83,15 @@ func (h *taskConnectHandler) RunTask(
 	if err != nil {
 		return nil, err
 	}
-	job, err := h.app.services.Jobs.Run(
+	job, err := h.app.Services.Jobs.Run(
 		ctx,
 		actor,
 		id,
 	)
 	if err != nil {
-		return nil, mapError(err)
+		return nil, MapError(err)
 	}
-	return &factoryv1.RunTaskResponse{Job: protoJob(job)}, nil
+	return &factoryv1.RunTaskResponse{Job: ProtoJob(job)}, nil
 }
 
 func (h *taskConnectHandler) SetPickupPaused(
@@ -103,8 +102,8 @@ func (h *taskConnectHandler) SetPickupPaused(
 	if err != nil {
 		return nil, err
 	}
-	if err = h.app.services.Jobs.SetPickupPaused(ctx, actor, req.GetPaused()); err != nil {
-		return nil, mapError(err)
+	if err = h.app.Services.Jobs.SetPickupPaused(ctx, actor, req.GetPaused()); err != nil {
+		return nil, MapError(err)
 	}
 	return &factoryv1.SetPickupPausedResponse{Paused: req.GetPaused()}, nil
 }
@@ -121,11 +120,11 @@ func (h *taskConnectHandler) StopJob(
 	if err != nil {
 		return nil, err
 	}
-	job, err := h.app.services.Jobs.Stop(ctx, actor, id)
+	job, err := h.app.Services.Jobs.Stop(ctx, actor, id)
 	if err != nil {
-		return nil, mapError(err)
+		return nil, MapError(err)
 	}
-	return &factoryv1.StopJobResponse{Job: protoJob(job)}, nil
+	return &factoryv1.StopJobResponse{Job: ProtoJob(job)}, nil
 }
 
 func (h *taskConnectHandler) ListJobEvents(
@@ -136,18 +135,19 @@ func (h *taskConnectHandler) ListJobEvents(
 	if err != nil {
 		return nil, err
 	}
-	id, err := parseID(req.GetJobId())
+	id, err := ParseID(req.GetJobId())
 	if err != nil {
 		return nil, err
 	}
-	events, err := h.app.services.Jobs.ListEvents(ctx, actor, id, int(req.GetAfterSeq()))
+	events, err := h.app.Services.Jobs.ListEvents(ctx, actor, id, int(req.GetAfterSeq()))
 	if err != nil {
-		return nil, mapError(err)
+		return nil, MapError(err)
 	}
-	return &factoryv1.ListJobEventsResponse{Events: protoJobEvents(events)}, nil
+	return &factoryv1.ListJobEventsResponse{Events: ProtoJobEvents(events)}, nil
 }
 
-func protoJobEvents(events []models.JobEvent) []*factoryv1.JobEvent {
+// ProtoJobEvents converts a job log page.
+func ProtoJobEvents(events []models.JobEvent) []*factoryv1.JobEvent {
 	out := make([]*factoryv1.JobEvent, len(events))
 	for i := range events {
 		out[i] = &factoryv1.JobEvent{
@@ -183,9 +183,6 @@ func claimedJobToProto(c *services.ClaimedJob) *factoryv1.ClaimedJob {
 	}
 }
 
-// maxRunnerJobs bounds what a runner may ask for.
-const maxRunnerJobs = 8
-
 func (h *runnerHandler) ClaimJob(
 	ctx context.Context,
 	req *factoryv1.ClaimJobRequest,
@@ -194,41 +191,17 @@ func (h *runnerHandler) ClaimJob(
 	if err != nil {
 		return nil, err
 	}
-	// A claiming runner is a live one, whether or not its heartbeat is running.
-	if err = h.app.services.Runners.Heartbeat(ctx, runner.ID, "", nil, false); err != nil {
-		return nil, mapError(err)
+	claimed, err := h.app.Services.Jobs.ClaimJob(
+		ctx, runner.ID, int(req.GetMaxJobs()), harnessFromProto(req.GetHarness()),
+		req.GetModel(), h.app.HeartbeatHold,
+	)
+	if err != nil {
+		return nil, MapError(err)
 	}
-	// Held open so the runner needs no inbound port and learns of a job within a
-	// second of it being queued; answered empty when the hold ends.
-	deadline := time.Now().Add(h.app.heartbeatHold)
-	maxJobs := int(min(req.GetMaxJobs(), maxRunnerJobs))
-	harness := harnessFromProto(req.GetHarness())
-	// The sweep and pick-up bookkeeping runs once per hold, not on every poll.
-	if err = h.app.services.Jobs.PrepareClaim(
-		ctx, runner.ID, maxJobs, harness, req.GetModel(),
-	); err != nil {
-		return nil, mapError(err)
+	if claimed == nil {
+		return &factoryv1.ClaimJobResponse{}, nil
 	}
-	for {
-		claimed, claimErr := h.app.services.Jobs.ClaimQueued(
-			ctx, runner.ID, maxJobs, harness, req.GetModel(),
-		)
-		if claimErr != nil {
-			return nil, mapError(claimErr)
-		}
-		if claimed != nil {
-			return &factoryv1.ClaimJobResponse{Job: claimedJobToProto(claimed)}, nil
-		}
-		// A negative wait fires at once, so the last look happens after the hold.
-		select {
-		case <-time.After(min(claimPoll, time.Until(deadline))):
-		case <-ctx.Done():
-			return &factoryv1.ClaimJobResponse{}, nil
-		}
-		if time.Now().After(deadline) {
-			return &factoryv1.ClaimJobResponse{}, nil
-		}
-	}
+	return &factoryv1.ClaimJobResponse{Job: claimedJobToProto(claimed)}, nil
 }
 
 func (h *runnerHandler) CheckIn(
@@ -238,13 +211,13 @@ func (h *runnerHandler) CheckIn(
 	if _, err := h.runnerFrom(ctx); err != nil {
 		return nil, err
 	}
-	id, err := parseID(req.GetJobId())
+	id, err := ParseID(req.GetJobId())
 	if err != nil {
 		return nil, err
 	}
-	stop, err := h.app.services.Jobs.CheckIn(ctx, id, req.GetSessionId())
+	stop, err := h.app.Services.Jobs.CheckIn(ctx, id, req.GetSessionId())
 	if err != nil {
-		return nil, mapError(err)
+		return nil, MapError(err)
 	}
 	return &factoryv1.CheckInResponse{Stop: stop}, nil
 }
@@ -256,7 +229,7 @@ func (h *runnerHandler) AppendJobEvents(
 	if _, err := h.runnerFrom(ctx); err != nil {
 		return nil, err
 	}
-	id, err := parseID(req.GetJobId())
+	id, err := ParseID(req.GetJobId())
 	if err != nil {
 		return nil, err
 	}
@@ -264,8 +237,8 @@ func (h *runnerHandler) AppendJobEvents(
 	for i, l := range req.GetLines() {
 		lines[i] = models.JobLine{Seq: int(l.GetSeq()), Line: l.GetLine()}
 	}
-	if err = h.app.services.Jobs.AppendEvents(ctx, id, lines); err != nil {
-		return nil, mapError(err)
+	if err = h.app.Services.Jobs.AppendEvents(ctx, id, lines); err != nil {
+		return nil, MapError(err)
 	}
 	return &factoryv1.AppendJobEventsResponse{}, nil
 }
@@ -278,11 +251,11 @@ func (h *runnerHandler) GetPushToken(
 	if err != nil {
 		return nil, err
 	}
-	id, err := parseID(req.GetJobId())
+	id, err := ParseID(req.GetJobId())
 	if err != nil {
 		return nil, err
 	}
-	token, err := h.app.services.Jobs.PushToken(ctx, runner.ID, id)
+	token, err := h.app.Services.Jobs.PushToken(ctx, runner.ID, id)
 	switch {
 	case errors.Is(err, services.ErrPushNotConfigured),
 		errors.Is(err, githubapp.ErrNotInstalled):
@@ -293,7 +266,7 @@ func (h *runnerHandler) GetPushToken(
 		return nil, connect.NewError(connect.CodeUnavailable,
 			services.ErrGitHubFailed.Error())
 	case err != nil:
-		return nil, mapError(err)
+		return nil, MapError(err)
 	}
 	return &factoryv1.GetPushTokenResponse{
 		Token:     token.Value,
@@ -324,9 +297,9 @@ func (h *runnerHandler) ListFinishedTasks(
 		ids[i] = id
 		asked[id] = raw
 	}
-	done, err := h.app.services.Jobs.FinishedTasks(ctx, ids)
+	done, err := h.app.Services.Jobs.FinishedTasks(ctx, ids)
 	if err != nil {
-		return nil, mapError(err)
+		return nil, MapError(err)
 	}
 	// Answer in the references the runner asked with.
 	out := make([]string, len(done))
@@ -344,7 +317,7 @@ func (h *runnerHandler) CompleteJob(
 	if err != nil {
 		return nil, err
 	}
-	id, err := parseID(req.GetJobId())
+	id, err := ParseID(req.GetJobId())
 	if err != nil {
 		return nil, err
 	}
@@ -352,18 +325,18 @@ func (h *runnerHandler) CompleteJob(
 	if at, parseErr := time.Parse(time.RFC3339, req.GetLimitResetsAt()); parseErr == nil {
 		resetsAt = &at
 	}
-	_, err = h.app.services.Jobs.Complete(
+	_, err = h.app.Services.Jobs.Complete(
 		ctx, runner.ID, id, req.GetSucceeded(), req.GetOutcome(), req.GetSessionId(),
 		req.GetPrUrl(), req.GetLimited(), resetsAt,
 	)
 	if err != nil {
-		return nil, mapError(err)
+		return nil, MapError(err)
 	}
 	// The job is already over, so a report that fails must not fail the call.
-	_ = h.app.services.Jobs.ReportBlocked(
+	_ = h.app.Services.Jobs.ReportBlocked(
 		ctx, runner.ID, id, req.GetBlocked(), req.GetWaitingOn())
 	if t := req.GetTimings(); t != nil {
-		_ = h.app.services.Jobs.RecordTimings(ctx, runner.ID, id, models.JobTimings{
+		_ = h.app.Services.Jobs.RecordTimings(ctx, runner.ID, id, models.JobTimings{
 			Agent: t.GetAgentSeconds(), Gates: t.GetGatesSeconds(),
 			Publish: t.GetPublishSeconds(),
 			CI:      t.GetCiSeconds(), Merge: t.GetMergeSeconds(), Total: t.GetTotalSeconds(),
@@ -382,13 +355,13 @@ func (h *runnerHandler) AddJobComment(
 	if err != nil {
 		return nil, err
 	}
-	id, err := parseID(req.GetJobId())
+	id, err := ParseID(req.GetJobId())
 	if err != nil {
 		return nil, err
 	}
-	err = h.app.services.Jobs.AddProgressNote(ctx, runner.ID, id, req.GetBody())
+	err = h.app.Services.Jobs.AddProgressNote(ctx, runner.ID, id, req.GetBody())
 	if err != nil {
-		return nil, mapError(err)
+		return nil, MapError(err)
 	}
 	return &factoryv1.AddJobCommentResponse{}, nil
 }
