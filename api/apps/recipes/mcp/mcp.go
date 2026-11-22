@@ -1,4 +1,4 @@
-package recipes
+package mcp
 
 import (
 	"context"
@@ -6,6 +6,8 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"google.golang.org/protobuf/proto"
 
+	recipesconnect "tools.xdoubleu.com/apps/recipes/connect"
+	"tools.xdoubleu.com/apps/recipes/internal/services"
 	recipesv1 "tools.xdoubleu.com/gen/recipes/v1"
 	"tools.xdoubleu.com/internal/platform/mcptools"
 )
@@ -22,11 +24,25 @@ type mcpRecipeArgs struct {
 	Servings int32  `json:"servings,omitempty" jsonschema:"scale ingredients to servings"`
 }
 
-// RegisterMCPTools exposes the app's read RPCs, a video-text fetch and
+type tools struct {
+	reads   *recipesconnect.Handler
+	recipes *services.RecipeService
+	videos  *services.VideoService
+}
+
+// Register exposes the app's read RPCs, a video-text fetch and
 // draft-preserving create/update write tools, scoped to the caller's family
 // (docs/adr-0026-recipes-mcp-write-tool.md).
-func (a *Recipes) RegisterMCPTools(srv *mcp.Server) {
-	h := &recipesConnectHandler{app: a}
+func Register(
+	srv *mcp.Server,
+	recipes *services.RecipeService,
+	videos *services.VideoService,
+) {
+	h := &tools{
+		reads:   recipesconnect.NewHandler(recipes),
+		recipes: recipes,
+		videos:  videos,
+	}
 
 	mcptools.AddReadTool(srv, mcpAppName, "recipes_list_recipes",
 		"Recipes in the user's family recipe book, sorted by name. "+
@@ -44,21 +60,24 @@ func (a *Recipes) RegisterMCPTools(srv *mcp.Server) {
 		mcpFetchVideoDescription, h.mcpFetchVideo)
 }
 
-func (h *recipesConnectHandler) mcpListRecipes(
+func (h *tools) mcpListRecipes(
 	ctx context.Context, args mcpListRecipesArgs,
 ) (proto.Message, error) {
 	return mcptools.Unwrap(
-		h.ListRecipes(
+		h.reads.ListRecipes(
 			ctx,
 			&recipesv1.ListRecipesRequest{Limit: args.Limit, Offset: args.Offset},
 		),
 	)
 }
 
-func (h *recipesConnectHandler) mcpGetRecipe(
+func (h *tools) mcpGetRecipe(
 	ctx context.Context, args mcpRecipeArgs,
 ) (proto.Message, error) {
 	return mcptools.Unwrap(
-		h.GetRecipe(ctx, &recipesv1.GetRecipeRequest{Id: args.ID, Servings: args.Servings}),
+		h.reads.GetRecipe(
+			ctx,
+			&recipesv1.GetRecipeRequest{Id: args.ID, Servings: args.Servings},
+		),
 	)
 }

@@ -3,14 +3,17 @@ package services
 import (
 	"context"
 	"errors"
-	"net/http"
 
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/recipes/internal/models"
+	"tools.xdoubleu.com/apps/recipes/internal/repositories"
 	"tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/kit/database"
 )
+
+// ErrRecipeOnMealPlan is returned when a delete is blocked by a meal plan.
+var ErrRecipeOnMealPlan = repositories.ErrRecipeOnMealPlan
 
 const errNotInFamily = "You do not have access to this recipe"
 
@@ -43,10 +46,7 @@ type RecipeService struct {
 
 func validateCategories(mealType, effort string) error {
 	if !models.ValidMealType(mealType) || !models.ValidEffort(effort) {
-		return &app.HTTPError{
-			Status:  http.StatusBadRequest,
-			Message: "Unknown meal type or effort",
-		}
+		return app.NewBadRequestError("Unknown meal type or effort")
 	}
 	return nil
 }
@@ -86,10 +86,7 @@ func (s *RecipeService) Get(
 		return nil, false, err
 	}
 	if recipe.FamilyID != familyID {
-		return nil, false, &app.HTTPError{
-			Status:  http.StatusForbidden,
-			Message: errNotInFamily,
-		}
+		return nil, false, app.NewForbiddenError(errNotInFamily)
 	}
 
 	ingredients, err := s.repo.GetIngredients(ctx, id)
@@ -128,7 +125,22 @@ func (s *RecipeService) GetScaled(
 	return recipe, canEdit, servings, scaled, nil
 }
 
+// Create stores a recipe in the user's family. A replayed client ID returns
+// the stored recipe unchanged.
 func (s *RecipeService) Create(
+	ctx context.Context,
+	userID string,
+	in RecipeInput,
+	opts ...CreateOption,
+) (*models.Recipe, error) {
+	recipe := in.toRecipe()
+	for _, opt := range opts {
+		opt(&recipe)
+	}
+	return s.create(ctx, userID, recipe)
+}
+
+func (s *RecipeService) create(
 	ctx context.Context,
 	userID string,
 	recipe models.Recipe,
@@ -172,10 +184,40 @@ func (s *RecipeService) Create(
 	return created, nil
 }
 
+// Update replaces a family recipe's content, including its draft flag.
 func (s *RecipeService) Update(
 	ctx context.Context,
 	userID string,
+	in RecipeInput,
+) error {
+	return s.update(ctx, userID, in.toRecipe(), false)
+}
+
+// UpdateKeepingDraft replaces a family recipe's content but keeps its stored
+// draft state (an agent edits, never publishes or unpublishes; adr-0026), and
+// returns the stored result at its base servings.
+func (s *RecipeService) UpdateKeepingDraft(
+	ctx context.Context,
+	userID string,
+	in RecipeInput,
+) (*ScaledRecipe, error) {
+	if err := s.update(ctx, userID, in.toRecipe(), true); err != nil {
+		return nil, err
+	}
+	recipe, canEdit, servings, scaled, err := s.GetScaled(ctx, in.ID, userID, 0)
+	if err != nil {
+		return nil, err
+	}
+	return &ScaledRecipe{
+		Recipe: recipe, CanEdit: canEdit, Servings: servings, Ingredients: scaled,
+	}, nil
+}
+
+func (s *RecipeService) update(
+	ctx context.Context,
+	userID string,
 	recipe models.Recipe,
+	keepDraft bool,
 ) error {
 	if err := validateCategories(recipe.MealType, recipe.Effort); err != nil {
 		return err
@@ -190,15 +232,15 @@ func (s *RecipeService) Update(
 		return err
 	}
 	if existing.FamilyID != familyID {
-		return &app.HTTPError{
-			Status:  http.StatusForbidden,
-			Message: errNotInFamily,
-		}
+		return app.NewForbiddenError(errNotInFamily)
 	}
 
 	// Recipes stay attributed to their creator.
 	recipe.UserID = existing.UserID
 	recipe.FamilyID = existing.FamilyID
+	if keepDraft {
+		recipe.IsDraft = existing.IsDraft
+	}
 	if err = s.repo.Update(ctx, recipe); err != nil {
 		return err
 	}
@@ -220,10 +262,7 @@ func (s *RecipeService) Delete(
 		return err
 	}
 	if existing.FamilyID != familyID {
-		return &app.HTTPError{
-			Status:  http.StatusForbidden,
-			Message: errNotInFamily,
-		}
+		return app.NewForbiddenError(errNotInFamily)
 	}
 	return s.repo.Delete(ctx, id, familyID)
 }

@@ -1,4 +1,4 @@
-package recipes
+package mcp
 
 import (
 	"context"
@@ -6,7 +6,7 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 
-	"tools.xdoubleu.com/apps/recipes/pkg/videofetch"
+	recipesconnect "tools.xdoubleu.com/apps/recipes/connect"
 )
 
 const mcpFetchVideoDescription = "Title and description of a YouTube short " +
@@ -17,20 +17,16 @@ const mcpFetchVideoDescription = "Title and description of a YouTube short " +
 	"spoken), ask the user for a screenshot. Instagram reels aren't " +
 	"supported: ask the user to paste the caption or send a screenshot."
 
-type videoFetcher interface {
-	Fetch(ctx context.Context, rawURL string) (*videofetch.Video, error)
-}
-
 type mcpFetchVideoArgs struct {
 	URL string `json:"url" jsonschema:"YouTube shorts, watch or youtu.be URL"`
 }
 
-func (h *recipesConnectHandler) mcpFetchVideo(
+func (h *tools) mcpFetchVideo(
 	ctx context.Context, args mcpFetchVideoArgs,
 ) (proto.Message, error) {
-	video, err := h.app.videos.Fetch(ctx, args.URL)
+	video, err := h.videos.Fetch(ctx, args.URL)
 	if err != nil {
-		return nil, mapError(err)
+		return nil, recipesconnect.MapError(err)
 	}
 
 	return structpb.NewStruct(map[string]any{

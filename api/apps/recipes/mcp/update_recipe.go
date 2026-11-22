@@ -1,13 +1,14 @@
-package recipes
+package mcp
 
 import (
 	"context"
-	"fmt"
 
+	"connectrpc.com/connect/v2"
+	"github.com/google/uuid"
 	"google.golang.org/protobuf/proto"
 
-	recipesv1 "tools.xdoubleu.com/gen/recipes/v1"
-	"tools.xdoubleu.com/internal/platform/mcptools"
+	recipesconnect "tools.xdoubleu.com/apps/recipes/connect"
+	"tools.xdoubleu.com/apps/recipes/internal/services"
 )
 
 // mcpUpdateRecipeDescription carries the edit conventions, so every MCP
@@ -39,48 +40,31 @@ type mcpUpdateRecipeArgs struct {
 // mcpUpdateRecipe preserves the recipe's current draft status: an agent can
 // edit a recipe but never publish or unpublish it (adr-0026). The update is a
 // full replacement of the recipe's content.
-func (h *recipesConnectHandler) mcpUpdateRecipe(
+func (h *tools) mcpUpdateRecipe(
 	ctx context.Context, args mcpUpdateRecipeArgs,
 ) (proto.Message, error) {
-	// Read the current draft flag so the update keeps it as-is.
-	existingMsg, err := mcptools.Unwrap(
-		h.GetRecipe(ctx, &recipesv1.GetRecipeRequest{Id: args.ID}),
-	)
+	userID, err := recipesconnect.CallerID(ctx)
 	if err != nil {
 		return nil, err
 	}
-	existingResp, ok := existingMsg.(*recipesv1.GetRecipeResponse)
-	if !ok {
-		return nil, fmt.Errorf("unexpected GetRecipe response %T", existingMsg)
+	id, err := uuid.Parse(args.ID)
+	if err != nil {
+		return nil, connect.Errorf(connect.CodeInvalidArgument, "invalid recipe ID")
 	}
-
-	n := len(args.Ingredients)
-	req := &recipesv1.UpdateRecipeRequest{
-		Id:                          args.ID,
-		Name:                        args.Name,
-		Steps:                       args.Steps,
-		BaseServings:                args.BaseServings,
-		BatchServings:               args.BatchServings,
-		MealType:                    args.MealType,
-		Effort:                      args.Effort,
-		IsDraft:                     existingResp.Recipe.IsDraft,
-		IngredientNames:             make([]string, n),
-		IngredientAmounts:           make([]float64, n),
-		IngredientUnits:             make([]string, n),
-		IngredientGroupNames:        make([]string, n),
-		IngredientAlternativeGroups: make([]string, n),
+	//nolint:exhaustruct // the draft flag is kept by the service
+	in := services.RecipeInput{
+		ID:            id,
+		Name:          args.Name,
+		Steps:         args.Steps,
+		BaseServings:  int(args.BaseServings),
+		BatchServings: batchServings(args.BatchServings),
+		MealType:      args.MealType,
+		Effort:        args.Effort,
+		Ingredients:   ingredientInputs(args.Ingredients),
 	}
-	for i, ing := range args.Ingredients {
-		req.IngredientNames[i] = ing.Name
-		req.IngredientAmounts[i] = ing.Amount
-		req.IngredientUnits[i] = ing.Unit
-		req.IngredientGroupNames[i] = ing.GroupName
-		req.IngredientAlternativeGroups[i] = ing.AlternativeGroup
+	updated, err := h.recipes.UpdateKeepingDraft(ctx, userID, in)
+	if err != nil {
+		return nil, recipesconnect.MapError(err)
 	}
-	if _, err = h.UpdateRecipe(ctx, req); err != nil {
-		return nil, err
-	}
-	return mcptools.Unwrap(
-		h.GetRecipe(ctx, &recipesv1.GetRecipeRequest{Id: args.ID}),
-	)
+	return recipesconnect.ScaledRecipeResponse(userID, updated), nil
 }

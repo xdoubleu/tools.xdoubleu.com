@@ -1,12 +1,13 @@
-package recipes
+package mcp
 
 import (
 	"context"
 
 	"google.golang.org/protobuf/proto"
 
+	recipesconnect "tools.xdoubleu.com/apps/recipes/connect"
+	"tools.xdoubleu.com/apps/recipes/internal/services"
 	recipesv1 "tools.xdoubleu.com/gen/recipes/v1"
-	"tools.xdoubleu.com/internal/platform/mcptools"
 )
 
 // mcpCreateRecipeDescription carries the import conventions, so every MCP
@@ -54,28 +55,48 @@ type mcpCreateRecipeArgs struct {
 }
 
 // mcpCreateRecipe always creates a draft; the user un-drafts it in the app.
-func (h *recipesConnectHandler) mcpCreateRecipe(
+func (h *tools) mcpCreateRecipe(
 	ctx context.Context, args mcpCreateRecipeArgs,
 ) (proto.Message, error) {
-	n := len(args.Ingredients)
-	req := &recipesv1.CreateRecipeRequest{
-		Name:                        args.Name,
-		Steps:                       args.Steps,
-		BaseServings:                args.BaseServings,
-		BatchServings:               args.BatchServings,
-		IngredientNames:             make([]string, n),
-		IngredientAmounts:           make([]float64, n),
-		IngredientUnits:             make([]string, n),
-		IngredientGroupNames:        make([]string, n),
-		IngredientAlternativeGroups: make([]string, n),
-		IsDraft:                     true,
+	userID, err := recipesconnect.CallerID(ctx)
+	if err != nil {
+		return nil, err
 	}
-	for i, ing := range args.Ingredients {
-		req.IngredientNames[i] = ing.Name
-		req.IngredientAmounts[i] = ing.Amount
-		req.IngredientUnits[i] = ing.Unit
-		req.IngredientGroupNames[i] = ing.GroupName
-		req.IngredientAlternativeGroups[i] = ing.AlternativeGroup
+	//nolint:exhaustruct // new recipes have no ID, categories or draft input
+	in := services.RecipeInput{
+		Name:          args.Name,
+		Steps:         args.Steps,
+		BaseServings:  int(args.BaseServings),
+		BatchServings: batchServings(args.BatchServings),
+		Ingredients:   ingredientInputs(args.Ingredients),
 	}
-	return mcptools.Unwrap(h.CreateRecipe(ctx, req))
+	created, err := h.recipes.Create(ctx, userID, in, services.AsAgentDraft())
+	if err != nil {
+		return nil, recipesconnect.MapError(err)
+	}
+	return &recipesv1.CreateRecipeResponse{
+		Recipe: recipesconnect.ProtoRecipe(created),
+	}, nil
+}
+
+func batchServings(v *int32) *int {
+	if v == nil {
+		return nil
+	}
+	n := int(*v)
+	return &n
+}
+
+func ingredientInputs(args []mcpIngredientArg) []services.IngredientInput {
+	out := make([]services.IngredientInput, len(args))
+	for i, ing := range args {
+		out[i] = services.IngredientInput{
+			Name:             ing.Name,
+			Amount:           ing.Amount,
+			Unit:             ing.Unit,
+			GroupName:        ing.GroupName,
+			AlternativeGroup: ing.AlternativeGroup,
+		}
+	}
+	return out
 }
