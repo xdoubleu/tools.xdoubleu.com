@@ -17,6 +17,7 @@ const (
 	Claude       = ward.Claude
 	OpenCode     = ward.OpenCode
 	Codex        = ward.Codex
+	Gemini       = ward.Gemini
 	OverflowOff  = ward.OverflowOff
 	OverflowAuto = ward.OverflowAuto
 )
@@ -24,7 +25,7 @@ const (
 // Secrets holds the model credentials, which stay on the host: Claude Code's
 // token is the only one that reaches the VM, and only through the egress proxy.
 type Secrets interface {
-	// Get returns the named secret ("anthropic", "openrouter", "openai").
+	// Get returns the named secret ("anthropic", "openrouter", "openai", "gemini").
 	Get(name string) (string, error)
 }
 
@@ -60,7 +61,7 @@ type Request struct {
 	Token string
 	// Prompt is the task.
 	Prompt string
-	// Harness is Claude, OpenCode or Codex.
+	// Harness is Claude, OpenCode, Codex or Gemini.
 	Harness string
 	// Overflow is OverflowOff (the default) or OverflowAuto, which continues on
 	// Fallback in the same worktree when Harness hits its usage limit.

@@ -11,7 +11,6 @@ import (
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/internal/platform/factory/internal/models"
-	"tools.xdoubleu.com/internal/platform/githubapp"
 )
 
 // pollBatch is how many open pull requests one poll reads, the longest unread
@@ -81,9 +80,7 @@ func (s *JobService) mergedLinked(ctx context.Context) (int, error) {
 			continue
 		}
 		for _, p := range listed {
-			pr := PullRequestRef{
-				URL: p.URL, Title: p.Title, Branch: p.Branch, Body: p.Body, MergeSHA: p.MergeSHA,
-			}
+			pr := PullRequestRef(p)
 			pulls = append(pulls, pr)
 			refs = append(refs, linkedTasks(pr)...)
 		}
@@ -121,7 +118,7 @@ func (s *JobService) mergedLinked(ctx context.Context) (int, error) {
 
 func mergedRow(url string, taskID uuid.UUID) models.LinkedPullRequest {
 	return models.LinkedPullRequest{
-		URL: url, TaskID: taskID, State: githubapp.StateMerged,
+		URL: url, TaskID: taskID, State: StateMerged,
 		CI: "", Review: "", Mergeable: "", UnmergeableSince: nil,
 		CheckedAt: time.Time{},
 	}
@@ -130,7 +127,7 @@ func mergedRow(url string, taskID uuid.UUID) models.LinkedPullRequest {
 // skipNotInstalled turns "the App is not installed on the repo" into an empty
 // listing: a repo it cannot reach is not a failure of the poll over the others.
 func skipNotInstalled[T any](pulls []T, err error) ([]T, error) {
-	if errors.Is(err, githubapp.ErrNotInstalled) {
+	if errors.Is(err, ErrNotInstalled) {
 		return nil, nil
 	}
 	return pulls, err
@@ -202,7 +199,7 @@ func (s *JobService) PullRequestOpened(ctx context.Context, pr PullRequestRef) e
 			continue
 		}
 		err = s.linked.Upsert(ctx, models.LinkedPullRequest{
-			URL: pr.URL, TaskID: id, State: githubapp.StateOpen,
+			URL: pr.URL, TaskID: id, State: StateOpen,
 			CI: "", Review: "", Mergeable: "", UnmergeableSince: nil,
 			CheckedAt: time.Time{},
 		})
@@ -395,7 +392,7 @@ func (s *JobService) pollPullRequest(ctx context.Context, job *models.Job) error
 	if err != nil {
 		return err
 	}
-	if status.State != job.PRState && status.State != githubapp.StateOpen {
+	if status.State != job.PRState && status.State != StateOpen {
 		// First the task, then the record: a failure in between repeats this step
 		// on the next poll, and the task's own status keeps it from happening twice.
 		if err = s.pullRequestEnded(ctx, job, status); err != nil {
@@ -411,7 +408,7 @@ func (s *JobService) pollPullRequest(ctx context.Context, job *models.Job) error
 func (s *JobService) pullRequestEnded(
 	ctx context.Context,
 	job *models.Job,
-	status githubapp.PullRequestStatus,
+	status PullRequestStatus,
 ) error {
 	task, err := s.tasks.Get(ctx, job.TaskID)
 	if err != nil {
@@ -429,7 +426,7 @@ func (s *JobService) pullRequestEnded(
 	}
 	to, suffix := models.StatusNeedsYou, ""
 	body := "The pull request was closed without merging: "
-	if status.State == githubapp.StateMerged {
+	if status.State == StateMerged {
 		var note string
 		to, note = s.afterMergeStatus(ctx, task, job.PRURL)
 		body = "The pull request was merged: "
@@ -560,7 +557,7 @@ func (s *JobService) syncLinked(ctx context.Context) error {
 // openPull is an open pull request and the tasks it names.
 type openPull struct {
 	repo models.Repo
-	pull githubapp.OpenPullRequest
+	pull OpenPullRequest
 	refs []string
 }
 
@@ -629,7 +626,7 @@ type linkedReview struct {
 func linkedRow(
 	url string,
 	taskID uuid.UUID,
-	status githubapp.PullRequestStatus,
+	status PullRequestStatus,
 ) models.LinkedPullRequest {
 	return models.LinkedPullRequest{
 		URL: url, TaskID: taskID, State: status.State, CI: status.CI,

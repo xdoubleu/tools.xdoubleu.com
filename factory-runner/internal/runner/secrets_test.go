@@ -100,7 +100,6 @@ func TestAJobProxyReplacesTheSandboxsOwnAndTheEnvFileIsInAStableOrder(t *testing
 	assert.Equal(t, "10.231.7.1", jobGateway)
 	assert.Empty(t, sandboxGateway, "the job's proxy is used, not the sandbox's")
 	assert.Equal(t, strings.Join([]string{
-		"BUNDLE_MIRROR__HTTPS://RUBYGEMS__ORG/=http://10.231.7.1:8118/rubygems/",
 		"GOCACHE=/session/go-build",
 		"GODEBUG=netdns=go",
 		"GOMODCACHE=/session/gomodcache",

@@ -29,6 +29,11 @@ for m in api factory-runner wardcase selfupdate; do
 	run lint "$m" make lint
 	run test "$m" make test/cov/diff
 done
+# factory-runner imports wardcase: lint and build it when only wardcase changed.
+if touched wardcase && ! touched factory-runner; then
+	run lint factory-runner make lint
+	run build factory-runner go build ./...
+fi
 if touched web; then
 	run lint web npm run lint
 	run test web npm run test:cov

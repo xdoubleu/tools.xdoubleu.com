@@ -2,6 +2,13 @@
 # ?= lets a sandbox redirect it out of a read-only checkout.
 export GOLANGCI_LINT_CACHE ?= $(CURDIR)/.golangci-cache
 
+# A job sandbox has the flake's tools at this profile but not on PATH and no C
+# compiler: append it (a `nix develop` shell still wins) and build pure Go there.
+export PATH := $(PATH):/nix/var/nix/profiles/devshell/bin
+ifeq ($(shell command -v cc 2>/dev/null),)
+export CGO_ENABLED ?= 0
+endif
+
 # Apply every migration (cmd/api's TestMain does it; idempotent). Test targets
 # depend on it: other packages fail with 42P01 on an unmigrated database.
 db/migrate:

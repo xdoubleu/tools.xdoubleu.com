@@ -61,6 +61,8 @@ func newJobProxy(
 		Anthropic:     "",
 		OpenAIKey:     nil,
 		OpenAI:        "",
+		GeminiKey:     nil,
+		Gemini:        "",
 		OpenRouter:    "", GoProxy: "", NPM: "", RubyGems: "",
 		NixCache: "", NixSrc: "",
 		Log: log,

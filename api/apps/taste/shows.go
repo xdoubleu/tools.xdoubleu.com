@@ -19,7 +19,7 @@ func (s showSource) ListConsumption(
 	ctx context.Context,
 	userID string,
 ) ([]consumption.Event, error) {
-	shows, err := s.app.shows.List(ctx, userID)
+	shows, err := s.app.services.Shows.List(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +46,7 @@ func (a *Taste) FindShow(
 	ctx context.Context,
 	userID, title string,
 ) (*consumption.CatalogMatch, error) {
-	results, err := a.shows.Search(ctx, userID, title)
+	results, err := a.services.Shows.Search(ctx, userID, title)
 	if err != nil {
 		return nil, err
 	}

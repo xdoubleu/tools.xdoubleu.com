@@ -1,5 +1,5 @@
-// Command wardcase runs an agent harness (Claude Code, OpenCode, Codex) in the job
-// VM on the current checkout, so any ADE or terminal gets the same sandbox.
+// Command wardcase runs an agent harness (Claude Code, OpenCode, Codex, Gemini) in
+// the job VM on the current checkout, so any ADE or terminal gets the same sandbox.
 // Experimental.
 package main
 
@@ -23,10 +23,14 @@ import (
 const usage = `wardcase runs an agent harness in a sealed VM on this checkout.
 (experimental)
 
-  wardcase [--in-place] [claude|opencode|codex] [args...]
-                                                     interactive; args go to the harness
-  wardcase --print [claude|opencode|codex] [prompt]  headless; the prompt, else stdin
-  wardcase secret set <anthropic|openrouter|openai>  reads the value from stdin
+  wardcase [--in-place] [claude|opencode|codex|gemini] [args...]
+                          interactive; args go to the harness
+  wardcase --print [claude|opencode|codex|gemini] [prompt]
+                          headless; the prompt, else stdin
+  wardcase secret set <anthropic|openrouter|openai|gemini>
+                          reads the value from stdin
+  wardcase acp [opencode|codex|gemini]
+                          an ACP agent on stdio, for an ADE
   wardcase config                                    prints the config path and settings
   wardcase mcp login <name>                          signs a configured MCP server in
   wardcase mcp list                                  the configured MCP servers
@@ -35,6 +39,9 @@ const usage = `wardcase runs an agent harness in a sealed VM on this checkout.
 Each run gets its own git worktree on a new branch cut from HEAD; on exit wardcase
 says what is left in it and removes it when nothing is. --in-place runs in the
 current directory instead. --resume goes on in the checkout's latest worktree.
+
+wardcase acp serves one ACP session over its own stdio, in a worktree of the directory
+the ADE names, and allows every tool call in the VM: the sandbox is the boundary.
 
 MCP servers are the config's [[mcp]] entries (name, url, jobs). They are signed in
 here, on the Mac, with OAuth; the VM reaches them through the proxy, which adds the
@@ -96,6 +103,8 @@ func run(
 			return showConfig(home, out, errOut)
 		case "mcp":
 			return mcp(ctx, h, home, args[1:], out, errOut)
+		case "acp":
+			return acpCommand(ctx, h, home, args[1:], in, out, errOut)
 		}
 	}
 	code, err := start(ctx, h, home, args, in, out, errOut)
@@ -110,7 +119,8 @@ func secret(
 	store ward.Secrets, args []string, in io.Reader, out, errOut io.Writer,
 ) int {
 	if len(args) != 2 || args[0] != "set" || !ward.ValidSecret(args[1]) {
-		fmt.Fprintln(errOut, "usage: wardcase secret set <anthropic|openrouter|openai>")
+		fmt.Fprintln(errOut,
+			"usage: wardcase secret set <anthropic|openrouter|openai|gemini>")
 		return exitUsage
 	}
 	line, err := bufio.NewReader(in).ReadString('\n')
@@ -166,6 +176,22 @@ func start(
 	if req.Dir, err = os.Getwd(); err != nil {
 		return 1, fmt.Errorf("working directory: %w", err)
 	}
+	r, err := newRunner(ctx, h, home, cfg, in, out, errOut)
+	if err != nil {
+		return 1, err
+	}
+	return r.Run(ctx, req)
+}
+
+// newRunner checks the container CLI and image and returns a Runner on them.
+func newRunner(
+	ctx context.Context,
+	h host,
+	home string,
+	cfg ward.Config,
+	in *os.File,
+	out, errOut io.Writer,
+) (*ward.Runner, error) {
 	execer := h.exec
 	box := &vm.ContainerSandbox{
 		Image: ImageRef(Version), Exec: execer, Proxy: nil, ProxyPort: vm.EgressProxyPort,
@@ -173,24 +199,23 @@ func start(
 		NixStore:    filepath.Join(home, ".local", "state", "wardcase", "nix"),
 		NixStoreMax: 0, CPUs: "", Memory: "", TempDir: "",
 	}
-	if err = box.Check(ctx); err != nil {
-		return 1, err
+	if err := box.Check(ctx); err != nil {
+		return nil, err
 	}
-	if err = ensureImage(ctx, execer, box.Image, errOut); err != nil {
-		return 1, err
+	if err := ensureImage(ctx, execer, box.Image, errOut); err != nil {
+		return nil, err
 	}
-	if err = os.MkdirAll(box.NixStore, stateDirPerm); err != nil {
-		return 1, fmt.Errorf("nix store directory: %w", err)
+	if err := os.MkdirAll(box.NixStore, stateDirPerm); err != nil {
+		return nil, fmt.Errorf("nix store directory: %w", err)
 	}
 	terminal := isTerminal(in)
-	r := &ward.Runner{
+	return &ward.Runner{
 		Box: box, Secrets: h.secrets, Config: cfg,
 		StateDir: filepath.Join(home, ".local", "state", "wardcase"), TempDir: "",
 		Git: ward.HostGit, GitEnv: nil, GH: ward.HostGH, NewProxy: newProxy, In: in,
 		Out: out, Notes: errOut,
 		Terminal: terminal, Ask: ask(in, errOut), Now: nil,
-	}
-	return r.Run(ctx, req)
+	}, nil
 }
 
 func newProxy(cfg vm.EgressConfig) (vm.ProxyListener, error) {

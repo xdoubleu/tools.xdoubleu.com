@@ -129,7 +129,7 @@ func TestAPullRequestGitHubCannotFindIsNotCalledClosed(t *testing.T) {
 	gh.answer(42, ended(""), githubapp.ErrPullRequestGone)
 
 	err := env.poll(t)
-	require.ErrorIs(t, err, githubapp.ErrPullRequestGone)
+	require.ErrorIs(t, err, services.ErrPullRequestGone)
 
 	// The App may have lost sight of it (a rename, changed access): the task stays
 	// where it is, and the pull request is tracked on.
