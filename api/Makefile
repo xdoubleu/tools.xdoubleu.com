@@ -81,6 +81,10 @@ lint/migrations:
 lint/kamal-secrets:
 	./scripts/check_kamal_secrets.sh
 
+lint/hexagonal:
+	./scripts/test_check_hexagonal.sh
+	./scripts/check_hexagonal.sh
+
 lint/cross-schema:
 	./scripts/test_check_cross_schema.sh
 	./scripts/check_cross_schema.sh
@@ -107,6 +111,7 @@ lint: tools/lint
 	make lint/proto
 	make lint/migrations
 	make lint/kamal-secrets
+	make lint/hexagonal
 	make lint/cross-schema
 	make lint/scalar-subqueries
 	make lint/proto-local-versions
