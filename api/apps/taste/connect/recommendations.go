@@ -2,12 +2,12 @@ package connect
 
 import (
 	"context"
-	"time"
 
 	"connectrpc.com/connect/v2"
 
 	"tools.xdoubleu.com/apps/taste/internal/jobs"
 	"tools.xdoubleu.com/apps/taste/internal/models"
+	"tools.xdoubleu.com/apps/taste/internal/protomap"
 	"tools.xdoubleu.com/apps/taste/internal/services"
 	tastev1 "tools.xdoubleu.com/gen/taste/v1"
 )
@@ -28,7 +28,7 @@ func (h *Handler) ListRecommendations(
 	}
 	out := make([]*tastev1.Recommendation, 0, len(recs))
 	for _, r := range recs {
-		out = append(out, protoRecommendation(r))
+		out = append(out, protomap.Recommendation(r))
 	}
 	emailNewPicks, err := h.svc.Notify.EmailNewPicks(ctx, sc.User)
 	if err != nil {
@@ -36,11 +36,11 @@ func (h *Handler) ListRecommendations(
 	}
 	return &tastev1.ListRecommendationsResponse{
 		Recommendations: out,
-		GeneratedAt:     formatTimePtr(st.GeneratedAt),
+		GeneratedAt:     protomap.TimePtr(st.GeneratedAt),
 		LastError:       st.Error,
 		EmailNewPicks:   emailNewPicks,
 		Pending:         st.Pending,
-		NextRefreshAt:   nextRefreshAt(st.RequestedAt),
+		NextRefreshAt:   protomap.NextRefreshAt(st.RequestedAt),
 	}, nil
 }
 
@@ -97,7 +97,7 @@ func (h *Handler) SetFeedback(
 		return nil, mapError(err)
 	}
 	return &tastev1.SetFeedbackResponse{
-		Recommendation: protoRecommendation(*rec),
+		Recommendation: protomap.Recommendation(*rec),
 	}, nil
 }
 
@@ -114,7 +114,7 @@ func (h *Handler) SetSaved(
 		return nil, mapError(err)
 	}
 	return &tastev1.SetSavedResponse{
-		Recommendation: protoRecommendation(*rec),
+		Recommendation: protomap.Recommendation(*rec),
 	}, nil
 }
 
@@ -131,7 +131,7 @@ func (h *Handler) AcceptRecommendation(
 		return nil, mapError(err)
 	}
 	return &tastev1.AcceptRecommendationResponse{
-		Recommendation: protoRecommendation(*rec),
+		Recommendation: protomap.Recommendation(*rec),
 	}, nil
 }
 
@@ -150,30 +150,4 @@ func (h *Handler) ownPick(
 		return "", nil, mapError(err)
 	}
 	return sc.Subject, rec, nil
-}
-
-func protoRecommendation(r models.Recommendation) *tastev1.Recommendation {
-	sources := make([]*tastev1.Source, len(r.Sources))
-	for i, s := range r.Sources {
-		sources[i] = &tastev1.Source{Url: s.URL, Title: s.Title}
-	}
-	return &tastev1.Recommendation{
-		Id:           r.ID,
-		Domain:       r.Domain,
-		Track:        r.Track,
-		Title:        r.Title,
-		Creator:      r.Creator,
-		Year:         count32(r.Year),
-		Url:          r.URL,
-		ImageUrl:     r.ImageURL,
-		Why:          r.Why,
-		Sources:      sources,
-		Score:        count32(r.Score),
-		Feedback:     r.Feedback,
-		Saved:        r.Saved,
-		Accepted:     r.Accepted,
-		OnMyServices: r.OnMyServices,
-		CanAccept:    r.CanAccept(),
-		GeneratedAt:  r.GeneratedAt.UTC().Format(time.RFC3339),
-	}
 }

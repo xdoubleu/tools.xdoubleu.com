@@ -2,26 +2,13 @@ package connect
 
 import (
 	"context"
-	"time"
 
 	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 
-	"tools.xdoubleu.com/apps/taste/internal/models"
+	"tools.xdoubleu.com/apps/taste/internal/protomap"
 	tastev1 "tools.xdoubleu.com/gen/taste/v1"
 )
-
-func protoFavouriteShow(s *models.Show) *tastev1.FavouriteShow {
-	return &tastev1.FavouriteShow{
-		Id:         s.ID.String(),
-		ItunesId:   s.ITunesID,
-		Title:      s.Title,
-		Author:     s.Author,
-		ArtworkUrl: s.ArtworkURL,
-		AppleUrl:   s.AppleURL,
-		AddedAt:    s.AddedAt.Format(time.RFC3339),
-	}
-}
 
 func (h *Handler) SearchShows(
 	ctx context.Context,
@@ -64,7 +51,7 @@ func (h *Handler) ListFavouriteShows(
 	}
 	out := make([]*tastev1.FavouriteShow, len(shows))
 	for i := range shows {
-		out[i] = protoFavouriteShow(&shows[i])
+		out[i] = protomap.FavouriteShow(&shows[i])
 	}
 	return &tastev1.ListFavouriteShowsResponse{Favourites: out}, nil
 }
@@ -82,7 +69,7 @@ func (h *Handler) AddFavouriteShow(
 	if err != nil {
 		return nil, mapError(err)
 	}
-	return &tastev1.AddFavouriteShowResponse{Favourite: protoFavouriteShow(show)}, nil
+	return &tastev1.AddFavouriteShowResponse{Favourite: protomap.FavouriteShow(show)}, nil
 }
 
 func (h *Handler) RemoveFavouriteShow(
