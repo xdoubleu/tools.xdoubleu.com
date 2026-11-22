@@ -24,7 +24,7 @@ const createTransport = (keepalive: boolean) =>
     // exceed the server cap).
     useBinaryFormat: true,
     fetch: (input, init) =>
-      fetchSurvivingRefreshRace(input instanceof Request ? input.url : String(input), () =>
+      fetchSurvivingRefreshRace(input, () =>
         fetchRetrying502(input, {
           ...init,
           credentials: 'include',

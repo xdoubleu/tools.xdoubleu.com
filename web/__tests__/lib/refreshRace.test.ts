@@ -46,6 +46,13 @@ describe('fetchSurvivingRefreshRace without Web Locks', () => {
     expect(send).toHaveBeenCalledTimes(1)
   })
 
+  it('recognises a credential check sent as a Request or URL', async () => {
+    const send = vi.fn(async () => status(401))
+    await fetchSurvivingRefreshRace(new Request(signInUrl), send)
+    await fetchSurvivingRefreshRace(new URL(signInUrl), send)
+    expect(send).toHaveBeenCalledTimes(2)
+  })
+
   it('does not retry other responses', async () => {
     const send = vi.fn(async () => status(403))
     expect((await fetchSurvivingRefreshRace(userUrl, send)).status).toBe(403)

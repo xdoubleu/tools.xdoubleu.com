@@ -24,7 +24,8 @@ function lockManager(): LockManager | undefined {
   return typeof navigator === 'undefined' ? undefined : navigator.locks
 }
 
-function isCredentialRpc(url: string): boolean {
+function isCredentialRpc(input: RequestInfo | URL): boolean {
+  const url = input instanceof Request ? input.url : String(input)
   return credentialRpcs.some((path) => url.endsWith(path))
 }
 
@@ -36,12 +37,12 @@ function track(request: Promise<Response>): Promise<Response> {
 
 /** Sends `send`, retrying once a 401 that may have lost the refresh-token race. */
 export async function fetchSurvivingRefreshRace(
-  url: string,
+  input: RequestInfo | URL,
   send: () => Promise<Response>
 ): Promise<Response> {
   const locks = lockManager()
   const res = await track(locks ? locks.request(lockName, { mode: 'shared' }, send) : send())
-  if (res.status !== 401 || isCredentialRpc(url)) return res
+  if (res.status !== 401 || isCredentialRpc(input)) return res
 
   if (locks) return locks.request(lockName, { mode: 'exclusive' }, send)
   await Promise.allSettled([...inFlight])
