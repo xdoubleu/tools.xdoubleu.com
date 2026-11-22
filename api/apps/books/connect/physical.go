@@ -1,4 +1,4 @@
-package books
+package connect
 
 import (
 	"context"
@@ -14,7 +14,7 @@ import (
 )
 
 // GetPhysicalCopy returns the details of the user's physical copy.
-func (h *booksConnectHandler) GetPhysicalCopy(
+func (h *Handler) GetPhysicalCopy(
 	ctx context.Context,
 	req *booksv1.GetPhysicalCopyRequest,
 ) (*booksv1.GetPhysicalCopyResponse, error) {
@@ -22,7 +22,7 @@ func (h *booksConnectHandler) GetPhysicalCopy(
 	if err != nil {
 		return nil, err
 	}
-	view, err := h.app.services.Physical.Copy(ctx, userID, bookID)
+	view, err := h.services.Physical.Copy(ctx, userID, bookID)
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -41,7 +41,7 @@ func (h *booksConnectHandler) GetPhysicalCopy(
 }
 
 // UpdatePhysicalCopy stores the details of the user's physical copy.
-func (h *booksConnectHandler) UpdatePhysicalCopy(
+func (h *Handler) UpdatePhysicalCopy(
 	ctx context.Context,
 	req *booksv1.UpdatePhysicalCopyRequest,
 ) (*booksv1.UpdatePhysicalCopyResponse, error) {
@@ -62,7 +62,7 @@ func (h *booksConnectHandler) UpdatePhysicalCopy(
 			Offset: int(a.GetPosition().GetOffset()),
 		})
 	}
-	if err = h.app.services.Physical.UpdateCopy(ctx, userID, bookID, c); err != nil {
+	if err = h.services.Physical.UpdateCopy(ctx, userID, bookID, c); err != nil {
 		return nil, mapError(err)
 	}
 	return &booksv1.UpdatePhysicalCopyResponse{}, nil
@@ -89,13 +89,13 @@ func physicalCopyCaller(
 
 func physicalCopyToProto(c models.PhysicalCopy) *booksv1.PhysicalCopy {
 	out := &booksv1.PhysicalCopy{
-		PageCount:     int32FromInt(c.PageCount),
-		TextStartPage: int32FromInt(c.TextStartPage),
+		PageCount:     Int32FromInt(c.PageCount),
+		TextStartPage: Int32FromInt(c.TextStartPage),
 		Anchors:       make([]*booksv1.PhysicalAnchor, 0, len(c.Anchors)),
 	}
 	for _, a := range c.Anchors {
 		out.Anchors = append(out.Anchors, &booksv1.PhysicalAnchor{
-			Page: int32FromInt(a.Page),
+			Page: Int32FromInt(a.Page),
 			Position: readingPositionToProto(models.ReadingPosition{
 				Href: a.Href, Offset: a.Offset, Page: 0,
 			}),

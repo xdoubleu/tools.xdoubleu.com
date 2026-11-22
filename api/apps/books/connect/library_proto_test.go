@@ -1,5 +1,5 @@
 //nolint:testpackage // testing unexported package-level helpers
-package books
+package connect
 
 import (
 	"testing"
@@ -76,7 +76,7 @@ func TestProtoUserBook_CarriesFileVersions(t *testing.T) {
 		FileVersions: versions,
 	}
 
-	pb := protoUserBook(ub, "http://api.test")
+	pb := ProtoUserBook(ub, "http://api.test")
 
 	assert.Equal(t, versions, pb.FileVersions)
 }

@@ -1,4 +1,4 @@
-package books
+package connect
 
 import (
 	"fmt"
@@ -74,7 +74,8 @@ func reconcileOwnDigitalTag(tags, formats []string) []string {
 	})
 }
 
-func protoUserBook(ub models.UserBook, coverBaseURL string) *booksv1.UserBook {
+// ProtoUserBook maps one library entry onto the wire type.
+func ProtoUserBook(ub models.UserBook, coverBaseURL string) *booksv1.UserBook {
 	finishedAt := make([]string, len(ub.FinishedAt))
 	for i, t := range ub.FinishedAt {
 		finishedAt[i] = t.Format(time.RFC3339)
@@ -93,8 +94,8 @@ func protoUserBook(ub models.UserBook, coverBaseURL string) *booksv1.UserBook {
 		Rating:            int32PtrFromInt16(ub.Rating),
 		FinishedAt:        finishedAt,
 		ProgressMode:      ub.ProgressMode,
-		CurrentPage:       int32FromInt(ub.CurrentPage),
-		ProgressPercent:   int32FromInt(ub.ProgressPercent),
+		CurrentPage:       Int32FromInt(ub.CurrentPage),
+		ProgressPercent:   Int32FromInt(ub.ProgressPercent),
 		PhysicalPageCount: int32FromIntPtr(ub.PhysicalPageCount),
 		AddedAt:           ub.AddedAt.Format(time.RFC3339),
 		UpdatedAt:         ub.UpdatedAt.Format(time.RFC3339),
@@ -107,29 +108,31 @@ func protoReadSuggestion(s *models.ReadSuggestion) *booksv1.ReadSuggestion {
 	}
 	return &booksv1.ReadSuggestion{
 		Format:      s.Format,
-		FigureCount: int32FromInt(s.FigureCount),
-		Pages:       int32FromInt(s.Pages),
+		FigureCount: Int32FromInt(s.FigureCount),
+		Pages:       Int32FromInt(s.Pages),
 	}
 }
 
-func protoUserBooks(
+// ProtoUserBooks maps library entries onto the wire type.
+func ProtoUserBooks(
 	books []models.UserBook,
 	coverBaseURL string,
 ) []*booksv1.UserBook {
 	result := make([]*booksv1.UserBook, len(books))
 	for i, b := range books {
-		result[i] = protoUserBook(b, coverBaseURL)
+		result[i] = ProtoUserBook(b, coverBaseURL)
 	}
 
 	return result
 }
 
-func protoBookshelves(shelves []bookShelf, coverBaseURL string) []*booksv1.BookShelf {
+// ProtoShelves maps shelves onto the wire type.
+func ProtoShelves(shelves []services.Shelf, coverBaseURL string) []*booksv1.BookShelf {
 	result := make([]*booksv1.BookShelf, len(shelves))
 	for i, s := range shelves {
 		result[i] = &booksv1.BookShelf{
 			Name:  s.Name,
-			Books: protoUserBooks(s.Books, coverBaseURL),
+			Books: ProtoUserBooks(s.Books, coverBaseURL),
 		}
 	}
 	return result

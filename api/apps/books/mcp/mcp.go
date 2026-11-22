@@ -1,4 +1,5 @@
-package books
+// Package mcp exposes the books app's read RPCs as MCP tools.
+package mcp
 
 import (
 	"context"
@@ -6,7 +7,12 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"google.golang.org/protobuf/proto"
 
+	"tools.xdoubleu.com/apps/books/connect"
+	"tools.xdoubleu.com/apps/books/internal/services"
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
+	"tools.xdoubleu.com/internal/kit/constants"
+	"tools.xdoubleu.com/internal/kit/contexttools"
+	sharedmodels "tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/platform/mcptools"
 )
 
@@ -53,15 +59,33 @@ type mcpDeviceIDArgs struct {
 	ID string `json:"id" jsonschema:"Kobo device id"`
 }
 
-// RegisterMCPTools exposes the books app's read-only RPCs on the combined apps
-// MCP server. Every tool returns the calling user's own library data.
-func (a *Books) RegisterMCPTools(srv *mcp.Server) {
-	h := &booksConnectHandler{app: a}
-	registerReadingLibraryTools(srv, h)
-	registerReadingCatalogTools(srv, h)
+// tools adapts the ConnectRPC handler and the catalog service to MCP tool
+// signatures.
+type tools struct {
+	h            *connect.Handler
+	catalog      *services.CatalogService
+	coverBaseURL string
 }
 
-func registerReadingLibraryTools(srv *mcp.Server, h *booksConnectHandler) {
+// Register exposes the books app's read-only RPCs on the combined apps MCP
+// server. Every tool returns the calling user's own library data; the catalog
+// tools need an admin.
+func Register(
+	srv *mcp.Server,
+	h *connect.Handler,
+	catalog *services.CatalogService,
+	coverBaseURL string,
+) {
+	t := &tools{h: h, catalog: catalog, coverBaseURL: coverBaseURL}
+	registerReadingLibraryTools(srv, t)
+	registerReadingCatalogTools(srv, t)
+}
+
+func caller(ctx context.Context) *sharedmodels.User {
+	return contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
+}
+
+func registerReadingLibraryTools(srv *mcp.Server, h *tools) {
 	mcptools.AddReadTool(srv, mcpAppName, "books_get_library",
 		"The user's full library: reading/wishlist/finished shelves, with each "+
 			"book's formats and read suggestion (pdf for iPad/laptop when "+
@@ -86,7 +110,7 @@ func registerReadingLibraryTools(srv *mcp.Server, h *booksConnectHandler) {
 			"they don't have.", h.mcpGetSeries)
 }
 
-func registerReadingCatalogTools(srv *mcp.Server, h *booksConnectHandler) {
+func registerReadingCatalogTools(srv *mcp.Server, h *tools) {
 	mcptools.AddReadTool(srv, mcpAppName, "books_list_resync_proposals",
 		"Catalog books that differ from an external source (resync wizard).",
 		h.mcpListResyncProposals)
@@ -125,136 +149,155 @@ func mcpOptStr(s string) *string {
 	return &s
 }
 
-func (h *booksConnectHandler) mcpGetLibrary(
+func (h *tools) mcpGetLibrary(
 	ctx context.Context, _ mcptools.NoArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.GetLibrary(ctx, &booksv1.GetLibraryRequest{}))
+	return mcptools.Unwrap(h.h.GetLibrary(ctx, &booksv1.GetLibraryRequest{}))
 }
 
-func (h *booksConnectHandler) mcpGetBooksProgress(
+func (h *tools) mcpGetBooksProgress(
 	ctx context.Context, args mcpProgressArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.GetBooksProgress(ctx, &booksv1.GetBooksProgressRequest{
+	return mcptools.Unwrap(h.h.GetBooksProgress(ctx, &booksv1.GetBooksProgressRequest{
 		DateStart: args.DateStart,
 		DateEnd:   args.DateEnd,
 	}))
 }
 
-func (h *booksConnectHandler) mcpSearchLibrary(
+func (h *tools) mcpSearchLibrary(
 	ctx context.Context, args mcpQueryArgs,
 ) (proto.Message, error) {
 	return mcptools.Unwrap(
-		h.SearchLibrary(ctx, &booksv1.SearchLibraryRequest{Query: args.Query}),
+		h.h.SearchLibrary(ctx, &booksv1.SearchLibraryRequest{Query: args.Query}),
 	)
 }
 
-func (h *booksConnectHandler) mcpSearchExternal(
+func (h *tools) mcpSearchExternal(
 	ctx context.Context, args mcpQueryArgs,
 ) (proto.Message, error) {
 	return mcptools.Unwrap(
-		h.SearchExternal(ctx, &booksv1.SearchExternalRequest{Query: args.Query}),
+		h.h.SearchExternal(ctx, &booksv1.SearchExternalRequest{Query: args.Query}),
 	)
 }
 
-func (h *booksConnectHandler) mcpGetSeries(
+func (h *tools) mcpGetSeries(
 	ctx context.Context, args mcpSeriesArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.GetSeries(ctx, &booksv1.GetSeriesRequest{Name: args.Name}))
+	return mcptools.Unwrap(h.h.GetSeries(ctx, &booksv1.GetSeriesRequest{Name: args.Name}))
 }
 
-func (h *booksConnectHandler) mcpGetExternalBook(
+func (h *tools) mcpGetExternalBook(
 	ctx context.Context, args mcpExternalBookArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.GetExternalBook(ctx, &booksv1.GetExternalBookRequest{
+	return mcptools.Unwrap(h.h.GetExternalBook(ctx, &booksv1.GetExternalBookRequest{
 		Provider:   args.Provider,
 		ProviderId: args.ProviderID,
 	}))
 }
 
-func (h *booksConnectHandler) mcpGetReadingState(
+func (h *tools) mcpGetReadingState(
 	ctx context.Context, args mcpBookIDArgs,
 ) (proto.Message, error) {
 	return mcptools.Unwrap(
-		h.GetReadingState(ctx, &booksv1.GetReadingStateRequest{BookId: args.BookID}),
+		h.h.GetReadingState(ctx, &booksv1.GetReadingStateRequest{BookId: args.BookID}),
 	)
 }
 
-func (h *booksConnectHandler) mcpListResyncProposals(
+func (h *tools) mcpListResyncProposals(
 	ctx context.Context, _ mcptools.NoArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(
-		h.ListResyncProposals(ctx, &booksv1.ListResyncProposalsRequest{}),
-	)
+	proposals, err := h.catalog.ListResyncProposals(ctx, caller(ctx))
+	if err != nil {
+		return nil, connect.MapError(err)
+	}
+	return connect.ResyncProposalsResponse(proposals), nil
 }
 
-func (h *booksConnectHandler) mcpGetBookSources(
+func (h *tools) mcpGetBookSources(
 	ctx context.Context, args mcpBookSourcesArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.GetBookSources(ctx, &booksv1.GetBookSourcesRequest{
-		BookId:         args.BookID,
-		OverrideTitle:  mcpOptStr(args.OverrideTitle),
-		OverrideAuthor: mcpOptStr(args.OverrideAuthor),
-	}))
+	user := caller(ctx)
+	if err := services.RequireAdmin(user); err != nil {
+		return nil, connect.MapError(err)
+	}
+	bookID, err := connect.ParseBookID(args.BookID)
+	if err != nil {
+		return nil, err
+	}
+	proposal, err := h.catalog.GetBookSources(
+		ctx, user, bookID, args.OverrideTitle, args.OverrideAuthor,
+	)
+	if err != nil {
+		return nil, connect.MapError(err)
+	}
+	return connect.BookSourcesResponse(proposal), nil
 }
 
-func (h *booksConnectHandler) mcpGetSourceStats(
+func (h *tools) mcpGetSourceStats(
 	ctx context.Context, _ mcptools.NoArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.GetSourceStats(ctx, &booksv1.GetSourceStatsRequest{}))
+	stats, err := h.catalog.GetSourceStats(ctx, caller(ctx))
+	if err != nil {
+		return nil, connect.MapError(err)
+	}
+	return connect.SourceStatsResponse(stats), nil
 }
 
-func (h *booksConnectHandler) mcpListBooksInExactSources(
+func (h *tools) mcpListBooksInExactSources(
 	ctx context.Context, args mcpSourcesArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(
-		h.ListBooksInExactSources(
-			ctx,
-			&booksv1.ListBooksInExactSourcesRequest{Sources: args.Sources},
-		),
-	)
+	books, err := h.catalog.ListBooksInExactSources(ctx, caller(ctx), args.Sources)
+	if err != nil {
+		return nil, connect.MapError(err)
+	}
+	return connect.BooksInExactSourcesResponse(books, h.coverBaseURL), nil
 }
 
-func (h *booksConnectHandler) mcpFindDuplicates(
+func (h *tools) mcpFindDuplicates(
 	ctx context.Context, _ mcptools.NoArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.FindDuplicates(ctx, &booksv1.FindDuplicatesRequest{}))
+	groups, err := h.catalog.FindDuplicates(ctx, caller(ctx))
+	if err != nil {
+		return nil, connect.MapError(err)
+	}
+	return connect.DuplicatesResponse(groups, h.coverBaseURL), nil
 }
 
-func (h *booksConnectHandler) mcpGetBookFile(
+func (h *tools) mcpGetBookFile(
 	ctx context.Context, args mcpBookFileArgs,
 ) (proto.Message, error) {
 	return mcptools.Unwrap(
-		h.GetBookFile(
+		h.h.GetBookFile(
 			ctx,
 			&booksv1.GetBookFileRequest{BookId: args.BookID, Format: args.Format},
 		),
 	)
 }
 
-func (h *booksConnectHandler) mcpGetKEPUBStatus(
+func (h *tools) mcpGetKEPUBStatus(
 	ctx context.Context, args mcpBookIDArgs,
 ) (proto.Message, error) {
 	return mcptools.Unwrap(
-		h.GetKEPUBStatus(ctx, &booksv1.GetKEPUBStatusRequest{BookId: args.BookID}),
+		h.h.GetKEPUBStatus(ctx, &booksv1.GetKEPUBStatusRequest{BookId: args.BookID}),
 	)
 }
 
-func (h *booksConnectHandler) mcpListKoboDevices(
+func (h *tools) mcpListKoboDevices(
 	ctx context.Context, _ mcptools.NoArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.ListKoboDevices(ctx, &booksv1.ListKoboDevicesRequest{}))
+	return mcptools.Unwrap(h.h.ListKoboDevices(ctx, &booksv1.ListKoboDevicesRequest{}))
 }
 
-func (h *booksConnectHandler) mcpListKoboStoreBooks(
+func (h *tools) mcpListKoboStoreBooks(
 	ctx context.Context, _ mcptools.NoArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.ListKoboStoreBooks(ctx, &booksv1.ListKoboStoreBooksRequest{}))
+	return mcptools.Unwrap(h.h.ListKoboStoreBooks(ctx, &booksv1.ListKoboStoreBooksRequest{}))
 }
 
-func (h *booksConnectHandler) mcpGetKoboDeviceLogs(
+func (h *tools) mcpGetKoboDeviceLogs(
 	ctx context.Context, args mcpDeviceIDArgs,
 ) (proto.Message, error) {
 	return mcptools.Unwrap(
-		h.GetKoboDeviceLogs(ctx, &booksv1.GetKoboDeviceLogsRequest{Id: args.ID}),
+		h.h.GetKoboDeviceLogs(ctx, &booksv1.GetKoboDeviceLogsRequest{Id: args.ID}),
 	)
 }

@@ -25,6 +25,7 @@ import (
 type Services struct {
 	Auth       auth.Service
 	Books      *BookService
+	Catalog    *CatalogService
 	Conversion *conversion.Service
 	KEPUBQueue *conversion.KEPUBQueue
 	Figures    *conversion.FigureService

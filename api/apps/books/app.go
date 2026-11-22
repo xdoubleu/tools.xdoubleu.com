@@ -149,10 +149,31 @@ func NewInner(
 		a.repositories.BookFiles,
 		sharedrepos.NewStorageSnapshotsRepository(db),
 	)
+	a.services.Catalog = services.NewCatalogService(
+		logger,
+		a.services.Books,
+		a.services.Progress,
+		resyncControl{job: a.resyncBooksJob, queue: a.jobQueue},
+	)
 	a.figuresJob = jobs.NewFigureAnalysisJob(a.services.Figures)
 	a.kepubJob = jobs.NewKEPUBConversionJob(a.services.KEPUBQueue)
 
 	return a
+}
+
+// resyncControl adapts the resync job and the queue to services.ResyncJob.
+type resyncControl struct {
+	job   *jobs.ResyncMetadataJob
+	queue *jobqueue.JobQueue
+}
+
+func (r resyncControl) Start(force bool) {
+	r.job.Arm(force)
+	r.queue.ForceRun(r.job.ID())
+}
+
+func (r resyncControl) Cancel() {
+	r.job.Cancel()
 }
 
 // kepubs adapts the conversion service and queue to kobo.KEPUBs.
