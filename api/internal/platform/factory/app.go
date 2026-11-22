@@ -16,6 +16,7 @@ import (
 	"tools.xdoubleu.com/internal/kit/database/postgres"
 	"tools.xdoubleu.com/internal/kit/threading"
 	"tools.xdoubleu.com/internal/platform/auth"
+	fconnect "tools.xdoubleu.com/internal/platform/factory/connect"
 	"tools.xdoubleu.com/internal/platform/factory/internal/jobs"
 	"tools.xdoubleu.com/internal/platform/factory/internal/repositories"
 	"tools.xdoubleu.com/internal/platform/factory/internal/services"
@@ -86,6 +87,20 @@ type Option func(*Factory)
 func WithStepUp(stepUp StepUp) Option {
 	return func(a *Factory) { a.stepUp = stepUp }
 }
+
+// WithGitHubWebhookSecret turns on POST /factory/github-webhook, which the
+// factory GitHub App calls when a pull request changes. Without a secret the
+// endpoint answers 503 and only the poll moves merged tasks.
+func WithGitHubWebhookSecret(secret string) Option {
+	return func(a *Factory) { a.webhookSecret = secret }
+}
+
+// StepUp checks a TOTP or recovery code for the signed-in user's session.
+type StepUp = fconnect.StepUp
+
+// DefaultHeartbeatHold is how long a Heartbeat is held open before it is
+// answered.
+const DefaultHeartbeatHold = fconnect.DefaultHeartbeatHold
 
 // WithHeartbeatHold sets how long a Heartbeat is held open; tests shorten it.
 func WithHeartbeatHold(d time.Duration) Option {

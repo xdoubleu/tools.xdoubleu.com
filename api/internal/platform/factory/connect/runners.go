@@ -1,4 +1,4 @@
-package factory
+package connect
 
 import (
 	"context"
@@ -14,7 +14,6 @@ import (
 	"tools.xdoubleu.com/internal/kit/database"
 	"tools.xdoubleu.com/internal/platform/auth"
 	"tools.xdoubleu.com/internal/platform/factory/internal/models"
-	"tools.xdoubleu.com/internal/platform/factory/internal/services"
 )
 
 // StepUp checks a TOTP or recovery code for the signed-in user's session.
@@ -51,37 +50,24 @@ func formatTime(t *time.Time) string {
 // runnerAdminHandler is the admin side of pairing: an admin in a browser
 // session, never a bearer token.
 type runnerAdminHandler struct {
-	app *Factory
+	app *Deps
 }
 
 var _ factoryv1connect.RunnerAdminServiceHandler = (*runnerAdminHandler)(nil)
-
-func browserAdmin(ctx context.Context) (models.Actor, error) {
-	actor, err := actorFrom(ctx)
-	if err != nil {
-		return models.Actor{}, err
-	}
-	if !actor.Browser {
-		return models.Actor{}, connect.NewError(
-			connect.CodePermissionDenied,
-			"runners can only be managed in a browser session",
-		)
-	}
-	return actor, nil
-}
 
 func (h *runnerAdminHandler) ListRunners(
 	ctx context.Context,
 	_ *factoryv1.ListRunnersRequest,
 ) (*factoryv1.ListRunnersResponse, error) {
-	if _, err := browserAdmin(ctx); err != nil {
+	actor, err := actorFrom(ctx)
+	if err != nil {
 		return nil, err
 	}
-	runners, err := h.app.services.Runners.List(ctx)
+	runners, err := h.app.Services.Runners.List(ctx, actor)
 	if err != nil {
-		return nil, mapError(err)
+		return nil, MapError(err)
 	}
-	now := h.app.services.Runners.Now()
+	now := h.app.Services.Runners.Now()
 	out := make([]*factoryv1.Runner, len(runners))
 	for i := range runners {
 		out[i] = protoRunner(&runners[i], now)
@@ -93,57 +79,59 @@ func (h *runnerAdminHandler) CreateRunner(
 	ctx context.Context,
 	req *factoryv1.CreateRunnerRequest,
 ) (*factoryv1.CreateRunnerResponse, error) {
-	actor, err := browserAdmin(ctx)
+	actor, err := actorFrom(ctx)
 	if err != nil {
 		return nil, err
 	}
-	if _, valid := services.ValidRunnerName(req.GetName()); !valid {
-		return nil, connect.NewError(
-			connect.CodeInvalidArgument, "name must be 1 to 80 printable characters",
-		)
-	}
-	token, ok := connecttools.RequestCookie(ctx, "accessToken")
-	if !ok {
-		return nil, connect.NewError(connect.CodeUnauthenticated, "not signed in")
-	}
-	if h.app.stepUp == nil {
-		return nil, connect.NewError(
-			connect.CodeFailedPrecondition, "the step-up check isn't available",
-		)
-	}
-	if err = h.app.stepUp.VerifyCurrentFactor(
-		ctx, token, req.GetTotpCode(),
-	); err != nil {
-		return nil, connect.NewError(stepUpCode(err), err.Error()).WithCause(err)
-	}
-
-	runner, code, err := h.app.services.Runners.Create(ctx, actor.String(), req.GetName())
+	runner, code, err := h.app.Services.Runners.Create(
+		ctx, actor, req.GetName(), func(ctx context.Context) error {
+			return h.verifyStepUp(ctx, req.GetTotpCode())
+		},
+	)
 	if err != nil {
 		return nil, mapRunnerError(err)
 	}
 	return &factoryv1.CreateRunnerResponse{
-		Runner:      protoRunner(runner, h.app.services.Runners.Now()),
+		Runner:      protoRunner(runner, h.app.Services.Runners.Now()),
 		PairingCode: code,
 	}, nil
+}
+
+// verifyStepUp checks the code against the signed-in session.
+func (h *runnerAdminHandler) verifyStepUp(ctx context.Context, code string) error {
+	token, ok := connecttools.RequestCookie(ctx, "accessToken")
+	if !ok {
+		return connect.NewError(connect.CodeUnauthenticated, "not signed in")
+	}
+	if h.app.StepUp == nil {
+		return connect.NewError(
+			connect.CodeFailedPrecondition, "the step-up check isn't available",
+		)
+	}
+	if err := h.app.StepUp.VerifyCurrentFactor(ctx, token, code); err != nil {
+		return connect.NewError(stepUpCode(err), err.Error()).WithCause(err)
+	}
+	return nil
 }
 
 func (h *runnerAdminHandler) RevokeRunner(
 	ctx context.Context,
 	req *factoryv1.RevokeRunnerRequest,
 ) (*factoryv1.RevokeRunnerResponse, error) {
-	if _, err := browserAdmin(ctx); err != nil {
-		return nil, err
-	}
-	id, err := parseID(req.GetId())
+	actor, err := actorFrom(ctx)
 	if err != nil {
 		return nil, err
 	}
-	runner, err := h.app.services.Runners.Revoke(ctx, id)
+	id, err := ParseID(req.GetId())
 	if err != nil {
-		return nil, mapError(err)
+		return nil, err
+	}
+	runner, err := h.app.Services.Runners.Revoke(ctx, actor, id)
+	if err != nil {
+		return nil, MapError(err)
 	}
 	return &factoryv1.RevokeRunnerResponse{
-		Runner: protoRunner(runner, h.app.services.Runners.Now()),
+		Runner: protoRunner(runner, h.app.Services.Runners.Now()),
 	}, nil
 }
 
@@ -156,7 +144,7 @@ func mapRunnerError(err error) error {
 			"a runner is already active: revoke it before pairing another",
 		).WithCause(err)
 	}
-	return mapError(err)
+	return MapError(err)
 }
 
 // stepUpCode maps a failed step-up check to a Connect code.
@@ -174,7 +162,7 @@ func stepUpCode(err error) connect.Code {
 // runnerHandler is the runner's own side. It takes no cookie or MCP token, and
 // reaches nothing but the runner's table.
 type runnerHandler struct {
-	app *Factory
+	app *Deps
 }
 
 var _ factoryv1connect.RunnerServiceHandler = (*runnerHandler)(nil)
@@ -183,7 +171,7 @@ func (h *runnerHandler) Pair(
 	ctx context.Context,
 	req *factoryv1.PairRequest,
 ) (*factoryv1.PairResponse, error) {
-	token, runner, err := h.app.services.Runners.Pair(
+	token, runner, err := h.app.Services.Runners.Pair(
 		ctx, req.GetCode(), req.GetVersion(),
 	)
 	if errors.Is(err, database.ErrResourceNotFound) {
@@ -192,7 +180,7 @@ func (h *runnerHandler) Pair(
 		)
 	}
 	if err != nil {
-		return nil, mapError(err)
+		return nil, MapError(err)
 	}
 	return &factoryv1.PairResponse{DeviceToken: token, RunnerName: runner.Name}, nil
 }
@@ -204,12 +192,12 @@ func (h *runnerHandler) runnerFrom(ctx context.Context) (*models.Runner, error) 
 	if !found {
 		return nil, connect.NewError(connect.CodeUnauthenticated, "no device token")
 	}
-	runner, err := h.app.services.Runners.Authenticate(ctx, token)
+	runner, err := h.app.Services.Runners.Authenticate(ctx, token)
 	if errors.Is(err, database.ErrResourceNotFound) {
 		return nil, connect.NewError(connect.CodeUnauthenticated, "unknown device token")
 	}
 	if err != nil {
-		return nil, mapError(err)
+		return nil, MapError(err)
 	}
 	return runner, nil
 }
@@ -222,30 +210,13 @@ func (h *runnerHandler) Heartbeat(
 	if err != nil {
 		return nil, err
 	}
-	runners := h.app.services.Runners
-	if err = runners.Heartbeat(
+	queued, err := h.app.Services.Jobs.HoldHeartbeat(
 		ctx, runner.ID, req.GetVersion(), req.GetRepos(), req.GetReposReported(),
-	); err != nil {
-		return nil, mapError(err)
+		h.app.HeartbeatHold,
+	)
+	if err != nil {
+		return nil, MapError(err)
 	}
-
-	// Held open so the runner needs no inbound port and learns of work the moment
-	// there is some (jobs come later); then answered, and it calls again.
-	timer := time.NewTimer(h.app.heartbeatHold)
-	defer timer.Stop()
-	select {
-	case <-timer.C:
-	case <-ctx.Done():
-		return &factoryv1.HeartbeatResponse{}, nil
-	}
-	if err = runners.Heartbeat(
-		ctx, runner.ID, req.GetVersion(), req.GetRepos(), req.GetReposReported(),
-	); err != nil {
-		return nil, mapError(err)
-	}
-	// A failed count must not fail the heartbeat that keeps the runner online; the
-	// watchdog reads 0 as nothing waiting.
-	queued, _ := h.app.services.Jobs.QueuedCount(ctx)
 	//nolint:gosec // a count of jobs fits an int32
 	return &factoryv1.HeartbeatResponse{QueuedJobs: int32(queued)}, nil
 }

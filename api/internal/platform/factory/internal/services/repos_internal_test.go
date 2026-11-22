@@ -9,6 +9,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"tools.xdoubleu.com/internal/platform/factory/internal/models"
 )
 
 // repoInput builds a RepoInput that passes validation, then lets mod edit it.
@@ -111,7 +113,10 @@ func TestUpdateRequiresEverySetting(t *testing.T) {
 		"no branch":     func(r *RepoInput) { r.DefaultBranch = "  " },
 		"no time limit": func(r *RepoInput) { r.TimeLimitMinutes = 0 },
 	} {
-		_, err := svc.Update(context.Background(), uuid.New(), repoInput(mod))
+		_, err := svc.Update(
+			context.Background(),
+			models.Actor{Kind: models.ActorHuman, ID: "x", Browser: true, Admin: true, Via: ""},
+			uuid.New(), repoInput(mod))
 		assert.Equal(t, http.StatusBadRequest, status(t, err), name)
 	}
 }
@@ -149,4 +154,14 @@ func TestNormaliseRepoSignalSettings(t *testing.T) {
 		r.Name = strings.Repeat("b", 100)
 	}))
 	assert.NoError(t, err, "limits are inclusive")
+}
+
+func TestRepoSettingsNeedABrowserSession(t *testing.T) {
+	svc := &RepoService{repo: nil}
+	bearer := models.Actor{Kind: models.ActorHuman, ID: "x", Browser: false, Admin: true, Via: ""}
+
+	_, err := svc.Create(context.Background(), bearer, repoInput(func(*RepoInput) {}))
+	assert.Equal(t, http.StatusForbidden, status(t, err))
+	_, err = svc.Update(context.Background(), bearer, uuid.New(), repoInput(func(*RepoInput) {}))
+	assert.Equal(t, http.StatusForbidden, status(t, err))
 }

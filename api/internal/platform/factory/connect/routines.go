@@ -1,4 +1,4 @@
-package factory
+package connect
 
 import (
 	"context"
@@ -9,7 +9,8 @@ import (
 	"tools.xdoubleu.com/internal/platform/factory/internal/services"
 )
 
-func protoRoutine(r *models.Routine) *factoryv1.Routine {
+// ProtoRoutine is a routine with its newest job.
+func ProtoRoutine(r *models.Routine) *factoryv1.Routine {
 	out := &factoryv1.Routine{
 		Name:            r.Name,
 		RepoId:          r.RepoID.String(),
@@ -18,7 +19,7 @@ func protoRoutine(r *models.Routine) *factoryv1.Routine {
 		LastJob:         nil,
 	}
 	if r.LastJob != nil {
-		out.LastJob = protoJob(r.LastJob)
+		out.LastJob = ProtoJob(r.LastJob)
 	}
 	return out
 }
@@ -40,13 +41,13 @@ func (h *taskConnectHandler) ListRoutines(
 	if _, err := actorFrom(ctx); err != nil {
 		return nil, err
 	}
-	list, err := h.app.services.Board.ListRoutines(ctx)
+	list, err := h.app.Services.Board.ListRoutines(ctx)
 	if err != nil {
-		return nil, mapError(err)
+		return nil, MapError(err)
 	}
 	out := make([]*factoryv1.Routine, len(list))
 	for i := range list {
-		out[i] = protoRoutine(&list[i])
+		out[i] = ProtoRoutine(&list[i])
 	}
 	return &factoryv1.ListRoutinesResponse{Routines: out}, nil
 }
@@ -59,18 +60,18 @@ func (h *taskConnectHandler) SaveRoutine(
 	if err != nil {
 		return nil, err
 	}
-	repoID, err := parseID(req.GetRepoId())
+	repoID, err := ParseID(req.GetRepoId())
 	if err != nil {
 		return nil, err
 	}
-	routine, err := h.app.services.Board.SaveRoutine(ctx, actor, services.RoutineInput{
+	routine, err := h.app.Services.Board.SaveRoutine(ctx, actor, services.RoutineInput{
 		Name: req.GetName(), RepoID: repoID, Enabled: req.GetEnabled(),
 		IntervalMinutes: int(req.GetIntervalMinutes()),
 	})
 	if err != nil {
-		return nil, mapError(err)
+		return nil, MapError(err)
 	}
-	return &factoryv1.SaveRoutineResponse{Routine: protoRoutine(routine)}, nil
+	return &factoryv1.SaveRoutineResponse{Routine: ProtoRoutine(routine)}, nil
 }
 
 func (h *taskConnectHandler) RunRoutine(
@@ -81,11 +82,11 @@ func (h *taskConnectHandler) RunRoutine(
 	if err != nil {
 		return nil, err
 	}
-	job, err := h.app.services.Board.RunRoutine(ctx, actor, req.GetName())
+	job, err := h.app.Services.Board.RunRoutine(ctx, actor, req.GetName())
 	if err != nil {
-		return nil, mapError(err)
+		return nil, MapError(err)
 	}
-	return &factoryv1.RunRoutineResponse{Job: protoJob(job)}, nil
+	return &factoryv1.RunRoutineResponse{Job: ProtoJob(job)}, nil
 }
 
 func (h *taskConnectHandler) DeleteRoutine(
@@ -96,8 +97,8 @@ func (h *taskConnectHandler) DeleteRoutine(
 	if err != nil {
 		return nil, err
 	}
-	if err = h.app.services.Board.DeleteRoutine(ctx, actor, req.GetName()); err != nil {
-		return nil, mapError(err)
+	if err = h.app.Services.Board.DeleteRoutine(ctx, actor, req.GetName()); err != nil {
+		return nil, MapError(err)
 	}
 	return &factoryv1.DeleteRoutineResponse{}, nil
 }
@@ -110,9 +111,9 @@ func (h *taskConnectHandler) StopRoutine(
 	if err != nil {
 		return nil, err
 	}
-	job, err := h.app.services.Jobs.StopRoutine(ctx, actor, req.GetName())
+	job, err := h.app.Services.Jobs.StopRoutine(ctx, actor, req.GetName())
 	if err != nil {
-		return nil, mapError(err)
+		return nil, MapError(err)
 	}
-	return &factoryv1.StopRoutineResponse{Job: protoJob(job)}, nil
+	return &factoryv1.StopRoutineResponse{Job: ProtoJob(job)}, nil
 }

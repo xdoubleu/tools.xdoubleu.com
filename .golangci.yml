@@ -130,8 +130,13 @@ linters:
             - "**/apps/taste/http/**"
             - "**/apps/games/connect/**"
             - "**/apps/games/mcp/**"
+            - "**/platform/factory/connect/**"
+            - "**/platform/factory/mcp/**"
+            - "**/platform/factory/http/**"
             - "!**/*_test.go"
           deny:
+            - pkg: tools.xdoubleu.com/internal/platform/factory/internal/repositories
+              desc: adapters call services, never repositories
             - pkg: tools.xdoubleu.com/apps/shoppinglist/internal/repositories
               desc: adapters call services, never repositories
             - pkg: tools.xdoubleu.com/apps/movies/internal/repositories
