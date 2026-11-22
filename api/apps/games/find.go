@@ -2,15 +2,11 @@ package games
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
-	"slices"
 	"strconv"
 
-	"tools.xdoubleu.com/apps/games/internal/models"
 	"tools.xdoubleu.com/apps/internal/consumption"
-	"tools.xdoubleu.com/internal/kit/database"
 )
 
 // FindGame looks a recommended game up in the Steam store, for the taste
@@ -31,7 +27,7 @@ func (a *Games) FindGame(
 	}
 	if i := consumption.BestTitle(names, title); i >= 0 {
 		it := items[i]
-		known, knownErr := a.known(ctx, userID, it.ID)
+		known, knownErr := a.services.Library.Knows(ctx, userID, it.ID)
 		if knownErr != nil {
 			return nil, knownErr
 		}
@@ -64,23 +60,4 @@ func (a *Games) reviewCount(ctx context.Context, appID int) *int {
 		return nil
 	}
 	return &n
-}
-
-// known reports whether appID is in userID's library or wishlist.
-func (a *Games) known(ctx context.Context, userID string, appID int) (bool, error) {
-	_, err := a.repositories.Steam.GetGameByID(ctx, appID, userID)
-	if err == nil {
-		return true, nil
-	}
-	if !errors.Is(err, database.ErrResourceNotFound) {
-		return false, err
-	}
-
-	items, err := a.services.Steam.GetWishlist(ctx, userID)
-	if err != nil {
-		return false, err
-	}
-	return slices.ContainsFunc(items, func(w models.WishlistItem) bool {
-		return w.ID == appID
-	}), nil
 }

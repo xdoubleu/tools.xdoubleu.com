@@ -6,13 +6,9 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
+	"tools.xdoubleu.com/apps/games/internal/models"
 	"tools.xdoubleu.com/internal/kit/database/postgres"
 )
-
-type UserIntegrations struct {
-	UserID      string
-	SteamUserID string
-}
 
 type IntegrationsRepository struct {
 	db postgres.DB
@@ -21,8 +17,8 @@ type IntegrationsRepository struct {
 func (r *IntegrationsRepository) Get(
 	ctx context.Context,
 	userID string,
-) (UserIntegrations, error) {
-	var i UserIntegrations
+) (models.UserIntegrations, error) {
+	var i models.UserIntegrations
 	err := r.db.QueryRow(ctx, `
 		SELECT user_id, steam_user_id
 		FROM games.user_integrations
@@ -32,7 +28,7 @@ func (r *IntegrationsRepository) Get(
 		&i.SteamUserID,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return UserIntegrations{ //nolint:exhaustruct //other fields default to ""
+		return models.UserIntegrations{ //nolint:exhaustruct //other fields default to ""
 			UserID: userID,
 		}, nil
 	}
@@ -41,7 +37,7 @@ func (r *IntegrationsRepository) Get(
 
 func (r *IntegrationsRepository) Upsert(
 	ctx context.Context,
-	i UserIntegrations,
+	i models.UserIntegrations,
 ) error {
 	_, err := r.db.Exec(ctx, `
 		INSERT INTO games.user_integrations

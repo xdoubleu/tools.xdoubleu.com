@@ -1,4 +1,4 @@
-package games
+package connect
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 
 	"connectrpc.com/connect/v2"
 
+	"tools.xdoubleu.com/apps/games/internal/models"
 	gamesv1 "tools.xdoubleu.com/gen/games/v1"
 	"tools.xdoubleu.com/internal/connecttools"
 	"tools.xdoubleu.com/internal/kit/constants"
@@ -17,7 +18,7 @@ const steamUserIDMaxLen = 20
 
 var numericOrEmptyRe = regexp.MustCompile(`^\d*$`)
 
-func (h *gamesConnectHandler) GetIntegrations(
+func (h *Handler) GetIntegrations(
 	ctx context.Context,
 	_ *gamesv1.GetIntegrationsRequest,
 ) (*gamesv1.GetIntegrationsResponse, error) {
@@ -29,7 +30,7 @@ func (h *gamesConnectHandler) GetIntegrations(
 		)
 	}
 
-	integrations, err := h.app.GetIntegrations(ctx, user.ID)
+	integrations, err := h.integrations.Get(ctx, user.ID)
 	if err != nil {
 		return nil, connecttools.MapError(err)
 	}
@@ -41,7 +42,7 @@ func (h *gamesConnectHandler) GetIntegrations(
 	}, nil
 }
 
-func (h *gamesConnectHandler) SaveIntegrations(
+func (h *Handler) SaveIntegrations(
 	ctx context.Context,
 	req *gamesv1.SaveIntegrationsRequest,
 ) (*gamesv1.SaveIntegrationsResponse, error) {
@@ -74,7 +75,8 @@ func (h *gamesConnectHandler) SaveIntegrations(
 		)
 	}
 
-	if err := h.app.SaveIntegrations(ctx, user.ID, Integrations{
+	if err := h.integrations.Save(ctx, models.UserIntegrations{
+		UserID:      user.ID,
 		SteamUserID: i.SteamUserId,
 	}); err != nil {
 		return nil, connecttools.MapError(err)
