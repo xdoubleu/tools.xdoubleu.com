@@ -1,4 +1,4 @@
-package books
+package http
 
 import (
 	"context"
@@ -21,7 +21,7 @@ import (
 // lookup; AppAccess is not used. Unhandled paths are proxied to the real Kobo
 // store so firmware updates, purchases and auth keep working. The protocol
 // itself lives in books/kobo; these handlers authenticate, parse and write.
-func (app *Books) koboRoutes(prefix string, mux *http.ServeMux) {
+func (app *Handlers) koboRoutes(prefix string, mux *http.ServeMux) {
 	base := "/" + prefix + "/kobo/{token}"
 	// The device fetches initialization with GET; serving POST too is harmless.
 	mux.HandleFunc(
@@ -64,13 +64,13 @@ func (app *Books) koboRoutes(prefix string, mux *http.ServeMux) {
 
 // koboAuth validates HTTPS and the URL token. On false it has already written
 // the error response.
-func (app *Books) koboAuth(w http.ResponseWriter, r *http.Request) (string, bool) {
+func (app *Handlers) koboAuth(w http.ResponseWriter, r *http.Request) (string, bool) {
 	userID, _, ok := app.koboAuthDevice(w, r)
 	return userID, ok
 }
 
 // koboAuthDevice is koboAuth that also returns the calling device's ID.
-func (app *Books) koboAuthDevice(
+func (app *Handlers) koboAuthDevice(
 	w http.ResponseWriter,
 	r *http.Request,
 ) (string, string, bool) {
@@ -116,20 +116,20 @@ func koboWriteJSON(w http.ResponseWriter, v any) {
 }
 
 // koboCoverBase and koboLibraryBase are the device-facing URL prefixes for r.
-func (app *Books) koboCoverBase(r *http.Request) string {
+func (app *Handlers) koboCoverBase(r *http.Request) string {
 	return app.kobo.CoverBase(
 		r.URL.Path, r.Header.Get("X-Forwarded-Host"), r.Host,
 	)
 }
 
-func (app *Books) koboLibraryBase(r *http.Request) string {
+func (app *Handlers) koboLibraryBase(r *http.Request) string {
 	return app.kobo.LibraryBase(
 		r.URL.Path, r.Header.Get("X-Forwarded-Host"), r.Host,
 	)
 }
 
 // koboInitHandler handles POST /v1/initialization.
-func (app *Books) koboInitHandler(w http.ResponseWriter, r *http.Request) {
+func (app *Handlers) koboInitHandler(w http.ResponseWriter, r *http.Request) {
 	if _, ok := app.koboAuth(w, r); !ok {
 		return
 	}
@@ -142,7 +142,7 @@ func (app *Books) koboInitHandler(w http.ResponseWriter, r *http.Request) {
 
 // koboLibrarySyncHandler handles GET /v1/library/sync, adding our kobo-sync
 // books to the upstream store's entitlements.
-func (app *Books) koboLibrarySyncHandler(w http.ResponseWriter, r *http.Request) {
+func (app *Handlers) koboLibrarySyncHandler(w http.ResponseWriter, r *http.Request) {
 	userID, deviceID, ok := app.koboAuthDevice(w, r)
 	if !ok {
 		return
@@ -172,7 +172,7 @@ func (app *Books) koboLibrarySyncHandler(w http.ResponseWriter, r *http.Request)
 
 // koboProxyHandler proxies paths we don't own to the upstream Kobo store,
 // stripping the token segment.
-func (app *Books) koboProxyHandler(w http.ResponseWriter, r *http.Request) {
+func (app *Handlers) koboProxyHandler(w http.ResponseWriter, r *http.Request) {
 	if _, ok := app.koboAuth(w, r); !ok {
 		return
 	}
@@ -189,7 +189,7 @@ func (app *Books) koboProxyHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		koboSetUpstreamNote(r, w, "upstream: "+err.Error())
-		app.Logger.Warn("kobo upstream proxy failed", "err", err)
+		app.logger.Warn("kobo upstream proxy failed", "err", err)
 		http.Error(w, "upstream unavailable", http.StatusBadGateway)
 		return
 	}
@@ -210,7 +210,7 @@ func (app *Books) koboProxyHandler(w http.ResponseWriter, r *http.Request) {
 
 // koboMetadataHandler handles GET /v1/library/{revisionId}/metadata, serving
 // our kobo-sync books locally and proxying the rest upstream.
-func (app *Books) koboMetadataHandler(w http.ResponseWriter, r *http.Request) {
+func (app *Handlers) koboMetadataHandler(w http.ResponseWriter, r *http.Request) {
 	userID, ok := app.koboAuth(w, r)
 	if !ok {
 		return
@@ -237,7 +237,7 @@ func (app *Books) koboMetadataHandler(w http.ResponseWriter, r *http.Request) {
 
 // koboFileHandler handles GET /v1/library/{revisionId}/file with a 302 to a
 // presigned R2 URL to the KEPUB.
-func (app *Books) koboFileHandler(w http.ResponseWriter, r *http.Request) {
+func (app *Handlers) koboFileHandler(w http.ResponseWriter, r *http.Request) {
 	userID, ok := app.koboAuth(w, r)
 	if !ok {
 		return
@@ -281,7 +281,7 @@ func koboUpstreamCoverURL(r *http.Request) string {
 // The cached image is our single highest-resolution cover, so a full-screen
 // sleep request gets the best available image regardless of the requested
 // dimensions; quality stays bounded by the source cover (never upscaled).
-func (app *Books) koboCoverHandler(w http.ResponseWriter, r *http.Request) {
+func (app *Handlers) koboCoverHandler(w http.ResponseWriter, r *http.Request) {
 	userID, ok := app.koboAuth(w, r)
 	if !ok {
 		return

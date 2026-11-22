@@ -1,4 +1,4 @@
-package books
+package http
 
 import (
 	"bytes"
@@ -11,7 +11,7 @@ import (
 
 // koboGetStateHandler handles GET /v1/library/{revisionId}/state; a Kobo store
 // book's state is the store's.
-func (app *Books) koboGetStateHandler(w http.ResponseWriter, r *http.Request) {
+func (app *Handlers) koboGetStateHandler(w http.ResponseWriter, r *http.Request) {
 	userID, ok := app.koboAuth(w, r)
 	if !ok {
 		return
@@ -39,7 +39,7 @@ func (app *Books) koboGetStateHandler(w http.ResponseWriter, r *http.Request) {
 
 // koboPutStateHandler handles PUT /v1/library/{revisionId}/state. A Kobo store
 // book's state goes to the store (koboStorePutState).
-func (app *Books) koboPutStateHandler(w http.ResponseWriter, r *http.Request) {
+func (app *Handlers) koboPutStateHandler(w http.ResponseWriter, r *http.Request) {
 	userID, deviceID, ok := app.koboAuthDevice(w, r)
 	if !ok {
 		return
@@ -69,7 +69,7 @@ func (app *Books) koboPutStateHandler(w http.ResponseWriter, r *http.Request) {
 
 // koboStorePutState proxies a store book's state PUT upstream, then mirrors
 // it onto the library in the background.
-func (app *Books) koboStorePutState(
+func (app *Handlers) koboStorePutState(
 	w http.ResponseWriter,
 	r *http.Request,
 	userID, id string,

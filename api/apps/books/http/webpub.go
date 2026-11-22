@@ -1,4 +1,4 @@
-package books
+package http
 
 import (
 	"encoding/json"
@@ -18,7 +18,7 @@ import (
 
 // webPubRoutes serves the Readium manifest and single zip entries of the
 // caller's original EPUB. The reader fetches them with its session cookie.
-func (a *Books) webPubRoutes(prefix string, mux *http.ServeMux) {
+func (a *Handlers) webPubRoutes(prefix string, mux *http.ServeMux) {
 	base := "/" + prefix + "/api/book/{bookId}/webpub/"
 	mux.Handle(
 		"GET "+base+"manifest.json",
@@ -34,7 +34,7 @@ func (a *Books) webPubRoutes(prefix string, mux *http.ServeMux) {
 	)
 }
 
-func (a *Books) webPubRequest(
+func (a *Handlers) webPubRequest(
 	w http.ResponseWriter,
 	r *http.Request,
 ) (string, uuid.UUID, bool) {
@@ -62,7 +62,7 @@ func webPubError(w http.ResponseWriter, err error) {
 	http.Error(w, "internal error", http.StatusInternalServerError)
 }
 
-func (a *Books) webPubManifestHandler(w http.ResponseWriter, r *http.Request) {
+func (a *Handlers) webPubManifestHandler(w http.ResponseWriter, r *http.Request) {
 	userID, bookID, ok := a.webPubRequest(w, r)
 	if !ok {
 		return
@@ -77,7 +77,7 @@ func (a *Books) webPubManifestHandler(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(m)
 }
 
-func (a *Books) webPubPositionsHandler(w http.ResponseWriter, r *http.Request) {
+func (a *Handlers) webPubPositionsHandler(w http.ResponseWriter, r *http.Request) {
 	userID, bookID, ok := a.webPubRequest(w, r)
 	if !ok {
 		return
@@ -92,7 +92,7 @@ func (a *Books) webPubPositionsHandler(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(p)
 }
 
-func (a *Books) webPubResourceHandler(w http.ResponseWriter, r *http.Request) {
+func (a *Handlers) webPubResourceHandler(w http.ResponseWriter, r *http.Request) {
 	userID, bookID, ok := a.webPubRequest(w, r)
 	if !ok {
 		return

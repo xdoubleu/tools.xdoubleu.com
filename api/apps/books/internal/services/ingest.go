@@ -4,7 +4,6 @@ import (
 	"errors"
 	"log/slog"
 
-	"tools.xdoubleu.com/apps/books/internal/repositories"
 	"tools.xdoubleu.com/internal/kit/webfetch"
 )
 
@@ -35,19 +34,19 @@ func fetchOptions(maxBytes int64, accept string) webfetch.Options {
 // library items that have a source URL but no stored content_html.
 type IngestService struct {
 	logger    *slog.Logger
-	booksRepo *repositories.BooksRepository
+	booksRepo ingestStore
 	webFetch  webfetch.Client
 }
 
 // NewIngestService constructs an IngestService.
 func NewIngestService(
 	logger *slog.Logger,
-	repos *repositories.Repositories,
+	booksRepo ingestStore,
 	webFetchClient webfetch.Client,
 ) *IngestService {
 	return &IngestService{
 		logger:    logger,
-		booksRepo: repos.Books,
+		booksRepo: booksRepo,
 		webFetch:  webFetchClient,
 	}
 }

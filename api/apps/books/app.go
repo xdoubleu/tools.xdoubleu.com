@@ -14,6 +14,7 @@ import (
 	"tools.xdoubleu.com/apps/books/internal/services"
 	"tools.xdoubleu.com/apps/books/internal/services/conversion"
 	"tools.xdoubleu.com/apps/books/kobo"
+	"tools.xdoubleu.com/apps/books/pkg/coverfetch"
 	"tools.xdoubleu.com/apps/books/pkg/hardcover"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
 	"tools.xdoubleu.com/apps/books/pkg/unicat"
@@ -129,6 +130,7 @@ func NewInner(
 		clients.Hardcover,
 		clients.ObjectStore,
 		clients.WebFetch,
+		coverfetch.New(cfg.Env),
 		authService,
 	)
 	a.kobo = kobo.NewProtocol(kobo.Deps{
