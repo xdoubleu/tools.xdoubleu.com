@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/trains/internal/models"
+	"tools.xdoubleu.com/apps/trains/internal/protomap"
 	trainsv1 "tools.xdoubleu.com/gen/trains/v1"
 )
 
@@ -117,18 +118,8 @@ func protoSavedCommute(sc *models.SavedCommute) *trainsv1.SavedCommute {
 	return &trainsv1.SavedCommute{
 		Id:          sc.ID.String(),
 		Label:       sc.Label,
-		Origin:      protoStation(&sc.Origin),
-		Destination: protoStation(&sc.Destination),
+		Origin:      protomap.Station(&sc.Origin),
+		Destination: protomap.Station(&sc.Destination),
 		Position:    int32(sc.Position), //nolint:gosec // small list ordering value
-	}
-}
-
-func protoStation(st *models.Station) *trainsv1.Station {
-	return &trainsv1.Station{
-		StopId:      st.StopID,
-		NameNl:      st.NameNL,
-		NameFr:      st.NameFR,
-		NameEn:      st.NameEN,
-		DisplayName: st.DisplayName,
 	}
 }

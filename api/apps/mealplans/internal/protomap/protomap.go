@@ -2,7 +2,10 @@
 package protomap
 
 import (
+	"fmt"
 	"time"
+
+	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/mealplans/internal/models"
 	mealplansv1 "tools.xdoubleu.com/gen/mealplans/v1"
@@ -73,4 +76,44 @@ func Plans(list []models.Plan) []*mealplansv1.Plan {
 // ListPlans builds the ListPlans response shared by the RPC and MCP tool.
 func ListPlans(list []models.Plan, hasMore bool) *mealplansv1.ListPlansResponse {
 	return &mealplansv1.ListPlansResponse{Plans: Plans(list), HasMore: hasMore}
+}
+
+// ICalURL is the public calendar feed path for a plan's token.
+func ICalURL(token uuid.UUID) string {
+	return fmt.Sprintf("/mealplans/ical/%s.ics", token)
+}
+
+// GetPlan builds the GetPlan response shared by the RPC and MCP tool.
+func GetPlan(
+	plan *models.Plan,
+	userID string,
+	offset int,
+	windowStart, windowEnd time.Time,
+) *mealplansv1.GetPlanResponse {
+	return &mealplansv1.GetPlanResponse{
+		Plan:        Plan(plan),
+		IcalUrl:     ICalURL(plan.ICalToken),
+		IsOwner:     plan.OwnerUserID == userID,
+		Offset:      int32(offset),     //nolint:gosec // pagination offset fits int32
+		PrevOffset:  int32(offset - 1), //nolint:gosec // pagination offset fits int32
+		NextOffset:  int32(offset + 1), //nolint:gosec // pagination offset fits int32
+		WindowStart: windowStart.Format(time.RFC3339),
+		WindowEnd:   windowEnd.Format(time.RFC3339),
+	}
+}
+
+// SuggestRecipes builds the SuggestRecipes response shared by the RPC and MCP
+// tool.
+func SuggestRecipes(
+	suggestions []models.RecipeSuggestion,
+) *mealplansv1.SuggestRecipesResponse {
+	out := make([]*mealplansv1.RecipeSuggestion, len(suggestions))
+	for i, s := range suggestions {
+		out[i] = &mealplansv1.RecipeSuggestion{
+			RecipeId: s.RecipeID.String(),
+			Servings: int32(s.Servings), //nolint:gosec // int32 safe for domain values
+			Fresh:    s.Fresh,
+		}
+	}
+	return &mealplansv1.SuggestRecipesResponse{Suggestions: out}
 }

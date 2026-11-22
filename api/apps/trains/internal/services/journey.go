@@ -14,6 +14,21 @@ import (
 // ErrUnknownStation is returned when an origin or destination isn't a station.
 var ErrUnknownStation = errors.New("trains: unknown station id")
 
+// ErrInvalidTime is returned for a search time that is not RFC3339.
+var ErrInvalidTime = errors.New("invalid time")
+
+// ParseSearchTime parses an RFC3339 search time; empty means now.
+func ParseSearchTime(raw string) (time.Time, error) {
+	if raw == "" {
+		return time.Now(), nil
+	}
+	t, err := time.Parse(time.RFC3339, raw)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("%w: %s", ErrInvalidTime, err.Error())
+	}
+	return t, nil
+}
+
 // minTransferSeconds is the change time assumed when judging whether a delayed
 // arrival still makes its connection.
 const minTransferSeconds = 180

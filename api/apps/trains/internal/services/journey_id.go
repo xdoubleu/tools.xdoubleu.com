@@ -11,6 +11,9 @@ import (
 // maxJourneyLegs bounds the iRail calls one decoded journey_id can trigger.
 const maxJourneyLegs = 8
 
+// ErrJourneyIDRequired is returned when no journey id is given.
+var ErrJourneyIDRequired = errors.New("journey_id is required")
+
 // ErrInvalidJourneyID is returned by DecodeJourneyID for an id it can't decode.
 var ErrInvalidJourneyID = errors.New("trains: invalid journey id")
 
