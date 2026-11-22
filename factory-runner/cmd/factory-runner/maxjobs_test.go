@@ -32,9 +32,20 @@ func TestConfigOnLimitDefaultsToWaitAndIsSaved(t *testing.T) {
 	require.Equal(t, 0, e.do("config", "show"))
 	assert.Contains(t, e.out.String(), "on-limit: wait")
 
+	assert.Equal(t, 1, e.do("config", "on-limit", "fallback"))
+	assert.Equal(t, 1, e.do("config", "fallback-model", "not a model"))
+	require.Equal(t, 0, e.do("config", "fallback-model", "deepseek/deepseek-chat"))
 	require.Equal(t, 0, e.do("config", "on-limit", "fallback"))
 	assert.Equal(t, 1, e.do("config", "on-limit", "never"))
+	assert.Equal(t, 1, e.do("config", "fallback-model", "none"))
 	e.out.Reset()
 	require.Equal(t, 0, e.do("config", "show"))
 	assert.Contains(t, e.out.String(), "on-limit: fallback")
+	assert.Contains(t, e.out.String(), "fallback-model: deepseek/deepseek-chat")
+
+	require.Equal(t, 0, e.do("config", "on-limit", "wait"))
+	require.Equal(t, 0, e.do("config", "fallback-model", "none"))
+	e.out.Reset()
+	require.Equal(t, 0, e.do("config", "show"))
+	assert.Contains(t, e.out.String(), "fallback-model: none")
 }

@@ -45,7 +45,7 @@ func TestTheJobRunnerIsBuiltFromTheConfigOnAMacThatCanRunJobs(t *testing.T) {
 		BotEmail: "",
 		Mode:     "",
 		MaxJobs:  0,
-		OnLimit:  "",
+		OnLimit:  "", FallbackModel: "",
 	}
 	require.NoError(t, cfg.Save(runner.ConfigPath(e.app.home)))
 
@@ -85,7 +85,7 @@ func TestAMacWithoutTheRightContainerCLICannotBuildTheJobRunner(t *testing.T) {
 		BotEmail: "",
 		Mode:     "",
 		MaxJobs:  0,
-		OnLimit:  "",
+		OnLimit:  "", FallbackModel: "",
 	}
 	for name, exec := range map[string]versionExec{
 		"missing":      {out: "", err: errors.New("container: not found")},
@@ -107,7 +107,7 @@ func TestADataDirectoryThatCannotBeCreatedFailsTheBuild(t *testing.T) {
 		BotEmail: "",
 		Mode:     "",
 		MaxJobs:  0,
-		OnLimit:  "",
+		OnLimit:  "", FallbackModel: "",
 	}
 
 	_, err := newJobRunner(context.Background(), e.app, cfg, "t", quietLog(),
@@ -123,7 +123,7 @@ func TestALowDiskCleansUpBeforeThePullAndReportsTheFreeSpace(t *testing.T) {
 	cfg := runner.Config{
 		Server: "https://example.com/api", Repos: nil, Image: "job:v2", GoModCache: "",
 		NPMCache: "", DataDir: filepath.Join(e.app.home, "data"), BotEmail: "",
-		Mode: "", MaxJobs: 0, OnLimit: "",
+		Mode: "", MaxJobs: 0, OnLimit: "", FallbackModel: "",
 	}
 
 	jr, err := newJobRunner(context.Background(), e.app, cfg, "t", quietLog(),
