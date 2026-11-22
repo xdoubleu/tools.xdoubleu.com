@@ -22,13 +22,29 @@ import (
 // Needs a Mac with `container`, the wardcase image in WARDCASE_IMAGE, and an
 // OpenRouter key in WARDCASE_OPENROUTER_KEY; it spends a few tokens on a real model.
 func TestRealVMChatRunsOpenCodeOverACP(t *testing.T) {
-	image, key := os.Getenv("WARDCASE_IMAGE"), os.Getenv("WARDCASE_OPENROUTER_KEY")
-	if image == "" || key == "" {
-		t.Skip("set WARDCASE_IMAGE=<image> and WARDCASE_OPENROUTER_KEY")
-	}
 	model := os.Getenv("WARDCASE_OPENCODE_MODEL")
 	if model == "" {
 		model = "openai/gpt-4o-mini"
+	}
+	realChat(t, session.OpenCode, "openrouter", "WARDCASE_OPENROUTER_KEY", model)
+}
+
+// Needs the image's `codex-acp` and an OpenAI key in WARDCASE_OPENAI_KEY.
+func TestRealVMChatRunsCodexOverACP(t *testing.T) {
+	realChat(t, session.Codex, "openai", "WARDCASE_OPENAI_KEY", "")
+}
+
+// Needs the image's `gemini` and a Gemini API key in WARDCASE_GEMINI_KEY.
+func TestRealVMChatRunsGeminiOverACP(t *testing.T) {
+	realChat(t, session.Gemini, "gemini", "WARDCASE_GEMINI_KEY", "")
+}
+
+// realChat runs one chat on harness, whose secret comes from the keyEnv variable.
+func realChat(t *testing.T, harness, secretName, keyEnv, model string) {
+	t.Helper()
+	image, key := os.Getenv("WARDCASE_IMAGE"), os.Getenv(keyEnv)
+	if image == "" || key == "" {
+		t.Skip("set WARDCASE_IMAGE=<image> and " + keyEnv)
 	}
 	work := t.TempDir()
 	run := func(dir string, args ...string) {
@@ -51,7 +67,7 @@ func TestRealVMChatRunsOpenCodeOverACP(t *testing.T) {
 	require.NoError(t, os.Chmod(state, 0o777))
 
 	r := session.New(session.Options{
-		Box: box, Secrets: secrets{"openrouter": key}, StateDir: state,
+		Box: box, Secrets: secrets{secretName: key}, StateDir: state,
 		TempDir: t.TempDir(), Out: io.Discard, Notes: io.Discard, GH: nil,
 	})
 	var mu sync.Mutex
@@ -60,7 +76,7 @@ func TestRealVMChatRunsOpenCodeOverACP(t *testing.T) {
 	ctx := context.Background()
 	chat, err := r.Start(ctx, session.ChatRequest{
 		URL: bare + "/r.git", Base: "main", Branch: "agent/acp", Token: "",
-		Harness: session.OpenCode, OpenCodeModel: model,
+		Harness: harness, OpenCodeModel: model,
 		OnEvent: func(e acp.Event) {
 			mu.Lock()
 			defer mu.Unlock()

@@ -56,6 +56,7 @@ func TestOnlyTheTwoModelSecretsAreKnown(t *testing.T) {
 	assert.True(t, ward.ValidSecret("anthropic"))
 	assert.True(t, ward.ValidSecret("openrouter"))
 	assert.True(t, ward.ValidSecret("openai"))
+	assert.True(t, ward.ValidSecret("gemini"))
 	assert.False(t, ward.ValidSecret("github"))
 }
 

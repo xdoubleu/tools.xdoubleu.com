@@ -27,13 +27,17 @@ type Agent struct {
 	// Options are offered with each permission request; empty means the usual
 	// reject_once, allow_once, allow_always.
 	Options []map[string]string
+	// RequireAuth makes session/new fail until the client authenticates.
+	RequireAuth bool
+	// Authenticated is the method id the client signed in with.
+	Authenticated string
 }
 
 // New returns an Agent.
 func New() *Agent {
 	return &Agent{
 		mu: sync.Mutex{}, outcomes: nil, prompts: nil, cancel: make(chan struct{}, 1),
-		Options: nil,
+		Options: nil, RequireAuth: false, Authenticated: "",
 	}
 }
 
@@ -51,6 +55,13 @@ func (a *Agent) Prompts() []string {
 	return append([]string(nil), a.prompts...)
 }
 
+// AuthenticatedWith is the method id the client signed in with, or "".
+func (a *Agent) AuthenticatedWith() string {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	return a.Authenticated
+}
+
 // Serve runs the agent on r and w until r ends.
 func (a *Agent) Serve(ctx context.Context, r io.Reader, w io.Writer) {
 	var conn *acp.Conn
@@ -59,8 +70,26 @@ func (a *Agent) Serve(ctx context.Context, r io.Reader, w io.Writer) {
 	) (any, error) {
 		switch method {
 		case acp.MethodInitialize:
-			return map[string]any{acp.KeyProtocolVersion: acp.ProtocolVersion}, nil
+			return map[string]any{
+				acp.KeyProtocolVersion: acp.ProtocolVersion,
+				"authMethods":          []map[string]string{{"id": "api-key"}},
+			}, nil
+		case acp.MethodAuthenticate:
+			var p struct {
+				MethodID string `json:"methodId"`
+			}
+			_ = json.Unmarshal(params, &p)
+			a.mu.Lock()
+			a.Authenticated = p.MethodID
+			a.mu.Unlock()
+			return map[string]any{}, nil
 		case acp.MethodSessionNew:
+			a.mu.Lock()
+			missing := a.RequireAuth && a.Authenticated == ""
+			a.mu.Unlock()
+			if missing {
+				return nil, &acp.RPCError{Code: -32000, Message: "auth required", Data: nil}
+			}
 			return map[string]string{acp.KeySessionID: sessionID}, nil
 		case acp.MethodSessionCancel:
 			select {

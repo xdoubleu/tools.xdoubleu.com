@@ -52,14 +52,15 @@ func (e Event) Text() string {
 // Client drives one agent over a stream, answering every permission request with
 // allow: the sandbox is the boundary → adr-0060.
 type Client struct {
-	conn    *Conn
-	onEvent func(Event)
+	conn        *Conn
+	authMethods []string
+	onEvent     func(Event)
 }
 
 // NewClient talks to an agent whose stdout is r and stdin is w. Call Serve, then
 // Initialize.
 func NewClient(r io.Reader, w io.Writer, onEvent func(Event)) *Client {
-	c := &Client{conn: nil, onEvent: onEvent}
+	c := &Client{conn: nil, authMethods: nil, onEvent: onEvent}
 	c.conn = NewConn(r, w, c.handle)
 	return c
 }
@@ -133,6 +134,9 @@ func (c *Client) permission(params json.RawMessage) map[string]permissionOutcome
 func (c *Client) Initialize(ctx context.Context) error {
 	var res struct {
 		ProtocolVersion int `json:"protocolVersion"`
+		AuthMethods     []struct {
+			ID string `json:"id"`
+		} `json:"authMethods"`
 	}
 	err := c.conn.Call(ctx, MethodInitialize, map[string]any{
 		KeyProtocolVersion:   ProtocolVersion,
@@ -145,7 +149,24 @@ func (c *Client) Initialize(ctx context.Context) error {
 	if res.ProtocolVersion != ProtocolVersion {
 		return errors.New("the agent speaks a different ACP version")
 	}
+	for _, m := range res.AuthMethods {
+		c.authMethods = append(c.authMethods, m.ID)
+	}
 	return nil
+}
+
+// codeAuthRequired is the error an agent answers a session with before it has
+// authenticated.
+const codeAuthRequired = -32000
+
+// authenticate signs the agent in with the first method it offered, which for the
+// agents in the VM reads the credential from their environment.
+func (c *Client) authenticate(ctx context.Context) error {
+	if len(c.authMethods) == 0 {
+		return errors.New("the agent wants authentication and offers no method")
+	}
+	return c.conn.Call(ctx, MethodAuthenticate,
+		map[string]any{"methodId": c.authMethods[0]}, nil)
 }
 
 // NewSession opens a session working in cwd, which is a path inside the agent's
@@ -154,9 +175,14 @@ func (c *Client) NewSession(ctx context.Context, cwd string) (string, error) {
 	var res struct {
 		SessionID string `json:"sessionId"`
 	}
-	err := c.conn.Call(ctx, MethodSessionNew, map[string]any{
-		"cwd": cwd, "mcpServers": []any{},
-	}, &res)
+	params := map[string]any{"cwd": cwd, "mcpServers": []any{}}
+	err := c.conn.Call(ctx, MethodSessionNew, params, &res)
+	var rpc *RPCError
+	if errors.As(err, &rpc) && rpc.Code == codeAuthRequired {
+		if err = c.authenticate(ctx); err == nil {
+			err = c.conn.Call(ctx, MethodSessionNew, params, &res)
+		}
+	}
 	if err != nil {
 		return "", err
 	}
