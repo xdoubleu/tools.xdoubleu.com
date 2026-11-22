@@ -238,6 +238,9 @@ type JobRunner struct {
 	// RunningPollEvery is the read interval while checks run; zero means 20s.
 	RunningPollEvery time.Duration
 	MaxWatch         time.Duration
+	// NoCIGrace is how long a pull request head may have no check runs before the
+	// repo counts as having no CI and the job stops watching; zero means 5 minutes.
+	NoCIGrace time.Duration
 	// Sleep and Now are the clock a job's waits use; nil means sleepCtx and
 	// time.Now. Tests replace them.
 	Sleep func(context.Context, time.Duration)

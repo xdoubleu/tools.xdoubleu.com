@@ -327,6 +327,7 @@ func newEnv(
 			GitHub: nil, ServerURL: "", PublishRetry: 0,
 			CheckInEvery: 10 * time.Millisecond, Minute: time.Second, EventsEvery: 0,
 			PollEvery: time.Millisecond, RunningPollEvery: 0, MaxWatch: 5 * time.Second,
+			NoCIGrace: 0,
 			// Waits are recorded, not slept, so a test never idles for an hour.
 			Sleep: func(ctx context.Context, d time.Duration) {
 				api.slept(d)

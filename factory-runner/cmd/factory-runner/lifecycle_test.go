@@ -151,6 +151,7 @@ func (lifeGitHub) PullRequestStatus(
 ) (runner.PullStatus, error) {
 	return runner.PullStatus{
 		State: runner.PullMerged, HeadSHA: "", CI: "", Failed: nil, Conflict: false,
+		NoChecks: false,
 	}, nil
 }
 
@@ -299,7 +300,8 @@ func (e *lifeEnv) start() *generation {
 		}
 		dir := e.t.TempDir()
 		jobs := &runner.JobRunner{
-			API: e.board, Token: "frt_x", Paused: a.holdClaims, MaxJobs: a.maxJobs,
+			NoCIGrace: 0,
+			API:       e.board, Token: "frt_x", Paused: a.holdClaims, MaxJobs: a.maxJobs,
 			Mode: a.mode, Harness: runner.ClaudeCode{},
 			Allowed: func() ([]string, error) {
 				return []string{"xdoubleu/tools.xdoubleu.com"}, nil

@@ -58,7 +58,7 @@ func cloneHead(t *testing.T, p *publishing) func() string {
 func ciRed(names ...string) runner.PullStatus {
 	st := runner.PullStatus{
 		State: runner.PullOpen, HeadSHA: "", CI: runner.CIFailure, Failed: nil,
-		Conflict: false,
+		Conflict: false, NoChecks: false,
 	}
 	for _, n := range names {
 		st.Failed = append(st.Failed, runner.CheckFailure{Name: n, Excerpt: n + " broke"})
@@ -103,10 +103,10 @@ func TestRedCIAfterThePullRequestOpensIsFedBackAndPushedAgain(t *testing.T) {
 	p.gh.head = cloneHead(t, p)
 	p.gh.statuses = []runner.PullStatus{
 		{State: runner.PullOpen, HeadSHA: "", CI: runner.CIPending,
-			Failed: nil, Conflict: false},
+			Failed: nil, Conflict: false, NoChecks: false},
 		ciRed("api-test", "web-lint"),
 		{State: runner.PullMerged, HeadSHA: "", CI: "",
-			Failed: nil, Conflict: false},
+			Failed: nil, Conflict: false, NoChecks: false},
 	}
 
 	_, err := p.runner.Next(context.Background())
@@ -133,7 +133,7 @@ func TestACIFailureOnAnOlderCommitIsIgnored(t *testing.T) {
 	stale.HeadSHA = "0000000000000000000000000000000000000000"
 	p.gh.statuses = []runner.PullStatus{
 		stale, {State: runner.PullMerged, HeadSHA: "", CI: "",
-			Failed: nil, Conflict: false},
+			Failed: nil, Conflict: false, NoChecks: false},
 	}
 	p.gh.head = cloneHead(t, p)
 
@@ -217,7 +217,7 @@ func TestABlockedJobWhosePullRequestOpenedStillGetsItsRedCI(t *testing.T) {
 	p.gh.statuses = []runner.PullStatus{
 		ciRed("web-test"),
 		{State: runner.PullMerged, HeadSHA: "", CI: "",
-			Failed: nil, Conflict: false},
+			Failed: nil, Conflict: false, NoChecks: false},
 	}
 
 	_, err := p.runner.Next(context.Background())
@@ -232,7 +232,7 @@ func TestAPullRequestClosedWithoutMergingEndsTheJob(t *testing.T) {
 	p := newPublishing(t, attempts(agentRuns("Did it"+passAll, true)))
 	p.gh.statuses = []runner.PullStatus{{
 		State: runner.PullClosed, HeadSHA: "", CI: "", Failed: nil,
-		Conflict: false,
+		Conflict: false, NoChecks: false,
 	}}
 
 	_, err := p.runner.Next(context.Background())
@@ -248,7 +248,7 @@ func TestAJobStoppedFromTheBoardWhileWatchingItsPullRequestEnds(t *testing.T) {
 	p := newPublishing(t, attempts(agentRuns("Did it"+passAll, true)))
 	p.gh.statuses = []runner.PullStatus{{
 		State: runner.PullOpen, HeadSHA: "", CI: runner.CIPending, Failed: nil,
-		Conflict: false,
+		Conflict: false, NoChecks: false,
 	}}
 	p.gh.onRead = func() {
 		p.api.mu.Lock()
@@ -270,7 +270,7 @@ func TestARunnerShutdownWhileWatchingEndsTheJobAndTellsTheServer(t *testing.T) {
 	p := newPublishing(t, attempts(agentRuns("Did it"+passAll, true)))
 	p.gh.statuses = []runner.PullStatus{{
 		State: runner.PullOpen, HeadSHA: "", CI: runner.CIPending, Failed: nil,
-		Conflict: false,
+		Conflict: false, NoChecks: false,
 	}}
 	p.gh.onRead = cancel
 
@@ -284,7 +284,7 @@ func TestAPullRequestThatNeverMergesIsGivenUpOn(t *testing.T) {
 	p.runner.MaxWatch = 30 * time.Millisecond
 	p.gh.statuses = []runner.PullStatus{{
 		State: runner.PullOpen, HeadSHA: "", CI: runner.CIPending, Failed: nil,
-		Conflict: false,
+		Conflict: false, NoChecks: false,
 	}}
 
 	_, err := p.runner.Next(context.Background())
@@ -437,11 +437,11 @@ func TestWatchPollsFastWhileChecksRunAndSlowerOnceGreen(t *testing.T) {
 	p.gh.head = cloneHead(t, p)
 	p.gh.statuses = []runner.PullStatus{
 		{State: runner.PullOpen, HeadSHA: "", CI: runner.CIPending,
-			Failed: nil, Conflict: false},
+			Failed: nil, Conflict: false, NoChecks: false},
 		{State: runner.PullOpen, HeadSHA: "", CI: runner.CISuccess,
-			Failed: nil, Conflict: false},
+			Failed: nil, Conflict: false, NoChecks: false},
 		{State: runner.PullMerged, HeadSHA: "", CI: "",
-			Failed: nil, Conflict: false},
+			Failed: nil, Conflict: false, NoChecks: false},
 	}
 
 	_, err := p.runner.Next(context.Background())
@@ -464,9 +464,9 @@ func TestAConflictingPullRequestIsHandedBackWithTheBaseFetched(t *testing.T) {
 	p.gh.head = cloneHead(t, p)
 	p.gh.statuses = []runner.PullStatus{
 		{State: runner.PullOpen, HeadSHA: "", CI: runner.CISuccess, Failed: nil,
-			Conflict: true},
+			Conflict: true, NoChecks: false},
 		{State: runner.PullMerged, HeadSHA: "", CI: "",
-			Failed: nil, Conflict: false},
+			Failed: nil, Conflict: false, NoChecks: false},
 	}
 
 	_, err := p.runner.Next(context.Background())
@@ -479,4 +479,46 @@ func TestAConflictingPullRequestIsHandedBackWithTheBaseFetched(t *testing.T) {
 	got := p.api.done()[0]
 	assert.True(t, got.succeeded)
 	assert.Equal(t, map[string]int{"conflict": 1}, runner.RetriesOf(got.end))
+}
+
+func bareStatus() runner.PullStatus {
+	return runner.PullStatus{
+		State: runner.PullOpen, HeadSHA: "", CI: runner.CIPending, Failed: nil,
+		Conflict: false, NoChecks: true,
+	}
+}
+
+func TestNoChecksAfterTheGraceEndTheWatchAndFreeTheSlot(t *testing.T) {
+	p := newPublishing(t, attempts(agentRuns("Did it"+passAll, true)))
+	p.runner.NoCIGrace = 20 * time.Millisecond
+	p.gh.statuses = []runner.PullStatus{bareStatus()}
+
+	_, err := p.runner.Next(context.Background())
+	require.NoError(t, err)
+
+	got := p.api.done()
+	require.Len(t, got, 1)
+	assert.True(t, got[0].succeeded)
+	assert.NotEmpty(t, got[0].prURL)
+	assert.Contains(t, got[0].outcome, "no CI")
+	assert.Contains(t, got[0].outcome, "Did it")
+}
+
+func TestChecksAppearingWithinTheGraceKeepTheWatchGoing(t *testing.T) {
+	p := newPublishing(t, attempts(agentRuns("Did it"+passAll, true)))
+	p.runner.NoCIGrace = time.Hour
+	p.gh.statuses = []runner.PullStatus{
+		bareStatus(), bareStatus(),
+		{State: runner.PullOpen, HeadSHA: "", CI: runner.CIPending, Failed: nil,
+			Conflict: false, NoChecks: false},
+		{State: runner.PullMerged, HeadSHA: "", CI: "", Failed: nil,
+			Conflict: false, NoChecks: false},
+	}
+
+	_, err := p.runner.Next(context.Background())
+	require.NoError(t, err)
+
+	got := p.api.done()[0]
+	assert.True(t, got.succeeded)
+	assert.Equal(t, "Did it"+passAll, got.outcome)
 }

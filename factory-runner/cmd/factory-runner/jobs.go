@@ -48,8 +48,9 @@ func newJobRunner(
 		return nil, fmt.Errorf("data directory: %w", err)
 	}
 	jobs := &runner.JobRunner{
-		API:   runner.NewClient(cfg.Server, Release),
-		Token: token,
+		NoCIGrace: 0,
+		API:       runner.NewClient(cfg.Server, Release),
+		Token:     token,
 		// Read each time, so `config repos add` takes effect without a restart.
 		Allowed: func() ([]string, error) {
 			current, _, err := a.loadConfig()
