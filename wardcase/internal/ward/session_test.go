@@ -248,7 +248,8 @@ func TestARunnerErrorStillReportsTheWorktree(t *testing.T) {
 
 func TestASessionInAnExistingCheckoutKeepsItAndResumes(t *testing.T) {
 	sf := newSessionFixture(t)
-	dir := originRepo(t)
+	dir, err := filepath.EvalSymlinks(originRepo(t))
+	require.NoError(t, err)
 	gitIn(t, dir, "checkout", "-q", "-b", "agent/own")
 	req := sf.request("agent/own")
 	req.Source = ward.Source{URL: "", Base: "", Branch: "agent/own", Token: ""}

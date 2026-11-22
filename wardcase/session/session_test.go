@@ -54,6 +54,14 @@ type secrets map[string]string
 
 func (s secrets) Get(name string) (string, error) { return s[name], nil }
 
+// realDir is a temp directory with symlinks resolved, as git reports it.
+func realDir(t *testing.T) string {
+	t.Helper()
+	dir, err := filepath.EvalSymlinks(t.TempDir())
+	require.NoError(t, err)
+	return dir
+}
+
 func git(t *testing.T, dir string, args ...string) {
 	t.Helper()
 	id := []string{"-C", dir, "-c", "user.name=t", "-c", "user.email=t@t"}
@@ -105,7 +113,7 @@ func TestARequestWithoutAPromptFails(t *testing.T) {
 }
 
 func TestASessionRunsInAnExistingCheckoutOnItsBranchAndResumes(t *testing.T) {
-	dir := t.TempDir()
+	dir := realDir(t)
 	git(t, dir, "init", "-q", "-b", "agent/x")
 	require.NoError(t, os.WriteFile(filepath.Join(dir, "a.txt"), nil, 0o600))
 	git(t, dir, "add", ".")
@@ -152,7 +160,7 @@ func TestAnExistingCheckoutOnAnotherBranchFails(t *testing.T) {
 }
 
 func TestAnExistingCheckoutKeepsItsWorkAndOverflows(t *testing.T) {
-	dir := t.TempDir()
+	dir := realDir(t)
 	git(t, dir, "init", "-q", "-b", "agent/x")
 	git(t, dir, "commit", "-q", "--allow-empty", "-m", "init")
 	limit := `{"type":"rate_limit_event","rate_limit_info":{"status":"rejected"}}` + "\n"
