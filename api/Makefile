@@ -162,6 +162,13 @@ proto/check: tools/proto
 	after=$$(find gen -type f | sort | xargs sha256sum); \
 	[ "$$before" = "$$after" ] || { echo "api/gen/ is out of date — run 'make proto/generate' (api) and 'npm run generate' (web), then commit the results." >&2; exit 1; }
 
+# proto/check with local plugins, for sandboxes that can't reach buf.build.
+proto/check/local: tools/proto/local
+	@before=$$(find gen -type f | sort | xargs sha256sum); \
+	buf generate --template buf.gen.local.yaml; \
+	after=$$(find gen -type f | sort | xargs sha256sum); \
+	[ "$$before" = "$$after" ] || { echo "api/gen/ is out of date — run 'make proto/generate' (api) and 'npm run generate' (web), then commit the results." >&2; exit 1; }
+
 build:
 	go build -o=./bin/api ./cmd/api
 
