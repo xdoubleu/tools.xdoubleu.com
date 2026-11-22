@@ -141,6 +141,32 @@ linters:
               desc: services reach storage through their own interfaces
             - pkg: net/http
               desc: services know no transport
+        hexagonal-mealplans-adapters:
+          files:
+            - "**/apps/mealplans/connect/**"
+            - "**/apps/mealplans/mcp/**"
+            - "**/apps/mealplans/http/**"
+            - "!**/*_test.go"
+          deny:
+            - pkg: tools.xdoubleu.com/apps/mealplans/internal/repositories
+              desc: adapters call services, never repositories
+            - pkg: github.com/jackc/pgx
+              desc: adapters do not touch the database
+            - pkg: tools.xdoubleu.com/internal/kit/database/postgres
+              desc: adapters do not touch the database
+        hexagonal-mealplans-services:
+          files:
+            - "**/apps/mealplans/internal/services/**"
+            - "!**/*_test.go"
+          deny:
+            - pkg: connectrpc.com/connect
+              desc: services know no transport
+            - pkg: tools.xdoubleu.com/gen
+              desc: services use domain types, not generated protos
+            - pkg: github.com/jackc/pgx
+              desc: services reach storage through their own interfaces
+            - pkg: net/http
+              desc: services know no transport
         hexagonal-feeds-adapters:
           files:
             - "**/apps/feeds/connect/**"
@@ -192,22 +218,19 @@ linters:
               desc: services reach storage through their own interfaces
             - pkg: net/http
               desc: services know no transport
-        hexagonal-mealplans-adapters:
+        hexagonal-dashboard-adapters:
           files:
-            - "**/apps/mealplans/connect/**"
-            - "**/apps/mealplans/mcp/**"
-            - "**/apps/mealplans/http/**"
+            - "**/apps/dashboard/connect/**"
+            - "**/apps/dashboard/mcp/**"
             - "!**/*_test.go"
           deny:
-            - pkg: tools.xdoubleu.com/apps/mealplans/internal/repositories
-              desc: adapters call services, never repositories
             - pkg: github.com/jackc/pgx
               desc: adapters do not touch the database
             - pkg: tools.xdoubleu.com/internal/kit/database/postgres
               desc: adapters do not touch the database
-        hexagonal-mealplans-services:
+        hexagonal-dashboard-services:
           files:
-            - "**/apps/mealplans/internal/services/**"
+            - "**/apps/dashboard/internal/services/**"
             - "!**/*_test.go"
           deny:
             - pkg: connectrpc.com/connect
