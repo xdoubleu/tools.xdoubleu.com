@@ -160,7 +160,7 @@ func (s *JobService) queueRoutine(
 		return nil, err
 	}
 	job, err := s.jobs.Create(ctx, models.Job{
-		ID: uuid.Nil, TaskID: uuid.Nil, TaskNumber: 0, Routine: routine.Name,
+		ID: uuid.Nil, Kind: "", TaskID: uuid.Nil, TaskNumber: 0, Routine: routine.Name,
 		RepoID: repo.ID, Harness: "", Model: "",
 		Prompt: routinePrompt(routine.Name), Status: "",
 		Branch: routineBranch(routine.Name), SessionID: "", Outcome: "",

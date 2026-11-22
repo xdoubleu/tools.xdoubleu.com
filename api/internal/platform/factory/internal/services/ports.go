@@ -289,6 +289,58 @@ type RoutineStore interface {
 	) (*models.Routine, error)
 }
 
+// ChatStore is the storage of chat sessions and their events.
+type ChatStore interface {
+	// Start pins the session to its runner and creates its running chat job; a
+	// runner already at its job cap is a conflict.
+	Start(
+		ctx context.Context,
+		c models.ChatSession,
+		createdBy string,
+	) (*models.ChatSession, error)
+	Get(ctx context.Context, id uuid.UUID) (*models.ChatSession, error)
+	List(
+		ctx context.Context,
+		activeOnly bool,
+		limit int,
+	) ([]models.ChatSession, error)
+	// Transition moves the session from one of the states to another; a session
+	// in none of them is a conflict.
+	Transition(
+		ctx context.Context,
+		id uuid.UUID,
+		from []models.ChatState,
+		to models.ChatState,
+	) (*models.ChatSession, error)
+	// Append numbers and adds events to an unstopped session; a stopped one is a
+	// conflict.
+	Append(
+		ctx context.Context,
+		id uuid.UUID,
+		events []models.ChatEventInput,
+	) error
+	After(
+		ctx context.Context,
+		id uuid.UUID,
+		afterSeq, limit int,
+	) ([]models.ChatEvent, error)
+	// Stop ends an unstopped session, keeping its report and finishing its job
+	// as jobStatus; a stopped one is a conflict.
+	Stop(
+		ctx context.Context,
+		id uuid.UUID,
+		report string,
+		jobStatus models.JobStatus,
+	) (*models.ChatSession, error)
+	// StopForJob stops the unstopped session of a chat job that ended without it;
+	// none is not found.
+	StopForJob(
+		ctx context.Context,
+		jobID uuid.UUID,
+		report string,
+	) (*models.ChatSession, error)
+}
+
 // Stores is the storage the services are built on.
 type Stores struct {
 	Tasks    TaskStore
@@ -299,4 +351,5 @@ type Stores struct {
 	Settings SettingsStore
 	Linked   LinkedPullRequestStore
 	Routines RoutineStore
+	Chats    ChatStore
 }

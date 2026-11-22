@@ -22,7 +22,8 @@ const jobColumns = `id,
 	session_id, outcome, created_by, created_at, started_at, last_check_in,
 	finished_at, pr_url, runner_id, pr_state, pr_ci, pr_review, parent_job_id,
 	model, limited, limit_resets_at,
-	COALESCE((SELECT number FROM factory.tasks WHERE id = task_id), 0), routine`
+	COALESCE((SELECT number FROM factory.tasks WHERE id = task_id), 0), routine,
+	kind`
 
 func scanJob(row rowScanner) (*models.Job, error) {
 	var j models.Job
@@ -31,7 +32,7 @@ func scanJob(row rowScanner) (*models.Job, error) {
 		&j.SessionID, &j.Outcome, &j.CreatedBy, &j.CreatedAt, &j.StartedAt,
 		&j.LastCheckIn, &j.FinishedAt, &j.PRURL,
 		&j.RunnerID, &j.PRState, &j.PRCI, &j.PRReview, &j.ParentJobID,
-		&j.Model, &j.Limited, &j.LimitResetsAt, &j.TaskNumber, &j.Routine,
+		&j.Model, &j.Limited, &j.LimitResetsAt, &j.TaskNumber, &j.Routine, &j.Kind,
 	)
 	if err != nil {
 		return nil, postgres.PgxErrorToHTTPError(err)
