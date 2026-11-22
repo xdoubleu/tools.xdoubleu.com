@@ -339,6 +339,19 @@ func (r *TasksRepository) BlockPickup(
 		SELECT `+getColumns+` FROM t`, id, reason))
 }
 
+// setPickupBlock is BlockPickup without the row back, and it leaves the row and
+// its updated_at alone when the reason is unchanged.
+func (r *TasksRepository) setPickupBlock(
+	ctx context.Context,
+	id uuid.UUID,
+	reason string,
+) error {
+	_, err := r.db.Exec(ctx, `
+		UPDATE factory.tasks SET pickup_blocked = $2, updated_at = now()
+		WHERE id = $1 AND pickup_blocked IS DISTINCT FROM $2`, id, reason)
+	return postgres.PgxErrorToHTTPError(err)
+}
+
 // AddComment appends a comment and bumps the task's updated_at.
 func (r *TasksRepository) AddComment(
 	ctx context.Context,
@@ -482,9 +495,18 @@ func (r *TasksRepository) NextReady(
 		return nil, postgres.PgxErrorToHTTPError(err)
 	}
 
+	rowsIn := make([]pickupRow, len(cands))
+	for i, x := range cands {
+		rowsIn[i] = pickupRow{x.c.TaskID, x.c.Number, x.labels, x.c.Body}
+	}
+	reasons, err := r.pickupSkipReasons(ctx, rowsIn)
+	if err != nil {
+		return nil, err
+	}
+
 	for i := range cands {
 		x := cands[i]
-		skip, vetErr := r.vet(ctx, x)
+		skip, vetErr := r.vet(ctx, x, reasons[x.c.TaskID])
 		if vetErr != nil {
 			return nil, vetErr
 		}
@@ -511,14 +533,13 @@ type readyRow struct {
 }
 
 // vet reports whether auto pickup must pass the task by, recording why.
-func (r *TasksRepository) vet(ctx context.Context, x readyRow) (bool, error) {
-	reason, err := r.pickupSkipReason(ctx, x.c.TaskID, x.c.Number, x.labels, x.c.Body)
-	if err != nil {
-		return false, err
-	}
+func (r *TasksRepository) vet(
+	ctx context.Context,
+	x readyRow,
+	reason string,
+) (bool, error) {
 	if reason != "" {
-		_, err = r.BlockPickup(ctx, x.c.TaskID, skipPrefix+reason)
-		return true, err
+		return true, r.setPickupBlock(ctx, x.c.TaskID, skipPrefix+reason)
 	}
 	noRunner, err := r.noRunnerReason(ctx, x.c.TaskID, x.repo, x.blocked)
 	return noRunner != "", err
@@ -544,6 +565,5 @@ func (r *TasksRepository) noRunnerReason(
 	if _, err = r.AddComment(ctx, id, pickupAuthor, body); err != nil {
 		return "", err
 	}
-	_, err = r.BlockPickup(ctx, id, reason)
-	return reason, err
+	return reason, r.setPickupBlock(ctx, id, reason)
 }
