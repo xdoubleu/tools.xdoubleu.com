@@ -7,6 +7,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"tools.xdoubleu.com/apps/books/connect"
+	booksserver "tools.xdoubleu.com/apps/books/http"
 	booksmcp "tools.xdoubleu.com/apps/books/mcp"
 	booksv1connect "tools.xdoubleu.com/gen/books/v1/booksv1connect"
 	iapp "tools.xdoubleu.com/internal/app"
@@ -36,9 +37,7 @@ func (a *Books) booksRoutes(prefix string, mux *http.ServeMux) {
 
 func (a *Books) Routes(prefix string, mux *http.ServeMux) {
 	a.booksRoutes(prefix, mux)
-	a.coverRoutes(prefix, mux)
-	a.webPubRoutes(prefix, mux)
-	a.koboRoutes(prefix, mux)
+	booksserver.New(a.services, a.kobo, a.Logger).Register(prefix, mux)
 }
 
 // RegisterMCPTools exposes the books app's read-only RPCs on the combined apps

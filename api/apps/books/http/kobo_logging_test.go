@@ -1,5 +1,5 @@
 //nolint:testpackage // testing unexported redactKoboToken
-package books
+package http
 
 import (
 	"net/http"
