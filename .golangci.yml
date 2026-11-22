@@ -127,6 +127,8 @@ linters:
             - "**/apps/feeds/http/**"
             - "**/apps/games/connect/**"
             - "**/apps/games/mcp/**"
+            - "**/apps/dashboard/connect/**"
+            - "**/apps/dashboard/mcp/**"
             - "!**/*_test.go"
           deny:
             - pkg: tools.xdoubleu.com/apps/shoppinglist/internal/repositories
@@ -147,6 +149,7 @@ linters:
             - "**/apps/movies/internal/services/**"
             - "**/apps/feeds/internal/services/**"
             - "**/apps/games/internal/services/**"
+            - "**/apps/dashboard/internal/services/**"
             - "!**/*_test.go"
           deny:
             - pkg: connectrpc.com/connect
