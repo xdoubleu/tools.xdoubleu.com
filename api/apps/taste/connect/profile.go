@@ -1,4 +1,4 @@
-package taste
+package connect
 
 import (
 	"context"
@@ -12,7 +12,7 @@ import (
 	tastev1 "tools.xdoubleu.com/gen/taste/v1"
 )
 
-func (h *tasteConnectHandler) GetProfile(
+func (h *Handler) GetProfile(
 	ctx context.Context,
 	req *tastev1.GetProfileRequest,
 ) (*tastev1.GetProfileResponse, error) {
@@ -21,11 +21,11 @@ func (h *tasteConnectHandler) GetProfile(
 		return nil, err
 	}
 
-	out := &tastev1.GetProfileResponse{Configured: h.app.profiles.Configured()}
+	out := &tastev1.GetProfileResponse{Configured: h.svc.Profiles.Configured()}
 	if !out.Configured {
 		return out, nil
 	}
-	p, err := h.app.profiles.Get(ctx, sc.subject)
+	p, err := h.svc.Profiles.Get(ctx, sc.Subject)
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -64,7 +64,7 @@ func nextRefreshAt(requested *time.Time) string {
 	return ""
 }
 
-func (h *tasteConnectHandler) RefreshProfile(
+func (h *Handler) RefreshProfile(
 	ctx context.Context,
 	req *tastev1.RefreshProfileRequest,
 ) (*tastev1.RefreshProfileResponse, error) {
@@ -72,7 +72,7 @@ func (h *tasteConnectHandler) RefreshProfile(
 	if err != nil {
 		return nil, err
 	}
-	accepted, err := h.app.profiles.Request(ctx, sc.subject)
+	accepted, err := h.svc.Profiles.Request(ctx, sc.Subject)
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -83,7 +83,7 @@ func (h *tasteConnectHandler) RefreshProfile(
 			services.RefreshCooldown,
 		)
 	}
-	h.app.jobQueue.ForceRun(jobs.GenerateProfilesID)
+	h.jobs.ForceRun(jobs.GenerateProfilesID)
 	return &tastev1.RefreshProfileResponse{}, nil
 }
 

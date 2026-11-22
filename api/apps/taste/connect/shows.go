@@ -1,4 +1,4 @@
-package taste
+package connect
 
 import (
 	"context"
@@ -23,7 +23,7 @@ func protoFavouriteShow(s *models.Show) *tastev1.FavouriteShow {
 	}
 }
 
-func (h *tasteConnectHandler) SearchShows(
+func (h *Handler) SearchShows(
 	ctx context.Context,
 	req *tastev1.SearchShowsRequest,
 ) (*tastev1.SearchShowsResponse, error) {
@@ -32,7 +32,7 @@ func (h *tasteConnectHandler) SearchShows(
 		return nil, err
 	}
 
-	results, err := h.app.shows.Search(ctx, uid, req.Query)
+	results, err := h.svc.Shows.Search(ctx, uid, req.Query)
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -49,7 +49,7 @@ func (h *tasteConnectHandler) SearchShows(
 	return &tastev1.SearchShowsResponse{Results: out}, nil
 }
 
-func (h *tasteConnectHandler) ListFavouriteShows(
+func (h *Handler) ListFavouriteShows(
 	ctx context.Context,
 	_ *tastev1.ListFavouriteShowsRequest,
 ) (*tastev1.ListFavouriteShowsResponse, error) {
@@ -58,7 +58,7 @@ func (h *tasteConnectHandler) ListFavouriteShows(
 		return nil, err
 	}
 
-	shows, err := h.app.shows.List(ctx, uid)
+	shows, err := h.svc.Shows.List(ctx, uid)
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -69,7 +69,7 @@ func (h *tasteConnectHandler) ListFavouriteShows(
 	return &tastev1.ListFavouriteShowsResponse{Favourites: out}, nil
 }
 
-func (h *tasteConnectHandler) AddFavouriteShow(
+func (h *Handler) AddFavouriteShow(
 	ctx context.Context,
 	req *tastev1.AddFavouriteShowRequest,
 ) (*tastev1.AddFavouriteShowResponse, error) {
@@ -78,14 +78,14 @@ func (h *tasteConnectHandler) AddFavouriteShow(
 		return nil, err
 	}
 
-	show, err := h.app.shows.Add(ctx, uid, req.ItunesId)
+	show, err := h.svc.Shows.Add(ctx, uid, req.ItunesId)
 	if err != nil {
 		return nil, mapError(err)
 	}
 	return &tastev1.AddFavouriteShowResponse{Favourite: protoFavouriteShow(show)}, nil
 }
 
-func (h *tasteConnectHandler) RemoveFavouriteShow(
+func (h *Handler) RemoveFavouriteShow(
 	ctx context.Context,
 	req *tastev1.RemoveFavouriteShowRequest,
 ) (*tastev1.RemoveFavouriteShowResponse, error) {
@@ -100,7 +100,7 @@ func (h *tasteConnectHandler) RemoveFavouriteShow(
 			connect.CodeInvalidArgument, "invalid id",
 		)
 	}
-	if err = h.app.shows.Remove(ctx, uid, id); err != nil {
+	if err = h.svc.Shows.Remove(ctx, uid, id); err != nil {
 		return nil, mapError(err)
 	}
 	return &tastev1.RemoveFavouriteShowResponse{}, nil

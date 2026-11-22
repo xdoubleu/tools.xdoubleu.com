@@ -1,4 +1,4 @@
-package taste
+package mcp
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"google.golang.org/protobuf/proto"
 
+	"tools.xdoubleu.com/apps/taste/connect"
 	tastev1 "tools.xdoubleu.com/gen/taste/v1"
 	"tools.xdoubleu.com/internal/platform/mcptools"
 )
@@ -42,10 +43,14 @@ type mcpRemoveFavouriteShowArgs struct {
 	ID string `json:"id" jsonschema:"the favourite show's id, from taste_list_favourite_shows"`
 }
 
-// RegisterMCPTools exposes the consumption log and its stats, scoped to the
-// caller.
-func (a *Taste) RegisterMCPTools(srv *mcp.Server) {
-	h := &tasteConnectHandler{app: a}
+type tools struct {
+	*connect.Handler
+}
+
+// Register exposes the consumption log and its stats, scoped to the caller.
+// Each tool calls the Connect handler, so both share one set of rules.
+func Register(srv *mcp.Server, handler *connect.Handler) {
+	h := &tools{Handler: handler}
 
 	mcptools.AddReadTool(srv, mcpAppName, "taste_get_stats",
 		"The user's consumption across books, feeds, games, movies, series and "+
@@ -81,7 +86,7 @@ func (a *Taste) RegisterMCPTools(srv *mcp.Server) {
 		h.mcpRemoveFavouriteShow)
 }
 
-func (h *tasteConnectHandler) mcpListFavouriteShows(
+func (h *tools) mcpListFavouriteShows(
 	ctx context.Context, _ mcptools.NoArgs,
 ) (proto.Message, error) {
 	return mcptools.Unwrap(
@@ -89,7 +94,7 @@ func (h *tasteConnectHandler) mcpListFavouriteShows(
 	)
 }
 
-func (h *tasteConnectHandler) mcpAddFavouriteShow(
+func (h *tools) mcpAddFavouriteShow(
 	ctx context.Context, args mcpAddFavouriteShowArgs,
 ) (proto.Message, error) {
 	return mcptools.Unwrap(h.AddFavouriteShow(
@@ -97,7 +102,7 @@ func (h *tasteConnectHandler) mcpAddFavouriteShow(
 	))
 }
 
-func (h *tasteConnectHandler) mcpRemoveFavouriteShow(
+func (h *tools) mcpRemoveFavouriteShow(
 	ctx context.Context, args mcpRemoveFavouriteShowArgs,
 ) (proto.Message, error) {
 	return mcptools.Unwrap(h.RemoveFavouriteShow(
@@ -105,7 +110,7 @@ func (h *tasteConnectHandler) mcpRemoveFavouriteShow(
 	))
 }
 
-func (h *tasteConnectHandler) mcpListRecommendations(
+func (h *tools) mcpListRecommendations(
 	ctx context.Context, args mcpListRecommendationsArgs,
 ) (proto.Message, error) {
 	return mcptools.Unwrap(h.ListRecommendations(ctx, &tastev1.ListRecommendationsRequest{
@@ -114,7 +119,7 @@ func (h *tasteConnectHandler) mcpListRecommendations(
 	}))
 }
 
-func (h *tasteConnectHandler) mcpGetProfile(
+func (h *tools) mcpGetProfile(
 	ctx context.Context, args mcpSharedArgs,
 ) (proto.Message, error) {
 	return mcptools.Unwrap(h.GetProfile(ctx, &tastev1.GetProfileRequest{
@@ -122,7 +127,7 @@ func (h *tasteConnectHandler) mcpGetProfile(
 	}))
 }
 
-func (h *tasteConnectHandler) mcpGetStats(
+func (h *tools) mcpGetStats(
 	ctx context.Context, args mcpSharedArgs,
 ) (proto.Message, error) {
 	return mcptools.Unwrap(h.GetStats(ctx, &tastev1.GetStatsRequest{
@@ -130,7 +135,7 @@ func (h *tasteConnectHandler) mcpGetStats(
 	}))
 }
 
-func (h *tasteConnectHandler) mcpListEvents(
+func (h *tools) mcpListEvents(
 	ctx context.Context, args mcpListEventsArgs,
 ) (proto.Message, error) {
 	return mcptools.Unwrap(h.ListEvents(ctx, &tastev1.ListEventsRequest{

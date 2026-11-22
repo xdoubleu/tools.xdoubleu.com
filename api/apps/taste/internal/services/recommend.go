@@ -12,10 +12,12 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/google/uuid"
 	"golang.org/x/sync/errgroup"
 
 	"tools.xdoubleu.com/apps/internal/consumption"
 	"tools.xdoubleu.com/apps/taste/internal/models"
+	"tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/kit/openrouter"
 )
 
@@ -200,6 +202,54 @@ func (s *RecommendService) List(
 	return recs, st, err
 }
 
+// Visible lists the scope's picks of domain and track (either may be empty),
+// keeping those of apps it may read.
+func (s *RecommendService) Visible(
+	ctx context.Context,
+	sc Scope,
+	domain, track string,
+	savedOnly bool,
+) ([]models.Recommendation, models.PicksStatus, error) {
+	var st models.PicksStatus
+	if domain != "" && !IsDomain(consumption.Domain(domain)) {
+		return nil, st, app.NewBadRequestError("unknown domain")
+	}
+	if track != "" && !models.IsTrack(track) {
+		return nil, st, app.NewBadRequestError("track must be more or broaden")
+	}
+	recs, st, err := s.List(ctx, sc.Subject, domain, track, savedOnly)
+	if err != nil {
+		return nil, st, err
+	}
+	return slices.DeleteFunc(recs, func(r models.Recommendation) bool {
+		return !sc.Access(AppOf(consumption.Domain(r.Domain)))
+	}), st, nil
+}
+
+// ErrPickNotFound means the scope has no such pick, or its app is closed to
+// the caller.
+var ErrPickNotFound = errors.New("recommendation not found")
+
+// Own returns the scope's pick id; a pick of an app the caller can't open is
+// not found.
+func (s *RecommendService) Own(
+	ctx context.Context,
+	sc Scope,
+	id string,
+) (*models.Recommendation, error) {
+	if _, err := uuid.Parse(id); err != nil {
+		return nil, app.NewBadRequestError("invalid id")
+	}
+	rec, err := s.recs.Get(ctx, sc.Subject, id)
+	if err != nil {
+		return nil, err
+	}
+	if !sc.Access(AppOf(consumption.Domain(rec.Domain))) {
+		return nil, ErrPickNotFound
+	}
+	return rec, nil
+}
+
 // Request queues new picks from the stored profile unless they were requested
 // within RefreshCooldown; it reports whether it did.
 func (s *RecommendService) Request(ctx context.Context, userID string) (bool, error) {
@@ -227,6 +277,11 @@ func (s *RecommendService) SetFeedback(
 	ctx context.Context,
 	userID, id, feedback string,
 ) (*models.Recommendation, error) {
+	if !models.IsFeedback(feedback) {
+		return nil, app.NewBadRequestError(
+			"feedback must be hit, miss, not_interested, known or empty",
+		)
+	}
 	return s.recs.SetFeedback(ctx, userID, id, feedback, s.now())
 }
 
