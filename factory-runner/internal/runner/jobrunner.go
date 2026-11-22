@@ -683,7 +683,8 @@ func (r *JobRunner) execute(ctx context.Context, job *ClaimedJob) result {
 	loop := &jobLoop{
 		r: r, job: job, dirs: dirs, since: since, launch: launch, secrets: secrets,
 		ctx: jobCtx, parent: ctx, tap: tap, events: events, stopped: &stopped,
-		session: nil, resume: job.ResumeSessionID, limit: r.limitFor(job), token: "", tokenAt: time.Time{},
+		session: nil, resume: job.ResumeSessionID, limit: r.limitFor(job),
+		token: "", tokenAt: time.Time{},
 		times:   phaseTimes{agent: 0, gates: 0, publish: 0, ci: 0, merge: 0, retries: nil},
 		greenAt: time.Time{}, began: time.Time{}, causes: nil,
 		sandboxFixed: false, sandboxOpened: false,

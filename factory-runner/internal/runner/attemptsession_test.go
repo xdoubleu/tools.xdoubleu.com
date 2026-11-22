@@ -48,12 +48,21 @@ type fakeSession struct {
 	opts session.Options
 }
 
-func (s fakeSession) Run(_ context.Context, req session.Request) (session.Result, error) {
+func (s fakeSession) Run(
+	_ context.Context, req session.Request,
+) (session.Result, error) {
 	s.f.mu.Lock()
 	s.f.opts = append(s.f.opts, s.opts)
 	s.f.reqs = append(s.f.reqs, req)
 	s.f.mu.Unlock()
 	return s.f.act(s.opts, req), nil
+}
+
+func done(exit int) session.Result {
+	return session.Result{
+		ExitCode: exit, Harness: session.Claude, Continued: false, Limited: false,
+		SessionID: "", Model: "", Branch: "", Path: "", Uncommitted: 0, Unpushed: 0,
+	}
 }
 
 // finishes plays a harness that commits work and writes an outcome.
@@ -63,7 +72,7 @@ func finishes(t *testing.T) func(session.Options, session.Request) session.Resul
 		commitFile(req.Dir, "agent.txt", "work")
 		require.NoError(t, os.WriteFile(filepath.Join(req.Extra.OutcomeDir, "outcome.md"),
 			[]byte("Did it.\nPR title: Fix it"), 0o644))
-		return session.Result{ExitCode: 0}
+		return done(0)
 	}
 }
 
@@ -72,7 +81,7 @@ func sessionEnv(
 ) (*jobEnv, *fakeSessions) {
 	t.Helper()
 	env := newEnv(t, writes("", 0), job)
-	fake := &fakeSessions{act: finishes(t)}
+	fake := &fakeSessions{mu: sync.Mutex{}, opts: nil, reqs: nil, act: finishes(t)}
 	env.runner.Sandbox = vmBox{env.sandbox}
 	env.runner.Sessions = fake.factory
 	env.runner.OnLimit = func() (string, string) { return policy, model }
@@ -104,8 +113,10 @@ func TestWaitMeansOverflowOffAndFallbackMeansAutoOnTheConfiguredModel(t *testing
 	for name, tc := range map[string]struct {
 		policy, model, overflow, fallback, openCode string
 	}{
-		"wait":              {runner.OnLimitWait, "m/x", session.OverflowOff, "", ""},
-		"fallback":          {runner.OnLimitFallback, "m/x", session.OverflowAuto, session.OpenCode, "m/x"},
+		"wait": {runner.OnLimitWait, "m/x", session.OverflowOff, "", ""},
+		"fallback": {
+			runner.OnLimitFallback, "m/x", session.OverflowAuto, session.OpenCode, "m/x",
+		},
 		"fallback no model": {runner.OnLimitFallback, "", session.OverflowOff, "", ""},
 	} {
 		t.Run(name, func(t *testing.T) {
@@ -158,7 +169,9 @@ func TestAUsageLimitWardcaseReportsStillRequeuesTheJob(t *testing.T) {
 	env, fake := sessionEnv(t, runner.OnLimitWait, "", newJob())
 	fake.act = func(opts session.Options, _ session.Request) session.Result {
 		_, _ = io.WriteString(opts.Out, rejectedAt(4102444800)+"\n")
-		return session.Result{ExitCode: 1, Limited: true}
+		res := done(1)
+		res.Limited = true
+		return res
 	}
 
 	_, err := env.runner.Next(context.Background())

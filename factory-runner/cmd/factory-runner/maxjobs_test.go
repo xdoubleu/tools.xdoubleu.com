@@ -1,6 +1,8 @@
 package main
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -43,9 +45,27 @@ func TestConfigOnLimitDefaultsToWaitAndIsSaved(t *testing.T) {
 	assert.Contains(t, e.out.String(), "on-limit: fallback")
 	assert.Contains(t, e.out.String(), "fallback-model: deepseek/deepseek-chat")
 
+	policy, model := e.app.onLimit()
+	assert.Equal(t, "fallback", policy)
+	assert.Equal(t, "deepseek/deepseek-chat", model)
+
 	require.Equal(t, 0, e.do("config", "on-limit", "wait"))
 	require.Equal(t, 0, e.do("config", "fallback-model", "none"))
+	policy, model = e.app.onLimit()
+	assert.Equal(t, "wait", policy)
+	assert.Empty(t, model)
 	e.out.Reset()
 	require.Equal(t, 0, e.do("config", "show"))
 	assert.Contains(t, e.out.String(), "fallback-model: none")
+}
+
+func TestAnUnreadableConfigWaitsOutAUsageLimit(t *testing.T) {
+	e := newEnv(t)
+	path := runner.ConfigPath(e.app.home)
+	require.NoError(t, os.MkdirAll(filepath.Dir(path), 0o700))
+	require.NoError(t, os.WriteFile(path, []byte("{not json"), 0o600))
+
+	policy, model := e.app.onLimit()
+	assert.Equal(t, runner.OnLimitWait, policy)
+	assert.Empty(t, model)
 }
