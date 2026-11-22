@@ -7,7 +7,7 @@ import (
 	"github.com/google/uuid"
 	"google.golang.org/protobuf/proto"
 
-	recipesconnect "tools.xdoubleu.com/apps/recipes/connect"
+	"tools.xdoubleu.com/apps/recipes/internal/protomap"
 	"tools.xdoubleu.com/apps/recipes/internal/services"
 )
 
@@ -43,7 +43,7 @@ type mcpUpdateRecipeArgs struct {
 func (h *tools) mcpUpdateRecipe(
 	ctx context.Context, args mcpUpdateRecipeArgs,
 ) (proto.Message, error) {
-	userID, err := recipesconnect.CallerID(ctx)
+	userID, err := callerID(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +64,7 @@ func (h *tools) mcpUpdateRecipe(
 	}
 	updated, err := h.recipes.UpdateKeepingDraft(ctx, userID, in)
 	if err != nil {
-		return nil, recipesconnect.MapError(err)
+		return nil, protomap.MapError(err)
 	}
-	return recipesconnect.ScaledRecipeResponse(userID, updated), nil
+	return protomap.ScaledRecipeResponse(userID, updated), nil
 }

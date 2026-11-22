@@ -3,12 +3,17 @@ package mcp
 import (
 	"context"
 
+	"connectrpc.com/connect/v2"
+	"github.com/google/uuid"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"google.golang.org/protobuf/proto"
 
-	recipesconnect "tools.xdoubleu.com/apps/recipes/connect"
+	"tools.xdoubleu.com/apps/recipes/internal/protomap"
 	"tools.xdoubleu.com/apps/recipes/internal/services"
 	recipesv1 "tools.xdoubleu.com/gen/recipes/v1"
+	"tools.xdoubleu.com/internal/kit/constants"
+	"tools.xdoubleu.com/internal/kit/contexttools"
+	sharedmodels "tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/platform/mcptools"
 )
 
@@ -25,7 +30,6 @@ type mcpRecipeArgs struct {
 }
 
 type tools struct {
-	reads   *recipesconnect.Handler
 	recipes *services.RecipeService
 	videos  *services.VideoService
 }
@@ -39,7 +43,6 @@ func Register(
 	videos *services.VideoService,
 ) {
 	h := &tools{
-		reads:   recipesconnect.NewHandler(recipes),
 		recipes: recipes,
 		videos:  videos,
 	}
@@ -63,21 +66,47 @@ func Register(
 func (h *tools) mcpListRecipes(
 	ctx context.Context, args mcpListRecipesArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(
-		h.reads.ListRecipes(
-			ctx,
-			&recipesv1.ListRecipesRequest{Limit: args.Limit, Offset: args.Offset},
-		),
-	)
+	userID, err := callerID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	list, hasMore, err := h.recipes.List(ctx, userID, "", "", args.Limit, args.Offset)
+	if err != nil {
+		return nil, protomap.MapError(err)
+	}
+	return &recipesv1.ListRecipesResponse{
+		Recipes: protomap.Recipes(list),
+		HasMore: hasMore,
+	}, nil
 }
 
 func (h *tools) mcpGetRecipe(
 	ctx context.Context, args mcpRecipeArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(
-		h.reads.GetRecipe(
-			ctx,
-			&recipesv1.GetRecipeRequest{Id: args.ID, Servings: args.Servings},
-		),
+	userID, err := callerID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	id, err := uuid.Parse(args.ID)
+	if err != nil {
+		return nil, connect.Errorf(connect.CodeInvalidArgument, "invalid recipe ID")
+	}
+	recipe, canEdit, servings, ingredients, err := h.recipes.GetScaled(
+		ctx, id, userID, int(args.Servings),
 	)
+	if err != nil {
+		return nil, protomap.MapError(err)
+	}
+	return protomap.ScaledRecipeResponse(userID, &services.ScaledRecipe{
+		Recipe: recipe, CanEdit: canEdit, Servings: servings, Ingredients: ingredients,
+	}), nil
+}
+
+// callerID returns the authenticated caller's user ID.
+func callerID(ctx context.Context) (string, error) {
+	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
+	if user == nil {
+		return "", connect.Errorf(connect.CodeUnauthenticated, "user not authenticated")
+	}
+	return user.ID, nil
 }
