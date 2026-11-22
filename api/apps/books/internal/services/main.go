@@ -96,6 +96,7 @@ func New(
 	return &Services{
 		Auth:       authService,
 		Books:      booksSvc,
+		Catalog:    nil, // set once the resync job exists
 		Conversion: conversionSvc,
 		KEPUBQueue: conversion.NewKEPUBQueue(
 			logger, repositories.KEPUBRequests, conversionSvc,
