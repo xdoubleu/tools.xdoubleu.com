@@ -11,10 +11,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"tools.xdoubleu.com/apps/books"
 	"tools.xdoubleu.com/apps/learningpaths/internal/mocks"
 	"tools.xdoubleu.com/apps/learningpaths/internal/models"
-	booksv1 "tools.xdoubleu.com/gen/books/v1"
 	iapp "tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/kit/logging"
 )
@@ -56,7 +54,7 @@ func TestCreate_ExternalBookAddedToLearnShelfAndLinked(t *testing.T) {
 	//nolint:exhaustruct //unset fields are the fixture defaults
 	store := &fakeLearningPathsStore{lp: newFixture()}
 	//nolint:exhaustruct //unset fields are the fixture defaults
-	bookLookup := &fakeBookLookup{ensureID: bookID, book: &booksv1.UserBook{}}
+	bookLookup := &fakeBookLookup{ensureID: bookID, book: &models.LinkedBook{}}
 	svc := newTestService(store)
 	svc.books = bookLookup
 
@@ -75,7 +73,7 @@ func TestCreate_LinkedBookIDWinsOverExternalBook(t *testing.T) {
 	//nolint:exhaustruct //unset fields are the fixture defaults
 	store := &fakeLearningPathsStore{lp: newFixture()}
 	//nolint:exhaustruct //unset fields are the fixture defaults
-	bookLookup := &fakeBookLookup{book: &booksv1.UserBook{}}
+	bookLookup := &fakeBookLookup{book: &models.LinkedBook{}}
 	svc := newTestService(store)
 	svc.books = bookLookup
 
@@ -91,7 +89,7 @@ func TestCreate_UnresolvableExternalBookIs400(t *testing.T) {
 	store := &fakeLearningPathsStore{lp: newFixture()}
 	svc := newTestService(store)
 	//nolint:exhaustruct //unset fields are the fixture defaults
-	svc.books = &fakeBookLookup{ensureErr: books.ErrExternalBookNotFound}
+	svc.books = &fakeBookLookup{ensureErr: ErrExternalBookNotFound}
 
 	_, err := svc.Create(t.Context(), "owner", externalBookPath())
 
@@ -184,7 +182,7 @@ func TestSyncUser_FinishedBookCompletesModule(t *testing.T) {
 	}
 	//nolint:exhaustruct //unset fields are the fixture defaults
 	svc, mock := newConnectedService(store, &fakeBookLookup{
-		book: &booksv1.UserBook{ProgressPercent: 100},
+		book: &models.LinkedBook{ProgressPercent: 100},
 	})
 
 	require.NoError(t, svc.todoist.SyncUser(t.Context(), lp.UserID))

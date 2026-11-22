@@ -20,8 +20,7 @@ func TestGetLibraryBookByID_Owner(t *testing.T) {
 	result, err := testApp.GetLibraryBookByID(context.Background(), userID, ub.BookID)
 	require.NoError(t, err)
 	require.NotNil(t, result)
-	assert.Equal(t, ub.BookID.String(), result.BookId)
-	assert.Equal(t, "GetLibraryBookByID Owner", result.Book.GetTitle())
+	assert.Equal(t, "GetLibraryBookByID Owner", result.Title)
 }
 
 // TestGetLibraryBookByID_OtherUserNotFound confirms a book that exists but

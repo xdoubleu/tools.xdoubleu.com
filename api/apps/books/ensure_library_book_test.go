@@ -82,5 +82,5 @@ func TestGetLibraryBookByID_ReadBookReportsFullProgress(t *testing.T) {
 
 	result, err := testApp.GetLibraryBookByID(context.Background(), userID, ub.BookID)
 	require.NoError(t, err)
-	assert.Equal(t, int32(100), result.ProgressPercent)
+	assert.Equal(t, 100, result.ProgressPercent)
 }

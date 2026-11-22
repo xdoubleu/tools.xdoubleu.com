@@ -45,23 +45,35 @@ func (app *Books) BuildSharedLibrary(
 // reference no provider resolves.
 var ErrExternalBookNotFound = services.ErrExternalNotFound
 
+// LibraryBook is one library entry as other apps see it.
+type LibraryBook struct {
+	Title  string
+	Status string
+	// ProgressPercent is the pages-aware display percent.
+	ProgressPercent int
+	CoverURL        string
+}
+
 // GetLibraryBookByID returns one of userID's library entries, for
-// learningpaths; ProgressPercent is the pages-aware display percent.
-// ErrResourceNotFound also covers another user's book, so existence never
-// leaks.
+// learningpaths. ErrResourceNotFound also covers another user's book, so
+// existence never leaks.
 func (app *Books) GetLibraryBookByID(
 	ctx context.Context,
 	userID string,
 	bookID uuid.UUID,
-) (*booksv1.UserBook, error) {
+) (*LibraryBook, error) {
 	ub, err := app.services.Books.GetUserBook(ctx, userID, bookID)
 	if err != nil {
 		return nil, err
 	}
 
 	result := connect.ProtoUserBook(*ub, app.clients.PublicAPIBaseURL)
-	result.ProgressPercent = connect.Int32FromInt(ub.DisplayProgressPercent())
-	return result, nil
+	return &LibraryBook{
+		Title:           result.Book.GetTitle(),
+		Status:          result.Status,
+		ProgressPercent: ub.DisplayProgressPercent(),
+		CoverURL:        result.Book.GetCoverUrl(),
+	}, nil
 }
 
 // EnsureLibraryBook resolves an external provider reference (as returned by

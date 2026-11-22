@@ -38,7 +38,7 @@ type LearningPaths struct {
 
 // New builds the app. sealer encrypts per-user Todoist tokens. books and
 // feeds must already be constructed (registration order in cmd/api/apps.go);
-// only their exported methods are called via the narrow lookup interfaces
+// only their exported methods are called, behind the services' lookup ports
 // (docs/adr-0007-dashboard-app-owns-public-sharing.md).
 func New(
 	ctx context.Context,
@@ -47,8 +47,8 @@ func New(
 	cfg config.Config,
 	db postgres.DB,
 	sealer *crypto.Sealer,
-	books services.BookLookup,
-	feeds services.FeedItemLookup,
+	books BookSource,
+	feeds FeedItemSource,
 ) *LearningPaths {
 	//nolint:exhaustruct //services and jobs initialised below
 	a := &LearningPaths{
@@ -63,13 +63,15 @@ func New(
 	todoistConf := todoist.OAuthConfig(
 		cfg.TodoistOAuthClientID, cfg.TodoistOAuthClientSecret, cfg.APIURL,
 	)
+	repos := repositories.New(db, sealer)
 	a.services = services.New(
 		a.Logger,
-		repositories.New(db, sealer),
+		repos.LearningPaths,
+		repos.OAuthConnections,
 		authService,
 		todoistConf,
-		books,
-		feeds,
+		bookPort{src: books},
+		feedPort{src: feeds},
 	)
 
 	const amountOfWorkers = 1

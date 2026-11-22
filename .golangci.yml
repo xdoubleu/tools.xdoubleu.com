@@ -241,6 +241,32 @@ linters:
               desc: services reach storage through their own interfaces
             - pkg: net/http
               desc: services know no transport
+        hexagonal-learningpaths-adapters:
+          files:
+            - "**/apps/learningpaths/connect/**"
+            - "**/apps/learningpaths/mcp/**"
+            - "**/apps/learningpaths/http/**"
+            - "!**/*_test.go"
+          deny:
+            - pkg: tools.xdoubleu.com/apps/learningpaths/internal/repositories
+              desc: adapters call services, never repositories
+            - pkg: github.com/jackc/pgx
+              desc: adapters do not touch the database
+            - pkg: tools.xdoubleu.com/internal/kit/database/postgres
+              desc: adapters do not touch the database
+        hexagonal-learningpaths-services:
+          files:
+            - "**/apps/learningpaths/internal/services/**"
+            - "!**/*_test.go"
+          deny:
+            - pkg: connectrpc.com/connect
+              desc: services know no transport
+            - pkg: tools.xdoubleu.com/gen
+              desc: services use domain types, not generated protos
+            - pkg: github.com/jackc/pgx
+              desc: services reach storage through their own interfaces
+            - pkg: net/http
+              desc: services know no transport
         hexagonal-movies-adapters:
           files:
             - "**/apps/movies/connect/**"

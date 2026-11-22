@@ -1,4 +1,4 @@
-package learningpaths
+package mcp
 
 // Authoring guidance lives in code so every MCP client sees it at connect
 // time. Keep it in lockstep with the mcp*Arg structs and toProto* helpers in
