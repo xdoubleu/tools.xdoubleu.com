@@ -222,11 +222,10 @@ func (r *Runner) writeHandoff(
 	ctx context.Context,
 	checkout, since, from, to string,
 ) error {
-	transcript := ""
-	if from == Claude {
-		transcript = compactTranscript(r.sessionDir(checkout, from))
-	}
-	text := handoff(from, to, gitState(ctx, r.Git, checkout, since), transcript)
+	text := handoff(
+		Header{Version: HandoffVersion, From: from, To: to, Base: since},
+		gitState(ctx, r.Git, checkout, since),
+		conversationOf(from, r.sessionDir(checkout, from)))
 	dir := r.sessionDir(checkout, to)
 	if err := os.MkdirAll(dir, stateDirPerm); err != nil {
 		return fmt.Errorf("session directory: %w", err)
