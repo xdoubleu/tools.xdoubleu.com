@@ -21,6 +21,9 @@ const (
 	// DefaultMaxWatch is how long a pull request may stay unmerged before the job
 	// gives up on it.
 	DefaultMaxWatch = 6 * time.Hour
+	// DefaultNoCIGrace is how long a pull request head may show no checks before
+	// the repo counts as having no CI.
+	DefaultNoCIGrace = 5 * time.Minute
 
 	// maxAttempts bounds the agent runs of one job, whatever else happens.
 	maxAttempts = 20
@@ -527,6 +530,8 @@ func (l *jobLoop) watch(res result, text string) step {
 	}
 	ref := PullRef{Owner: l.job.RepoOwner, Repo: l.job.RepoName, Number: number}
 	deadline := l.now().Add(cmp.Or(l.r.MaxWatch, DefaultMaxWatch))
+	var bareHead string
+	var bareSince time.Time
 	for {
 		if why := l.ended(); why != "" {
 			return l.finish(res, why, text)
@@ -537,6 +542,15 @@ func (l *jobLoop) watch(res result, text string) step {
 				"error", scrub(err.Error(), l.token))
 		} else if s, over := l.judge(res, text, st); over {
 			return s
+		} else if st.State == PullOpen && st.NoChecks {
+			if bareHead != st.HeadSHA || bareSince.IsZero() {
+				bareHead, bareSince = st.HeadSHA, l.now()
+			}
+			if l.now().Sub(bareSince) >= cmp.Or(l.r.NoCIGrace, DefaultNoCIGrace) {
+				return l.noCI(res, text)
+			}
+		} else {
+			bareSince = time.Time{}
 		}
 		if l.now().After(deadline) {
 			return l.finish(res, "The pull request was not merged within "+
@@ -544,6 +558,15 @@ func (l *jobLoop) watch(res result, text string) step {
 		}
 		l.sleep(l.pollEvery(st))
 	}
+}
+
+// noCI ends the job on a pull request whose repo has no CI: nothing will ever
+// report on it, so the slot is freed and the open, armed pull request is left be.
+func (l *jobLoop) noCI(res result, text string) step {
+	res.succeeded = true
+	res.outcome = strings.TrimSpace("This repo has no CI checks, so nothing gates the " +
+		"merge of " + res.prURL + "; the job stopped watching it.\n\n" + text)
+	return over(res)
 }
 
 // pollEvery polls fast while checks run and slowly once they are green.

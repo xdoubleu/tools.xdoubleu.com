@@ -480,3 +480,45 @@ func TestAConflictingPullRequestIsHandedBackWithTheBaseFetched(t *testing.T) {
 	assert.True(t, got.succeeded)
 	assert.Equal(t, map[string]int{"conflict": 1}, runner.RetriesOf(got.end))
 }
+
+func bareStatus() runner.PullStatus {
+	return runner.PullStatus{
+		State: runner.PullOpen, HeadSHA: "", CI: runner.CIPending, Failed: nil,
+		Conflict: false, NoChecks: true,
+	}
+}
+
+func TestAPullRequestWithNoChecksAfterTheGraceEndsTheWatchAndFreesTheSlot(t *testing.T) {
+	p := newPublishing(t, attempts(agentRuns("Did it"+passAll, true)))
+	p.runner.NoCIGrace = 20 * time.Millisecond
+	p.gh.statuses = []runner.PullStatus{bareStatus()}
+
+	_, err := p.runner.Next(context.Background())
+	require.NoError(t, err)
+
+	got := p.api.done()
+	require.Len(t, got, 1)
+	assert.True(t, got[0].succeeded)
+	assert.NotEmpty(t, got[0].prURL)
+	assert.Contains(t, got[0].outcome, "no CI")
+	assert.Contains(t, got[0].outcome, "Did it")
+}
+
+func TestChecksAppearingWithinTheGraceKeepTheWatchGoing(t *testing.T) {
+	p := newPublishing(t, attempts(agentRuns("Did it"+passAll, true)))
+	p.runner.NoCIGrace = time.Hour
+	p.gh.statuses = []runner.PullStatus{
+		bareStatus(), bareStatus(),
+		{State: runner.PullOpen, HeadSHA: "", CI: runner.CIPending, Failed: nil,
+			Conflict: false, NoChecks: false},
+		{State: runner.PullMerged, HeadSHA: "", CI: "", Failed: nil,
+			Conflict: false, NoChecks: false},
+	}
+
+	_, err := p.runner.Next(context.Background())
+	require.NoError(t, err)
+
+	got := p.api.done()[0]
+	assert.True(t, got.succeeded)
+	assert.Equal(t, "Did it"+passAll, got.outcome)
+}
