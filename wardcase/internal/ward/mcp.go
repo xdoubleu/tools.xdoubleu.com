@@ -120,32 +120,32 @@ func (m *mcpToken) Reject() {
 	m.tok = nil
 }
 
-// mcpServers is the proxy routes for the configured servers that are signed in, and
+// MCPServers is the proxy routes for the configured servers that are signed in, and
 // the names of the ones that are not. Headless runs get only servers with jobs set.
-func (r *Runner) mcpServers(
-	headless bool,
+func MCPServers(
+	cfg Config, store Secrets, headless bool,
 ) ([]vm.MCPServer, []string, error) {
 	var servers []vm.MCPServer
 	var missing []string
 	hc := &http.Client{Timeout: oauthTimeout}
-	for _, cfg := range r.Config.MCP {
-		if headless && !cfg.Jobs {
+	for _, server := range cfg.MCP {
+		if headless && !server.Jobs {
 			continue
 		}
-		creds, ok, loadErr := loadMCP(r.Secrets, cfg.Name)
+		creds, ok, loadErr := loadMCP(store, server.Name)
 		if loadErr != nil {
-			return nil, nil, fmt.Errorf("mcp %s: %w", cfg.Name, loadErr)
+			return nil, nil, fmt.Errorf("mcp %s: %w", server.Name, loadErr)
 		}
 		if !ok {
-			missing = append(missing, cfg.Name)
+			missing = append(missing, server.Name)
 			continue
 		}
 		tok := &mcpToken{
-			hc: hc, name: cfg.Name, store: r.Secrets, creds: creds,
+			hc: hc, name: server.Name, store: store, creds: creds,
 			mu: sync.Mutex{}, tok: nil,
 		}
 		servers = append(servers, vm.MCPServer{
-			Name: cfg.Name, URL: cfg.URL, Token: tok.Token, Rejected: tok.Reject,
+			Name: server.Name, URL: server.URL, Token: tok.Token, Rejected: tok.Reject,
 		})
 	}
 	return servers, missing, nil
@@ -156,7 +156,7 @@ func (r *Runner) mcpServers(
 func (r *Runner) addMCP(
 	egress *vm.EgressConfig, env map[string]string, headless bool,
 ) error {
-	servers, missing, err := r.mcpServers(headless)
+	servers, missing, err := MCPServers(r.Config, r.Secrets, headless)
 	if err != nil {
 		return err
 	}

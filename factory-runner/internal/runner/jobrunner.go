@@ -205,8 +205,13 @@ type JobRunner struct {
 	OpenRouterKey func() (string, error)
 	// AuthorEmail is the address commits carry; the name is the job's board account.
 	AuthorEmail string
-	// Proxy builds a job's egress proxy; nil gives the job none.
-	Proxy func(job *ClaimedJob) (ProxyListener, error)
+	// MCP returns the device's MCP servers a job gets (the ones the owner marked
+	// jobs = true and signed in) and the names of marked ones that are not signed
+	// in; nil gives a job none.
+	MCP func() (servers []MCPServer, missing []string, err error)
+	// Proxy builds a job's egress proxy, with the MCP servers the job gets; nil
+	// gives the job none.
+	Proxy func(job *ClaimedJob, servers []MCPServer) (ProxyListener, error)
 	// Activity, when set, holds the Mac awake and blocks self-update while a job runs.
 	Activity *Activity
 	// DataDir holds <DataDir>/jobs/<job id>/{clone,outcome}.
@@ -679,6 +684,9 @@ func (r *JobRunner) execute(ctx context.Context, job *ClaimedJob) result {
 			res.outcome = strings.TrimSpace(res.outcome + "\n\n" + line)
 		}
 	}
+	if launch.mcpNote != "" {
+		res.outcome = strings.TrimSpace(launch.mcpNote + "\n\n" + res.outcome)
+	}
 	// What the agent said last is what you most want to read.
 	r.flush(ctx, job.ID, events)
 	return res
@@ -756,6 +764,8 @@ type launch struct {
 	// secrets are this job's own credentials, which must never reach a commit, a
 	// log line or the outcome.
 	secrets []string
+	// mcpNote names the device MCP servers the job should have had but could not.
+	mcpNote string
 }
 
 // launchOf gathers a job's launch inputs; an error says why it cannot start.
@@ -774,12 +784,50 @@ func (r *JobRunner) launchOf(job *ClaimedJob) (launch, error) {
 		secrets = append(secrets, token)
 	}
 	var proxy ProxyListener
+	var note string
 	if r.Proxy != nil {
-		if proxy, err = r.Proxy(job); err != nil {
+		var servers []MCPServer
+		servers, note = r.deviceMCP(job, env)
+		if proxy, err = r.Proxy(job, servers); err != nil {
 			return launch{}, fmt.Errorf("prepare the egress proxy: %w", err)
 		}
 	}
-	return launch{command: command, env: env, proxy: proxy, secrets: secrets}, nil
+	return launch{
+		command: command, env: env, proxy: proxy, secrets: secrets, mcpNote: note,
+	}, nil
+}
+
+// deviceMCP is the device's MCP servers the job gets, named in its environment. A
+// server that is not signed in, or a config that cannot be read, does not stop the
+// job: it is logged once and returned as a note for the outcome.
+func (r *JobRunner) deviceMCP(
+	job *ClaimedJob, env map[string]string,
+) ([]MCPServer, string) {
+	if r.MCP == nil {
+		return nil, ""
+	}
+	servers, missing, err := r.MCP()
+	var note string
+	switch {
+	case err != nil:
+		servers = nil
+		note = "The device's MCP servers could not be read: " + err.Error()
+		r.Log.Warn("device MCP servers unavailable", "job", job.ID, "error", err)
+	case len(missing) > 0:
+		slices.Sort(missing)
+		note = "MCP servers not signed in, so the job ran without them: " +
+			strings.Join(missing, ", ") + " (wardcase mcp login <name>)"
+		r.Log.Warn("device MCP servers not signed in", "job", job.ID, "servers", missing)
+	}
+	names := make([]string, 0, len(servers))
+	for _, s := range servers {
+		names = append(names, s.Name)
+	}
+	slices.Sort(names)
+	if len(names) > 0 {
+		env[MCPServersEnv] = strings.Join(names, " ")
+	}
+	return servers, note
 }
 
 // invocation is what the sandbox runs for the job, and its environment: a fresh
@@ -796,7 +844,6 @@ func (r *JobRunner) invocation(
 	env["FACTORY_JOB"] = job.ID
 	env["WARDCASE_RUN"] = job.ID
 	env["FACTORY_OUTCOME_PATH"] = SandboxOutcomePath
-	env[MCPServersEnv] = "posthog" // routed by the job proxy
 	author := cmp.Or(job.MCPClientID, "factory")
 	email := cmp.Or(r.AuthorEmail, DefaultBotEmail)
 	env["GIT_AUTHOR_NAME"], env["GIT_COMMITTER_NAME"] = author, author

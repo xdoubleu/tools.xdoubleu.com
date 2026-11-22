@@ -1,15 +1,11 @@
 package main
 
 import (
-	"context"
 	"log/slog"
 	"sync"
 
 	"tools.xdoubleu.com/factory-runner/internal/runner"
 )
-
-// postHogURL is PostHog's MCP endpoint.
-const postHogURL = "https://mcp.posthog.com/mcp"
 
 // cachedKey reads a stored secret on first use and keeps it for the job: a model
 // call is many requests, and each read would start a `security` process. A failed
@@ -32,30 +28,23 @@ func cachedKey(secrets runner.SecretStore, name string) func() (string, error) {
 	}
 }
 
-// postHogServer is PostHog's MCP server, reached with the stored personal API key.
-func postHogServer(secrets runner.SecretStore) runner.MCPServer {
-	key := cachedKey(secrets, runner.SecretPostHog)
-	return runner.MCPServer{
-		Name: "posthog", URL: postHogURL, Rejected: nil,
-		Token: func(context.Context) (string, error) { return key() },
-	}
-}
-
 // newJobProxy builds the egress proxy for one job: the board with the job's own
-// account (a job without one reaches no board), OpenRouter and PostHog with the
-// stored keys, and Anthropic with whatever the VM sends. The keys are read when a
-// request needs them, so a missing one fails that request, not the whole job.
+// account (a job without one reaches no board), the device's MCP servers it was
+// given, OpenRouter with the stored key, and Anthropic with whatever the VM sends.
+// The key is read when a request needs it, so a missing one fails that request, not
+// the whole job.
 func newJobProxy(
 	cfg runner.Config,
 	job *runner.ClaimedJob,
 	secrets runner.SecretStore,
+	servers []runner.MCPServer,
 	log *slog.Logger,
 ) (*runner.EgressProxy, error) {
 	pc := runner.EgressConfig{
 		Server:        cfg.Server,
 		Transport:     nil,
 		OpenRouterKey: cachedKey(secrets, runner.SecretOpenRouter),
-		MCPServers:    []runner.MCPServer{postHogServer(secrets)},
+		MCPServers:    servers,
 		MCPToken:      nil,
 		MCPRejected:   nil,
 		Anthropic:     "",

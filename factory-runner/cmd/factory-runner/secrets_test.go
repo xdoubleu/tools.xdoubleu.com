@@ -151,7 +151,7 @@ func TestTheJobRunnerReadsItsCredentialsFromTheKeychainWhenAJobNeedsThem(t *test
 	assert.Equal(t, "tok-1", got, "read at job time, not at startup")
 
 	job := claimedJob("agent-1", "s")
-	proxy, err := jr.Proxy(job)
+	proxy, err := jr.Proxy(job, nil)
 	require.NoError(t, err)
 	assert.NotNil(t, proxy)
 	box, ok := jr.Sandbox.(*runner.ContainerSandbox)
@@ -177,12 +177,12 @@ func TestAJobProxyOffersTheBoardOnlyToAJobWithItsOwnAccount(t *testing.T) {
 	log := quietLog()
 
 	with, err := newJobProxy(cfg,
-		claimedJob("agent-1", "s"), secrets, log)
+		claimedJob("agent-1", "s"), secrets, nil, log)
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusBadGateway, proxyDo(with, http.MethodPost, "/mcp"),
 		"the route exists; the token server is unreachable here")
 
-	without, err := newJobProxy(cfg, claimedJob("", ""), secrets, log)
+	without, err := newJobProxy(cfg, claimedJob("", ""), secrets, nil, log)
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusForbidden, proxyDo(without, http.MethodPost, "/mcp"),
 		"no account, no board")
@@ -196,7 +196,7 @@ func TestAJobProxyReadsTheOpenRouterKeyOnlyWhenTheRouteIsUsed(t *testing.T) {
 		MaxJobs: 0,
 		OnLimit: "",
 	}
-	p, err := newJobProxy(cfg, claimedJob("", ""), newMemSecrets(), quietLog())
+	p, err := newJobProxy(cfg, claimedJob("", ""), newMemSecrets(), nil, quietLog())
 	require.NoError(t, err)
 
 	assert.Equal(t, http.StatusBadGateway,

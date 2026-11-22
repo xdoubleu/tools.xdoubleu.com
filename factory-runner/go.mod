@@ -9,8 +9,10 @@ require (
 )
 
 require (
+	github.com/BurntSushi/toml v1.6.0 // indirect
 	github.com/xdoubleu/diff-coverage v0.1.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
+	golang.org/x/oauth2 v0.38.0 // indirect
 )
 
 replace tools.xdoubleu.com/selfupdate => ../selfupdate
