@@ -530,8 +530,7 @@ func (l *jobLoop) watch(res result, text string) step {
 	}
 	ref := PullRef{Owner: l.job.RepoOwner, Repo: l.job.RepoName, Number: number}
 	deadline := l.now().Add(cmp.Or(l.r.MaxWatch, DefaultMaxWatch))
-	var bareHead string
-	var bareSince time.Time
+	var bare bareChecks
 	for {
 		if why := l.ended(); why != "" {
 			return l.finish(res, why, text)
@@ -542,15 +541,8 @@ func (l *jobLoop) watch(res result, text string) step {
 				"error", scrub(err.Error(), l.token))
 		} else if s, over := l.judge(res, text, st); over {
 			return s
-		} else if st.State == PullOpen && st.NoChecks {
-			if bareHead != st.HeadSHA || bareSince.IsZero() {
-				bareHead, bareSince = st.HeadSHA, l.now()
-			}
-			if l.now().Sub(bareSince) >= cmp.Or(l.r.NoCIGrace, DefaultNoCIGrace) {
-				return l.noCI(res, text)
-			}
-		} else {
-			bareSince = time.Time{}
+		} else if bare.exceeded(st, l.now(), cmp.Or(l.r.NoCIGrace, DefaultNoCIGrace)) {
+			return l.noCI(res, text)
 		}
 		if l.now().After(deadline) {
 			return l.finish(res, "The pull request was not merged within "+
@@ -558,6 +550,24 @@ func (l *jobLoop) watch(res result, text string) step {
 		}
 		l.sleep(l.pollEvery(st))
 	}
+}
+
+// bareChecks tracks how long the pull request's head has shown no check runs.
+type bareChecks struct {
+	head  string
+	since time.Time
+}
+
+// exceeded reports whether the open head has had no checks for longer than grace.
+func (b *bareChecks) exceeded(st PullStatus, now time.Time, grace time.Duration) bool {
+	if st.State != PullOpen || !st.NoChecks {
+		b.since = time.Time{}
+		return false
+	}
+	if b.head != st.HeadSHA || b.since.IsZero() {
+		b.head, b.since = st.HeadSHA, now
+	}
+	return now.Sub(b.since) >= grace
 }
 
 // noCI ends the job on a pull request whose repo has no CI: nothing will ever

@@ -203,7 +203,8 @@ func TestNoCheckRunsAtAllIsReportedAsNoChecks(t *testing.T) {
 
 func TestChecksWithoutCiPassAreNotNoChecks(t *testing.T) {
 	c := githubServing(t, openPull,
-		`{"check_runs":[{"id":2,"name":"api-test","status":"completed","conclusion":"success"}]}`,
+		`{"check_runs":[{"id":2,"name":"api-test","status":"completed",`+
+			`"conclusion":"success"}]}`,
 		"")
 	st, err := c.PullRequestStatus(context.Background(), "tok", pullRefOf())
 	require.NoError(t, err)
