@@ -111,7 +111,7 @@ func (s *JobService) Run(
 	actor models.Actor,
 	taskID uuid.UUID,
 ) (*models.Job, error) {
-	if !actor.CanMoveToReady() {
+	if !actor.IsBrowserAdmin() {
 		return nil, forbidden("only a human admin in a browser session can run a task")
 	}
 	task, err := s.tasks.Get(ctx, taskID)
@@ -189,7 +189,7 @@ func (s *JobService) Stop(
 	actor models.Actor,
 	taskID uuid.UUID,
 ) (*models.Job, error) {
-	if !actor.CanMoveToReady() {
+	if !actor.IsBrowserAdmin() {
 		return nil, forbidden("only a human admin in a browser session can stop a job")
 	}
 	if _, err := s.tasks.Get(ctx, taskID); err != nil {
@@ -673,7 +673,7 @@ func (s *JobService) SetPickupPaused(
 	actor models.Actor,
 	paused bool,
 ) error {
-	if !paused && !actor.CanMoveToReady() {
+	if !paused && !actor.IsBrowserAdmin() {
 		return forbidden("only a human admin in a browser session can resume pickup")
 	}
 	return s.settings.SetPickupPaused(ctx, paused)

@@ -220,14 +220,13 @@ func (s *TaskService) Update(
 }
 
 // checkMove rejects an unknown column, and Ready for anyone but an agent
-// account or a human admin in a browser session.
+// account or an admin.
 func checkMove(actor models.Actor, status models.Status) error {
 	if !status.Valid() {
 		return badRequest("invalid status")
 	}
-	if status == models.StatusReady &&
-		actor.Kind != models.ActorAgent && !actor.CanMoveToReady() {
-		return forbidden("only an agent or a browser admin can mark a task Ready")
+	if status == models.StatusReady && !actor.CanMoveToReady() {
+		return forbidden("only an agent or an admin can mark a task Ready")
 	}
 	return nil
 }

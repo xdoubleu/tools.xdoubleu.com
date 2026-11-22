@@ -154,8 +154,7 @@ type mcpTools struct {
 }
 
 // agentActor is the calling account as a board actor: an agent, or a person
-// signed in over MCP, who is a human but never a browser, so can't mark a task
-// Ready. It is never an admin.
+// signed in over MCP, never a browser session, with their own admin role.
 func agentActor(ctx context.Context) (models.Actor, error) {
 	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
 	if user == nil || user.Role == sharedmodels.RoleService {
@@ -163,7 +162,11 @@ func agentActor(ctx context.Context) (models.Actor, error) {
 	}
 	if user.Role != sharedmodels.RoleAgent {
 		return models.Actor{
-			Kind: models.ActorHuman, ID: user.ID, Browser: false, Admin: false, Via: "",
+			Kind:    models.ActorHuman,
+			ID:      user.ID,
+			Browser: false,
+			Admin:   user.Role == sharedmodels.RoleAdmin,
+			Via:     "",
 		}, nil
 	}
 	return models.Actor{

@@ -130,7 +130,10 @@ func TestCheckMove(t *testing.T) {
 
 	assert.NoError(t, checkMove(human, models.StatusReady))
 	assert.NoError(t, checkMove(agent, models.StatusReady))
-	assert.Equal(t, http.StatusForbidden, status(t, checkMove(mcp, models.StatusReady)))
-	assert.NoError(t, checkMove(mcp, models.StatusInProgress))
+	assert.NoError(t, checkMove(mcp, models.StatusReady))
+	person := mcp
+	person.Admin = false
+	assert.Equal(t, http.StatusForbidden, status(t, checkMove(person, models.StatusReady)))
+	assert.NoError(t, checkMove(person, models.StatusInProgress))
 	assert.Equal(t, http.StatusBadRequest, status(t, checkMove(human, "")))
 }

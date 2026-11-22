@@ -89,17 +89,23 @@ func (a Actor) Channel() string {
 	return "other"
 }
 
-// CanMoveToReady reports whether the actor may start a task: a human admin in
-// a browser session.
+// CanMoveToReady reports whether the actor may mark a task Ready: an agent
+// account (its factory grant) or an admin, on any channel.
 func (a Actor) CanMoveToReady() bool {
+	return a.Kind == ActorAgent || a.Admin
+}
+
+// IsBrowserAdmin reports whether the actor is a human admin in a browser
+// session, which running, stopping, chat, job logs and resuming pickup need
+// whatever the account.
+func (a Actor) IsBrowserAdmin() bool {
 	return a.Kind == ActorHuman && a.Browser && a.Admin
 }
 
 // CanManageRoutines reports whether the actor may create, change, run, stop and delete
-// routines: whoever may move a task to Ready (a human admin in a browser, or an
-// agent account). Resuming board-wide pickup stays with CanMoveToReady.
+// routines: whoever may mark a task Ready.
 func (a Actor) CanManageRoutines() bool {
-	return a.Kind == ActorAgent || a.CanMoveToReady()
+	return a.CanMoveToReady()
 }
 
 // TaskFilter narrows a task listing; every empty field keeps all tasks.

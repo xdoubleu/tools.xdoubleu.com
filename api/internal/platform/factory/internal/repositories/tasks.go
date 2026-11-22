@@ -261,11 +261,43 @@ func (r *TasksRepository) Move(
 				-- Retry pickup is a fresh Ready move: clear the block reason when the
 				-- task is opened for work again or returned to Backlog.
 				pickup_blocked = CASE WHEN $2 IN ('ready', 'backlog')
-					THEN '' ELSE pickup_blocked END
+					THEN '' ELSE pickup_blocked END,
+				-- Any move ends a wait; backlogWaiting records it after its move.
+				waiting_on = '{}'
 			WHERE id = $1
 			RETURNING *
 		)
 		SELECT `+getColumns+` FROM t`, id, status))
+}
+
+// SetWaitingOn records the task numbers a Backlog task waits on.
+func (r *TasksRepository) SetWaitingOn(
+	ctx context.Context,
+	id uuid.UUID,
+	numbers []int64,
+) error {
+	_, err := r.db.Exec(ctx,
+		`UPDATE factory.tasks SET waiting_on = $2 WHERE id = $1`, id, numbers)
+	return postgres.PgxErrorToHTTPError(err)
+}
+
+// WaitOver lists the Backlog tasks whose waited-on tasks are all Done, in
+// Testing or merged. A number with no task counts as done.
+func (r *TasksRepository) WaitOver(ctx context.Context) ([]uuid.UUID, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT t.id FROM factory.tasks t
+		WHERE t.status = 'backlog' AND cardinality(t.waiting_on) > 0
+			AND NOT EXISTS (
+				SELECT 1 FROM factory.tasks d
+				WHERE d.number = ANY(t.waiting_on)
+					AND d.status NOT IN ('done', 'testing') AND d.merge_sha = ''
+			)
+		ORDER BY t.number`)
+	if err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	ids, err := pgx.CollectRows(rows, pgx.RowTo[uuid.UUID])
+	return ids, postgres.PgxErrorToHTTPError(err)
 }
 
 // SetLabels replaces a task's labels without touching anything else.

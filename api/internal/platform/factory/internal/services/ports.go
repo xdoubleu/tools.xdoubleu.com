@@ -70,6 +70,11 @@ type TaskStore interface {
 		id uuid.UUID,
 		sha string,
 	) error
+	SetWaitingOn(
+		ctx context.Context,
+		id uuid.UUID,
+		numbers []int64,
+	) error
 	Statuses(
 		ctx context.Context,
 		ids []uuid.UUID,
@@ -79,6 +84,7 @@ type TaskStore interface {
 		t models.Task,
 		actor models.Actor,
 	) (*models.Task, error)
+	WaitOver(ctx context.Context) ([]uuid.UUID, error)
 }
 
 // RepoStore is the storage of registered repos.

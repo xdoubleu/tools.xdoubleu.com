@@ -192,3 +192,22 @@ func TestAPullRequestThatConflictsWithItsBaseIsFlagged(t *testing.T) {
 		assert.Equal(t, tc.want, st.Conflict, name)
 	}
 }
+
+func TestNoCheckRunsAtAllIsReportedAsNoChecks(t *testing.T) {
+	c := githubServing(t, openPull, `{"check_runs":[]}`, "")
+	st, err := c.PullRequestStatus(context.Background(), "tok", pullRefOf())
+	require.NoError(t, err)
+	assert.True(t, st.NoChecks)
+	assert.Equal(t, runner.CIPending, st.CI)
+}
+
+func TestChecksWithoutCiPassAreNotNoChecks(t *testing.T) {
+	c := githubServing(t, openPull,
+		`{"check_runs":[{"id":2,"name":"api-test","status":"completed",`+
+			`"conclusion":"success"}]}`,
+		"")
+	st, err := c.PullRequestStatus(context.Background(), "tok", pullRefOf())
+	require.NoError(t, err)
+	assert.False(t, st.NoChecks)
+	assert.Equal(t, runner.CIPending, st.CI)
+}

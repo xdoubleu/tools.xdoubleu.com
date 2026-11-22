@@ -574,12 +574,27 @@ func TestPeopleWithTheGrantUseTheBoardTools(t *testing.T) {
 		map[string]any{"id": id, "status": "in_review"})
 	require.NoError(t, err)
 
-	// Ready stays browser-only, and so do routines.
+	// Ready and routines need the admin role or an agent account.
 	_, err = callTool(t, session, "factory_move_task",
 		map[string]any{"id": id, "status": "ready"})
 	assert.Error(t, err)
 	_, err = callTool(t, session, "factory_run_routine", map[string]any{"name": "x"})
 	assert.Error(t, err)
+}
+
+func TestAnAdminMarksATaskReadyOverMCP(t *testing.T) {
+	browserClient(t)
+	session := mcpSessionAs(t, asUser(models.RoleAdmin))
+
+	created, err := callTool(t, session, "factory_create_task",
+		map[string]any{"repo_id": seededRepoID(t), "title": "admin task"})
+	require.NoError(t, err)
+	id := str(t, created, "task", "id")
+
+	moved, err := callTool(t, session, "factory_move_task",
+		map[string]any{"id": id, "status": "ready"})
+	require.NoError(t, err)
+	assert.Equal(t, "TASK_STATUS_READY", str(t, moved, "task", "status"))
 }
 
 func TestAgentNeedsTheFactoryGrantAndWriteLevel(t *testing.T) {
