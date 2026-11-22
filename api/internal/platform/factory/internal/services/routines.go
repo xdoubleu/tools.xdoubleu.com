@@ -3,7 +3,6 @@ package services
 import (
 	"context"
 	"errors"
-	"net/http"
 	"regexp"
 	"strconv"
 	"strings"
@@ -11,10 +10,8 @@ import (
 
 	"github.com/google/uuid"
 
-	"tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/kit/database"
 	"tools.xdoubleu.com/internal/platform/factory/internal/models"
-	"tools.xdoubleu.com/internal/platform/slack"
 )
 
 const (
@@ -202,8 +199,7 @@ func (s *JobService) EnqueueDueRoutines(ctx context.Context) error {
 }
 
 func isConflict(err error) bool {
-	var httpErr *app.HTTPError
-	return errors.As(err, &httpErr) && httpErr.Status == http.StatusConflict
+	return errors.Is(err, ErrConflict)
 }
 
 // StopRoutine cancels the routine's queued or running job. A running job's runner
@@ -241,10 +237,10 @@ func (s *JobService) endRoutine(
 			job.Routine+limitUntil(job.LimitResetsAt))
 	case succeeded:
 		s.say.say(ctx, ":white_check_mark: Routine "+job.Routine+" ran: "+
-			slack.Escape(firstLine(outcome)))
+			escape(firstLine(outcome)))
 	default:
 		s.say.say(ctx, ":x: Routine "+job.Routine+" failed: "+
-			slack.Escape(firstLine(outcome)))
+			escape(firstLine(outcome)))
 	}
 }
 

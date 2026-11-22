@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/http"
 	"strconv"
 	"strings"
 	"sync"
@@ -13,11 +12,8 @@ import (
 
 	"github.com/google/uuid"
 
-	"tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/kit/database"
 	"tools.xdoubleu.com/internal/platform/factory/internal/models"
-	"tools.xdoubleu.com/internal/platform/factory/internal/repositories"
-	"tools.xdoubleu.com/internal/platform/slack"
 )
 
 const (
@@ -30,10 +26,10 @@ const (
 )
 
 type JobService struct {
-	jobs   *repositories.JobsRepository
-	tasks  *repositories.TasksRepository
-	repos  *repositories.ReposRepository
-	events *repositories.JobEventsRepository
+	jobs   JobStore
+	tasks  TaskStore
+	repos  RepoStore
+	events JobEventStore
 	// accounts is nil when jobs get no agent account of their own.
 	accounts JobAccounts
 	// github is nil when no GitHub App is set up.
@@ -43,10 +39,10 @@ type JobService struct {
 	deploys  *deployCache
 	now      func() time.Time
 	say      notices
-	runners  *repositories.RunnersRepository
-	settings *repositories.SettingsRepository
-	linked   *repositories.LinkedPullRequestsRepository
-	routines *repositories.RoutinesRepository
+	runners  RunnerStore
+	settings SettingsStore
+	linked   LinkedPullRequestStore
+	routines RoutineStore
 	// imageDigest is nil when parked tasks are never resumed.
 	imageDigest DigestSource
 	// alertedOffline is the queued job the offline-runner notice was last sent for,
@@ -68,7 +64,7 @@ type ClaimedJob struct {
 }
 
 func conflict(msg string) error {
-	return &app.HTTPError{Status: http.StatusConflict, Message: msg}
+	return &domainError{kind: ErrConflict, msg: msg}
 }
 
 // slug lower-cases a title into [a-z0-9-], collapsing runs and trimming dashes.
@@ -472,9 +468,9 @@ func (s *JobService) announceEnd(
 			prURL+"|review it>")
 	case succeeded:
 		s.say.say(ctx, ":warning: A job finished with no pull request for "+link+
-			", which needs you: "+slack.Escape(firstLine(outcome)))
+			", which needs you: "+escape(firstLine(outcome)))
 	default:
-		s.say.say(ctx, ":x: A job failed on "+link+": "+slack.Escape(firstLine(outcome)))
+		s.say.say(ctx, ":x: A job failed on "+link+": "+escape(firstLine(outcome)))
 	}
 }
 
@@ -605,7 +601,7 @@ func (s *JobService) blockPickup(
 
 // approvedTask is the task as a human approved it at the Ready move: only the text
 // a prompt and a branch name are built from.
-func approvedTask(c *repositories.PickupCandidate) *models.Task {
+func approvedTask(c *models.PickupCandidate) *models.Task {
 	return &models.Task{
 		ID: c.TaskID, Number: c.Number, RepoID: c.RepoID, Title: c.Title,
 		Body: c.Body, Status: "",

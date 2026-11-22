@@ -36,8 +36,8 @@ type Factory struct {
 	// stepUp checks the TOTP code that creating a runner needs.
 	stepUp        StepUp
 	heartbeatHold time.Duration
-	jobAccounts   services.JobAccounts
-	github        services.GitHub
+	jobAccounts   JobAccounts
+	github        GitHub
 	notifier      services.Notifier
 	slackURL      string
 	webURL        string
@@ -49,13 +49,13 @@ type Factory struct {
 
 // WithJobAccounts makes every claimed job run as an agent account of its own,
 // confined to its task. Without it a job gets no MCP identity.
-func WithJobAccounts(accounts services.JobAccounts) Option {
+func WithJobAccounts(accounts JobAccounts) Option {
 	return func(a *Factory) { a.jobAccounts = accounts }
 }
 
 // WithGitHub lets a running job fetch a short-lived token to push its branch and
 // open its pull request. Without it jobs end in Needs you with the work on the Mac.
-func WithGitHub(github services.GitHub) Option {
+func WithGitHub(github GitHub) Option {
 	return func(a *Factory) { a.github = github }
 }
 
@@ -140,12 +140,12 @@ func New(
 	}
 	a.connectSlack(logger)
 	a.services = services.New(
-		repositories.New(db), authService, a.jobAccounts, a.github, a.notifier, a.webURL,
-		cfg.Release,
+		newStores(repositories.New(db)), adaptAccounts(a.jobAccounts),
+		adaptGitHub(a.github), a.notifier, a.webURL, cfg.Release,
 	)
 	if a.digests == nil && cfg.WebURL != "" {
-		a.digests = services.ManifestDigest(
-			cfg.WebURL, &http.Client{Timeout: services.ManifestTimeout})
+		a.digests = manifestDigest(
+			cfg.WebURL, &http.Client{Timeout: manifestTimeout})
 	}
 	a.services.Jobs.SetImageDigestSource(a.digests)
 	return a

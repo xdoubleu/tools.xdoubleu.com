@@ -11,7 +11,6 @@ import (
 	factoryv1 "tools.xdoubleu.com/gen/factory/v1"
 	"tools.xdoubleu.com/internal/platform/factory/internal/models"
 	"tools.xdoubleu.com/internal/platform/factory/internal/services"
-	"tools.xdoubleu.com/internal/platform/githubapp"
 )
 
 func jobStatusToProto(s models.JobStatus) factoryv1.JobStatus {
@@ -258,7 +257,7 @@ func (h *runnerHandler) GetPushToken(
 	token, err := h.app.Services.Jobs.PushToken(ctx, runner.ID, id)
 	switch {
 	case errors.Is(err, services.ErrPushNotConfigured),
-		errors.Is(err, githubapp.ErrNotInstalled):
+		errors.Is(err, services.ErrNotInstalled):
 		return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error())
 	case errors.Is(err, services.ErrGitHubFailed):
 		// Retryable, and none of GitHub's own text goes to the runner.

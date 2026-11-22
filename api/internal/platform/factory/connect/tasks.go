@@ -61,7 +61,11 @@ func actorFrom(ctx context.Context) (models.Actor, error) {
 
 // MapError turns a service error into a Connect error.
 func MapError(err error) error {
-	return connecttools.MapError(err)
+	return connecttools.MapError(err,
+		connecttools.Code(services.ErrInvalid, connect.CodeInvalidArgument),
+		connecttools.Code(services.ErrForbidden, connect.CodePermissionDenied),
+		connecttools.Code(services.ErrConflict, connect.CodeAlreadyExists),
+	)
 }
 
 // ParseID reads a UUID from a request field.

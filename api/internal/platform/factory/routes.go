@@ -28,7 +28,7 @@ func (a *Factory) Routes(prefix string, mux *http.ServeMux) {
 		mux,
 		a.Logger,
 		func(next http.HandlerFunc) http.HandlerFunc {
-			return a.services.Auth.AppAccess(prefix, next)
+			return a.Auth.AppAccess(prefix, next)
 		},
 		func(s *connectv2.Server) { fconnect.RegisterAdmin(s, deps) },
 	)

@@ -353,6 +353,12 @@ func TestRoutineToolsRefuseABadRepoAndAnUnknownRoutine(t *testing.T) {
 	_, err := callTool(t, session, "factory_set_routine",
 		map[string]any{"name": "sweep", "repo_id": "not-an-id"})
 	require.Error(t, err)
+	_, err = callTool(t, session, "factory_set_routine",
+		map[string]any{
+			"name": "sweep", "repo_id": uuid.NewString(),
+			"enabled": true, "interval_minutes": 60,
+		})
+	require.Error(t, err)
 	_, err = callTool(t, session, "factory_run_routine",
 		map[string]any{"name": "missing"})
 	require.Error(t, err)
