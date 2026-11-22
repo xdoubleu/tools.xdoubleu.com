@@ -50,6 +50,11 @@ type Options struct {
 
 // Request is one session.
 type Request struct {
+	// Dir runs the session in this existing checkout on its current branch, which
+	// Branch must name when set: nothing is cloned or cut, and the checkout is
+	// never removed. URL, Base and Token are unused. The VM mounts it as it is;
+	// wardcase's own git on it runs with hooks off.
+	Dir string
 	// URL is the repository, cloned over HTTPS or from a local path.
 	URL string
 	// Base is the branch the new one is cut from.
@@ -69,6 +74,9 @@ type Request struct {
 	Fallback string
 	// OpenCodeModel is the OpenRouter model id when OpenCode runs.
 	OpenCodeModel string
+	// ResumeID continues this session of Harness (a Result.SessionID of an earlier
+	// run, kept in StateDir) instead of starting a new one.
+	ResumeID string
 }
 
 // Result is how a session ended.
@@ -80,8 +88,12 @@ type Result struct {
 	Continued bool
 	// Limited says the last harness stopped at its usage limit.
 	Limited bool
+	// SessionID and Model are the last harness's, when its output named them
+	// (Claude Code; other harnesses report the session id only if they print one).
+	SessionID string
+	Model     string
 	// Branch is the session's branch; Path is its worktree, empty once wardcase
-	// removed it because nothing was left.
+	// removed it because nothing was left. With Request.Dir, Path is that checkout.
 	Branch string
 	Path   string
 	// Uncommitted counts changed files, Unpushed the commits on no remote.
@@ -126,10 +138,12 @@ func (s *Runner) Run(ctx context.Context, req Request) (Result, error) {
 		},
 		Prompt: req.Prompt, Harness: req.Harness, Fallback: req.Fallback,
 		Overflow: req.Overflow, OpenCodeModel: req.OpenCodeModel,
+		Dir: req.Dir, ResumeID: req.ResumeID,
 	})
 	return Result{
 		ExitCode: res.ExitCode, Harness: res.Harness, Continued: res.Continued,
 		Limited: res.Limited, Branch: res.Branch, Path: res.Path,
+		SessionID: res.SessionID, Model: res.Model,
 		Uncommitted: res.Left.Uncommitted, Unpushed: res.Left.Unpushed,
 	}, err
 }

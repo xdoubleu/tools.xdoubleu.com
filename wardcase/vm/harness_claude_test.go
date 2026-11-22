@@ -75,3 +75,12 @@ func TestClaudeCodeSessionEnvNamesTheConfigAndItsSeed(t *testing.T) {
 	assert.Equal(t, "/session", env["CLAUDE_CONFIG_DIR"])
 	assert.Equal(t, vm.ClaudeConfigSeed, env["CLAUDE_CONFIG_SEED"])
 }
+
+func TestClaudeCodeReportsTheModelFromTheInitEventOnly(t *testing.T) {
+	var h vm.ModelReporter = vm.ClaudeCode{}
+	assert.Equal(t, "claude-x", h.Model(
+		[]byte(`{"type":"system","subtype":"init","model":"claude-x"}`)))
+	assert.Empty(t, h.Model([]byte(`{"type":"assistant","model":"claude-y"}`)))
+	assert.Empty(t, h.Model([]byte(`not json "model"`)))
+	assert.Empty(t, h.Model([]byte(`{"type":"result"}`)))
+}
