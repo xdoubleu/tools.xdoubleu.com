@@ -135,8 +135,7 @@ func (r *Runner) startChat(
 	c := &Chat{
 		r: r, sess: sess, box: box, client: nil, id: "", outcome: outcomeDir,
 		stdin: stdinW, stop: stop, attached: make(chan error, 1),
-		closeOnce: sync.Once{}, left: Leftover{Uncommitted: 0, Unpushed: 0, Own: 0, PR: "", PRURL: ""},
-		removed: false,
+		closeOnce: sync.Once{}, left: noLeftover(), removed: false,
 	}
 	go func() {
 		_, attachErr := attacher.Attach(runCtx, h.ACP(), stdinR, stdoutW, false)
@@ -216,7 +215,8 @@ func (c *Chat) shutdown() {
 		c.attached <- err
 	case <-time.After(closeGrace):
 		c.stop()
-		_ = <-c.attached
+		last := <-c.attached
+		_ = last
 	}
 	c.stop()
 	c.box.Close()
@@ -234,4 +234,8 @@ func HasACP(harness string) bool {
 		return vm.Codex{}.ACP() != nil
 	}
 	return false
+}
+
+func noLeftover() Leftover {
+	return Leftover{Uncommitted: 0, Unpushed: 0, Own: 0, PR: "", PRURL: ""}
 }

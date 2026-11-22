@@ -161,7 +161,8 @@ func TestWardcaseACPStopsWhenTheContextEnds(t *testing.T) {
 	go func() { served <- serveACP(ctx, r, ward.OpenCode, in, io.Discard) }()
 	cancel()
 	_ = in.Close()
-	_ = <-served
+	stopped := <-served
+	_ = stopped
 }
 
 func TestACPTakesOnlyAHarnessWithAnACPServer(t *testing.T) {
