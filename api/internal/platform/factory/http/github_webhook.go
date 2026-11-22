@@ -1,4 +1,4 @@
-package factory
+package http
 
 import (
 	"crypto/hmac"
@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"io"
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -16,11 +17,13 @@ import (
 // body.
 const webhookMaxBody = 1 << 20
 
-// WithGitHubWebhookSecret turns on POST /factory/github-webhook, which the
-// factory GitHub App calls when a pull request changes. Without a secret the
-// endpoint answers 503 and only the poll moves merged tasks.
-func WithGitHubWebhookSecret(secret string) Option {
-	return func(a *Factory) { a.webhookSecret = secret }
+// Webhook serves POST /factory/github-webhook, which the factory GitHub App
+// calls when a pull request changes.
+type Webhook struct {
+	Jobs   *services.JobService
+	Logger *slog.Logger
+	// Secret signs the deliveries; empty answers 503.
+	Secret string
 }
 
 // validSignature checks GitHub's `sha256=<hex>` HMAC of the body.
@@ -53,10 +56,10 @@ type pullRequestEvent struct {
 	} `json:"pull_request"`
 }
 
-// githubWebhook handles pull request and workflow run events. The signature is
+// Handle handles pull request and workflow run events. The signature is
 // the only authentication; other events are acknowledged and ignored.
-func (a *Factory) githubWebhook(w http.ResponseWriter, r *http.Request) {
-	if a.webhookSecret == "" {
+func (a *Webhook) Handle(w http.ResponseWriter, r *http.Request) {
+	if a.Secret == "" {
 		http.Error(w, "not configured", http.StatusServiceUnavailable)
 		return
 	}
@@ -65,7 +68,7 @@ func (a *Factory) githubWebhook(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "bad request", http.StatusBadRequest)
 		return
 	}
-	if !validSignature(a.webhookSecret, body, r.Header.Get("X-Hub-Signature-256")) {
+	if !validSignature(a.Secret, body, r.Header.Get("X-Hub-Signature-256")) {
 		a.Logger.WarnContext(r.Context(), "github webhook: bad signature")
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
@@ -98,7 +101,7 @@ type workflowRunEvent struct {
 }
 
 // workflowRunWebhook queues red-pr-repair when a CI run fails.
-func (a *Factory) workflowRunWebhook(
+func (a *Webhook) workflowRunWebhook(
 	w http.ResponseWriter,
 	r *http.Request,
 	body []byte,
@@ -113,7 +116,7 @@ func (a *Factory) workflowRunWebhook(
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
-	_, err := a.services.Jobs.QueueRedPRRepair(r.Context(), services.FailedRun{
+	_, err := a.Jobs.QueueRedPRRepair(r.Context(), services.FailedRun{
 		Owner: event.Repository.Owner.Login, Name: event.Repository.Name,
 		Branch: run.HeadBranch, ByBot: run.Actor.Type == "Bot",
 	})
@@ -129,7 +132,7 @@ func (a *Factory) workflowRunWebhook(
 // pullRequestWebhook links the tasks a pull request names and moves them: In
 // review while it is open, Testing once it merges; a close without a merge only
 // leaves a comment.
-func (a *Factory) pullRequestWebhook(
+func (a *Webhook) pullRequestWebhook(
 	w http.ResponseWriter,
 	r *http.Request,
 	body []byte,
@@ -149,11 +152,11 @@ func (a *Factory) pullRequestWebhook(
 	}
 	switch {
 	case event.Action == "closed" && pr.Merged:
-		_, err = a.services.Jobs.TestingAfterMerge(r.Context(), ref)
+		_, err = a.Jobs.TestingAfterMerge(r.Context(), ref)
 	case event.Action == "closed":
-		err = a.services.Jobs.PullRequestClosed(r.Context(), ref)
+		err = a.Jobs.PullRequestClosed(r.Context(), ref)
 	case pr.State == "open" && opensOrEdits(event.Action):
-		err = a.services.Jobs.PullRequestOpened(r.Context(), ref)
+		err = a.Jobs.PullRequestOpened(r.Context(), ref)
 	default:
 		w.WriteHeader(http.StatusNoContent)
 		return

@@ -1,7 +1,8 @@
-package factory
+package connect
 
 import (
 	"context"
+	"log/slog"
 	"time"
 
 	"connectrpc.com/connect/v2"
@@ -17,8 +18,18 @@ import (
 	"tools.xdoubleu.com/internal/platform/factory/internal/services"
 )
 
+// Deps is what the Connect handlers and the MCP tools share.
+type Deps struct {
+	Services *services.Services
+	Logger   *slog.Logger
+	// HeartbeatHold is how long a runner's Heartbeat or ClaimJob is held open.
+	HeartbeatHold time.Duration
+	// StepUp checks the TOTP code that creating a runner needs.
+	StepUp StepUp
+}
+
 type taskConnectHandler struct {
-	app *Factory
+	app *Deps
 }
 
 var _ factoryv1connect.TaskServiceHandler = (*taskConnectHandler)(nil)
@@ -48,11 +59,13 @@ func actorFrom(ctx context.Context) (models.Actor, error) {
 	}, nil
 }
 
-func mapError(err error) error {
+// MapError turns a service error into a Connect error.
+func MapError(err error) error {
 	return connecttools.MapError(err)
 }
 
-func parseID(id string) (uuid.UUID, error) {
+// ParseID reads a UUID from a request field.
+func ParseID(id string) (uuid.UUID, error) {
 	parsed, err := uuid.Parse(id)
 	if err != nil {
 		return uuid.Nil, connect.NewError(connect.CodeInvalidArgument, "invalid id")
@@ -143,15 +156,15 @@ func labelled(labels map[string]string, actor string) string {
 }
 
 // actorLabels names the owner of every agent among the actors, in one lookup.
-func (f *Factory) actorLabels(
+func (f *Deps) actorLabels(
 	ctx context.Context,
 	actors ...string,
 ) map[string]string {
-	return f.services.Jobs.ActorLabels(ctx, actors)
+	return f.Services.Jobs.ActorLabels(ctx, actors)
 }
 
-// protoTasks converts tasks with their agent creators' owners shown.
-func (f *Factory) protoTasks(
+// ProtoTasks converts tasks with their agent creators' owners shown.
+func (f *Deps) ProtoTasks(
 	ctx context.Context,
 	tasks []models.Task,
 ) []*factoryv1.Task {
@@ -167,21 +180,21 @@ func (f *Factory) protoTasks(
 	return out
 }
 
-// protoTaskOf converts one task with its agent creator's owner shown.
-func (f *Factory) protoTaskOf(ctx context.Context, t *models.Task) *factoryv1.Task {
+// ProtoTaskOf converts one task with its agent creator's owner shown.
+func (f *Deps) ProtoTaskOf(ctx context.Context, t *models.Task) *factoryv1.Task {
 	return protoTask(t, f.actorLabels(ctx, t.CreatedBy))
 }
 
-// protoCommentOf converts one comment with its agent author's owner shown.
-func (f *Factory) protoCommentOf(
+// ProtoCommentOf converts one comment with its agent author's owner shown.
+func (f *Deps) ProtoCommentOf(
 	ctx context.Context,
 	c *models.Comment,
 ) *factoryv1.Comment {
 	return protoComment(c, f.actorLabels(ctx, c.Author))
 }
 
-// protoComments converts comments with their agent authors' owners shown.
-func (f *Factory) protoComments(
+// ProtoComments converts comments with their agent authors' owners shown.
+func (f *Deps) ProtoComments(
 	ctx context.Context,
 	comments []models.Comment,
 ) []*factoryv1.Comment {
@@ -242,18 +255,18 @@ func (h *taskConnectHandler) ListTasks(
 	if err != nil {
 		return nil, err
 	}
-	board, err := h.app.services.Board.ListTasks(ctx, actor, models.TaskFilter{
+	board, err := h.app.Services.Board.ListTasks(ctx, actor, models.TaskFilter{
 		Query: "", Status: "", RepoID: nil, Label: "",
 	})
 	if err != nil {
-		return nil, mapError(err)
+		return nil, MapError(err)
 	}
 	limited := ""
 	if board.LimitedUntil != nil {
 		limited = board.LimitedUntil.UTC().Format(time.RFC3339)
 	}
 	return &factoryv1.ListTasksResponse{
-		Tasks: h.app.protoTasks(ctx, board.Tasks), PickupPaused: board.PickupPaused,
+		Tasks: h.app.ProtoTasks(ctx, board.Tasks), PickupPaused: board.PickupPaused,
 		ClaudeLimitedUntil: limited, QueueStalled: board.QueueStalled,
 	}, nil
 }
@@ -266,15 +279,15 @@ func (h *taskConnectHandler) GetTask(
 	if err != nil {
 		return nil, err
 	}
-	detail, err := h.app.services.Board.GetTask(ctx, actor, req.Id)
+	detail, err := h.app.Services.Board.GetTask(ctx, actor, req.Id)
 	if err != nil {
-		return nil, mapError(err)
+		return nil, MapError(err)
 	}
-	return h.app.protoDetail(ctx, detail), nil
+	return h.app.ProtoDetail(ctx, detail), nil
 }
 
-// protoDetail is a task with its comments, jobs and pull requests.
-func (f *Factory) protoDetail(
+// ProtoDetail is a task with its comments, jobs and pull requests.
+func (f *Deps) ProtoDetail(
 	ctx context.Context,
 	d *services.TaskDetail,
 ) *factoryv1.GetTaskResponse {
@@ -286,8 +299,8 @@ func (f *Factory) protoDetail(
 		}
 	}
 	return &factoryv1.GetTaskResponse{
-		Task: f.protoTaskOf(ctx, d.Task), Comments: f.protoComments(ctx, d.Comments),
-		Jobs: protoJobs(d.Jobs), PullRequests: pulls,
+		Task: f.ProtoTaskOf(ctx, d.Task), Comments: f.ProtoComments(ctx, d.Comments),
+		Jobs: ProtoJobs(d.Jobs), PullRequests: pulls,
 	}
 }
 
@@ -299,20 +312,20 @@ func (h *taskConnectHandler) CreateTask(
 	if err != nil {
 		return nil, err
 	}
-	repoID, err := parseID(req.RepoId)
+	repoID, err := ParseID(req.RepoId)
 	if err != nil {
 		return nil, err
 	}
-	task, err := h.app.services.Board.CreateTask(ctx, actor, repoID, services.TaskInput{
+	task, err := h.app.Services.Board.CreateTask(ctx, actor, repoID, services.TaskInput{
 		Title:    req.Title,
 		Body:     req.Body,
 		Priority: priorityFromProto(req.Priority),
 		Labels:   req.Labels,
 	})
 	if err != nil {
-		return nil, mapError(err)
+		return nil, MapError(err)
 	}
-	return &factoryv1.CreateTaskResponse{Task: h.app.protoTaskOf(ctx, task)}, nil
+	return &factoryv1.CreateTaskResponse{Task: h.app.ProtoTaskOf(ctx, task)}, nil
 }
 
 func (h *taskConnectHandler) UpdateTask(
@@ -324,7 +337,7 @@ func (h *taskConnectHandler) UpdateTask(
 		return nil, err
 	}
 	priority := priorityFromProto(req.Priority)
-	task, err := h.app.services.Board.UpdateTask(ctx, actor, req.Id, services.TaskPatch{
+	task, err := h.app.Services.Board.UpdateTask(ctx, actor, req.Id, services.TaskPatch{
 		Title:        &req.Title,
 		Body:         &req.Body,
 		Priority:     &priority,
@@ -333,9 +346,9 @@ func (h *taskConnectHandler) UpdateTask(
 		RemoveLabels: nil,
 	})
 	if err != nil {
-		return nil, mapError(err)
+		return nil, MapError(err)
 	}
-	return &factoryv1.UpdateTaskResponse{Task: h.app.protoTaskOf(ctx, task)}, nil
+	return &factoryv1.UpdateTaskResponse{Task: h.app.ProtoTaskOf(ctx, task)}, nil
 }
 
 func (h *taskConnectHandler) MoveTask(
@@ -346,12 +359,12 @@ func (h *taskConnectHandler) MoveTask(
 	if err != nil {
 		return nil, err
 	}
-	task, err := h.app.services.Board.MoveTask(
+	task, err := h.app.Services.Board.MoveTask(
 		ctx, actor, req.Id, statusFromProto(req.Status))
 	if err != nil {
-		return nil, mapError(err)
+		return nil, MapError(err)
 	}
-	return &factoryv1.MoveTaskResponse{Task: h.app.protoTaskOf(ctx, task)}, nil
+	return &factoryv1.MoveTaskResponse{Task: h.app.ProtoTaskOf(ctx, task)}, nil
 }
 
 func (h *taskConnectHandler) AddComment(
@@ -362,18 +375,18 @@ func (h *taskConnectHandler) AddComment(
 	if err != nil {
 		return nil, err
 	}
-	comment, err := h.app.services.Board.AddComment(ctx, actor, req.TaskId, req.Body)
+	comment, err := h.app.Services.Board.AddComment(ctx, actor, req.TaskId, req.Body)
 	if err != nil {
-		return nil, mapError(err)
+		return nil, MapError(err)
 	}
-	return &factoryv1.AddCommentResponse{Comment: h.app.protoCommentOf(ctx, comment)}, nil
+	return &factoryv1.AddCommentResponse{Comment: h.app.ProtoCommentOf(ctx, comment)}, nil
 }
 
 // taskID resolves a task reference from a request.
-func (f *Factory) taskID(ctx context.Context, ref string) (uuid.UUID, error) {
-	id, err := f.services.Tasks.Resolve(ctx, ref)
+func (f *Deps) taskID(ctx context.Context, ref string) (uuid.UUID, error) {
+	id, err := f.Services.Tasks.Resolve(ctx, ref)
 	if err != nil {
-		return uuid.Nil, mapError(err)
+		return uuid.Nil, MapError(err)
 	}
 	return id, nil
 }
