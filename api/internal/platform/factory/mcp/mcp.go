@@ -12,9 +12,9 @@ import (
 	"tools.xdoubleu.com/internal/kit/constants"
 	"tools.xdoubleu.com/internal/kit/contexttools"
 	sharedmodels "tools.xdoubleu.com/internal/models"
-	fconnect "tools.xdoubleu.com/internal/platform/factory/connect"
 	"tools.xdoubleu.com/internal/platform/factory/internal/models"
 	"tools.xdoubleu.com/internal/platform/factory/internal/services"
+	"tools.xdoubleu.com/internal/platform/factory/present"
 	"tools.xdoubleu.com/internal/platform/mcptools"
 )
 
@@ -97,10 +97,7 @@ type mcpRunRoutineArgs struct {
 // tools act as the agent, which may move a task into Ready; the move is
 // recorded as a comment.
 func Register(srv *mcp.Server, svc *services.Services) {
-	t := &mcpTools{svc: svc, present: &fconnect.Deps{
-		Services: svc, Logger: nil, HeartbeatHold: 0, StepUp: nil,
-		Chats: nil,
-	}}
+	t := &mcpTools{svc: svc, present: present.Presenter{Labels: svc.Jobs}}
 
 	mcptools.AddAgentReadTool(srv, mcpAppName, "factory_list_repos",
 		"The repos the factory works on: id, owner, name and default branch. "+
@@ -151,7 +148,7 @@ func Register(srv *mcp.Server, svc *services.Services) {
 
 type mcpTools struct {
 	svc     *services.Services
-	present *fconnect.Deps
+	present present.Presenter
 }
 
 // agentActor is the calling account as a board actor: an agent, or a person
@@ -184,17 +181,11 @@ func (t *mcpTools) listRepos(
 ) (proto.Message, error) {
 	repos, err := t.svc.Repos.List(ctx)
 	if err != nil {
-		return nil, fconnect.MapError(err)
+		return nil, present.MapError(err)
 	}
 	out := make([]*factoryv1.Repo, len(repos))
 	for i := range repos {
-		// Setup commands and instructions are for the sandbox, not the agent.
-		out[i] = &factoryv1.Repo{
-			Id:            repos[i].ID.String(),
-			Owner:         repos[i].Owner,
-			Name:          repos[i].Name,
-			DefaultBranch: repos[i].DefaultBranch,
-		}
+		out[i] = present.AgentRepo(&repos[i])
 	}
 	return &factoryv1.ListReposResponse{Repos: out}, nil
 }
@@ -211,7 +202,7 @@ func (t *mcpTools) listTasks(
 		Label: args.Label,
 	}
 	if args.RepoID != "" {
-		repoID, idErr := fconnect.ParseID(args.RepoID)
+		repoID, idErr := present.ParseID(args.RepoID)
 		if idErr != nil {
 			return nil, idErr
 		}
@@ -219,10 +210,10 @@ func (t *mcpTools) listTasks(
 	}
 	board, err := t.svc.Board.ListTasks(ctx, actor, filter)
 	if err != nil {
-		return nil, fconnect.MapError(err)
+		return nil, present.MapError(err)
 	}
 	return &factoryv1.ListTasksResponse{
-		Tasks: t.present.ProtoTasks(ctx, board.Tasks), PickupPaused: board.PickupPaused,
+		Tasks: t.present.Tasks(ctx, board.Tasks), PickupPaused: board.PickupPaused,
 		ClaudeLimitedUntil: "", QueueStalled: board.QueueStalled,
 	}, nil
 }
@@ -236,9 +227,9 @@ func (t *mcpTools) getTask(
 	}
 	detail, err := t.svc.Board.GetTask(ctx, actor, args.ID)
 	if err != nil {
-		return nil, fconnect.MapError(err)
+		return nil, present.MapError(err)
 	}
-	return t.present.ProtoDetail(ctx, detail), nil
+	return t.present.Detail(ctx, detail), nil
 }
 
 func (t *mcpTools) getJob(
@@ -248,17 +239,17 @@ func (t *mcpTools) getJob(
 	if err != nil {
 		return nil, err
 	}
-	id, err := fconnect.ParseID(args.JobID)
+	id, err := present.ParseID(args.JobID)
 	if err != nil {
 		return nil, err
 	}
 	job, events, err := t.svc.Board.GetJob(ctx, actor, id, args.Tail)
 	if err != nil {
-		return nil, fconnect.MapError(err)
+		return nil, present.MapError(err)
 	}
 	return &factoryv1.GetJobResponse{
-		Job:    fconnect.ProtoJob(job),
-		Events: fconnect.ProtoJobEvents(events),
+		Job:    present.ProtoJob(job),
+		Events: present.ProtoJobEvents(events),
 	}, nil
 }
 
@@ -269,7 +260,7 @@ func (t *mcpTools) createTask(
 	if err != nil {
 		return nil, err
 	}
-	repoID, err := fconnect.ParseID(args.RepoID)
+	repoID, err := present.ParseID(args.RepoID)
 	if err != nil {
 		return nil, err
 	}
@@ -280,9 +271,9 @@ func (t *mcpTools) createTask(
 		Labels:   args.Labels,
 	})
 	if err != nil {
-		return nil, fconnect.MapError(err)
+		return nil, present.MapError(err)
 	}
-	return &factoryv1.CreateTaskResponse{Task: t.present.ProtoTaskOf(ctx, task)}, nil
+	return &factoryv1.CreateTaskResponse{Task: t.present.Task(ctx, task)}, nil
 }
 
 func (t *mcpTools) commentTask(
@@ -294,10 +285,10 @@ func (t *mcpTools) commentTask(
 	}
 	comment, err := t.svc.Board.AddComment(ctx, actor, args.TaskID, args.Body)
 	if err != nil {
-		return nil, fconnect.MapError(err)
+		return nil, present.MapError(err)
 	}
 	return &factoryv1.AddCommentResponse{
-		Comment: t.present.ProtoCommentOf(ctx, comment),
+		Comment: t.present.Comment(ctx, comment),
 	}, nil
 }
 
@@ -311,9 +302,9 @@ func (t *mcpTools) moveTask(
 	task, err := t.svc.Board.MoveTask(
 		ctx, actor, args.ID, models.Status(args.Status))
 	if err != nil {
-		return nil, fconnect.MapError(err)
+		return nil, present.MapError(err)
 	}
-	return &factoryv1.MoveTaskResponse{Task: t.present.ProtoTaskOf(ctx, task)}, nil
+	return &factoryv1.MoveTaskResponse{Task: t.present.Task(ctx, task)}, nil
 }
 
 func (t *mcpTools) updateTask(
@@ -340,9 +331,9 @@ func (t *mcpTools) updateTask(
 	}
 	task, err := t.svc.Board.UpdateTask(ctx, actor, args.ID, patch)
 	if err != nil {
-		return nil, fconnect.MapError(err)
+		return nil, present.MapError(err)
 	}
-	return &factoryv1.UpdateTaskResponse{Task: t.present.ProtoTaskOf(ctx, task)}, nil
+	return &factoryv1.UpdateTaskResponse{Task: t.present.Task(ctx, task)}, nil
 }
 
 func (t *mcpTools) moveTasks(
@@ -355,7 +346,7 @@ func (t *mcpTools) moveTasks(
 	res, err := t.svc.Board.MoveTasks(
 		ctx, actor, args.IDs, models.Status(args.Status))
 	if err != nil {
-		return nil, fconnect.MapError(err)
+		return nil, present.MapError(err)
 	}
 	moved := make([]any, len(res.Moved))
 	for i, id := range res.Moved {
@@ -373,11 +364,11 @@ func (t *mcpTools) listRoutines(
 ) (proto.Message, error) {
 	list, err := t.svc.Board.ListRoutines(ctx)
 	if err != nil {
-		return nil, fconnect.MapError(err)
+		return nil, present.MapError(err)
 	}
 	out := make([]*factoryv1.Routine, len(list))
 	for i := range list {
-		out[i] = fconnect.ProtoRoutine(&list[i])
+		out[i] = present.ProtoRoutine(&list[i])
 	}
 	return &factoryv1.ListRoutinesResponse{Routines: out}, nil
 }
@@ -389,7 +380,7 @@ func (t *mcpTools) setRoutine(
 	if err != nil {
 		return nil, err
 	}
-	repoID, err := fconnect.ParseID(args.RepoID)
+	repoID, err := present.ParseID(args.RepoID)
 	if err != nil {
 		return nil, err
 	}
@@ -398,9 +389,9 @@ func (t *mcpTools) setRoutine(
 		IntervalMinutes: args.IntervalMinutes,
 	})
 	if err != nil {
-		return nil, fconnect.MapError(err)
+		return nil, present.MapError(err)
 	}
-	return &factoryv1.SaveRoutineResponse{Routine: fconnect.ProtoRoutine(routine)}, nil
+	return &factoryv1.SaveRoutineResponse{Routine: present.ProtoRoutine(routine)}, nil
 }
 
 func (t *mcpTools) deleteRoutine(
@@ -411,7 +402,7 @@ func (t *mcpTools) deleteRoutine(
 		return nil, err
 	}
 	if err = t.svc.Board.DeleteRoutine(ctx, actor, args.Name); err != nil {
-		return nil, fconnect.MapError(err)
+		return nil, present.MapError(err)
 	}
 	return &factoryv1.DeleteRoutineResponse{}, nil
 }
@@ -425,7 +416,7 @@ func (t *mcpTools) runRoutine(
 	}
 	job, err := t.svc.Board.RunRoutine(ctx, actor, args.Name)
 	if err != nil {
-		return nil, fconnect.MapError(err)
+		return nil, present.MapError(err)
 	}
-	return &factoryv1.RunRoutineResponse{Job: fconnect.ProtoJob(job)}, nil
+	return &factoryv1.RunRoutineResponse{Job: present.ProtoJob(job)}, nil
 }

@@ -312,3 +312,18 @@ func TestReposMigrationBackfillsExistingTasks(t *testing.T) {
 		VALUES ('no repo', 'human:x', 'human:x', 'browser')`)
 	assert.Error(t, err, "repo_id is required once migrated")
 }
+
+func TestListReposMapsAStoreFailure(t *testing.T) {
+	c := repoClient(t)
+	ctx := context.Background()
+	_, err := testDB.Exec(ctx, "ALTER TABLE factory.repos RENAME TO repos_gone")
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		_, restoreErr := testDB.Exec(ctx, "ALTER TABLE factory.repos_gone RENAME TO repos")
+		require.NoError(t, restoreErr)
+	})
+
+	_, err = c.ListRepos(ctx, &factoryv1.ListReposRequest{})
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeInternal, code(err))
+}

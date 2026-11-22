@@ -2,37 +2,11 @@ package connect
 
 import (
 	"context"
-	"strings"
 
 	factoryv1 "tools.xdoubleu.com/gen/factory/v1"
-	"tools.xdoubleu.com/internal/platform/factory/internal/models"
 	"tools.xdoubleu.com/internal/platform/factory/internal/services"
+	"tools.xdoubleu.com/internal/platform/factory/present"
 )
-
-// ProtoRoutine is a routine with its newest job.
-func ProtoRoutine(r *models.Routine) *factoryv1.Routine {
-	out := &factoryv1.Routine{
-		Name:            r.Name,
-		RepoId:          r.RepoID.String(),
-		Enabled:         r.Enabled,
-		IntervalMinutes: int32(r.IntervalMinutes), //nolint:gosec // capped to a month
-		LastJob:         nil,
-	}
-	if r.LastJob != nil {
-		out.LastJob = ProtoJob(r.LastJob)
-	}
-	return out
-}
-
-// maxRoutineOutcome caps a job's outcome as the board shows it.
-const maxRoutineOutcome = 2000
-
-func truncateOutcome(s string) string {
-	if len(s) <= maxRoutineOutcome {
-		return s
-	}
-	return strings.ToValidUTF8(s[:maxRoutineOutcome], "") + "…"
-}
 
 func (h *taskConnectHandler) ListRoutines(
 	ctx context.Context,
@@ -43,11 +17,11 @@ func (h *taskConnectHandler) ListRoutines(
 	}
 	list, err := h.app.Services.Board.ListRoutines(ctx)
 	if err != nil {
-		return nil, MapError(err)
+		return nil, present.MapError(err)
 	}
 	out := make([]*factoryv1.Routine, len(list))
 	for i := range list {
-		out[i] = ProtoRoutine(&list[i])
+		out[i] = present.ProtoRoutine(&list[i])
 	}
 	return &factoryv1.ListRoutinesResponse{Routines: out}, nil
 }
@@ -60,7 +34,7 @@ func (h *taskConnectHandler) SaveRoutine(
 	if err != nil {
 		return nil, err
 	}
-	repoID, err := ParseID(req.GetRepoId())
+	repoID, err := present.ParseID(req.GetRepoId())
 	if err != nil {
 		return nil, err
 	}
@@ -69,9 +43,9 @@ func (h *taskConnectHandler) SaveRoutine(
 		IntervalMinutes: int(req.GetIntervalMinutes()),
 	})
 	if err != nil {
-		return nil, MapError(err)
+		return nil, present.MapError(err)
 	}
-	return &factoryv1.SaveRoutineResponse{Routine: ProtoRoutine(routine)}, nil
+	return &factoryv1.SaveRoutineResponse{Routine: present.ProtoRoutine(routine)}, nil
 }
 
 func (h *taskConnectHandler) RunRoutine(
@@ -84,9 +58,9 @@ func (h *taskConnectHandler) RunRoutine(
 	}
 	job, err := h.app.Services.Board.RunRoutine(ctx, actor, req.GetName())
 	if err != nil {
-		return nil, MapError(err)
+		return nil, present.MapError(err)
 	}
-	return &factoryv1.RunRoutineResponse{Job: ProtoJob(job)}, nil
+	return &factoryv1.RunRoutineResponse{Job: present.ProtoJob(job)}, nil
 }
 
 func (h *taskConnectHandler) DeleteRoutine(
@@ -98,7 +72,7 @@ func (h *taskConnectHandler) DeleteRoutine(
 		return nil, err
 	}
 	if err = h.app.Services.Board.DeleteRoutine(ctx, actor, req.GetName()); err != nil {
-		return nil, MapError(err)
+		return nil, present.MapError(err)
 	}
 	return &factoryv1.DeleteRoutineResponse{}, nil
 }
@@ -113,7 +87,7 @@ func (h *taskConnectHandler) StopRoutine(
 	}
 	job, err := h.app.Services.Jobs.StopRoutine(ctx, actor, req.GetName())
 	if err != nil {
-		return nil, MapError(err)
+		return nil, present.MapError(err)
 	}
-	return &factoryv1.StopRoutineResponse{Job: ProtoJob(job)}, nil
+	return &factoryv1.StopRoutineResponse{Job: present.ProtoJob(job)}, nil
 }
