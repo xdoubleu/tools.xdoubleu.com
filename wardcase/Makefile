@@ -1,3 +1,7 @@
+# A job sandbox has the flake's tools at this profile but not on PATH: append it
+# (a `nix develop` shell still wins).
+export PATH := $(PATH):/nix/var/nix/profiles/devshell/bin
+
 test:
 	go test ./...
 
