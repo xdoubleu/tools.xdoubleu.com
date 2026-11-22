@@ -319,11 +319,6 @@ func drain(ctx context.Context, conn *websocket.Conn) {
 // person's messages, answers and the stop after ?after=<seq>, and sends
 // ChatUpdate messages back.
 func (h *ChatWS) Runner(w http.ResponseWriter, r *http.Request) {
-	id, ok := chatID(r)
-	if !ok {
-		http.Error(w, "invalid chat id", http.StatusBadRequest)
-		return
-	}
 	token, found := strings.CutPrefix(r.Header.Get("Authorization"), bearerPrefix)
 	if !found {
 		http.Error(w, "no device token", http.StatusUnauthorized)
@@ -332,6 +327,11 @@ func (h *ChatWS) Runner(w http.ResponseWriter, r *http.Request) {
 	runner, err := h.Runners.Authenticate(r.Context(), token)
 	if err != nil {
 		http.Error(w, "unknown device token", http.StatusUnauthorized)
+		return
+	}
+	id, ok := chatID(r)
+	if !ok {
+		http.Error(w, "invalid chat id", http.StatusBadRequest)
 		return
 	}
 	session, err := h.Chats.ForRunner(r.Context(), runner.ID, id)
