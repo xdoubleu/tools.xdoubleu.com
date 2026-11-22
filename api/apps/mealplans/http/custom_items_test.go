@@ -1,5 +1,5 @@
 //nolint:testpackage // tests unexported helpers
-package mealplans
+package http
 
 import (
 	"testing"

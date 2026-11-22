@@ -1,7 +1,9 @@
-package mealplans
+// Package http serves the public iCal feed.
+package http
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -9,7 +11,21 @@ import (
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/mealplans/internal/models"
+	"tools.xdoubleu.com/apps/mealplans/internal/services"
 )
+
+const hoursPerDay = 24
+
+// Handler serves plan feeds by iCal token.
+type Handler struct {
+	plans  *services.PlanService
+	logger *slog.Logger
+}
+
+// NewHandler returns a Handler backed by plans.
+func NewHandler(plans *services.PlanService, logger *slog.Logger) *Handler {
+	return &Handler{plans: plans, logger: logger}
+}
 
 func renderICalFeed(plan *models.Plan, meals []models.PlanMeal) string {
 	var sb strings.Builder
@@ -84,7 +100,8 @@ func escapeICalText(s string) string {
 	return s
 }
 
-func (a *MealPlans) icalFeedHandler(w http.ResponseWriter, r *http.Request) {
+// ServeHTTP writes the feed for the token in the last path segment.
+func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	parts := strings.Split(strings.TrimSuffix(r.URL.Path, "/"), "/")
 	raw := parts[len(parts)-1]
 	raw = strings.TrimSuffix(raw, ".ics")
@@ -95,7 +112,7 @@ func (a *MealPlans) icalFeedHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	plan, err := a.services.Plans.GetByICalToken(r.Context(), token)
+	plan, err := h.plans.GetByICalToken(r.Context(), token)
 	if err != nil {
 		http.Error(w, "Plan not found", http.StatusNotFound)
 		return
@@ -104,7 +121,7 @@ func (a *MealPlans) icalFeedHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/calendar; charset=utf-8")
 	w.Header().Set("Content-Disposition", `attachment; filename="meal-plan.ics"`)
 	if _, err = fmt.Fprint(w, renderICalFeed(plan, plan.Meals)); err != nil {
-		a.Logger.ErrorContext(
+		h.logger.ErrorContext(
 			r.Context(),
 			"failed to write ical response",
 			"error",

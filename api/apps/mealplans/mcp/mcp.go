@@ -1,14 +1,14 @@
-package mealplans
+package mcp
 
 import (
 	"context"
 
-	"connectrpc.com/connect/v2"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"google.golang.org/protobuf/proto"
 
+	mealplansconnect "tools.xdoubleu.com/apps/mealplans/connect"
+	"tools.xdoubleu.com/apps/mealplans/internal/services"
 	mealplansv1 "tools.xdoubleu.com/gen/mealplans/v1"
-	"tools.xdoubleu.com/internal/connecttools"
 	"tools.xdoubleu.com/internal/platform/mcptools"
 )
 
@@ -25,53 +25,43 @@ type mcpSuggestArgs struct {
 	MealSlot string `json:"meal_slot" jsonschema:"slot (breakfast|noon|evening)"`
 }
 
-// RegisterMCPTools exposes the app's read-only RPCs as MCP tools, scoped to
-// the caller's family.
-func (a *MealPlans) RegisterMCPTools(srv *mcp.Server) {
-	h := &mealplansConnectHandler{app: a}
+// Register exposes the app's read-only RPCs as MCP tools, scoped to the
+// caller's family.
+func Register(srv *mcp.Server, plans *services.PlanService) {
+	h := &tools{rpc: mealplansconnect.NewHandler(plans)}
 
 	mcptools.AddReadTool(srv, mcpAppName, "mealplans_list_plans",
-		"The meal plans in the user's family.", h.mcpListPlans)
+		"The meal plans in the user's family; a user with none gets a default plan.",
+		h.listPlans)
 	mcptools.AddReadTool(srv, mcpAppName, "mealplans_get_plan",
 		"A single meal plan's week of meals; recipe meals carry recipe_ref {id, name}.",
-		h.mcpGetPlan)
+		h.getPlan)
 	mcptools.AddReadTool(srv, mcpAppName, "mealplans_suggest_recipes",
-		"Recipe suggestions for a given plan slot.", h.mcpSuggestRecipes)
+		"Recipe suggestions for a given plan slot.", h.suggestRecipes)
 }
 
-// mcpListPlans lists plans via the service layer, avoiding the ListPlans
-// RPC's default-plan creation so the tool stays read-only.
-func (h *mealplansConnectHandler) mcpListPlans(
+type tools struct {
+	rpc *mealplansconnect.Handler
+}
+
+func (h *tools) listPlans(
 	ctx context.Context, _ mcptools.NoArgs,
 ) (proto.Message, error) {
-	user := getUser(ctx)
-	if user == nil {
-		return nil, connect.NewError(
-			connect.CodeUnauthenticated, "user not authenticated",
-		)
-	}
-	list, hasMore, err := h.app.services.Plans.List(ctx, user.ID, 0, 0)
-	if err != nil {
-		return nil, connecttools.MapError(err)
-	}
-	return &mealplansv1.ListPlansResponse{
-		Plans:   protoPlans(list),
-		HasMore: hasMore,
-	}, nil
+	return mcptools.Unwrap(h.rpc.ListPlans(ctx, &mealplansv1.ListPlansRequest{}))
 }
 
-func (h *mealplansConnectHandler) mcpGetPlan(
+func (h *tools) getPlan(
 	ctx context.Context, args mcpGetPlanArgs,
 ) (proto.Message, error) {
 	return mcptools.Unwrap(
-		h.GetPlan(ctx, &mealplansv1.GetPlanRequest{Id: args.ID, Offset: args.Offset}),
+		h.rpc.GetPlan(ctx, &mealplansv1.GetPlanRequest{Id: args.ID, Offset: args.Offset}),
 	)
 }
 
-func (h *mealplansConnectHandler) mcpSuggestRecipes(
+func (h *tools) suggestRecipes(
 	ctx context.Context, args mcpSuggestArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.SuggestRecipes(ctx, &mealplansv1.SuggestRecipesRequest{
+	return mcptools.Unwrap(h.rpc.SuggestRecipes(ctx, &mealplansv1.SuggestRecipesRequest{
 		PlanId:   args.PlanID,
 		MealDate: args.MealDate,
 		MealSlot: args.MealSlot,

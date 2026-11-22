@@ -1,4 +1,4 @@
-package mealplans
+package connect
 
 import (
 	"context"
@@ -12,16 +12,13 @@ import (
 	"tools.xdoubleu.com/internal/connecttools"
 )
 
-func (h *mealplansConnectHandler) CreateMeal(
+func (h *Handler) CreateMeal(
 	ctx context.Context,
 	req *mealplansv1.CreateMealRequest,
 ) (*mealplansv1.CreateMealResponse, error) {
-	user := getUser(ctx)
-	if user == nil {
-		return nil, connect.Errorf(
-			connect.CodeUnauthenticated,
-			"user not authenticated",
-		)
+	uid, err := userID(ctx)
+	if err != nil {
+		return nil, err
 	}
 
 	planID, err := uuid.Parse(req.PlanId)
@@ -52,18 +49,6 @@ func (h *mealplansConnectHandler) CreateMeal(
 		recipeID = &id
 	}
 
-	if recipeID == nil && req.CustomName == "" {
-		return nil, connect.Errorf(
-			connect.CodeInvalidArgument,
-			"recipe ID or custom name is required",
-		)
-	}
-
-	servings := 2
-	if req.Servings > 0 {
-		servings = int(req.Servings)
-	}
-
 	clientID, err := connecttools.ParseClientID(req.Id)
 	if err != nil {
 		return nil, err
@@ -76,27 +61,24 @@ func (h *mealplansConnectHandler) CreateMeal(
 		MealSlot:                req.MealSlot,
 		RecipeID:                recipeID,
 		CustomName:              req.CustomName,
-		Servings:                servings,
+		Servings:                int(req.Servings),
 		ExcludeFromShoppingList: req.ExcludeFromShoppingList,
 	}
 
-	if err = h.app.services.Plans.CreateMeal(ctx, planID, user.ID, meal); err != nil {
+	if err = h.plans.CreateMeal(ctx, planID, uid, meal); err != nil {
 		return nil, connecttools.MapError(err)
 	}
 
 	return &mealplansv1.CreateMealResponse{}, nil
 }
 
-func (h *mealplansConnectHandler) UpdateMeal(
+func (h *Handler) UpdateMeal(
 	ctx context.Context,
 	req *mealplansv1.UpdateMealRequest,
 ) (*mealplansv1.UpdateMealResponse, error) {
-	user := getUser(ctx)
-	if user == nil {
-		return nil, connect.Errorf(
-			connect.CodeUnauthenticated,
-			"user not authenticated",
-		)
+	uid, err := userID(ctx)
+	if err != nil {
+		return nil, err
 	}
 
 	planID, err := uuid.Parse(req.PlanId)
@@ -127,44 +109,29 @@ func (h *mealplansConnectHandler) UpdateMeal(
 		recipeID = &id
 	}
 
-	if recipeID == nil && req.CustomName == "" {
-		return nil, connect.Errorf(
-			connect.CodeInvalidArgument,
-			"recipe ID or custom name is required",
-		)
-	}
-
-	servings := 2
-	if req.Servings > 0 {
-		servings = int(req.Servings)
-	}
-
 	meal := models.PlanMeal{ //nolint:exhaustruct // other fields untouched by update
 		ID:                      mealID,
 		PlanID:                  planID,
 		RecipeID:                recipeID,
 		CustomName:              req.CustomName,
-		Servings:                servings,
+		Servings:                int(req.Servings),
 		ExcludeFromShoppingList: req.ExcludeFromShoppingList,
 	}
 
-	if err = h.app.services.Plans.UpdateMeal(ctx, planID, user.ID, meal); err != nil {
+	if err = h.plans.UpdateMeal(ctx, planID, uid, meal); err != nil {
 		return nil, connecttools.MapError(err)
 	}
 
 	return &mealplansv1.UpdateMealResponse{}, nil
 }
 
-func (h *mealplansConnectHandler) DeleteMeal(
+func (h *Handler) DeleteMeal(
 	ctx context.Context,
 	req *mealplansv1.DeleteMealRequest,
 ) (*mealplansv1.DeleteMealResponse, error) {
-	user := getUser(ctx)
-	if user == nil {
-		return nil, connect.Errorf(
-			connect.CodeUnauthenticated,
-			"user not authenticated",
-		)
+	uid, err := userID(ctx)
+	if err != nil {
+		return nil, err
 	}
 
 	planID, err := uuid.Parse(req.PlanId)
@@ -183,23 +150,20 @@ func (h *mealplansConnectHandler) DeleteMeal(
 		)
 	}
 
-	if err = h.app.services.Plans.DeleteMeal(ctx, mealID, planID, user.ID); err != nil {
+	if err = h.plans.DeleteMeal(ctx, mealID, planID, uid); err != nil {
 		return nil, connecttools.MapError(err)
 	}
 
 	return &mealplansv1.DeleteMealResponse{}, nil
 }
 
-func (h *mealplansConnectHandler) MoveMeal(
+func (h *Handler) MoveMeal(
 	ctx context.Context,
 	req *mealplansv1.MoveMealRequest,
 ) (*mealplansv1.MoveMealResponse, error) {
-	user := getUser(ctx)
-	if user == nil {
-		return nil, connect.Errorf(
-			connect.CodeUnauthenticated,
-			"user not authenticated",
-		)
+	uid, err := userID(ctx)
+	if err != nil {
+		return nil, err
 	}
 
 	planID, err := uuid.Parse(req.PlanId)
@@ -226,20 +190,8 @@ func (h *mealplansConnectHandler) MoveMeal(
 		)
 	}
 
-	validSlots := map[string]bool{
-		models.SlotBreakfast: true,
-		models.SlotNoon:      true,
-		models.SlotEvening:   true,
-	}
-	if !validSlots[req.NewSlot] {
-		return nil, connect.Errorf(
-			connect.CodeInvalidArgument,
-			"invalid meal slot",
-		)
-	}
-
-	if err = h.app.services.Plans.MoveMeal(
-		ctx, mealID, planID, user.ID, newDate, req.NewSlot,
+	if err = h.plans.MoveMeal(
+		ctx, mealID, planID, uid, newDate, req.NewSlot,
 	); err != nil {
 		return nil, connecttools.MapError(err)
 	}
@@ -247,16 +199,13 @@ func (h *mealplansConnectHandler) MoveMeal(
 	return &mealplansv1.MoveMealResponse{}, nil
 }
 
-func (h *mealplansConnectHandler) SuggestRecipes(
+func (h *Handler) SuggestRecipes(
 	ctx context.Context,
 	req *mealplansv1.SuggestRecipesRequest,
 ) (*mealplansv1.SuggestRecipesResponse, error) {
-	user := getUser(ctx)
-	if user == nil {
-		return nil, connect.Errorf(
-			connect.CodeUnauthenticated,
-			"user not authenticated",
-		)
+	uid, err := userID(ctx)
+	if err != nil {
+		return nil, err
 	}
 
 	planID, err := uuid.Parse(req.PlanId)
@@ -275,8 +224,8 @@ func (h *mealplansConnectHandler) SuggestRecipes(
 		)
 	}
 
-	suggestions, err := h.app.services.Plans.SuggestRecipes(
-		ctx, planID, user.ID, mealDate, req.MealSlot,
+	suggestions, err := h.plans.SuggestRecipes(
+		ctx, planID, uid, mealDate, req.MealSlot,
 	)
 	if err != nil {
 		return nil, connecttools.MapError(err)

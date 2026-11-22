@@ -1,4 +1,4 @@
-package mealplans
+package connect
 
 import (
 	"context"
@@ -9,61 +9,39 @@ import (
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/mealplans/internal/models"
+	"tools.xdoubleu.com/apps/mealplans/internal/protomap"
 	mealplansv1 "tools.xdoubleu.com/gen/mealplans/v1"
 	"tools.xdoubleu.com/internal/connecttools"
 )
 
-func (h *mealplansConnectHandler) ListPlans(
+const appName = "mealplans"
+
+func (h *Handler) ListPlans(
 	ctx context.Context,
 	req *mealplansv1.ListPlansRequest,
 ) (*mealplansv1.ListPlansResponse, error) {
-	user := getUser(ctx)
-	if user == nil {
-		return nil, connect.Errorf(
-			connect.CodeUnauthenticated,
-			"user not authenticated",
-		)
+	uid, err := userID(ctx)
+	if err != nil {
+		return nil, err
 	}
 
-	list, hasMore, err := h.app.services.Plans.List(
-		ctx, user.ID, req.Limit, req.Offset,
+	list, hasMore, err := h.plans.List(
+		ctx, uid, req.Limit, req.Offset,
 	)
 	if err != nil {
 		return nil, connecttools.MapError(err)
 	}
 
-	// Only an empty first page means no plans yet.
-	if len(list) == 0 && req.Offset == 0 {
-		created, createErr := h.app.services.Plans.Create(
-			ctx,
-			user.ID,
-			models.Plan{ //nolint:exhaustruct // other fields optional
-				OwnerUserID: user.ID,
-				Name:        "My Meal Plan",
-			},
-		)
-		if createErr != nil {
-			return nil, connecttools.MapError(createErr)
-		}
-		list = []models.Plan{*created}
-	}
-
-	return &mealplansv1.ListPlansResponse{
-		Plans:   protoPlans(list),
-		HasMore: hasMore,
-	}, nil
+	return protomap.ListPlans(list, hasMore), nil
 }
 
-func (h *mealplansConnectHandler) GetPlan(
+func (h *Handler) GetPlan(
 	ctx context.Context,
 	req *mealplansv1.GetPlanRequest,
 ) (*mealplansv1.GetPlanResponse, error) {
-	user := getUser(ctx)
-	if user == nil {
-		return nil, connect.Errorf(
-			connect.CodeUnauthenticated,
-			"user not authenticated",
-		)
+	uid, err := userID(ctx)
+	if err != nil {
+		return nil, err
 	}
 
 	id, err := uuid.Parse(req.Id)
@@ -75,17 +53,17 @@ func (h *mealplansConnectHandler) GetPlan(
 	}
 
 	offset := int(req.Offset)
-	plan, windowStart, windowEnd, err := h.app.services.Plans.GetWithWeek(
-		ctx, id, user.ID, offset,
+	plan, windowStart, windowEnd, err := h.plans.GetWithWeek(
+		ctx, id, uid, offset,
 	)
 	if err != nil {
 		return nil, connecttools.MapError(err)
 	}
 
 	return &mealplansv1.GetPlanResponse{
-		Plan:        protoPlan(plan),
-		IcalUrl:     h.icalURL(plan.ICalToken),
-		IsOwner:     plan.OwnerUserID == user.ID,
+		Plan:        protomap.Plan(plan),
+		IcalUrl:     icalURL(plan.ICalToken),
+		IsOwner:     plan.OwnerUserID == uid,
 		Offset:      int32(offset),     //nolint:gosec // pagination offset fits int32
 		PrevOffset:  int32(offset - 1), //nolint:gosec // pagination offset fits int32
 		NextOffset:  int32(offset + 1), //nolint:gosec // pagination offset fits int32
@@ -94,16 +72,13 @@ func (h *mealplansConnectHandler) GetPlan(
 	}, nil
 }
 
-func (h *mealplansConnectHandler) UpdatePlan(
+func (h *Handler) UpdatePlan(
 	ctx context.Context,
 	req *mealplansv1.UpdatePlanRequest,
 ) (*mealplansv1.UpdatePlanResponse, error) {
-	user := getUser(ctx)
-	if user == nil {
-		return nil, connect.Errorf(
-			connect.CodeUnauthenticated,
-			"user not authenticated",
-		)
+	uid, err := userID(ctx)
+	if err != nil {
+		return nil, err
 	}
 
 	id, err := uuid.Parse(req.Id)
@@ -121,23 +96,20 @@ func (h *mealplansConnectHandler) UpdatePlan(
 		ICalHidePast:  req.IcalHidePast,
 	}
 
-	if err = h.app.services.Plans.Update(ctx, user.ID, plan); err != nil {
+	if err = h.plans.Update(ctx, uid, plan); err != nil {
 		return nil, connecttools.MapError(err)
 	}
 
 	return &mealplansv1.UpdatePlanResponse{}, nil
 }
 
-func (h *mealplansConnectHandler) RotateICalToken(
+func (h *Handler) RotateICalToken(
 	ctx context.Context,
 	req *mealplansv1.RotateICalTokenRequest,
 ) (*mealplansv1.RotateICalTokenResponse, error) {
-	user := getUser(ctx)
-	if user == nil {
-		return nil, connect.Errorf(
-			connect.CodeUnauthenticated,
-			"user not authenticated",
-		)
+	uid, err := userID(ctx)
+	if err != nil {
+		return nil, err
 	}
 
 	id, err := uuid.Parse(req.Id)
@@ -148,16 +120,16 @@ func (h *mealplansConnectHandler) RotateICalToken(
 		)
 	}
 
-	token, err := h.app.services.Plans.RotateICalToken(ctx, id, user.ID)
+	token, err := h.plans.RotateICalToken(ctx, id, uid)
 	if err != nil {
 		return nil, connecttools.MapError(err)
 	}
 
 	return &mealplansv1.RotateICalTokenResponse{
-		IcalUrl: h.icalURL(token),
+		IcalUrl: icalURL(token),
 	}, nil
 }
 
-func (h *mealplansConnectHandler) icalURL(token uuid.UUID) string {
-	return fmt.Sprintf("/%s/ical/%s.ics", h.app.GetName(), token)
+func icalURL(token uuid.UUID) string {
+	return fmt.Sprintf("/%s/ical/%s.ics", appName, token)
 }

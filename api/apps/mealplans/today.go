@@ -17,6 +17,7 @@ const (
 	slotEvening       = "evening"
 	todayPlansLimit   = 20
 	todayWindowInDays = 2
+	hoursPerDay       = 24
 )
 
 // ListTodayMeals returns the meals planned for today and tomorrow's evening
