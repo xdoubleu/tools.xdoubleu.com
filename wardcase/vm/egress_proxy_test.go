@@ -55,6 +55,7 @@ func proxyFor(
 		MCPToken:      func(context.Context) (string, error) { return "mcp-token", nil },
 		OpenRouterKey: func() (string, error) { return "real-or-key", nil },
 		OpenAIKey:     nil,
+		GeminiKey:     nil,
 		MCPServers: []vm.MCPServer{{
 			Name: "posthog", URL: up.srv.URL + "/mcp",
 			Token:    func(context.Context) (string, error) { return "real-ph-key", nil },
@@ -64,6 +65,7 @@ func proxyFor(
 		Transport:   nil,
 		Anthropic:   up.srv.URL,
 		OpenAI:      up.srv.URL,
+		Gemini:      up.srv.URL,
 		OpenRouter:  up.srv.URL + "/api",
 		GoProxy:     "", NPM: "", RubyGems: "", NixCache: "", NixSrc: "",
 		Log: nil,
@@ -239,9 +241,10 @@ func TestResponsesStreamAsTheyArrive(t *testing.T) {
 	up := httptest.NewServer(http.HandlerFunc(events))
 	defer up.Close()
 	p, err := vm.NewEgressProxy(vm.EgressConfig{
-		Server: "", MCPToken: nil, OpenRouterKey: nil, OpenAIKey: nil, MCPServers: nil,
+		Server: "", MCPToken: nil, OpenRouterKey: nil, OpenAIKey: nil,
+		GeminiKey: nil, MCPServers: nil,
 		MCPRejected: nil,
-		Transport:   nil, Anthropic: up.URL, OpenRouter: "", OpenAI: "",
+		Transport:   nil, Anthropic: up.URL, OpenRouter: "", OpenAI: "", Gemini: "",
 		GoProxy: "", NPM: "", RubyGems: "", NixCache: "", NixSrc: "", Log: nil,
 	})
 	require.NoError(t, err)
@@ -263,9 +266,11 @@ func TestResponsesStreamAsTheyArrive(t *testing.T) {
 
 func TestABadUpstreamBaseIsRejectedWhenBuildingTheProxy(t *testing.T) {
 	_, err := vm.NewEgressProxy(vm.EgressConfig{
-		Server: "", MCPToken: nil, OpenRouterKey: nil, OpenAIKey: nil, MCPServers: nil,
+		Server: "", MCPToken: nil, OpenRouterKey: nil, OpenAIKey: nil,
+		GeminiKey: nil, MCPServers: nil,
 		MCPRejected: nil,
 		Transport:   nil, Anthropic: "not a url", OpenRouter: "", OpenAI: "",
+		Gemini:  "",
 		GoProxy: "",
 		NPM:     "", RubyGems: "", NixCache: "", NixSrc: "", Log: nil,
 	})
@@ -412,8 +417,10 @@ func TestABadMCPServerIsRefusedWhenBuildingTheProxy(t *testing.T) {
 	} {
 		_, err := vm.NewEgressProxy(vm.EgressConfig{
 			MCPServers: []vm.MCPServer{srv}, Server: "", MCPToken: nil, OpenRouterKey: nil,
-			OpenAIKey: nil, MCPRejected: nil, Transport: nil, Anthropic: "", OpenRouter: "",
-			OpenAI: "", GoProxy: "", NPM: "", RubyGems: "", NixCache: "", NixSrc: "", Log: nil,
+			OpenAIKey: nil,
+			GeminiKey: nil, MCPRejected: nil, Transport: nil, Anthropic: "", OpenRouter: "",
+			OpenAI: "",
+			Gemini: "", GoProxy: "", NPM: "", RubyGems: "", NixCache: "", NixSrc: "", Log: nil,
 		})
 		assert.Error(t, err, srv.Name)
 	}
@@ -436,4 +443,35 @@ func TestWithoutAnOpenAIKeyThereIsNoOpenAIRoute(t *testing.T) {
 	p, _ := proxyFor(t, nil)
 	rec := do(t, p, http.MethodPost, "/openai/v1/responses", `{}`, nil)
 	assert.Equal(t, http.StatusForbidden, rec.Code)
+}
+
+func TestGeminiTrafficGetsTheHostsKeyInItsHeader(t *testing.T) {
+	p, up := proxyFor(t, func(c *vm.EgressConfig) {
+		c.GeminiKey = func() (string, error) { return "real-g-key", nil }
+	})
+
+	rec := do(t, p, http.MethodPost, "/gemini/v1beta/models/m:generateContent", `{}`,
+		map[string]string{
+			"X-Goog-Api-Key": "replaced-by-the-host-proxy",
+			"Authorization":  "Bearer replaced-by-the-host-proxy",
+		})
+
+	require.Equal(t, http.StatusOK, rec.Code)
+	assert.Equal(t, "/v1beta/models/m:generateContent", up.got.URL.Path)
+	assert.Equal(t, "real-g-key", up.got.Header.Get("X-Goog-Api-Key"))
+	assert.Empty(t, up.got.Header.Get("Authorization"))
+}
+
+func TestWithoutAGeminiKeyThereIsNoGeminiRoute(t *testing.T) {
+	p, _ := proxyFor(t, nil)
+	rec := do(t, p, http.MethodPost, "/gemini/v1beta/models/m:generateContent", `{}`, nil)
+	assert.Equal(t, http.StatusForbidden, rec.Code)
+}
+
+func TestAnEmptyGeminiKeyIsUnavailable(t *testing.T) {
+	p, _ := proxyFor(t, func(c *vm.EgressConfig) {
+		c.GeminiKey = func() (string, error) { return "", nil }
+	})
+	rec := do(t, p, http.MethodPost, "/gemini/v1beta/x", `{}`, nil)
+	assert.Equal(t, http.StatusBadGateway, rec.Code)
 }

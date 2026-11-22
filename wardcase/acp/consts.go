@@ -3,6 +3,7 @@ package acp
 // The ACP methods and the keys and values wardcase's two ends share.
 const (
 	MethodInitialize        = "initialize"
+	MethodAuthenticate      = "authenticate"
 	MethodSessionNew        = "session/new"
 	MethodSessionPrompt     = "session/prompt"
 	MethodSessionCancel     = "session/cancel"

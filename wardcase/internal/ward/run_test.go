@@ -519,3 +519,47 @@ func TestAnOpenCodeCreditLimitOverflowsToCodex(t *testing.T) {
 	require.Len(t, f.box.runs, 2)
 	assert.Equal(t, "codex", filepath.Base(f.box.runs[1].spec.SessionDir))
 }
+
+func TestGeminisKeyStaysOnTheHost(t *testing.T) {
+	f := newFixture(t, ward.OverflowOff, false)
+	f.r.Secrets = memSecrets{ward.SecretGemini: "g-key"}
+	var gotKey string
+	f.r.NewProxy = func(cfg vm.EgressConfig) (vm.ProxyListener, error) {
+		require.NotNil(t, cfg.GeminiKey)
+		gotKey, _ = cfg.GeminiKey()
+		assert.Nil(t, cfg.OpenAIKey)
+		return vm.NewEgressProxy(cfg)
+	}
+	_, err := f.r.Run(context.Background(),
+		ward.Request{
+			Dir: "/w", Harness: "gemini", Args: []string{"--version"}, Print: false,
+			InPlace: true,
+		})
+	require.NoError(t, err)
+	assert.Equal(t, "g-key", gotKey)
+	for k, v := range f.box.runs[0].spec.Env {
+		assert.NotContains(t, v, "g-key", k)
+	}
+}
+
+func TestAnOpenCodeLimitOverflowsToGemini(t *testing.T) {
+	f := newFixture(t, ward.OverflowAuto, true)
+	f.r.Secrets = memSecrets{ward.SecretOpenRouter: "or-key", ward.SecretGemini: "g-key"}
+	f.r.Config.Order = []string{"opencode", "gemini"}
+	f.box.act = func(i int, _ run, out io.Writer) int {
+		if i == 0 {
+			_, _ = io.WriteString(out, `{"type":"error","error":{"data":`+
+				`{"message":"Insufficient credits","statusCode":402}}}`+"\n")
+			return 1
+		}
+		return 0
+	}
+	code, err := f.r.Run(context.Background(),
+		ward.Request{
+			Dir: "/w", Harness: "", Args: []string{"go"}, Print: true, InPlace: true,
+		})
+	require.NoError(t, err)
+	assert.Equal(t, 0, code)
+	require.Len(t, f.box.runs, 2)
+	assert.Equal(t, "gemini", filepath.Base(f.box.runs[1].spec.SessionDir))
+}

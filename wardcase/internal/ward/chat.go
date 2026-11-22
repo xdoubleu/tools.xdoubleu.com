@@ -232,6 +232,8 @@ func HasACP(harness string) bool {
 		return vm.ClaudeCode{}.ACP() != nil
 	case Codex:
 		return vm.Codex{}.ACP() != nil
+	case Gemini:
+		return vm.Gemini{}.ACP() != nil
 	}
 	return false
 }

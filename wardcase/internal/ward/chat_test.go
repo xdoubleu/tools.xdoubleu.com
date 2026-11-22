@@ -16,6 +16,7 @@ import (
 	"tools.xdoubleu.com/wardcase/acp"
 	"tools.xdoubleu.com/wardcase/acp/acptest"
 	"tools.xdoubleu.com/wardcase/internal/ward"
+	"tools.xdoubleu.com/wardcase/vm"
 )
 
 type events struct {
@@ -142,7 +143,8 @@ func TestAChatOnAHarnessWithoutACPIsRefused(t *testing.T) {
 	require.ErrorContains(t, err, "no ACP server")
 	assert.Empty(t, sf.f.box.runs)
 	assert.False(t, ward.HasACP(ward.Claude))
-	assert.False(t, ward.HasACP(ward.Codex))
+	assert.True(t, ward.HasACP(ward.Codex))
+	assert.True(t, ward.HasACP(ward.Gemini))
 	assert.True(t, ward.HasACP(ward.OpenCode))
 	assert.False(t, ward.HasACP("vim"))
 }
@@ -194,3 +196,46 @@ const (
 	secondish = 2 * time.Second
 	tick      = time.Millisecond
 )
+
+func TestAChatOnCodexAndGeminiRunsTheirACPServersWithKeysOnTheHost(t *testing.T) {
+	for _, tc := range []struct{ harness, secret, cmd string }{
+		{ward.Codex, ward.SecretOpenAI, "exec codex-acp"},
+		{ward.Gemini, ward.SecretGemini, "exec gemini --acp"},
+	} {
+		t.Run(tc.harness, func(t *testing.T) {
+			sf, _ := chatFixture(t)
+			sf.f.r.Secrets = memSecrets{tc.secret: "host-key"}
+			var proxied vm.EgressConfig
+			sf.f.r.NewProxy = func(cfg vm.EgressConfig) (vm.ProxyListener, error) {
+				proxied = cfg
+				return vm.NewEgressProxy(cfg)
+			}
+			req := chatRequest(sf, newEvents())
+			req.Harness = tc.harness
+			ctx := context.Background()
+
+			chat, err := sf.f.r.OpenChat(ctx, req)
+			require.NoError(t, err)
+			defer chat.Close(ctx)
+
+			r := sf.f.box.runs[0]
+			assert.Contains(t, r.command[2], tc.cmd)
+			assert.Equal(t, tc.harness, filepath.Base(r.spec.SessionDir))
+			for k, v := range r.spec.Env {
+				assert.NotContains(t, v, "host-key", k)
+			}
+			assert.True(t, proxied.OpenAIKey != nil || proxied.GeminiKey != nil)
+			reason, err := chat.Prompt(ctx, "hi")
+			require.NoError(t, err)
+			assert.Equal(t, "end_turn", reason)
+		})
+	}
+}
+
+func TestAGeminiChatNeedsItsSecret(t *testing.T) {
+	sf, _ := chatFixture(t)
+	req := chatRequest(sf, newEvents())
+	req.Harness = ward.Gemini
+	_, err := sf.f.r.OpenChat(context.Background(), req)
+	require.ErrorIs(t, err, ward.ErrNoSecret)
+}

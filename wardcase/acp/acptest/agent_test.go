@@ -37,3 +37,21 @@ func TestTheScriptedAgentRecordsTheAnswerToItsPermissionRequest(t *testing.T) {
 		time.Second, time.Millisecond)
 	require.NoError(t, client.Cancel(id))
 }
+
+func TestTheScriptedAgentRefusesASessionUntilAuthenticated(t *testing.T) {
+	toAgentR, toAgentW := io.Pipe()
+	toClientR, toClientW := io.Pipe()
+	agent := acptest.New()
+	agent.RequireAuth = true
+	go agent.Serve(context.Background(), toAgentR, toClientW)
+	client := acp.NewClient(toClientR, toAgentW, nil)
+	go func() { _ = client.Serve(context.Background()) }()
+	defer toAgentW.Close()
+
+	ctx := context.Background()
+	require.NoError(t, client.Initialize(ctx))
+	_, err := client.NewSession(ctx, "/work")
+
+	require.NoError(t, err)
+	assert.Equal(t, "api-key", agent.AuthenticatedWith())
+}

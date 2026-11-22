@@ -1,5 +1,5 @@
-// Command wardcase runs an agent harness (Claude Code, OpenCode, Codex) in the job
-// VM on the current checkout, so any ADE or terminal gets the same sandbox.
+// Command wardcase runs an agent harness (Claude Code, OpenCode, Codex, Gemini) in
+// the job VM on the current checkout, so any ADE or terminal gets the same sandbox.
 // Experimental.
 package main
 
@@ -23,11 +23,14 @@ import (
 const usage = `wardcase runs an agent harness in a sealed VM on this checkout.
 (experimental)
 
-  wardcase [--in-place] [claude|opencode|codex] [args...]
-                                                     interactive; args go to the harness
-  wardcase --print [claude|opencode|codex] [prompt]  headless; the prompt, else stdin
-  wardcase secret set <anthropic|openrouter|openai>  reads the value from stdin
-  wardcase acp [opencode]                            an ACP agent on stdio, for an ADE
+  wardcase [--in-place] [claude|opencode|codex|gemini] [args...]
+                          interactive; args go to the harness
+  wardcase --print [claude|opencode|codex|gemini] [prompt]
+                          headless; the prompt, else stdin
+  wardcase secret set <anthropic|openrouter|openai|gemini>
+                          reads the value from stdin
+  wardcase acp [opencode|codex|gemini]
+                          an ACP agent on stdio, for an ADE
   wardcase config                                    prints the config path and settings
   wardcase mcp login <name>                          signs a configured MCP server in
   wardcase mcp list                                  the configured MCP servers
@@ -116,7 +119,8 @@ func secret(
 	store ward.Secrets, args []string, in io.Reader, out, errOut io.Writer,
 ) int {
 	if len(args) != 2 || args[0] != "set" || !ward.ValidSecret(args[1]) {
-		fmt.Fprintln(errOut, "usage: wardcase secret set <anthropic|openrouter|openai>")
+		fmt.Fprintln(errOut,
+			"usage: wardcase secret set <anthropic|openrouter|openai|gemini>")
 		return exitUsage
 	}
 	line, err := bufio.NewReader(in).ReadString('\n')
