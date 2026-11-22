@@ -117,15 +117,20 @@ func TestStopRoutineCancelsItsJob(t *testing.T) {
 	assert.True(t, stop.Stop)
 }
 
-func TestOnlyAHumanAdminInABrowserChangesOrRunsARoutine(t *testing.T) {
+func TestOnlyAnAdminChangesOrRunsARoutine(t *testing.T) {
 	env := routineEnv(t)
 	env.saveRoutine(t, "noop", false, 0)
 
+	_, err := newClientKeepingBoard(t, true, constants.ChannelMCP).SaveRoutine(
+		context.Background(), &factoryv1.SaveRoutineRequest{
+			Name: "noop", RepoId: seededRepoID(t), Enabled: false, IntervalMinutes: 5,
+		})
+	require.NoError(t, err, "an admin outside the browser")
+
 	for name, other := range map[string]factoryv1connect.TaskServiceClient{
-		"not an admin":  newClientKeepingBoard(t, false, constants.ChannelBrowser),
-		"not a browser": newClientKeepingBoard(t, true, constants.ChannelMCP),
+		"not an admin": newClientKeepingBoard(t, false, constants.ChannelBrowser),
 	} {
-		_, err := other.SaveRoutine(context.Background(), &factoryv1.SaveRoutineRequest{
+		_, err = other.SaveRoutine(context.Background(), &factoryv1.SaveRoutineRequest{
 			Name: "noop", RepoId: seededRepoID(t), Enabled: true, IntervalMinutes: 5,
 		})
 		assert.Equal(t, connect.CodePermissionDenied, code(err), name)

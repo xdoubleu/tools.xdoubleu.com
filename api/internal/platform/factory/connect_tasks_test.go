@@ -225,27 +225,15 @@ func TestReadyAllowedForAdminInBrowser(t *testing.T) {
 	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_READY, moved.Status)
 }
 
-func TestReadyDeniedOverMCP(t *testing.T) {
+func TestAnAdminMarksATaskReadyOnAnyChannel(t *testing.T) {
 	browser := browserClient(t)
-	task := create(t, browser)
-	mcp := newClientKeepingBoard(t, true, constants.ChannelMCP)
-
-	_, err := move(mcp, task.Id, factoryv1.TaskStatus_TASK_STATUS_READY)
-	assert.Equal(t, connect.CodePermissionDenied, code(err))
-
-	// Other columns stay open to the MCP channel.
-	moved, err := move(mcp, task.Id, factoryv1.TaskStatus_TASK_STATUS_IN_PROGRESS)
-	require.NoError(t, err)
-	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_IN_PROGRESS, moved.Status)
-}
-
-func TestReadyDeniedWithoutChannel(t *testing.T) {
-	browser := browserClient(t)
-	task := create(t, browser)
-	unknown := newClientKeepingBoard(t, true, "carrier-pigeon")
-
-	_, err := move(unknown, task.Id, factoryv1.TaskStatus_TASK_STATUS_READY)
-	assert.Equal(t, connect.CodePermissionDenied, code(err))
+	for _, channel := range []string{constants.ChannelMCP, "carrier-pigeon"} {
+		task := create(t, browser)
+		admin := newClientKeepingBoard(t, true, channel)
+		moved, err := move(admin, task.Id, factoryv1.TaskStatus_TASK_STATUS_READY)
+		require.NoError(t, err, channel)
+		assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_READY, moved.Status, channel)
+	}
 }
 
 func TestNonAdminDeniedEverywhere(t *testing.T) {

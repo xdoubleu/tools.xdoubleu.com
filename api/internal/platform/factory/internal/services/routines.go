@@ -45,7 +45,7 @@ func routinePrompt(name string) string {
 
 // SaveRoutine creates a routine or changes its repo, flag and interval. Enabling a
 // routine is the approval for it to run unattended, so only who may move a task
-// to Ready may, a human admin in a browser or an agent. The change is announced
+// to Ready may, an admin or an agent. The change is announced
 // with its author.
 func (s *JobService) SaveRoutine(
 	ctx context.Context,
@@ -53,7 +53,7 @@ func (s *JobService) SaveRoutine(
 	in RoutineInput,
 ) (*models.Routine, error) {
 	if !actor.CanManageRoutines() {
-		return nil, forbidden("only a browser admin or an agent can change a routine")
+		return nil, forbidden("only an admin or an agent can change a routine")
 	}
 	if !routineNamePattern.MatchString(in.Name) {
 		return nil, badRequest("a routine name is lower-case letters, digits and dashes")
@@ -89,7 +89,7 @@ func (s *JobService) DeleteRoutine(
 	name string,
 ) error {
 	if !actor.CanManageRoutines() {
-		return forbidden("only a browser admin or an agent can delete a routine")
+		return forbidden("only an admin or an agent can delete a routine")
 	}
 	if _, err := s.routines.Get(ctx, name); err != nil {
 		return err
@@ -136,7 +136,7 @@ func (s *JobService) RunRoutine(
 	name string,
 ) (*models.Job, error) {
 	if !actor.CanManageRoutines() {
-		return nil, forbidden("only a browser admin or an agent can run a routine")
+		return nil, forbidden("only an admin or an agent can run a routine")
 	}
 	routine, err := s.routines.Get(ctx, name)
 	if err != nil {
@@ -210,7 +210,7 @@ func (s *JobService) StopRoutine(
 	name string,
 ) (*models.Job, error) {
 	if !actor.CanManageRoutines() {
-		return nil, forbidden("only a browser admin or an agent can stop a routine")
+		return nil, forbidden("only an admin or an agent can stop a routine")
 	}
 	job, err := s.jobs.CancelRoutine(ctx, name)
 	if errors.Is(err, database.ErrResourceNotFound) {

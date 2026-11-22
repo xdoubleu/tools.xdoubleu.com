@@ -66,7 +66,7 @@ func TestActorChannel(t *testing.T) {
 	)
 }
 
-func TestCanMoveToReadyNeedsHumanAdminInBrowser(t *testing.T) {
+func TestIsBrowserAdminNeedsHumanAdminInBrowser(t *testing.T) {
 	ok := models.Actor{
 		Kind:    models.ActorHuman,
 		ID:      "u",
@@ -74,30 +74,32 @@ func TestCanMoveToReadyNeedsHumanAdminInBrowser(t *testing.T) {
 		Admin:   true,
 		Via:     "",
 	}
-	assert.True(t, ok.CanMoveToReady())
+	assert.True(t, ok.IsBrowserAdmin())
 
 	noBrowser := ok
 	noBrowser.Browser = false
-	assert.False(t, noBrowser.CanMoveToReady())
+	assert.False(t, noBrowser.IsBrowserAdmin())
 
 	noAdmin := ok
 	noAdmin.Admin = false
-	assert.False(t, noAdmin.CanMoveToReady())
+	assert.False(t, noAdmin.IsBrowserAdmin())
 
 	otherKind := ok
 	otherKind.Kind = "agent"
-	assert.False(t, otherKind.CanMoveToReady())
+	assert.False(t, otherKind.IsBrowserAdmin())
 }
 
-func TestCanManageRoutinesAddsAgentsToWhoMayMoveToReady(t *testing.T) {
-	admin := models.Actor{
+func TestReadyAndRoutinesFollowThePermissionNotTheChannel(t *testing.T) {
+	adminOverMCP := models.Actor{
 		Kind:    models.ActorHuman,
 		ID:      "u",
-		Browser: true,
+		Browser: false,
 		Admin:   true,
 		Via:     "",
 	}
-	assert.True(t, admin.CanManageRoutines())
+	assert.True(t, adminOverMCP.CanMoveToReady())
+	assert.True(t, adminOverMCP.CanManageRoutines())
+	assert.False(t, adminOverMCP.IsBrowserAdmin())
 
 	agent := models.Actor{
 		Kind:    models.ActorAgent,
@@ -106,12 +108,13 @@ func TestCanManageRoutinesAddsAgentsToWhoMayMoveToReady(t *testing.T) {
 		Admin:   false,
 		Via:     "",
 	}
+	assert.True(t, agent.CanMoveToReady())
 	assert.True(t, agent.CanManageRoutines())
-	assert.False(t, agent.CanMoveToReady())
 
-	noBrowser := admin
-	noBrowser.Browser = false
-	assert.False(t, noBrowser.CanManageRoutines())
+	person := adminOverMCP
+	person.Admin = false
+	assert.False(t, person.CanMoveToReady())
+	assert.False(t, person.CanManageRoutines())
 }
 
 func TestHarnessValid(t *testing.T) {

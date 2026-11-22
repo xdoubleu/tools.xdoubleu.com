@@ -36,14 +36,14 @@ func TestAWaitingOnJobMovesItsTaskToBacklogNamingTheDependencies(t *testing.T) {
 	env.run(t, task.Id)
 	claimed := env.claim(t)
 	_, err := env.runner.CompleteJob(bearer(env.token), &factoryv1.CompleteJobRequest{
-		JobId: claimed.Id, WaitingOn: []string{"T-6", "see T-8 and T-6"},
+		JobId: claimed.Id, WaitingOn: []string{"T-99996", "see T-99998 and T-99996"},
 	})
 	require.NoError(t, err)
 
 	got := env.task(t, task.Id)
 	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_BACKLOG, got.Task.Status)
 	require.NotEmpty(t, got.Comments)
-	assert.Contains(t, got.Comments[len(got.Comments)-1].Body, "Waiting on T-6, T-8;")
+	assert.Contains(t, lastComment(got), "Waiting on T-99996, T-99998;")
 }
 
 func TestABlockedLineForWorkThatDoesNotExistYetFilesNothing(t *testing.T) {

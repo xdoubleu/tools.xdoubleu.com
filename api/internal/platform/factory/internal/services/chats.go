@@ -44,7 +44,7 @@ type StartChat struct {
 // requireChatActor limits chats to a human admin in a browser: a session is a
 // shell on the runner's Mac, so it is as privileged as running a task.
 func requireChatActor(actor models.Actor) error {
-	if !actor.CanMoveToReady() {
+	if !actor.IsBrowserAdmin() {
 		return forbidden("only a human admin in a browser session can use chat")
 	}
 	return nil
