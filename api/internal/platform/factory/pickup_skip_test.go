@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -143,4 +144,26 @@ func TestPickupGoesPastASkippedTaskToTheNext(t *testing.T) {
 	claimed := env.claim(t)
 	require.NotNil(t, claimed)
 	assert.Equal(t, next.ref(), claimed.TaskId)
+}
+
+func TestPickupLeavesABlockedTaskUntouchedWhenItsReasonIsUnchanged(t *testing.T) {
+	env := browserJobEnv(t)
+	autoPickup(t, true)
+	dep := seedTask(t, "dep", "Do it.", "in_review", nil)
+	task := seedTask(t, "task", "Depends on: "+dep.ref()+"\n\nDo it.", "ready", nil)
+	epic := seedTask(t, "epic", "Do it.", "ready", []string{"epic"})
+
+	assert.Nil(t, env.claim(t))
+	updated := func(id string) time.Time {
+		var at time.Time
+		require.NoError(t, testDB.QueryRow(context.Background(),
+			`SELECT updated_at FROM factory.tasks WHERE id = $1`, id).Scan(&at))
+		return at
+	}
+	taskAt, epicAt := updated(task.id), updated(epic.id)
+
+	assert.Nil(t, env.claim(t))
+	assert.Equal(t, taskAt, updated(task.id))
+	assert.Equal(t, epicAt, updated(epic.id))
+	env.assertSkipped(t, task, "depends on "+dep.ref())
 }

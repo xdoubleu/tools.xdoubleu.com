@@ -2,7 +2,6 @@ package repositories
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"regexp"
 	"slices"
@@ -11,7 +10,6 @@ import (
 
 	"github.com/google/uuid"
 
-	"tools.xdoubleu.com/internal/kit/database"
 	"tools.xdoubleu.com/internal/kit/database/postgres"
 )
 
@@ -79,40 +77,162 @@ func numbers(re *regexp.Regexp, s string) []int64 {
 	return out
 }
 
-// pickupSkipReason says why auto pickup must pass a Ready task by, or "": it is an
+// pickupRow is what pickupSkipReasons needs of a Ready task.
+type pickupRow struct {
+	id     uuid.UUID
+	number int64
+	labels []string
+	body   string
+}
+
+// pickupSkipReasons says, per task that auto pickup must pass by, why: it is an
 // epic, it is the parent of another task (whose body says "Part of ... (T-n)"), a
 // task or imported GitHub issue it depends on isn't merged, or another task with
-// the same imported issue key already has an open job or pull request.
-func (r *TasksRepository) pickupSkipReason(
+// the same imported issue key already has an open job or pull request. It runs a
+// constant number of queries however many tasks it vets.
+func (r *TasksRepository) pickupSkipReasons(
 	ctx context.Context,
-	id uuid.UUID,
-	number int64,
-	labels []string,
-	body string,
-) (string, error) {
-	if slices.Contains(labels, "epic") {
-		return "it is an epic; its sub-tasks are picked up instead.", nil
+	rows []pickupRow,
+) (map[uuid.UUID]string, error) {
+	reasons := map[uuid.UUID]string{}
+	var ids []uuid.UUID
+	var numbers []int64
+	for _, x := range rows {
+		if slices.Contains(x.labels, "epic") {
+			reasons[x.id] = "it is an epic; its sub-tasks are picked up instead."
+			continue
+		}
+		ids = append(ids, x.id)
+		numbers = append(numbers, x.number)
 	}
-	depTasks, depIssues, key := pickupRefs(body)
-
-	var child *int64
-	err := r.db.QueryRow(ctx, `
-		SELECT number FROM factory.tasks
-		WHERE id <> $1 AND body ~ ('Part of [^\n]*\(T-' || $2::bigint::text || '\)')
-		LIMIT 1`, id, number).Scan(&child)
-	if err == nil {
-		return fmt.Sprintf("it is the parent of T-%d; pick up the sub-tasks.", *child), nil
-	}
-	if e := postgres.PgxErrorToHTTPError(err); !isMissing(e) {
-		return "", e
+	if len(ids) == 0 {
+		return reasons, nil
 	}
 
+	children, err := r.firstChildren(ctx, ids, numbers)
+	if err != nil {
+		return nil, err
+	}
+	refs := map[uuid.UUID]pickupDeps{}
+	var allTasks, allIssues []int64
+	var keyIDs []uuid.UUID
+	var keys []string
+	for _, x := range rows {
+		if _, done := reasons[x.id]; done {
+			continue
+		}
+		if child, ok := children[x.id]; ok {
+			reasons[x.id] = fmt.Sprintf(
+				"it is the parent of T-%d; pick up the sub-tasks.", child)
+			continue
+		}
+		var d pickupDeps
+		d.tasks, d.issues, d.key = pickupRefs(x.body)
+		refs[x.id] = d
+		allTasks = append(allTasks, d.tasks...)
+		allIssues = append(allIssues, d.issues...)
+		if d.key != "" {
+			keyIDs = append(keyIDs, x.id)
+			keys = append(keys, d.key)
+		}
+	}
+
+	openTasks, openIssues, err := r.openDependencies(ctx, allTasks, allIssues)
+	if err != nil {
+		return nil, err
+	}
+	dups, err := r.openDuplicates(ctx, keyIDs, keys)
+	if err != nil {
+		return nil, err
+	}
+	for id, d := range refs {
+		if reason := dependencyReason(d, openTasks, openIssues, dups[id]); reason != "" {
+			reasons[id] = reason
+		}
+	}
+	return reasons, nil
+}
+
+// dependencyReason is the skip reason for a task's dependencies, or "": one of them
+// isn't merged, or dup (when not 0) holds the same issue with open work.
+func dependencyReason(
+	d pickupDeps,
+	openTasks, openIssues map[int64]bool,
+	dup int64,
+) string {
 	var open []string
+	for _, n := range d.tasks {
+		if openTasks[n] {
+			open = append(open, fmt.Sprintf("T-%d", n))
+		}
+	}
+	for _, k := range d.issues {
+		if openIssues[k] {
+			open = append(open, fmt.Sprintf("GitHub issue #%d", k))
+		}
+	}
+	if len(open) > 0 {
+		slices.Sort(open)
+		open = slices.Compact(open)
+		return "it depends on " + strings.Join(open, ", ") + ", not merged yet."
+	}
+	if dup != 0 {
+		return fmt.Sprintf(
+			"T-%d already has an open job or pull request for GitHub issue #%s.", dup, d.key)
+	}
+	return ""
+}
+
+// pickupDeps is what a task body says about other work.
+type pickupDeps struct {
+	tasks, issues []int64
+	key           string
+}
+
+// firstChildren maps each task to the number of one task whose body says it is
+// "Part of ... (T-n)" of it.
+func (r *TasksRepository) firstChildren(
+	ctx context.Context,
+	ids []uuid.UUID,
+	numbers []int64,
+) (map[uuid.UUID]int64, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT 'T-' || number FROM factory.tasks
+		SELECT p.id, min(c.number)
+		FROM unnest($1::uuid[], $2::bigint[]) AS p(id, number)
+		JOIN factory.tasks c ON c.id <> p.id
+			AND c.body ~ ('Part of [^\n]*\(T-' || p.number::text || '\)')
+		GROUP BY p.id`, ids, numbers)
+	if err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	defer rows.Close()
+	out := map[uuid.UUID]int64{}
+	for rows.Next() {
+		var id uuid.UUID
+		var n int64
+		if err = rows.Scan(&id, &n); err != nil {
+			return nil, postgres.PgxErrorToHTTPError(err)
+		}
+		out[id] = n
+	}
+	return out, postgres.PgxErrorToHTTPError(rows.Err())
+}
+
+// openDependencies returns which of the given task numbers and imported GitHub
+// issue numbers aren't merged yet.
+func (r *TasksRepository) openDependencies(
+	ctx context.Context,
+	depTasks, depIssues []int64,
+) (map[int64]bool, map[int64]bool, error) {
+	openTasks, openIssues := map[int64]bool{}, map[int64]bool{}
+	if len(depTasks) == 0 && len(depIssues) == 0 {
+		return openTasks, openIssues, nil
+	}
+	rows, err := r.db.Query(ctx, `
+		SELECT 't', number FROM factory.tasks
 		WHERE number = ANY($1) AND status NOT IN ('done', 'testing') AND merge_sha = ''
 		UNION
-		SELECT 'GitHub issue #' || k FROM unnest($2::bigint[]) k
+		SELECT 'i', k FROM unnest($2::bigint[]) k
 		WHERE EXISTS (
 			SELECT 1 FROM factory.tasks
 			WHERE body ~ ('\[github-issue:' || k || '\]')
@@ -122,49 +242,58 @@ func (r *TasksRepository) pickupSkipReason(
 				AND (status IN ('done', 'testing') OR merge_sha <> '')
 		)`, depTasks, depIssues)
 	if err != nil {
-		return "", postgres.PgxErrorToHTTPError(err)
+		return nil, nil, postgres.PgxErrorToHTTPError(err)
 	}
+	defer rows.Close()
 	for rows.Next() {
-		var s string
-		if err = rows.Scan(&s); err != nil {
-			rows.Close()
-			return "", postgres.PgxErrorToHTTPError(err)
+		var kind string
+		var n int64
+		if err = rows.Scan(&kind, &n); err != nil {
+			return nil, nil, postgres.PgxErrorToHTTPError(err)
 		}
-		open = append(open, s)
+		if kind == "t" {
+			openTasks[n] = true
+		} else {
+			openIssues[n] = true
+		}
 	}
-	rows.Close()
-	if err = rows.Err(); err != nil {
-		return "", postgres.PgxErrorToHTTPError(err)
-	}
-	if len(open) > 0 {
-		slices.Sort(open)
-		return "it depends on " + strings.Join(open, ", ") + ", not merged yet.", nil
-	}
+	return openTasks, openIssues, postgres.PgxErrorToHTTPError(rows.Err())
+}
 
-	if key == "" {
-		return "", nil
+// openDuplicates maps each task to the number of another task with the same
+// imported issue key that has an open job or pull request.
+func (r *TasksRepository) openDuplicates(
+	ctx context.Context,
+	ids []uuid.UUID,
+	keys []string,
+) (map[uuid.UUID]int64, error) {
+	out := map[uuid.UUID]int64{}
+	if len(ids) == 0 {
+		return out, nil
 	}
-	var dup int64
-	err = r.db.QueryRow(ctx, `
-		SELECT t2.number FROM factory.tasks t2
-		WHERE t2.id <> $1 AND t2.body ~ ('\[github-issue:' || $2::text || '\]')
+	rows, err := r.db.Query(ctx, `
+		SELECT k.id, min(t2.number)
+		FROM unnest($1::uuid[], $2::text[]) AS k(id, key)
+		JOIN factory.tasks t2 ON t2.id <> k.id
+			AND t2.body ~ ('\[github-issue:' || k.key || '\]')
 			AND (
 				EXISTS (SELECT 1 FROM factory.jobs j WHERE j.task_id = t2.id
 					AND (j.status IN ('queued', 'running') OR j.pr_state = 'open'))
 				OR EXISTS (SELECT 1 FROM factory.linked_pull_requests l
 					WHERE l.task_id = t2.id AND l.state = 'open')
 			)
-		LIMIT 1`, id, key).Scan(&dup)
-	if err == nil {
-		return fmt.Sprintf(
-			"T-%d already has an open job or pull request for GitHub issue #%s.", dup, key), nil
+		GROUP BY k.id`, ids, keys)
+	if err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
 	}
-	if e := postgres.PgxErrorToHTTPError(err); !isMissing(e) {
-		return "", e
+	defer rows.Close()
+	for rows.Next() {
+		var id uuid.UUID
+		var n int64
+		if err = rows.Scan(&id, &n); err != nil {
+			return nil, postgres.PgxErrorToHTTPError(err)
+		}
+		out[id] = n
 	}
-	return "", nil
-}
-
-func isMissing(err error) bool {
-	return errors.Is(err, database.ErrResourceNotFound)
+	return out, postgres.PgxErrorToHTTPError(rows.Err())
 }
