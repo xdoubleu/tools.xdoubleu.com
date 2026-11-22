@@ -75,7 +75,12 @@ func TestAGateRunConflictingWithMainGoesBackToTheAgentAsFeedback(t *testing.T) {
 		n++
 		code := agentRuns("Try"+passAll, true)(n, spec)
 		if n == 1 {
-			commitFile(spec.CloneDir, "clash.txt", "mine")
+			// Checked, unlike commitFile: a silently failed commit would leave
+			// nothing to conflict and the gate would pass on one agent run.
+			require.NoError(t, os.WriteFile(
+				filepath.Join(spec.CloneDir, "clash.txt"), []byte("mine"), 0o644))
+			gitIn(t, spec.CloneDir, "add", "-A")
+			gitIn(t, spec.CloneDir, "commit", "-m", "work on clash.txt")
 			advanceMain(t, p.remote, "clash.txt", "theirs")
 		} else {
 			gitIn(t, spec.CloneDir, "-c", "user.name=a", "-c", "user.email=a@e.com",
