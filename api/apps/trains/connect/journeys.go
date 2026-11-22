@@ -1,4 +1,4 @@
-package trains
+package connect
 
 import (
 	"context"
@@ -7,20 +7,10 @@ import (
 	"connectrpc.com/connect/v2"
 
 	"tools.xdoubleu.com/apps/trains/internal/models"
-	"tools.xdoubleu.com/apps/trains/internal/services"
-	"tools.xdoubleu.com/apps/trains/pkg/irail"
 	trainsv1 "tools.xdoubleu.com/gen/trains/v1"
-	"tools.xdoubleu.com/gen/trains/v1/trainsv1connect"
-	"tools.xdoubleu.com/internal/connecttools"
 )
 
-type trainsConnectHandler struct {
-	app *Trains
-}
-
-var _ trainsv1connect.TrainServiceHandler = (*trainsConnectHandler)(nil)
-
-func (h *trainsConnectHandler) SearchJourneys(
+func (h *Handler) SearchJourneys(
 	ctx context.Context,
 	req *trainsv1.SearchJourneysRequest,
 ) (*trainsv1.SearchJourneysResponse, error) {
@@ -36,7 +26,7 @@ func (h *trainsConnectHandler) SearchJourneys(
 		when = parsed
 	}
 
-	journeys, err := h.app.Services.Journey.SearchJourneys(
+	journeys, err := h.svc.Journey.SearchJourneys(
 		ctx, msg.GetOriginStopId(), msg.GetDestinationStopId(), when, msg.GetArriveBy(),
 	)
 	if err != nil {
@@ -54,7 +44,7 @@ func (h *trainsConnectHandler) SearchJourneys(
 
 // GetJourneyDetail fetches a searched journey's live state and ensures its
 // websocket topic exists so the client can subscribe right after.
-func (h *trainsConnectHandler) GetJourneyDetail(
+func (h *Handler) GetJourneyDetail(
 	ctx context.Context,
 	req *trainsv1.GetJourneyDetailRequest,
 ) (*trainsv1.GetJourneyDetailResponse, error) {
@@ -65,12 +55,10 @@ func (h *trainsConnectHandler) GetJourneyDetail(
 		)
 	}
 
-	detail, err := h.app.Services.JourneyDetail.GetJourneyDetail(ctx, journeyID)
+	detail, err := h.svc.JourneyWatch.Watch(ctx, journeyID)
 	if err != nil {
 		return nil, mapError(err)
 	}
-
-	h.app.Services.JourneyWS.EnsureTopic(journeyID)
 
 	return &trainsv1.GetJourneyDetailResponse{
 		Journey: protoJourneyDetail(journeyID, detail),
@@ -183,14 +171,4 @@ func protoStopCall(sc *models.StopDetail) *trainsv1.StopCall {
 	}
 	out.DelaySeconds = int32(delay)
 	return out
-}
-
-func mapError(err error) error {
-	return connecttools.MapError(
-		err,
-		connecttools.Code(services.ErrUnknownStation, connect.CodeNotFound),
-		connecttools.Code(irail.ErrRateLimited, connect.CodeUnavailable),
-		connecttools.Code(services.ErrInvalidCommute, connect.CodeInvalidArgument),
-		connecttools.Code(services.ErrInvalidJourneyID, connect.CodeInvalidArgument),
-	)
 }

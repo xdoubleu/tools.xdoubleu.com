@@ -1,16 +1,16 @@
-package trains
+// Package mcp exposes the trains read RPCs as MCP tools.
+package mcp
 
 import (
 	"context"
 	"encoding/json"
-	"fmt"
-	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 
-	"tools.xdoubleu.com/apps/trains/pkg/irail"
+	"tools.xdoubleu.com/apps/trains/connect"
+	"tools.xdoubleu.com/apps/trains/internal/services"
 	trainsv1 "tools.xdoubleu.com/gen/trains/v1"
 	"tools.xdoubleu.com/internal/platform/mcptools"
 )
@@ -43,10 +43,15 @@ type mcpIrailDiagnosticArgs struct {
 	Date      string `json:"date,omitempty"       jsonschema:"YYYY-MM-DD, empty=today"`
 }
 
-// RegisterMCPTools exposes the trains read RPCs on the apps MCP server. The
-// timetable is public, so every caller with trains access gets the same rows.
-func (a *Trains) RegisterMCPTools(srv *mcp.Server) {
-	h := &trainsConnectHandler{app: a}
+type tools struct {
+	rpc   *connect.Handler
+	irail *services.IrailService
+}
+
+// Register exposes the trains read RPCs on the apps MCP server. The timetable
+// is public, so every caller with trains access gets the same rows.
+func Register(srv *mcp.Server, svc *services.Services) {
+	h := &tools{rpc: connect.NewHandler(svc), irail: svc.Irail}
 
 	mcptools.AddReadTool(srv, mcpAppName, "trains_search_stations",
 		"Stations matching a query, each with its Dutch, French and English "+
@@ -69,21 +74,21 @@ func (a *Trains) RegisterMCPTools(srv *mcp.Server) {
 			"(e.g. IC530), also iRail's raw response for that train today — "+
 			"how a wrong or missing delay on /trains is traced to iRail "+
 			"versus our own mapping.",
-		a.mcpIrailDiagnostic)
+		h.mcpIrailDiagnostic)
 }
 
-func (h *trainsConnectHandler) mcpSearchStations(
+func (h *tools) mcpSearchStations(
 	ctx context.Context, args mcpSearchStationsArgs,
 ) (proto.Message, error) {
 	return mcptools.Unwrap(
-		h.SearchStations(ctx, &trainsv1.SearchStationsRequest{Query: args.Query}),
+		h.rpc.SearchStations(ctx, &trainsv1.SearchStationsRequest{Query: args.Query}),
 	)
 }
 
-func (h *trainsConnectHandler) mcpSearchJourneys(
+func (h *tools) mcpSearchJourneys(
 	ctx context.Context, args mcpSearchJourneysArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.SearchJourneys(ctx, &trainsv1.SearchJourneysRequest{
+	return mcptools.Unwrap(h.rpc.SearchJourneys(ctx, &trainsv1.SearchJourneysRequest{
 		OriginStopId:      args.OriginStopID,
 		DestinationStopId: args.DestinationStopID,
 		Time:              args.Time,
@@ -91,29 +96,26 @@ func (h *trainsConnectHandler) mcpSearchJourneys(
 	}))
 }
 
-func (h *trainsConnectHandler) mcpGetJourneyDetail(
+func (h *tools) mcpGetJourneyDetail(
 	ctx context.Context, args mcpGetJourneyDetailArgs,
 ) (proto.Message, error) {
 	return mcptools.Unwrap(
-		h.GetJourneyDetail(ctx, &trainsv1.GetJourneyDetailRequest{JourneyId: args.JourneyID}),
+		h.rpc.GetJourneyDetail(
+			ctx, &trainsv1.GetJourneyDetailRequest{JourneyId: args.JourneyID},
+		),
 	)
 }
 
-func (a *Trains) mcpIrailDiagnostic(
+func (h *tools) mcpIrailDiagnostic(
 	ctx context.Context, args mcpIrailDiagnosticArgs,
 ) (proto.Message, error) {
-	out := map[string]any{"diagnostics": a.irail.Diagnostics()}
-
-	if args.VehicleID != "" {
-		vehicle, err := a.rawVehicle(ctx, args)
-		if err != nil {
-			return nil, err
-		}
-		out["vehicle"] = vehicle
+	diag, err := h.irail.Diagnostic(ctx, args.VehicleID, args.Date)
+	if err != nil {
+		return nil, err
 	}
 
 	// Round-trip through JSON so structs become the plain maps structpb needs.
-	data, err := json.Marshal(out)
+	data, err := json.Marshal(diag)
 	if err != nil {
 		return nil, err
 	}
@@ -122,34 +124,4 @@ func (a *Trains) mcpIrailDiagnostic(
 		return nil, err
 	}
 	return structpb.NewStruct(plain)
-}
-
-// rawVehicle fetches one train's unparsed iRail response; an iRail failure is
-// reported in the result rather than failing the whole diagnostic.
-func (a *Trains) rawVehicle(
-	ctx context.Context, args mcpIrailDiagnosticArgs,
-) (map[string]any, error) {
-	day := time.Now()
-	if args.Date != "" {
-		parsed, err := time.Parse(time.DateOnly, args.Date)
-		if err != nil {
-			return nil, fmt.Errorf("date must be YYYY-MM-DD: %w", err)
-		}
-		day = parsed
-	}
-
-	id := irail.VehicleID(args.VehicleID)
-	vehicle := map[string]any{"id": id}
-	raw, err := a.irail.RawVehicle(ctx, id, day)
-	if err != nil {
-		vehicle["error"] = err.Error()
-		return vehicle, nil //nolint:nilerr //the failure is the diagnostic
-	}
-	var decoded any
-	if err = json.Unmarshal(raw, &decoded); err != nil {
-		vehicle["error"] = err.Error()
-		return vehicle, nil //nolint:nilerr //the failure is the diagnostic
-	}
-	vehicle["raw"] = decoded
-	return vehicle, nil
 }

@@ -2,10 +2,6 @@
 package services
 
 import (
-	"context"
-	"log/slog"
-
-	"tools.xdoubleu.com/apps/trains/internal/repositories"
 	"tools.xdoubleu.com/apps/trains/pkg/irail"
 )
 
@@ -13,26 +9,28 @@ type Services struct {
 	Journey       *JourneyService
 	Stations      *StationsService
 	JourneyDetail *JourneyDetailService
-	JourneyWS     *JourneyWSService
 	SavedCommutes *SavedCommutesService
+	Irail         *IrailService
+	// JourneyWatch is set once the push topics exist (see WatchJourneys),
+	// because the topics fetch detail through JourneyDetail.
+	JourneyWatch *JourneyWatchService
 }
 
-func New(
-	ctx context.Context,
-	logger *slog.Logger,
-	repos *repositories.Repositories,
-	client irail.Client,
-	allowedOrigins []string,
-) *Services {
+func New(client irail.Client, commutes SavedCommuteStore) *Services {
 	stations := NewStationsService(client)
 	journey := NewJourneyService(client, stations)
-	detail := NewJourneyDetailService(client, stations, journey)
 
+	//nolint:exhaustruct //JourneyWatch is set by WatchJourneys
 	return &Services{
 		Journey:       journey,
 		Stations:      stations,
-		JourneyDetail: detail,
-		JourneyWS:     NewJourneyWSService(ctx, logger, allowedOrigins, detail),
-		SavedCommutes: NewSavedCommutesService(repos, stations),
+		JourneyDetail: NewJourneyDetailService(client, stations, journey),
+		SavedCommutes: NewSavedCommutesService(commutes, stations),
+		Irail:         NewIrailService(client),
 	}
+}
+
+// WatchJourneys publishes watched journeys on topics.
+func (s *Services) WatchJourneys(topics JourneyTopics) {
+	s.JourneyWatch = NewJourneyWatchService(s.JourneyDetail, topics)
 }

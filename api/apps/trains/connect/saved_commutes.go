@@ -1,4 +1,4 @@
-package trains
+package connect
 
 import (
 	"context"
@@ -8,16 +8,9 @@ import (
 
 	"tools.xdoubleu.com/apps/trains/internal/models"
 	trainsv1 "tools.xdoubleu.com/gen/trains/v1"
-	"tools.xdoubleu.com/internal/kit/constants"
-	"tools.xdoubleu.com/internal/kit/contexttools"
-	sharedmodels "tools.xdoubleu.com/internal/models"
 )
 
-func getUser(ctx context.Context) *sharedmodels.User {
-	return contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
-}
-
-func (h *trainsConnectHandler) ListSavedCommutes(
+func (h *Handler) ListSavedCommutes(
 	ctx context.Context,
 	_ *trainsv1.ListSavedCommutesRequest,
 ) (*trainsv1.ListSavedCommutesResponse, error) {
@@ -28,7 +21,7 @@ func (h *trainsConnectHandler) ListSavedCommutes(
 		)
 	}
 
-	list, err := h.app.Services.SavedCommutes.List(ctx, user.ID)
+	list, err := h.svc.SavedCommutes.List(ctx, user.ID)
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -42,7 +35,7 @@ func (h *trainsConnectHandler) ListSavedCommutes(
 	}, nil
 }
 
-func (h *trainsConnectHandler) CreateSavedCommute(
+func (h *Handler) CreateSavedCommute(
 	ctx context.Context,
 	req *trainsv1.CreateSavedCommuteRequest,
 ) (*trainsv1.CreateSavedCommuteResponse, error) {
@@ -53,7 +46,7 @@ func (h *trainsConnectHandler) CreateSavedCommute(
 		)
 	}
 
-	created, err := h.app.Services.SavedCommutes.Create(
+	created, err := h.svc.SavedCommutes.Create(
 		ctx, user.ID,
 		req.GetLabel(),
 		req.GetOriginStopId(),
@@ -67,7 +60,7 @@ func (h *trainsConnectHandler) CreateSavedCommute(
 	}, nil
 }
 
-func (h *trainsConnectHandler) UpdateSavedCommute(
+func (h *Handler) UpdateSavedCommute(
 	ctx context.Context,
 	req *trainsv1.UpdateSavedCommuteRequest,
 ) (*trainsv1.UpdateSavedCommuteResponse, error) {
@@ -85,7 +78,7 @@ func (h *trainsConnectHandler) UpdateSavedCommute(
 		)
 	}
 
-	updated, err := h.app.Services.SavedCommutes.Update(
+	updated, err := h.svc.SavedCommutes.Update(
 		ctx, user.ID, id, req.GetLabel(), int(req.GetPosition()),
 	)
 	if err != nil {
@@ -96,7 +89,7 @@ func (h *trainsConnectHandler) UpdateSavedCommute(
 	}, nil
 }
 
-func (h *trainsConnectHandler) DeleteSavedCommute(
+func (h *Handler) DeleteSavedCommute(
 	ctx context.Context,
 	req *trainsv1.DeleteSavedCommuteRequest,
 ) (*trainsv1.DeleteSavedCommuteResponse, error) {
@@ -114,7 +107,7 @@ func (h *trainsConnectHandler) DeleteSavedCommute(
 		)
 	}
 
-	if err = h.app.Services.SavedCommutes.Delete(ctx, user.ID, id); err != nil {
+	if err = h.svc.SavedCommutes.Delete(ctx, user.ID, id); err != nil {
 		return nil, mapError(err)
 	}
 	return &trainsv1.DeleteSavedCommuteResponse{}, nil
