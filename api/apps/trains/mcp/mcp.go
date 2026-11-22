@@ -5,13 +5,16 @@ import (
 	"context"
 	"encoding/json"
 
+	"connectrpc.com/connect/v2"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 
-	"tools.xdoubleu.com/apps/trains/connect"
+	"tools.xdoubleu.com/apps/trains/internal/protomap"
 	"tools.xdoubleu.com/apps/trains/internal/services"
+	"tools.xdoubleu.com/apps/trains/pkg/irail"
 	trainsv1 "tools.xdoubleu.com/gen/trains/v1"
+	"tools.xdoubleu.com/internal/connecttools"
 	"tools.xdoubleu.com/internal/platform/mcptools"
 )
 
@@ -44,14 +47,13 @@ type mcpIrailDiagnosticArgs struct {
 }
 
 type tools struct {
-	rpc   *connect.Handler
-	irail *services.IrailService
+	svc *services.Services
 }
 
 // Register exposes the trains read RPCs on the apps MCP server. The timetable
 // is public, so every caller with trains access gets the same rows.
 func Register(srv *mcp.Server, svc *services.Services) {
-	h := &tools{rpc: connect.NewHandler(svc), irail: svc.Irail}
+	h := &tools{svc: svc}
 
 	mcptools.AddReadTool(srv, mcpAppName, "trains_search_stations",
 		"Stations matching a query, each with its Dutch, French and English "+
@@ -77,39 +79,63 @@ func Register(srv *mcp.Server, svc *services.Services) {
 		h.mcpIrailDiagnostic)
 }
 
+func mapError(err error) error {
+	return connecttools.MapError(
+		err,
+		connecttools.Code(services.ErrUnknownStation, connect.CodeNotFound),
+		connecttools.Code(irail.ErrRateLimited, connect.CodeUnavailable),
+		connecttools.Code(services.ErrInvalidJourneyID, connect.CodeInvalidArgument),
+		connecttools.Code(services.ErrJourneyIDRequired, connect.CodeInvalidArgument),
+		connecttools.Code(services.ErrInvalidTime, connect.CodeInvalidArgument),
+	)
+}
+
 func (h *tools) mcpSearchStations(
 	ctx context.Context, args mcpSearchStationsArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(
-		h.rpc.SearchStations(ctx, &trainsv1.SearchStationsRequest{Query: args.Query}),
-	)
+	stations, err := h.svc.Stations.SearchStations(ctx, args.Query)
+	if err != nil {
+		return nil, mapError(err)
+	}
+	return &trainsv1.SearchStationsResponse{
+		Stations: protomap.Stations(stations),
+	}, nil
 }
 
 func (h *tools) mcpSearchJourneys(
 	ctx context.Context, args mcpSearchJourneysArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.rpc.SearchJourneys(ctx, &trainsv1.SearchJourneysRequest{
-		OriginStopId:      args.OriginStopID,
-		DestinationStopId: args.DestinationStopID,
-		Time:              args.Time,
-		ArriveBy:          args.ArriveBy,
-	}))
+	when, err := services.ParseSearchTime(args.Time)
+	if err != nil {
+		return nil, mapError(err)
+	}
+	journeys, err := h.svc.Journey.SearchJourneys(
+		ctx, args.OriginStopID, args.DestinationStopID, when, args.ArriveBy,
+	)
+	if err != nil {
+		return nil, mapError(err)
+	}
+	return &trainsv1.SearchJourneysResponse{
+		Journeys: protomap.Journeys(journeys),
+	}, nil
 }
 
 func (h *tools) mcpGetJourneyDetail(
 	ctx context.Context, args mcpGetJourneyDetailArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(
-		h.rpc.GetJourneyDetail(
-			ctx, &trainsv1.GetJourneyDetailRequest{JourneyId: args.JourneyID},
-		),
-	)
+	detail, err := h.svc.JourneyWatch.Watch(ctx, args.JourneyID)
+	if err != nil {
+		return nil, mapError(err)
+	}
+	return &trainsv1.GetJourneyDetailResponse{
+		Journey: protomap.JourneyDetail(args.JourneyID, detail),
+	}, nil
 }
 
 func (h *tools) mcpIrailDiagnostic(
 	ctx context.Context, args mcpIrailDiagnosticArgs,
 ) (proto.Message, error) {
-	diag, err := h.irail.Diagnostic(ctx, args.VehicleID, args.Date)
+	diag, err := h.svc.Irail.Diagnostic(ctx, args.VehicleID, args.Date)
 	if err != nil {
 		return nil, err
 	}

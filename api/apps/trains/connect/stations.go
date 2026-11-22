@@ -3,6 +3,7 @@ package connect
 import (
 	"context"
 
+	"tools.xdoubleu.com/apps/trains/internal/protomap"
 	trainsv1 "tools.xdoubleu.com/gen/trains/v1"
 )
 
@@ -14,10 +15,7 @@ func (h *Handler) SearchStations(
 	if err != nil {
 		return nil, mapError(err)
 	}
-
-	out := make([]*trainsv1.Station, len(stations))
-	for i := range stations {
-		out[i] = protoStation(&stations[i])
-	}
-	return &trainsv1.SearchStationsResponse{Stations: out}, nil
+	return &trainsv1.SearchStationsResponse{
+		Stations: protomap.Stations(stations),
+	}, nil
 }

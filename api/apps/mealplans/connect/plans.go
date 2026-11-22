@@ -2,8 +2,6 @@ package connect
 
 import (
 	"context"
-	"fmt"
-	"time"
 
 	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
@@ -13,8 +11,6 @@ import (
 	mealplansv1 "tools.xdoubleu.com/gen/mealplans/v1"
 	"tools.xdoubleu.com/internal/connecttools"
 )
-
-const appName = "mealplans"
 
 func (h *Handler) ListPlans(
 	ctx context.Context,
@@ -60,16 +56,7 @@ func (h *Handler) GetPlan(
 		return nil, connecttools.MapError(err)
 	}
 
-	return &mealplansv1.GetPlanResponse{
-		Plan:        protomap.Plan(plan),
-		IcalUrl:     icalURL(plan.ICalToken),
-		IsOwner:     plan.OwnerUserID == uid,
-		Offset:      int32(offset),     //nolint:gosec // pagination offset fits int32
-		PrevOffset:  int32(offset - 1), //nolint:gosec // pagination offset fits int32
-		NextOffset:  int32(offset + 1), //nolint:gosec // pagination offset fits int32
-		WindowStart: windowStart.Format(time.RFC3339),
-		WindowEnd:   windowEnd.Format(time.RFC3339),
-	}, nil
+	return protomap.GetPlan(plan, uid, offset, windowStart, windowEnd), nil
 }
 
 func (h *Handler) UpdatePlan(
@@ -126,10 +113,6 @@ func (h *Handler) RotateICalToken(
 	}
 
 	return &mealplansv1.RotateICalTokenResponse{
-		IcalUrl: icalURL(token),
+		IcalUrl: protomap.ICalURL(token),
 	}, nil
-}
-
-func icalURL(token uuid.UUID) string {
-	return fmt.Sprintf("/%s/ical/%s.ics", appName, token)
 }

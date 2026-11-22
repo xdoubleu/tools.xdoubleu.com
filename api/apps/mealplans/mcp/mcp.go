@@ -2,13 +2,19 @@ package mcp
 
 import (
 	"context"
+	"time"
 
+	"connectrpc.com/connect/v2"
+	"github.com/google/uuid"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"google.golang.org/protobuf/proto"
 
-	mealplansconnect "tools.xdoubleu.com/apps/mealplans/connect"
+	"tools.xdoubleu.com/apps/mealplans/internal/protomap"
 	"tools.xdoubleu.com/apps/mealplans/internal/services"
-	mealplansv1 "tools.xdoubleu.com/gen/mealplans/v1"
+	"tools.xdoubleu.com/internal/connecttools"
+	"tools.xdoubleu.com/internal/kit/constants"
+	"tools.xdoubleu.com/internal/kit/contexttools"
+	sharedmodels "tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/platform/mcptools"
 )
 
@@ -28,7 +34,7 @@ type mcpSuggestArgs struct {
 // Register exposes the app's read-only RPCs as MCP tools, scoped to the
 // caller's family.
 func Register(srv *mcp.Server, plans *services.PlanService) {
-	h := &tools{rpc: mealplansconnect.NewHandler(plans)}
+	h := &tools{plans: plans}
 
 	mcptools.AddReadTool(srv, mcpAppName, "mealplans_list_plans",
 		"The meal plans in the user's family; a user with none gets a default plan.",
@@ -41,29 +47,76 @@ func Register(srv *mcp.Server, plans *services.PlanService) {
 }
 
 type tools struct {
-	rpc *mealplansconnect.Handler
+	plans *services.PlanService
+}
+
+func userID(ctx context.Context) (string, error) {
+	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
+	if user == nil {
+		return "", connect.Errorf(connect.CodeUnauthenticated, "user not authenticated")
+	}
+	return user.ID, nil
+}
+
+func parsePlanID(raw string) (uuid.UUID, error) {
+	id, err := uuid.Parse(raw)
+	if err != nil {
+		return uuid.Nil, connect.Errorf(connect.CodeInvalidArgument, "invalid plan ID")
+	}
+	return id, nil
 }
 
 func (h *tools) listPlans(
 	ctx context.Context, _ mcptools.NoArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.rpc.ListPlans(ctx, &mealplansv1.ListPlansRequest{}))
+	uid, err := userID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	list, hasMore, err := h.plans.List(ctx, uid, 0, 0)
+	if err != nil {
+		return nil, connecttools.MapError(err)
+	}
+	return protomap.ListPlans(list, hasMore), nil
 }
 
 func (h *tools) getPlan(
 	ctx context.Context, args mcpGetPlanArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(
-		h.rpc.GetPlan(ctx, &mealplansv1.GetPlanRequest{Id: args.ID, Offset: args.Offset}),
-	)
+	uid, err := userID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	id, err := parsePlanID(args.ID)
+	if err != nil {
+		return nil, err
+	}
+	offset := int(args.Offset)
+	plan, windowStart, windowEnd, err := h.plans.GetWithWeek(ctx, id, uid, offset)
+	if err != nil {
+		return nil, connecttools.MapError(err)
+	}
+	return protomap.GetPlan(plan, uid, offset, windowStart, windowEnd), nil
 }
 
 func (h *tools) suggestRecipes(
 	ctx context.Context, args mcpSuggestArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.rpc.SuggestRecipes(ctx, &mealplansv1.SuggestRecipesRequest{
-		PlanId:   args.PlanID,
-		MealDate: args.MealDate,
-		MealSlot: args.MealSlot,
-	}))
+	uid, err := userID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	planID, err := parsePlanID(args.PlanID)
+	if err != nil {
+		return nil, err
+	}
+	mealDate, err := time.Parse(time.DateOnly, args.MealDate)
+	if err != nil {
+		return nil, connect.Errorf(connect.CodeInvalidArgument, "invalid meal date")
+	}
+	suggestions, err := h.plans.SuggestRecipes(ctx, planID, uid, mealDate, args.MealSlot)
+	if err != nil {
+		return nil, connecttools.MapError(err)
+	}
+	return protomap.SuggestRecipes(suggestions), nil
 }

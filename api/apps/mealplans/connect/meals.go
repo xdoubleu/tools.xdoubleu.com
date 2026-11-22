@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/mealplans/internal/models"
+	"tools.xdoubleu.com/apps/mealplans/internal/protomap"
 	mealplansv1 "tools.xdoubleu.com/gen/mealplans/v1"
 	"tools.xdoubleu.com/internal/connecttools"
 )
@@ -231,16 +232,5 @@ func (h *Handler) SuggestRecipes(
 		return nil, connecttools.MapError(err)
 	}
 
-	pbSuggestions := make([]*mealplansv1.RecipeSuggestion, len(suggestions))
-	for i, s := range suggestions {
-		pbSuggestions[i] = &mealplansv1.RecipeSuggestion{
-			RecipeId: s.RecipeID.String(),
-			Servings: int32(s.Servings), //nolint:gosec // int32 safe for domain values
-			Fresh:    s.Fresh,
-		}
-	}
-
-	return &mealplansv1.SuggestRecipesResponse{
-		Suggestions: pbSuggestions,
-	}, nil
+	return protomap.SuggestRecipes(suggestions), nil
 }

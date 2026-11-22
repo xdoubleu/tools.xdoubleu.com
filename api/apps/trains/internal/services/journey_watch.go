@@ -30,6 +30,9 @@ func NewJourneyWatchService(
 func (s *JourneyWatchService) Watch(
 	ctx context.Context, journeyID string,
 ) (*models.JourneyDetail, error) {
+	if journeyID == "" {
+		return nil, ErrJourneyIDRequired
+	}
 	detail, err := s.detail.GetJourneyDetail(ctx, journeyID)
 	if err != nil {
 		return nil, err

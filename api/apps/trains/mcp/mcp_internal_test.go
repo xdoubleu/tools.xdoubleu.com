@@ -10,7 +10,6 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 
-	"tools.xdoubleu.com/apps/trains/connect"
 	"tools.xdoubleu.com/apps/trains/internal/mocks"
 	"tools.xdoubleu.com/apps/trains/internal/repositories"
 	"tools.xdoubleu.com/apps/trains/internal/services"
@@ -40,7 +39,7 @@ func TestMCPTools(t *testing.T) {
 		//nolint:exhaustruct // only ID and AppAccess matter for the gate
 		sharedmodels.User{ID: mcpUserID, AppAccess: []string{mcpAppName}},
 	)
-	h := &tools{rpc: connect.NewHandler(svc), irail: svc.Irail}
+	h := &tools{svc: svc}
 
 	msg, err := h.mcpSearchStations(ctx, mcpSearchStationsArgs{Query: "brussel-noord"})
 	require.NoError(t, err)
@@ -73,7 +72,7 @@ func TestMCPTools(t *testing.T) {
 
 func TestMCPIrailDiagnostic(t *testing.T) {
 	svc := services.New(mocks.NewFixtureClient(t), nil)
-	h := &tools{rpc: connect.NewHandler(svc), irail: svc.Irail}
+	h := &tools{svc: svc}
 
 	//nolint:exhaustruct //no vehicle: summary only
 	msg, err := h.mcpIrailDiagnostic(context.Background(), mcpIrailDiagnosticArgs{})
