@@ -656,7 +656,7 @@ groups:
           severity: warning
         annotations:
           summary: A factory job finished without opening a pull request
-          description: "{{ $values.A }} non-routine job(s) succeeded in the last 6 hours with no PR. List them on the factory board job list (status succeeded, empty PR)."
+          description: "Task {{ $labels.task }} has a non-routine job that succeeded in the last 6 hours with no PR and no Already-fixed:/Sandbox-fix: outcome. Find it on that task's job list."
         noDataState: OK
         execErrState: Alerting
         data:
@@ -668,7 +668,7 @@ groups:
             model:
               refId: A
               instant: true
-              expr: max(factory_jobs_finished_without_pr)
+              expr: factory_jobs_finished_without_pr_info
           - refId: C
             datasourceUid: __expr__
             model:
