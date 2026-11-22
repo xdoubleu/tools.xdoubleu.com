@@ -40,6 +40,8 @@ func (l *events) kinds() []string {
 }
 
 // chatFixture plays OpenCode's ACP server with a scripted agent.
+func newEvents() *events { return &events{mu: sync.Mutex{}, e: nil} }
+
 func chatFixture(t *testing.T) (*sessionFixture, *acptest.Agent) {
 	t.Helper()
 	sf := newSessionFixture(t)
@@ -61,7 +63,7 @@ func chatRequest(sf *sessionFixture, log *events) ward.ChatRequest {
 
 func TestAChatRunsOpenCodesACPServerAndStreamsAPrompt(t *testing.T) {
 	sf, agent := chatFixture(t)
-	log := &events{}
+	log := newEvents()
 	ctx := context.Background()
 	chat, err := sf.f.r.OpenChat(ctx, chatRequest(sf, log))
 	require.NoError(t, err)
@@ -96,9 +98,10 @@ func vmCloneDir(c *ward.Chat) string { return c.Path() }
 func TestClosingAChatReturnsWhatItLeft(t *testing.T) {
 	sf, _ := chatFixture(t)
 	ctx := context.Background()
-	chat, err := sf.f.r.OpenChat(ctx, chatRequest(sf, &events{}))
+	chat, err := sf.f.r.OpenChat(ctx, chatRequest(sf, newEvents()))
 	require.NoError(t, err)
-	require.NoError(t, os.WriteFile(filepath.Join(chat.Path(), "wip.txt"), []byte("x"), 0o600))
+	wip := filepath.Join(chat.Path(), "wip.txt")
+	require.NoError(t, os.WriteFile(wip, []byte("x"), 0o600))
 	gitIn(t, chat.Path(), "commit", "-q", "--allow-empty", "-m", "work")
 
 	left, removed := chat.Close(ctx)
@@ -114,7 +117,7 @@ func TestClosingAChatReturnsWhatItLeft(t *testing.T) {
 func TestAChatCanBeCancelledMidTurn(t *testing.T) {
 	sf, agent := chatFixture(t)
 	ctx := context.Background()
-	chat, err := sf.f.r.OpenChat(ctx, chatRequest(sf, &events{}))
+	chat, err := sf.f.r.OpenChat(ctx, chatRequest(sf, newEvents()))
 	require.NoError(t, err)
 	defer chat.Close(ctx)
 
@@ -131,7 +134,7 @@ func TestAChatCanBeCancelledMidTurn(t *testing.T) {
 
 func TestAChatOnAHarnessWithoutACPIsRefused(t *testing.T) {
 	sf, _ := chatFixture(t)
-	req := chatRequest(sf, &events{})
+	req := chatRequest(sf, newEvents())
 	req.Harness = ward.Claude
 	_, err := sf.f.r.OpenChat(context.Background(), req)
 	require.ErrorContains(t, err, "no ACP server")
@@ -148,7 +151,7 @@ func TestAChatWhoseServerDiesBeforeTheHandshakeSaysSo(t *testing.T) {
 		_, _ = io.WriteString(out, "opencode: command not found\n")
 		return 127
 	}
-	_, err := sf.f.r.OpenChat(context.Background(), chatRequest(sf, &events{}))
+	_, err := sf.f.r.OpenChat(context.Background(), chatRequest(sf, newEvents()))
 	require.ErrorContains(t, err, "ACP")
 	assert.NoDirExists(t, filepath.Join(sf.f.r.StateDir, "worktrees"))
 }
@@ -156,13 +159,13 @@ func TestAChatWhoseServerDiesBeforeTheHandshakeSaysSo(t *testing.T) {
 func TestAChatNeedsAVMThatStarts(t *testing.T) {
 	sf, _ := chatFixture(t)
 	sf.f.box.openErr = io.ErrClosedPipe
-	_, err := sf.f.r.OpenChat(context.Background(), chatRequest(sf, &events{}))
+	_, err := sf.f.r.OpenChat(context.Background(), chatRequest(sf, newEvents()))
 	require.ErrorContains(t, err, "start the VM")
 }
 
 func TestAChatFromADirectoryGetsAWorktreeOfItsCheckout(t *testing.T) {
 	sf, _ := chatFixture(t)
-	req := chatRequest(sf, &events{})
+	req := chatRequest(sf, newEvents())
 	req.Source, req.Dir = nil, sf.origin
 	chat, err := sf.f.r.OpenChat(context.Background(), req)
 	require.NoError(t, err)
@@ -173,7 +176,7 @@ func TestAChatFromADirectoryGetsAWorktreeOfItsCheckout(t *testing.T) {
 
 func TestAChatNeedsItsModelAndSecret(t *testing.T) {
 	sf, _ := chatFixture(t)
-	req := chatRequest(sf, &events{})
+	req := chatRequest(sf, newEvents())
 	sf.f.r.Config.OpenCode.Model = ""
 	_, err := sf.f.r.OpenChat(context.Background(), req)
 	require.ErrorContains(t, err, "opencode.model")
@@ -181,7 +184,8 @@ func TestAChatNeedsItsModelAndSecret(t *testing.T) {
 	chat, err := sf.f.r.OpenChat(context.Background(), req)
 	require.NoError(t, err)
 	defer chat.Close(context.Background())
-	assert.Equal(t, "other/model", sf.f.box.runs[0].command[len(sf.f.box.runs[0].command)-1])
+	cmd := sf.f.box.runs[0].command
+	assert.Equal(t, "other/model", cmd[len(cmd)-1])
 }
 
 const (

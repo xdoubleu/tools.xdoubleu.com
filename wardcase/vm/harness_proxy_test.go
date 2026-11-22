@@ -235,7 +235,8 @@ func TestOpenCodeServesACPOnTheSameConfigAsAHeadlessRun(t *testing.T) {
 		[]string{"OPENCODE_CONFIG"}, "opencode-job.json")
 
 	assert.Equal(t, []string{"acp"}, got.args)
-	assert.Equal(t, filepath.Join(got.home, "opencode-job.json"), got.env["OPENCODE_CONFIG"])
+	want := filepath.Join(got.home, "opencode-job.json")
+	assert.Equal(t, want, got.env["OPENCODE_CONFIG"])
 	assert.Contains(t, string(got.config), proxyURL+"/openrouter/v1")
 }
 

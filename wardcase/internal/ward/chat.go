@@ -81,7 +81,9 @@ func (r *Runner) OpenChat(ctx context.Context, req ChatRequest) (*Chat, error) {
 	return chat, nil
 }
 
-func (r *Runner) startChat(ctx context.Context, sess session, req ChatRequest) (*Chat, error) {
+func (r *Runner) startChat(
+	ctx context.Context, sess session, req ChatRequest,
+) (*Chat, error) {
 	h, env, egress, err := r.harness(req.Harness)
 	if err != nil {
 		return nil, err

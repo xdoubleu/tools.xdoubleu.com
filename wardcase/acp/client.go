@@ -76,9 +76,11 @@ func (c *Client) emit(e Event) {
 	}
 }
 
-func (c *Client) handle(_ context.Context, method string, params json.RawMessage) (any, error) {
+func (c *Client) handle(
+	_ context.Context, method string, params json.RawMessage,
+) (any, error) {
 	switch method {
-	case "session/update":
+	case MethodSessionUpdate:
 		var p struct {
 			Update json.RawMessage `json:"update"`
 		}
@@ -87,10 +89,10 @@ func (c *Client) handle(_ context.Context, method string, params json.RawMessage
 		}
 		c.emit(Event{Kind: "update", Update: p.Update, Tool: nil, Option: ""})
 		return nil, nil //nolint:nilnil // a notification has no result
-	case "session/request_permission":
+	case MethodRequestPermission:
 		return c.permission(params), nil
 	}
-	return nil, &RPCError{Code: codeMethodNotFound, Message: "unsupported " + method, Data: nil}
+	return nil, unsupported(method)
 }
 
 type permissionOutcome struct {
@@ -119,9 +121,11 @@ func (c *Client) permission(params json.RawMessage) map[string]permissionOutcome
 	}
 	c.emit(Event{Kind: "permission", Update: nil, Tool: p.ToolCall, Option: chosen})
 	if chosen == "" {
-		return map[string]permissionOutcome{"outcome": {Outcome: "cancelled", OptionID: ""}}
+		cancelled := permissionOutcome{Outcome: StopCancelled, OptionID: ""}
+		return map[string]permissionOutcome{outcomeKey: cancelled}
 	}
-	return map[string]permissionOutcome{"outcome": {Outcome: "selected", OptionID: chosen}}
+	selected := permissionOutcome{Outcome: "selected", OptionID: chosen}
+	return map[string]permissionOutcome{outcomeKey: selected}
 }
 
 // Initialize negotiates the protocol. The client offers no file or terminal
@@ -130,8 +134,8 @@ func (c *Client) Initialize(ctx context.Context) error {
 	var res struct {
 		ProtocolVersion int `json:"protocolVersion"`
 	}
-	err := c.conn.Call(ctx, "initialize", map[string]any{
-		"protocolVersion":    ProtocolVersion,
+	err := c.conn.Call(ctx, MethodInitialize, map[string]any{
+		KeyProtocolVersion:   ProtocolVersion,
 		"clientCapabilities": map[string]any{},
 		"clientInfo":         map[string]string{"name": "wardcase"},
 	}, &res)
@@ -150,7 +154,7 @@ func (c *Client) NewSession(ctx context.Context, cwd string) (string, error) {
 	var res struct {
 		SessionID string `json:"sessionId"`
 	}
-	err := c.conn.Call(ctx, "session/new", map[string]any{
+	err := c.conn.Call(ctx, MethodSessionNew, map[string]any{
 		"cwd": cwd, "mcpServers": []any{},
 	}, &res)
 	if err != nil {
@@ -165,7 +169,8 @@ func (c *Client) NewSession(ctx context.Context, cwd string) (string, error) {
 // Prompt sends text and returns the stop reason once the agent's turn ends; its
 // updates arrive as events meanwhile.
 func (c *Client) Prompt(ctx context.Context, sessionID, text string) (string, error) {
-	return c.PromptBlocks(ctx, sessionID, []map[string]string{{"type": "text", "text": text}})
+	block := map[string]string{KeyType: "text", KeyText: text}
+	return c.PromptBlocks(ctx, sessionID, []map[string]string{block})
 }
 
 // PromptBlocks is Prompt with the content blocks given as they go on the wire.
@@ -175,8 +180,8 @@ func (c *Client) PromptBlocks(
 	var res struct {
 		StopReason string `json:"stopReason"`
 	}
-	err := c.conn.Call(ctx, "session/prompt", map[string]any{
-		"sessionId": sessionID, "prompt": blocks,
+	err := c.conn.Call(ctx, MethodSessionPrompt, map[string]any{
+		KeySessionID: sessionID, "prompt": blocks,
 	}, &res)
 	return res.StopReason, err
 }
@@ -184,5 +189,6 @@ func (c *Client) PromptBlocks(
 // Cancel asks the agent to stop the turn in progress; the prompt then returns
 // with the stop reason "cancelled".
 func (c *Client) Cancel(sessionID string) error {
-	return c.conn.Notify("session/cancel", map[string]string{"sessionId": sessionID})
+	return c.conn.Notify(MethodSessionCancel,
+		map[string]string{KeySessionID: sessionID})
 }

@@ -34,7 +34,9 @@ type Server struct {
 
 // NewServer serves b on r and w; call Serve.
 func NewServer(r io.Reader, w io.Writer, name, version string, b Backend) *Server {
-	s := &Server{Name: name, Version: version, Backend: b, conn: nil, mu: sync.Mutex{}, id: ""}
+	s := &Server{
+		Name: name, Version: version, Backend: b, conn: nil, mu: sync.Mutex{}, id: "",
+	}
 	s.conn = NewConn(r, w, s.handle)
 	return s
 }
@@ -49,23 +51,25 @@ func (s *Server) sessionID() string {
 	return s.id
 }
 
-func (s *Server) handle(ctx context.Context, method string, params json.RawMessage) (any, error) {
+func (s *Server) handle(
+	ctx context.Context, method string, params json.RawMessage,
+) (any, error) {
 	switch method {
-	case "initialize":
+	case MethodInitialize:
 		return map[string]any{
-			"protocolVersion":   ProtocolVersion,
+			KeyProtocolVersion:  ProtocolVersion,
 			"agentCapabilities": map[string]any{},
 			"agentInfo":         map[string]string{"name": s.Name, "version": s.Version},
 		}, nil
-	case "session/new":
+	case MethodSessionNew:
 		return s.newSession(ctx, params)
-	case "session/prompt":
+	case MethodSessionPrompt:
 		return s.prompt(ctx, params)
-	case "session/cancel":
+	case MethodSessionCancel:
 		s.Backend.Cancel()
 		return nil, nil //nolint:nilnil // a notification has no result
 	}
-	return nil, &RPCError{Code: codeMethodNotFound, Message: "unsupported " + method, Data: nil}
+	return nil, unsupported(method)
 }
 
 func (s *Server) newSession(ctx context.Context, params json.RawMessage) (any, error) {
@@ -82,8 +86,8 @@ func (s *Server) newSession(ctx context.Context, params json.RawMessage) (any, e
 	id := s.id
 	s.mu.Unlock()
 	err := s.Backend.Open(ctx, p.Cwd, func(update json.RawMessage) {
-		_ = s.conn.Notify("session/update", map[string]any{
-			"sessionId": id, "update": update,
+		_ = s.conn.Notify(MethodSessionUpdate, map[string]any{
+			KeySessionID: id, "update": update,
 		})
 	})
 	if err != nil {
@@ -92,7 +96,7 @@ func (s *Server) newSession(ctx context.Context, params json.RawMessage) (any, e
 		s.mu.Unlock()
 		return nil, err
 	}
-	return map[string]string{"sessionId": id}, nil
+	return map[string]string{KeySessionID: id}, nil
 }
 
 func (s *Server) prompt(ctx context.Context, params json.RawMessage) (any, error) {
@@ -129,5 +133,5 @@ func (s *Server) prompt(ctx context.Context, params json.RawMessage) (any, error
 	if err != nil {
 		return nil, err
 	}
-	return map[string]string{"stopReason": reason}, nil
+	return map[string]string{KeyStopReason: reason}, nil
 }

@@ -56,7 +56,7 @@ func newWire(t *testing.T, noise string) *wire {
 		agent.Serve(ctx, toAgentR, toClientW)
 		_ = toClientW.Close()
 	}()
-	log := &eventLog{}
+	log := newEventLog()
 	client := acp.NewClient(toClientR, toAgentW, log.add)
 	go func() { _ = client.Serve(ctx) }()
 	stop := func() { _ = toAgentW.Close(); cancel() }
@@ -217,7 +217,8 @@ func TestAClientRefusesAnAgentOfAnotherVersion(t *testing.T) {
 
 func TestAClientAnswersAnUnknownRequestWithAnError(t *testing.T) {
 	var out bytes.Buffer
-	in := strings.NewReader(`{"jsonrpc":"2.0","id":7,"method":"fs/read_text_file","params":{}}` + "\n")
+	in := strings.NewReader(
+		`{"jsonrpc":"2.0","id":7,"method":"fs/read_text_file","params":{}}` + "\n")
 	client := acp.NewClient(in, &out, nil)
 	require.NoError(t, client.Serve(context.Background()))
 	assert.Contains(t, out.String(), `"id":7`)
@@ -233,7 +234,9 @@ type backend struct {
 	mu      sync.Mutex
 }
 
-func (b *backend) Open(_ context.Context, cwd string, emit func(json.RawMessage)) error {
+func (b *backend) Open(
+	_ context.Context, cwd string, emit func(json.RawMessage),
+) error {
 	b.opened, b.emit = cwd, emit
 	return b.openErr
 }
@@ -242,7 +245,8 @@ func (b *backend) Prompt(_ context.Context, text string) (string, error) {
 	b.mu.Lock()
 	b.prompts = append(b.prompts, text)
 	b.mu.Unlock()
-	b.emit(json.RawMessage(`{"sessionUpdate":"agent_message_chunk","content":{"text":"hi"}}`))
+	b.emit(json.RawMessage(
+		`{"sessionUpdate":"agent_message_chunk","content":{"text":"hi"}}`))
 	if text == "boom" {
 		return "", errors.New("boom")
 	}
@@ -255,6 +259,15 @@ func (b *backend) Cancel() {
 	b.mu.Unlock()
 }
 
+func newBackend(openErr error) *backend {
+	return &backend{
+		opened: "", emit: nil, openErr: openErr, prompts: nil, cancels: 0,
+		mu: sync.Mutex{},
+	}
+}
+
+func newEventLog() *eventLog { return &eventLog{mu: sync.Mutex{}, e: nil} }
+
 func newServer(t *testing.T, b *backend) (*acp.Client, *eventLog) {
 	t.Helper()
 	toSrvR, toSrvW := io.Pipe()
@@ -262,7 +275,7 @@ func newServer(t *testing.T, b *backend) (*acp.Client, *eventLog) {
 	ctx, cancel := context.WithCancel(context.Background())
 	srv := acp.NewServer(toSrvR, toCliW, "wardcase", "test", b)
 	go func() { _ = srv.Serve(ctx) }()
-	log := &eventLog{}
+	log := newEventLog()
 	client := acp.NewClient(toCliR, toSrvW, log.add)
 	go func() { _ = client.Serve(ctx) }()
 	t.Cleanup(func() { _ = toSrvW.Close(); cancel() })
@@ -270,7 +283,7 @@ func newServer(t *testing.T, b *backend) (*acp.Client, *eventLog) {
 }
 
 func TestAServerFrontsOneBackendSession(t *testing.T) {
-	b := &backend{}
+	b := newBackend(nil)
 	client, log := newServer(t, b)
 	ctx := context.Background()
 	require.NoError(t, client.Initialize(ctx))
@@ -303,7 +316,7 @@ func TestAServerFrontsOneBackendSession(t *testing.T) {
 }
 
 func TestAServerFlattensEveryKindOfPromptBlock(t *testing.T) {
-	b := &backend{}
+	b := newBackend(nil)
 	client, _ := newServer(t, b)
 	ctx := context.Background()
 	require.NoError(t, client.Initialize(ctx))
@@ -311,7 +324,8 @@ func TestAServerFlattensEveryKindOfPromptBlock(t *testing.T) {
 	require.NoError(t, err)
 	_, err = client.PromptBlocks(ctx, id, []map[string]any{
 		{"type": "text", "text": "a"},
-		{"type": "resource", "resource": map[string]string{"uri": "file:///f", "text": "body"}},
+		{"type": "resource", "resource": map[string]string{
+			"uri": "file:///f", "text": "body"}},
 		{"type": "resource_link", "uri": "file:///g"},
 	})
 	require.NoError(t, err)
@@ -319,7 +333,7 @@ func TestAServerFlattensEveryKindOfPromptBlock(t *testing.T) {
 }
 
 func TestAServerThatCannotOpenItsSessionAllowsANewTry(t *testing.T) {
-	b := &backend{openErr: errors.New("no VM")}
+	b := newBackend(errors.New("no VM"))
 	client, _ := newServer(t, b)
 	ctx := context.Background()
 	require.NoError(t, client.Initialize(ctx))

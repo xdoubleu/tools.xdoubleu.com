@@ -27,7 +27,7 @@ const usage = `wardcase runs an agent harness in a sealed VM on this checkout.
                                                      interactive; args go to the harness
   wardcase --print [claude|opencode|codex] [prompt]  headless; the prompt, else stdin
   wardcase secret set <anthropic|openrouter|openai>  reads the value from stdin
-  wardcase acp [opencode]                            an ACP agent on stdio, for an ADE such as Zed
+  wardcase acp [opencode]                            an ACP agent on stdio, for an ADE
   wardcase config                                    prints the config path and settings
   wardcase mcp login <name>                          signs a configured MCP server in
   wardcase mcp list                                  the configured MCP servers

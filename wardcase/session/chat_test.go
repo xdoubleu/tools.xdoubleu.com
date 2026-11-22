@@ -23,7 +23,7 @@ type agentBox struct{ agent *acptest.Agent }
 func (b agentBox) Run(context.Context, vm.SandboxSpec) (int, error) { return 0, nil }
 
 func (b agentBox) Open(context.Context, vm.SandboxSpec) (vm.SandboxSession, error) {
-	return agentSession{agent: b.agent}, nil
+	return agentSession(b), nil
 }
 
 type agentSession struct{ agent *acptest.Agent }
@@ -36,7 +36,7 @@ func (s agentSession) Attach(
 	ctx context.Context, _ []string, in io.Reader, out io.Writer, _ bool,
 ) (int, error) {
 	s.agent.Serve(ctx, in, out)
-	return 0, nil
+	return 0, ctx.Err()
 }
 
 func (agentSession) Close() {}

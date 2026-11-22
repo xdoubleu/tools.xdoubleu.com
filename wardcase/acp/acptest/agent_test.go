@@ -13,7 +13,7 @@ import (
 	"tools.xdoubleu.com/wardcase/acp/acptest"
 )
 
-func TestTheScriptedAgentAnswersAPromptAndRecordsTheAnswerToItsPermissionRequest(t *testing.T) {
+func TestTheScriptedAgentRecordsTheAnswerToItsPermissionRequest(t *testing.T) {
 	toAgentR, toAgentW := io.Pipe()
 	toClientR, toClientW := io.Pipe()
 	agent := acptest.New()

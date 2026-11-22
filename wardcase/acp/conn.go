@@ -23,7 +23,9 @@ const (
 
 // Handler answers an incoming request or notification. For a notification the
 // result is dropped. An error becomes a JSON-RPC error response.
-type Handler func(ctx context.Context, method string, params json.RawMessage) (any, error)
+type Handler func(
+	ctx context.Context, method string, params json.RawMessage,
+) (any, error)
 
 // RPCError is a JSON-RPC error a peer answered with.
 type RPCError struct {
@@ -159,14 +161,14 @@ func (c *Conn) dispatch(ctx context.Context, line []byte) {
 
 func (c *Conn) answer(ctx context.Context, id json.RawMessage, m message) {
 	if c.handler == nil {
-		_ = c.send(message{
-			JSONRPC: "2.0", ID: &id,
-			Error: &RPCError{Code: codeMethodNotFound, Message: "no such method"},
-		})
+		var out message
+		out.JSONRPC, out.ID, out.Error = jsonrpcVersion, &id, unsupported(m.Method)
+		_ = c.send(out)
 		return
 	}
 	result, err := c.handler(ctx, m.Method, m.Params)
-	out := message{JSONRPC: "2.0", ID: &id}
+	var out message
+	out.JSONRPC, out.ID = jsonrpcVersion, &id
 	var rpc *RPCError
 	switch {
 	case errors.As(err, &rpc):
@@ -239,7 +241,9 @@ func (c *Conn) Call(ctx context.Context, method string, params, result any) erro
 	c.mu.Unlock()
 
 	rawID := json.RawMessage(fmt.Sprint(id))
-	if err = c.send(message{JSONRPC: "2.0", ID: &rawID, Method: method, Params: raw}); err != nil {
+	var req message
+	req.JSONRPC, req.ID, req.Method, req.Params = jsonrpcVersion, &rawID, method, raw
+	if err = c.send(req); err != nil {
 		c.forget(id)
 		return err
 	}
@@ -273,5 +277,7 @@ func (c *Conn) Notify(method string, params any) error {
 	if err != nil {
 		return fmt.Errorf("encode %s: %w", method, err)
 	}
-	return c.send(message{JSONRPC: "2.0", Method: method, Params: raw})
+	var note message
+	note.JSONRPC, note.Method, note.Params = jsonrpcVersion, method, raw
+	return c.send(note)
 }

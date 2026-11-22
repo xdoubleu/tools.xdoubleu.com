@@ -11,6 +11,8 @@ import (
 	"tools.xdoubleu.com/wardcase/acp"
 )
 
+const sessionID = "s1"
+
 // Agent answers a prompt with a message chunk, a permission request and a closing
 // chunk. A prompt reading "wait" holds the turn until session/cancel.
 type Agent struct {
@@ -52,17 +54,17 @@ func (a *Agent) Serve(ctx context.Context, r io.Reader, w io.Writer) {
 		ctx context.Context, method string, params json.RawMessage,
 	) (any, error) {
 		switch method {
-		case "initialize":
-			return map[string]any{"protocolVersion": acp.ProtocolVersion}, nil
-		case "session/new":
-			return map[string]string{"sessionId": "s1"}, nil
-		case "session/cancel":
+		case acp.MethodInitialize:
+			return map[string]any{acp.KeyProtocolVersion: acp.ProtocolVersion}, nil
+		case acp.MethodSessionNew:
+			return map[string]string{acp.KeySessionID: sessionID}, nil
+		case acp.MethodSessionCancel:
 			select {
 			case a.cancel <- struct{}{}:
 			default:
 			}
 			return nil, nil //nolint:nilnil // a notification
-		case "session/prompt":
+		case acp.MethodSessionPrompt:
 			return a.prompt(ctx, conn, params)
 		}
 		return nil, &acp.RPCError{Code: -32601, Message: "unsupported", Data: nil}
@@ -71,16 +73,18 @@ func (a *Agent) Serve(ctx context.Context, r io.Reader, w io.Writer) {
 }
 
 func (a *Agent) update(conn *acp.Conn, text string) {
-	_ = conn.Notify("session/update", map[string]any{
-		"sessionId": "s1",
+	_ = conn.Notify(acp.MethodSessionUpdate, map[string]any{
+		acp.KeySessionID: sessionID,
 		"update": map[string]any{
 			"sessionUpdate": "agent_message_chunk",
-			"content":       map[string]string{"type": "text", "text": text},
+			"content":       map[string]string{acp.KeyType: "text", acp.KeyText: text},
 		},
 	})
 }
 
-func (a *Agent) prompt(ctx context.Context, conn *acp.Conn, params json.RawMessage) (any, error) {
+func (a *Agent) prompt(
+	ctx context.Context, conn *acp.Conn, params json.RawMessage,
+) (any, error) {
 	var p struct {
 		Prompt []struct {
 			Text string `json:"text"`
@@ -99,7 +103,7 @@ func (a *Agent) prompt(ctx context.Context, conn *acp.Conn, params json.RawMessa
 		case <-a.cancel:
 		case <-ctx.Done():
 		}
-		return map[string]string{"stopReason": "cancelled"}, nil
+		return map[string]string{acp.KeyStopReason: acp.StopCancelled}, nil
 	}
 	a.update(conn, "working on "+text)
 	options := a.Options
@@ -111,10 +115,10 @@ func (a *Agent) prompt(ctx context.Context, conn *acp.Conn, params json.RawMessa
 		}
 	}
 	var out json.RawMessage
-	err := conn.Call(ctx, "session/request_permission", map[string]any{
-		"sessionId": "s1",
-		"toolCall":  map[string]string{"toolCallId": "t1", "title": "bash"},
-		"options":   options,
+	err := conn.Call(ctx, acp.MethodRequestPermission, map[string]any{
+		acp.KeySessionID: sessionID,
+		"toolCall":       map[string]string{"toolCallId": "t1", "title": "bash"},
+		"options":        options,
 	}, &out)
 	if err != nil {
 		return nil, err //nolint:wrapcheck // a test double
@@ -123,5 +127,5 @@ func (a *Agent) prompt(ctx context.Context, conn *acp.Conn, params json.RawMessa
 	a.outcomes = append(a.outcomes, out)
 	a.mu.Unlock()
 	a.update(conn, "done")
-	return map[string]string{"stopReason": "end_turn"}, nil
+	return map[string]string{acp.KeyStopReason: acp.StopEndTurn}, nil
 }
