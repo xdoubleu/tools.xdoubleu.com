@@ -23,7 +23,6 @@ var embedMigrations embed.FS
 type Recipes struct {
 	app.Base
 	services *services.Services
-	videos   videoFetcher
 }
 
 func New(
@@ -43,8 +42,13 @@ func New(
 			cfg,
 		),
 	}
-	a.services = services.New(a.Logger, repositories.New(db), authService, familyRepo)
-	a.videos = videofetch.New(cfg.Env != config.ProdEnv)
+	a.services = services.New(
+		a.Logger,
+		repositories.New(db),
+		authService,
+		familyRepo,
+		videofetch.New(cfg.Env != config.ProdEnv),
+	)
 
 	return a
 }

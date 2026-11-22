@@ -14,6 +14,7 @@ type Services struct {
 	Runners *RunnerService
 	Jobs    *JobService
 	Board   *BoardService
+	Chats   *ChatService
 }
 
 func New(
@@ -32,6 +33,7 @@ func New(
 		say: say, runners: stores.Runners, settings: stores.Settings,
 		linked:      stores.Linked,
 		routines:    stores.Routines,
+		chats:       stores.Chats,
 		imageDigest: nil,
 		offlineMu:   sync.Mutex{}, alertedOffline: uuid.Nil, alertedStalled: uuid.Nil,
 	}
@@ -41,5 +43,9 @@ func New(
 		Runners: &RunnerService{repo: stores.Runners, now: time.Now, say: say},
 		Jobs:    jobs,
 		Board:   &BoardService{tasks: tasks, jobs: jobs},
+		Chats: &ChatService{
+			chats: stores.Chats, repos: stores.Repos, tasks: stores.Tasks,
+			runners: stores.Runners, now: time.Now,
+		},
 	}
 }

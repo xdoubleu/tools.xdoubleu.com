@@ -10,6 +10,7 @@ import (
 type Services struct {
 	Auth    auth.Service
 	Recipes *RecipeService
+	Videos  *VideoService
 }
 
 func New(
@@ -17,9 +18,11 @@ func New(
 	repos *repositories.Repositories,
 	authService auth.Service,
 	family familyStore,
+	videos VideoFetcher,
 ) *Services {
 	return &Services{
 		Auth:    authService,
 		Recipes: &RecipeService{repo: repos.Recipes, family: family},
+		Videos:  NewVideoService(videos),
 	}
 }

@@ -1,0 +1,96 @@
+package http_test
+
+import (
+	"context"
+	"errors"
+	"sync/atomic"
+	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	trainshttp "tools.xdoubleu.com/apps/trains/http"
+	"tools.xdoubleu.com/apps/trains/internal/models"
+	"tools.xdoubleu.com/apps/trains/internal/services"
+	"tools.xdoubleu.com/internal/kit/logging"
+)
+
+// fakeDetailFetcher lets JourneyWS be tested without a database.
+type fakeDetailFetcher struct {
+	calls int32
+	err   error
+}
+
+func (f *fakeDetailFetcher) GetJourneyDetail(
+	_ context.Context, journeyID string,
+) (*models.JourneyDetail, error) {
+	atomic.AddInt32(&f.calls, 1)
+	if f.err != nil {
+		return nil, f.err
+	}
+	//nolint:exhaustruct //only Legs is exercised by these tests
+	return &models.JourneyDetail{
+		Legs: []models.LegDetail{{TripShortName: journeyID}},
+	}, nil
+}
+
+func TestJourneyWS_EnsureTopic_IsIdempotent(t *testing.T) {
+	fake := &fakeDetailFetcher{} //nolint:exhaustruct //calls/err zero-valued deliberately
+	svc := trainshttp.NewJourneyWS(
+		context.Background(), logging.NewNopLogger(), []string{"*"}, fake,
+	)
+
+	svc.EnsureTopic("journey-1")
+	svc.EnsureTopic("journey-1")
+	svc.EnsureTopic("journey-1")
+
+	// Three EnsureTopic calls must yield one topic, so PushAll fetches once.
+	svc.PushAll(context.Background())
+	assert.Equal(t, int32(1), atomic.LoadInt32(&fake.calls))
+}
+
+func TestJourneyWS_PushAll_SkipsFailingTopicsAndContinues(t *testing.T) {
+	fake := &fakeDetailFetcher{} //nolint:exhaustruct //calls/err zero-valued deliberately
+	svc := trainshttp.NewJourneyWS(
+		context.Background(), logging.NewNopLogger(), []string{"*"}, fake,
+	)
+	svc.EnsureTopic("journey-a")
+	svc.EnsureTopic("journey-b")
+
+	fake.err = errors.New("boom")
+	// Must not panic even though every topic's rebuild fails.
+	svc.PushAll(context.Background())
+	assert.GreaterOrEqual(t, atomic.LoadInt32(&fake.calls), int32(2))
+}
+
+func TestJourneyWS_Handler_ReturnsNonNilHandlerFunc(t *testing.T) {
+	fake := &fakeDetailFetcher{} //nolint:exhaustruct //calls/err zero-valued deliberately
+	svc := trainshttp.NewJourneyWS(
+		context.Background(), logging.NewNopLogger(), []string{"*"}, fake,
+	)
+	require.NotNil(t, svc.Handler())
+}
+
+func TestJourneyWS_PushAll_DropsEndedJourneys(t *testing.T) {
+	fake := &fakeDetailFetcher{} //nolint:exhaustruct //calls/err zero-valued deliberately
+	svc := trainshttp.NewJourneyWS(
+		context.Background(), logging.NewNopLogger(), []string{"*"}, fake,
+	)
+	leg := func(alight time.Time) string {
+		return services.EncodeJourneyID([]services.LegRef{{
+			VehicleID: "BE.NMBS.IC1", BoardStopID: "A", BoardTime: alight.Add(-time.Hour),
+			AlightStopID: "B", AlightTime: alight,
+		}})
+	}
+	svc.EnsureTopic(leg(time.Now().Add(-3 * time.Hour)))
+	svc.EnsureTopic(leg(time.Now().Add(time.Hour)))
+
+	svc.PushAll(context.Background())
+	assert.Equal(
+		t,
+		int32(1),
+		atomic.LoadInt32(&fake.calls),
+		"only the running journey is polled",
+	)
+}

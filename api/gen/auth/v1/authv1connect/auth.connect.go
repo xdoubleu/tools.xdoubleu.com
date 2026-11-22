@@ -68,6 +68,12 @@ const (
 	AuthServiceRenamePasskeyProcedure = "/auth.v1.AuthService/RenamePasskey"
 	// AuthServiceRemovePasskeyProcedure is the procedure name of the AuthService's RemovePasskey RPC.
 	AuthServiceRemovePasskeyProcedure = "/auth.v1.AuthService/RemovePasskey"
+	// AuthServicePasskeySignInBeginProcedure is the procedure name of the AuthService's
+	// PasskeySignInBegin RPC.
+	AuthServicePasskeySignInBeginProcedure = "/auth.v1.AuthService/PasskeySignInBegin"
+	// AuthServicePasskeySignInFinishProcedure is the procedure name of the AuthService's
+	// PasskeySignInFinish RPC.
+	AuthServicePasskeySignInFinishProcedure = "/auth.v1.AuthService/PasskeySignInFinish"
 )
 
 var (
@@ -211,6 +217,20 @@ var (
 			Procedure:  AuthServiceRemovePasskeyProcedure,
 		}
 	})
+	authServicePasskeySignInBeginSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_auth_v1_auth_proto.Services().ByName("AuthService").Methods().ByName("PasskeySignInBegin"),
+			Procedure:  AuthServicePasskeySignInBeginProcedure,
+		}
+	})
+	authServicePasskeySignInFinishSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_auth_v1_auth_proto.Services().ByName("AuthService").Methods().ByName("PasskeySignInFinish"),
+			Procedure:  AuthServicePasskeySignInFinishProcedure,
+		}
+	})
 )
 
 // AuthServiceClient is a client for the auth.v1.AuthService service.
@@ -237,6 +257,10 @@ type AuthServiceClient interface {
 	ListPasskeys(context.Context, *v1.ListPasskeysRequest) (*v1.ListPasskeysResponse, error)
 	RenamePasskey(context.Context, *v1.RenamePasskeyRequest) (*v1.RenamePasskeyResponse, error)
 	RemovePasskey(context.Context, *v1.RemovePasskeyRequest) (*v1.RemovePasskeyResponse, error)
+	// Signing in with a discoverable passkey issues a session directly and
+	// counts as MFA. Both RPCs are unauthenticated.
+	PasskeySignInBegin(context.Context, *v1.PasskeySignInBeginRequest) (*v1.PasskeySignInBeginResponse, error)
+	PasskeySignInFinish(context.Context, *v1.PasskeySignInFinishRequest) (*v1.PasskeySignInFinishResponse, error)
 }
 
 // NewAuthServiceClient constructs a client for the auth.v1.AuthService service. Multiple service
@@ -269,6 +293,10 @@ type AuthServiceHandler interface {
 	ListPasskeys(context.Context, *v1.ListPasskeysRequest) (*v1.ListPasskeysResponse, error)
 	RenamePasskey(context.Context, *v1.RenamePasskeyRequest) (*v1.RenamePasskeyResponse, error)
 	RemovePasskey(context.Context, *v1.RemovePasskeyRequest) (*v1.RemovePasskeyResponse, error)
+	// Signing in with a discoverable passkey issues a session directly and
+	// counts as MFA. Both RPCs are unauthenticated.
+	PasskeySignInBegin(context.Context, *v1.PasskeySignInBeginRequest) (*v1.PasskeySignInBeginResponse, error)
+	PasskeySignInFinish(context.Context, *v1.PasskeySignInFinishRequest) (*v1.PasskeySignInFinishResponse, error)
 }
 
 // RegisterAuthServiceHandler registers svc as the auth.v1.AuthService implementation on server.
@@ -295,6 +323,8 @@ func RegisterAuthServiceHandler(server *connect.Server, svc AuthServiceHandler) 
 		connect.Method{Spec: authServiceListPasskeysSpec(), Handler: adapter.listPasskeys},
 		connect.Method{Spec: authServiceRenamePasskeySpec(), Handler: adapter.renamePasskey},
 		connect.Method{Spec: authServiceRemovePasskeySpec(), Handler: adapter.removePasskey},
+		connect.Method{Spec: authServicePasskeySignInBeginSpec(), Handler: adapter.passkeySignInBegin},
+		connect.Method{Spec: authServicePasskeySignInFinishSpec(), Handler: adapter.passkeySignInFinish},
 	)
 }
 
@@ -379,6 +409,14 @@ func (UnimplementedAuthServiceHandler) RenamePasskey(context.Context, *v1.Rename
 
 func (UnimplementedAuthServiceHandler) RemovePasskey(context.Context, *v1.RemovePasskeyRequest) (*v1.RemovePasskeyResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "auth.v1.AuthService.RemovePasskey is not implemented")
+}
+
+func (UnimplementedAuthServiceHandler) PasskeySignInBegin(context.Context, *v1.PasskeySignInBeginRequest) (*v1.PasskeySignInBeginResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "auth.v1.AuthService.PasskeySignInBegin is not implemented")
+}
+
+func (UnimplementedAuthServiceHandler) PasskeySignInFinish(context.Context, *v1.PasskeySignInFinishRequest) (*v1.PasskeySignInFinishResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "auth.v1.AuthService.PasskeySignInFinish is not implemented")
 }
 
 type authServiceClient struct {
@@ -540,6 +578,22 @@ func (c *authServiceClient) RenamePasskey(ctx context.Context, req *v1.RenamePas
 func (c *authServiceClient) RemovePasskey(ctx context.Context, req *v1.RemovePasskeyRequest) (*v1.RemovePasskeyResponse, error) {
 	var res v1.RemovePasskeyResponse
 	if err := c.client.CallUnary(ctx, authServiceRemovePasskeySpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *authServiceClient) PasskeySignInBegin(ctx context.Context, req *v1.PasskeySignInBeginRequest) (*v1.PasskeySignInBeginResponse, error) {
+	var res v1.PasskeySignInBeginResponse
+	if err := c.client.CallUnary(ctx, authServicePasskeySignInBeginSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *authServiceClient) PasskeySignInFinish(ctx context.Context, req *v1.PasskeySignInFinishRequest) (*v1.PasskeySignInFinishResponse, error) {
+	var res v1.PasskeySignInFinishResponse
+	if err := c.client.CallUnary(ctx, authServicePasskeySignInFinishSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -781,6 +835,30 @@ func (h authServiceHandler) removePasskey(ctx context.Context, _ connect.Spec, s
 		return err
 	}
 	res, err := h.svc.RemovePasskey(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h authServiceHandler) passkeySignInBegin(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.PasskeySignInBeginRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.PasskeySignInBegin(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h authServiceHandler) passkeySignInFinish(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.PasskeySignInFinishRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.PasskeySignInFinish(ctx, &req)
 	if err != nil {
 		return err
 	}

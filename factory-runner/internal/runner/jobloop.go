@@ -21,6 +21,9 @@ const (
 	// DefaultMaxWatch is how long a pull request may stay unmerged before the job
 	// gives up on it.
 	DefaultMaxWatch = 6 * time.Hour
+	// DefaultNoCIGrace is how long a pull request head may show no checks before
+	// the repo counts as having no CI.
+	DefaultNoCIGrace = 5 * time.Minute
 
 	// maxAttempts bounds the agent runs of one job, whatever else happens.
 	maxAttempts = 20
@@ -527,6 +530,7 @@ func (l *jobLoop) watch(res result, text string) step {
 	}
 	ref := PullRef{Owner: l.job.RepoOwner, Repo: l.job.RepoName, Number: number}
 	deadline := l.now().Add(cmp.Or(l.r.MaxWatch, DefaultMaxWatch))
+	var bare bareChecks
 	for {
 		if why := l.ended(); why != "" {
 			return l.finish(res, why, text)
@@ -537,6 +541,8 @@ func (l *jobLoop) watch(res result, text string) step {
 				"error", scrub(err.Error(), l.token))
 		} else if s, over := l.judge(res, text, st); over {
 			return s
+		} else if bare.exceeded(st, l.now(), cmp.Or(l.r.NoCIGrace, DefaultNoCIGrace)) {
+			return l.noCI(res, text)
 		}
 		if l.now().After(deadline) {
 			return l.finish(res, "The pull request was not merged within "+
@@ -544,6 +550,33 @@ func (l *jobLoop) watch(res result, text string) step {
 		}
 		l.sleep(l.pollEvery(st))
 	}
+}
+
+// bareChecks tracks how long the pull request's head has shown no check runs.
+type bareChecks struct {
+	head  string
+	since time.Time
+}
+
+// exceeded reports whether the open head has had no checks for longer than grace.
+func (b *bareChecks) exceeded(st PullStatus, now time.Time, grace time.Duration) bool {
+	if st.State != PullOpen || !st.NoChecks {
+		b.since = time.Time{}
+		return false
+	}
+	if b.head != st.HeadSHA || b.since.IsZero() {
+		b.head, b.since = st.HeadSHA, now
+	}
+	return now.Sub(b.since) >= grace
+}
+
+// noCI ends the job on a pull request whose repo has no CI: nothing will ever
+// report on it, so the slot is freed and the open, armed pull request is left be.
+func (l *jobLoop) noCI(res result, text string) step {
+	res.succeeded = true
+	res.outcome = strings.TrimSpace("This repo has no CI checks, so nothing gates the " +
+		"merge of " + res.prURL + "; the job stopped watching it.\n\n" + text)
+	return over(res)
 }
 
 // pollEvery polls fast while checks run and slowly once they are green.

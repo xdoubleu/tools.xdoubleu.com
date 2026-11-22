@@ -113,26 +113,36 @@ linters:
               desc: platform may import only kit, never apps
         # Hexagonal apps (docs/convention-hexagonal-apps.md): adapters reach
         # persistence only through services; services stay transport-free.
-        # Every converted app is listed by path.
+        # Globs cover every app, so a new app is checked from its first commit.
+        # depguard cannot glob an import path, so the ban on internal/repositories
+        # in adapters and in an app's root package lives in
+        # scripts/check_hexagonal.sh (make lint/hexagonal).
         hexagonal-adapters:
           files:
-            - "**/apps/shoppinglist/connect/**"
-            - "**/apps/shoppinglist/mcp/**"
-            - "**/apps/shoppinglist/http/**"
-            - "**/apps/movies/connect/**"
-            - "**/apps/movies/mcp/**"
-            - "**/apps/movies/http/**"
-            - "**/apps/feeds/connect/**"
-            - "**/apps/feeds/mcp/**"
-            - "**/apps/feeds/http/**"
-            - "**/apps/taste/connect/**"
-            - "**/apps/taste/mcp/**"
-            - "**/apps/taste/http/**"
-            - "**/apps/games/connect/**"
-            - "**/apps/games/mcp/**"
-            - "**/apps/books/connect/**"
-            - "**/apps/books/mcp/**"
-            - "**/apps/books/http/**"
+            - "**/apps/*/connect/**"
+            - "**/apps/*/mcp/**"
+            - "**/apps/*/http/**"
+            - "!**/*_test.go"
+          deny:
+            - pkg: github.com/jackc/pgx
+              desc: adapters do not touch the database
+            - pkg: tools.xdoubleu.com/internal/kit/database/postgres
+              desc: adapters do not touch the database
+        hexagonal-services:
+          files:
+            - "**/apps/*/internal/services/**"
+            - "!**/*_test.go"
+          deny:
+            - pkg: connectrpc.com/connect
+              desc: services know no transport
+            - pkg: tools.xdoubleu.com/gen
+              desc: services use domain types, not generated protos
+            - pkg: github.com/jackc/pgx
+              desc: services reach storage through their own interfaces
+            - pkg: net/http
+              desc: services know no transport
+        hexagonal-platform-factory-adapters:
+          files:
             - "**/platform/factory/connect/**"
             - "**/platform/factory/mcp/**"
             - "**/platform/factory/http/**"
@@ -140,31 +150,13 @@ linters:
           deny:
             - pkg: tools.xdoubleu.com/internal/platform/factory/internal/repositories
               desc: adapters call services, never repositories
-            - pkg: tools.xdoubleu.com/apps/shoppinglist/internal/repositories
-              desc: adapters call services, never repositories
-            - pkg: tools.xdoubleu.com/apps/movies/internal/repositories
-              desc: adapters call services, never repositories
-            - pkg: tools.xdoubleu.com/apps/feeds/internal/repositories
-              desc: adapters call services, never repositories
-            - pkg: tools.xdoubleu.com/apps/taste/internal/repositories
-              desc: adapters call services, never repositories
-            - pkg: tools.xdoubleu.com/apps/games/internal/repositories
-              desc: adapters call services, never repositories
-            - pkg: tools.xdoubleu.com/apps/books/internal/repositories
-              desc: adapters call services, never repositories
             - pkg: github.com/jackc/pgx
               desc: adapters do not touch the database
             - pkg: tools.xdoubleu.com/internal/kit/database/postgres
               desc: adapters do not touch the database
-        hexagonal-services:
+        hexagonal-platform-factory-services:
           files:
-            - "**/apps/shoppinglist/internal/services/**"
-            - "**/apps/movies/internal/services/**"
-            - "**/apps/feeds/internal/services/**"
-            - "**/apps/taste/internal/services/**"
-            - "**/apps/games/internal/services/**"
             - "**/platform/factory/internal/services/**"
-            - "**/apps/books/internal/services/**"
             - "!**/*_test.go"
           deny:
             - pkg: connectrpc.com/connect

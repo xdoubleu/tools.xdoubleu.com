@@ -22,9 +22,9 @@ import (
 // callers map it to FailedPrecondition, not a 500.
 var ErrTodoistNotConnected = oauthconn.ErrNotConnected
 
-// todoistConnections is the oauth-connections surface TodoistService needs: a
+// TodoistConnections is the oauth-connections surface TodoistService needs: a
 // connected check plus per-user token lookup and connection mutation.
-type todoistConnections interface {
+type TodoistConnections interface {
 	Status(ctx context.Context, userID string) (*sharedmodels.OAuthConnection, error)
 	Upsert(
 		ctx context.Context, userID string, provider sharedmodels.OAuthProvider,
@@ -43,8 +43,8 @@ type todoistConnections interface {
 // path items to it as tasks in one shared project, one-way. Strictly
 // per-user; no admin bypass.
 type TodoistService struct {
-	oauthRepo     todoistConnections
-	learningPaths learningPathsStore
+	oauthRepo     TodoistConnections
+	learningPaths LearningPathsStore
 	conf          *oauth2.Config
 	state         *oauthconn.StateStore
 	// newClient is a field so tests can substitute a mock Client.
@@ -58,8 +58,8 @@ type TodoistService struct {
 }
 
 func NewTodoistService(
-	oauthRepo todoistConnections,
-	learningPaths learningPathsStore,
+	oauthRepo TodoistConnections,
+	learningPaths LearningPathsStore,
 	conf *oauth2.Config,
 	state *oauthconn.StateStore,
 ) *TodoistService {

@@ -54,7 +54,7 @@ func newStores(r *repositories.Repositories) services.Stores {
 	return services.Stores{
 		Tasks: r.Tasks, Repos: r.Repos, Runners: r.Runners, Jobs: r.Jobs,
 		Events: r.Events, Settings: r.Settings, Linked: r.Linked,
-		Routines: r.Routines,
+		Routines: r.Routines, Chats: r.Chats,
 	}
 }
 

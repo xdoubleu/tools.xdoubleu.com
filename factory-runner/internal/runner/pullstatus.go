@@ -76,6 +76,8 @@ type PullStatus struct {
 	// Conflict is set when the pull request conflicts with its base. While GitHub
 	// is still computing that, it stays false.
 	Conflict bool
+	// NoChecks is set when the head commit has no check runs at all.
+	NoChecks bool
 }
 
 type checkRun struct {
@@ -119,7 +121,7 @@ func (c *GitHubClient) PullRequestStatus(
 		return PullStatus{}, fmt.Errorf("read the pull request: %w", err)
 	}
 	status := PullStatus{
-		State: PullOpen, HeadSHA: pull.Head.SHA, CI: CIPending, Failed: nil,
+		State: PullOpen, HeadSHA: pull.Head.SHA, CI: CIPending, Failed: nil, NoChecks: false,
 		Conflict: (pull.Mergeable != nil && !*pull.Mergeable) ||
 			pull.MergeableState == "dirty",
 	}
@@ -140,6 +142,7 @@ func (c *GitHubClient) PullRequestStatus(
 	if err := c.do(ctx, http.MethodGet, path, token, nil, &runs); err != nil {
 		return PullStatus{}, fmt.Errorf("read the checks: %w", err)
 	}
+	status.NoChecks = len(runs.CheckRuns) == 0
 	c.judge(ctx, repo, token, runs.CheckRuns, &status)
 	return status, nil
 }

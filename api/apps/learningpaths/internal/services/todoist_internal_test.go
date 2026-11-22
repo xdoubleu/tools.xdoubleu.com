@@ -31,7 +31,7 @@ func newTestTodoistService(
 	return svc, mock
 }
 
-// fakeConnections is an in-memory todoistConnections; the mock Client never
+// fakeConnections is an in-memory TodoistConnections; the mock Client never
 // invokes the token function, so ForUser returns an unused store.
 type fakeConnections struct {
 	connected bool

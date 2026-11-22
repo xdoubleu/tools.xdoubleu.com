@@ -7,10 +7,20 @@ import { GetCurrentUserResponseSchema } from '@/lib/gen/auth/v1/auth_pb'
 vi.mock('@/hooks/useAuth', () => ({
   useCurrentUser: vi.fn(),
   useSignIn: vi.fn(),
-  useMFAChallenge: vi.fn()
+  useMFAChallenge: vi.fn(),
+  usePasskeySignIn: vi.fn(),
+  passkeySignInSupported: vi.fn(),
+  conditionalPasskeyAvailable: vi.fn()
 }))
 
-import { useCurrentUser, useSignIn, useMFAChallenge } from '@/hooks/useAuth'
+import {
+  useCurrentUser,
+  useSignIn,
+  useMFAChallenge,
+  usePasskeySignIn,
+  passkeySignInSupported,
+  conditionalPasskeyAvailable
+} from '@/hooks/useAuth'
 
 vi.mock('@/components/today/TodayView', () => ({ default: () => <p>today view</p> }))
 
@@ -18,8 +28,15 @@ const mockUseSettings = vi.mocked(useCurrentUser)
 const mockUseSignIn = vi.mocked(useSignIn)
 const mockUseMFAChallenge = vi.mocked(useMFAChallenge)
 
+const mockUsePasskeySignIn = vi.mocked(usePasskeySignIn)
+const mockPasskeySupported = vi.mocked(passkeySignInSupported)
+const mockConditional = vi.mocked(conditionalPasskeyAvailable)
+
 beforeEach(() => {
   vi.clearAllMocks()
+  mockUsePasskeySignIn.mockReturnValue(vi.fn())
+  mockPasskeySupported.mockReturnValue(false)
+  mockConditional.mockResolvedValue(false)
 })
 
 describe('HomeClient', () => {
@@ -510,5 +527,81 @@ describe('HomeClient', () => {
 
     expect(screen.getByText('Two-factor authentication')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Sign in/ })).not.toBeInTheDocument()
+  })
+
+  describe('passkey sign-in', () => {
+    const signedOut = () => {
+      // @ts-expect-error -- mock returns partial hook response for test purposes
+      mockUseSettings.mockReturnValue({
+        data: undefined,
+        isLoading: false,
+        error: new Error('401')
+      })
+    }
+
+    it('hides the button when the browser cannot sign in with a passkey', async () => {
+      signedOut()
+      render(<HomeClient />)
+      await screen.findByLabelText('Email')
+      expect(screen.queryByRole('button', { name: /passkey/i })).not.toBeInTheDocument()
+    })
+
+    it('signs in from the button with the remember-me choice', async () => {
+      signedOut()
+      mockPasskeySupported.mockReturnValue(true)
+      const passkeySignIn = vi.fn().mockResolvedValue(undefined)
+      mockUsePasskeySignIn.mockReturnValue(passkeySignIn)
+
+      render(<HomeClient />)
+      fireEvent.click(await screen.findByRole('button', { name: 'Sign in with a passkey' }))
+
+      await waitFor(() => expect(passkeySignIn).toHaveBeenCalledWith(true))
+    })
+
+    it('shows a server refusal', async () => {
+      signedOut()
+      mockPasskeySupported.mockReturnValue(true)
+      mockUsePasskeySignIn.mockReturnValue(
+        vi.fn().mockRejectedValue(new ConnectError('passkey sign-in failed', Code.Unauthenticated))
+      )
+
+      render(<HomeClient />)
+      fireEvent.click(await screen.findByRole('button', { name: 'Sign in with a passkey' }))
+
+      expect(await screen.findByText(/passkey sign-in failed/)).toBeInTheDocument()
+    })
+
+    it('says nothing when the person dismisses the prompt', async () => {
+      signedOut()
+      mockPasskeySupported.mockReturnValue(true)
+      mockUsePasskeySignIn.mockReturnValue(
+        vi.fn().mockRejectedValue(new DOMException('cancelled', 'NotAllowedError'))
+      )
+
+      render(<HomeClient />)
+      fireEvent.click(await screen.findByRole('button', { name: 'Sign in with a passkey' }))
+
+      await waitFor(() =>
+        expect(screen.getByRole('button', { name: 'Sign in with a passkey' })).toBeEnabled()
+      )
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    })
+
+    it('offers passkeys in the email autofill when the browser supports it', async () => {
+      signedOut()
+      mockConditional.mockResolvedValue(true)
+      const passkeySignIn = vi.fn().mockReturnValue(new Promise(() => {}))
+      mockUsePasskeySignIn.mockReturnValue(passkeySignIn)
+
+      render(<HomeClient />)
+
+      await waitFor(() =>
+        expect(passkeySignIn).toHaveBeenCalledWith(
+          true,
+          expect.objectContaining({ conditional: true })
+        )
+      )
+      expect(screen.getByLabelText('Email')).toHaveAttribute('autocomplete', 'username webauthn')
+    })
   })
 })

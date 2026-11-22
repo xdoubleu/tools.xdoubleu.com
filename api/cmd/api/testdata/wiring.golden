@@ -51,6 +51,8 @@ POST /auth.v1.AuthService/MFAEnrollVerify: 415, 415
 POST /auth.v1.AuthService/MFAUnenroll: 415, 415
 POST /auth.v1.AuthService/PasskeyRegisterBegin: 415, 415
 POST /auth.v1.AuthService/PasskeyRegisterFinish: 415, 415
+POST /auth.v1.AuthService/PasskeySignInBegin: 415, 415
+POST /auth.v1.AuthService/PasskeySignInFinish: 415, 415
 POST /auth.v1.AuthService/RecordAppOpen: 415, 415
 POST /auth.v1.AuthService/RegenerateRecoveryCodes: 415, 415
 POST /auth.v1.AuthService/RemovePasskey: 415, 415

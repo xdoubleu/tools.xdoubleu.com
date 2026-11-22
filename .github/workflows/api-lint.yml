@@ -28,10 +28,8 @@ jobs:
       - name: Run golangci-lint
         run: golangci-lint run
         working-directory: './api'
-      # The flake's golines is not the pinned 0.13.0 and formats tags differently, so
-      # the Makefile installs the pin into GOPATH/bin, which must lead PATH.
       - name: Check golines drift
-        run: PATH="$(go env GOPATH)/bin:$PATH" make lint/golines
+        run: make lint/golines
         working-directory: './api'
 
   lint-sql:
@@ -71,6 +69,15 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: Check Kamal deploy-secret consistency
         run: make lint/kamal-secrets
+        working-directory: './api'
+
+  lint-hexagonal:
+    name: API Hexagonal Imports Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Check adapters and root packages import no repositories
+        run: make lint/hexagonal
         working-directory: './api'
 
   lint-cross-schema:

@@ -10,6 +10,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	trainshttp "tools.xdoubleu.com/apps/trains/http"
 	"tools.xdoubleu.com/apps/trains/internal/repositories"
 	"tools.xdoubleu.com/apps/trains/internal/services"
 	"tools.xdoubleu.com/apps/trains/pkg/irail"
@@ -28,7 +29,7 @@ type Trains struct {
 	// Exported so integration tests can drive the real services.
 	Services     *services.Services
 	Repositories *repositories.Repositories
-	irail        irail.Client
+	journeyWS    *trainshttp.JourneyWS
 }
 
 func New(
@@ -58,22 +59,23 @@ func NewInner(
 ) *Trains {
 	//nolint:exhaustruct //Services/Repositories initialised below
 	a := &Trains{
-		Base:  app.NewBase(ctx, authService, logger, cfg),
-		db:    db,
-		irail: client,
+		Base: app.NewBase(ctx, authService, logger, cfg),
+		db:   db,
 	}
 
 	a.Repositories = repositories.New(a.db)
-	a.Services = services.New(
-		a.Ctx, logger, a.Repositories, client, []string{cfg.WebURL},
+	a.Services = services.New(client, a.Repositories.SavedCommutes)
+	a.journeyWS = trainshttp.NewJourneyWS(
+		a.Ctx, logger, []string{cfg.WebURL}, a.Services.JourneyDetail,
 	)
+	a.Services.WatchJourneys(a.journeyWS)
 
 	return a
 }
 
 // Start begins pushing fresh detail to watched journeys.
 func (a *Trains) Start() error {
-	go a.Services.JourneyWS.Run(a.Ctx)
+	go a.journeyWS.Run(a.Ctx)
 	return nil
 }
 

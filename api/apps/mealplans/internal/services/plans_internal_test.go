@@ -22,6 +22,10 @@ type fakePlansStore struct {
 	getErr        error
 	mealsInWindow []models.PlanMeal
 	mealsErr      error
+	listed        []models.Plan
+	listedMore    bool
+	created       []models.Plan
+	lastMeal      models.PlanMeal
 	// familyRecipes are the recipe IDs RecipeInFamily accepts.
 	familyRecipes map[uuid.UUID]bool
 
@@ -36,7 +40,7 @@ type fakePlansStore struct {
 func (f *fakePlansStore) ListForFamily(
 	_ context.Context, _ uuid.UUID, _, _ int32,
 ) ([]models.Plan, bool, error) {
-	return nil, false, nil
+	return f.listed, f.listedMore, nil
 }
 
 func (f *fakePlansStore) GetByID(
@@ -80,6 +84,7 @@ func (f *fakePlansStore) GetByICalToken(
 func (f *fakePlansStore) Create(
 	_ context.Context, plan models.Plan,
 ) (*models.Plan, error) {
+	f.created = append(f.created, plan)
 	return &plan, nil
 }
 
@@ -105,11 +110,13 @@ func (f *fakePlansStore) CreateMeal(
 	_ context.Context, meal models.PlanMeal,
 ) (*models.PlanMeal, error) {
 	f.mealCreated = true
+	f.lastMeal = meal
 	return &meal, nil
 }
 
-func (f *fakePlansStore) UpdateMeal(_ context.Context, _ models.PlanMeal) error {
+func (f *fakePlansStore) UpdateMeal(_ context.Context, meal models.PlanMeal) error {
 	f.mealUpdated = true
+	f.lastMeal = meal
 	return nil
 }
 
@@ -206,6 +213,11 @@ func TestPlanDelete_OtherFamilyForbidden(t *testing.T) {
 	assert.False(t, store.deleted)
 }
 
+func customMeal() models.PlanMeal {
+	//nolint:exhaustruct //only the content matters
+	return models.PlanMeal{CustomName: "pasta"}
+}
+
 func TestPlanMealMutations_OtherFamilyForbidden(t *testing.T) {
 	//nolint:exhaustruct //unset fields are the fixture defaults
 	store := &fakePlansStore{plan: newPlanFixture()}
@@ -213,14 +225,14 @@ func TestPlanMealMutations_OtherFamilyForbidden(t *testing.T) {
 
 	err := svc.CreateMeal(
 		t.Context(), store.plan.ID, "other",
-		models.PlanMeal{}, //nolint:exhaustruct //empty meal is enough
+		customMeal(),
 	)
 	assert.Equal(t, http.StatusNotFound, planHTTPStatus(t, err))
 	assert.False(t, store.mealCreated)
 
 	err = svc.UpdateMeal(
 		t.Context(), store.plan.ID, "other",
-		models.PlanMeal{}, //nolint:exhaustruct //empty meal is enough
+		customMeal(),
 	)
 	assert.Equal(t, http.StatusNotFound, planHTTPStatus(t, err))
 	assert.False(t, store.mealUpdated)
@@ -230,7 +242,7 @@ func TestPlanMealMutations_OtherFamilyForbidden(t *testing.T) {
 	assert.False(t, store.mealDeleted)
 
 	err = svc.MoveMeal(
-		t.Context(), uuid.New(), store.plan.ID, "other", time.Now(), "dinner",
+		t.Context(), uuid.New(), store.plan.ID, "other", time.Now(), models.SlotEvening,
 	)
 	assert.Equal(t, http.StatusNotFound, planHTTPStatus(t, err))
 	assert.False(t, store.mealMoved)
@@ -243,15 +255,15 @@ func TestPlanMealMutations_AllowedForFamilyMember(t *testing.T) {
 
 	require.NoError(t, svc.CreateMeal(
 		t.Context(), store.plan.ID, "editor",
-		models.PlanMeal{}, //nolint:exhaustruct //empty meal is enough
+		customMeal(),
 	))
 	require.NoError(t, svc.UpdateMeal(
 		t.Context(), store.plan.ID, "editor",
-		models.PlanMeal{}, //nolint:exhaustruct //empty meal is enough
+		customMeal(),
 	))
 	require.NoError(t, svc.DeleteMeal(t.Context(), uuid.New(), store.plan.ID, "editor"))
 	require.NoError(t, svc.MoveMeal(
-		t.Context(), uuid.New(), store.plan.ID, "editor", time.Now(), "lunch",
+		t.Context(), uuid.New(), store.plan.ID, "editor", time.Now(), models.SlotNoon,
 	))
 	assert.True(t, store.mealCreated)
 	assert.True(t, store.mealUpdated)
@@ -386,4 +398,82 @@ func TestPlanMealMutations_ForeignRecipeNotFound(t *testing.T) {
 	require.NoError(t, svc.CreateMeal(t.Context(), store.plan.ID, "editor",
 		models.PlanMeal{RecipeID: &ownRecipe})) //nolint:exhaustruct //recipe only
 	assert.True(t, store.mealCreated)
+}
+
+func TestPlanList_CreatesDefaultPlanWhenNone(t *testing.T) {
+	//nolint:exhaustruct //unset fields are the fixture defaults
+	store := &fakePlansStore{}
+	svc := &PlanService{repo: store, family: newFamilyStore()}
+
+	list, _, err := svc.List(t.Context(), "member", 0, 0)
+	require.NoError(t, err)
+	require.Len(t, list, 1)
+	assert.Equal(t, DefaultPlanName, list[0].Name)
+	assert.Equal(t, "member", list[0].OwnerUserID)
+	assert.Equal(t, familyA, list[0].FamilyID)
+	assert.Len(t, store.created, 1)
+}
+
+func TestPlanList_NoDefaultPlanOnLaterPageOrWhenPresent(t *testing.T) {
+	//nolint:exhaustruct //unset fields are the fixture defaults
+	store := &fakePlansStore{}
+	svc := &PlanService{repo: store, family: newFamilyStore()}
+
+	list, _, err := svc.List(t.Context(), "member", 10, 10)
+	require.NoError(t, err)
+	assert.Empty(t, list)
+
+	store.listed = []models.Plan{*newPlanFixture()}
+	list, _, err = svc.List(t.Context(), "member", 0, 0)
+	require.NoError(t, err)
+	assert.Len(t, list, 1)
+	assert.Empty(t, store.created)
+}
+
+func TestPlanMeal_RequiresRecipeOrName(t *testing.T) {
+	//nolint:exhaustruct //unset fields are the fixture defaults
+	store := &fakePlansStore{plan: newPlanFixture()}
+	svc := &PlanService{repo: store, family: newFamilyStore()}
+
+	//nolint:exhaustruct //empty meal is the case
+	empty := models.PlanMeal{}
+	err := svc.CreateMeal(t.Context(), store.plan.ID, "editor", empty)
+	require.ErrorIs(t, err, ErrMealContent)
+	assert.Equal(t, http.StatusBadRequest, planHTTPStatus(t, err))
+	assert.False(t, store.mealCreated)
+
+	err = svc.UpdateMeal(t.Context(), store.plan.ID, "editor", empty)
+	require.ErrorIs(t, err, ErrMealContent)
+	assert.False(t, store.mealUpdated)
+}
+
+func TestPlanMeal_DefaultsServings(t *testing.T) {
+	recipe := uuid.New()
+	//nolint:exhaustruct //unset fields are the fixture defaults
+	store := &fakePlansStore{
+		plan:          newPlanFixture(),
+		familyRecipes: map[uuid.UUID]bool{recipe: true},
+	}
+	svc := &PlanService{repo: store, family: newFamilyStore()}
+
+	//nolint:exhaustruct //only the recipe matters
+	meal := models.PlanMeal{RecipeID: &recipe}
+	require.NoError(t, svc.CreateMeal(t.Context(), store.plan.ID, "editor", meal))
+	assert.Equal(t, 2, store.lastMeal.Servings)
+
+	meal.Servings = 5
+	require.NoError(t, svc.UpdateMeal(t.Context(), store.plan.ID, "editor", meal))
+	assert.Equal(t, 5, store.lastMeal.Servings)
+}
+
+func TestPlanMoveMeal_RejectsInvalidSlot(t *testing.T) {
+	//nolint:exhaustruct //unset fields are the fixture defaults
+	store := &fakePlansStore{plan: newPlanFixture()}
+	svc := &PlanService{repo: store, family: newFamilyStore()}
+
+	err := svc.MoveMeal(
+		t.Context(), uuid.New(), store.plan.ID, "editor", time.Now(), "dinner",
+	)
+	require.ErrorIs(t, err, ErrMealSlot)
+	assert.False(t, store.mealMoved)
 }
