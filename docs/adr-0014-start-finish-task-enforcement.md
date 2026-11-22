@@ -25,6 +25,10 @@ Hooks in `.claude/settings.json`, all exercised by `make hooks/test`:
 - **`PreToolUse` on `Edit`/`Write`/`NotebookEdit`** (#1619): denies writes
   inside the repo but outside the session's active worktree.
 
+Both hooks stand aside when `FACTORY_JOB` is set: factory-runner and wardcase
+set it and isolate the checkout themselves and report or ship the work on exit.
+Bare Claude Code keeps them until skills replace them (T-741).
+
 ## Alternatives considered
 
 - **Documentation alone** — produced the 14-of-16 figure.
