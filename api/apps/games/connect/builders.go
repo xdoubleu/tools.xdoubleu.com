@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"tools.xdoubleu.com/apps/games/internal/models"
+	"tools.xdoubleu.com/apps/games/internal/protomap"
 	gamesv1 "tools.xdoubleu.com/gen/games/v1"
 )
 
@@ -20,20 +20,7 @@ func (h *Handler) SteamResponse(
 		return nil, err
 	}
 
-	return &gamesv1.SteamResponse{
-		NotStarted: protoGames(o.NotStarted),
-		InProgress: protoGames(o.InProgress),
-		Completed:  protoGames(o.Completed),
-		Delisted:   protoGames(o.Delisted),
-		//nolint:gosec // safe for domain counts
-		TotalBacklog: int32(o.TotalBacklog),
-		Distribution: convertIntSlice(o.Distribution),
-		CurrentRate:  o.CurrentRate,
-		Labels:       o.Labels,
-		Values:       o.Values,
-		DateStart:    o.DateStart.Format(models.ProgressDateFormat),
-		DateEnd:      o.DateEnd.Format(models.ProgressDateFormat),
-	}, nil
+	return protomap.Steam(o), nil
 }
 
 // LastSyncedAt is the last library sync time as RFC 3339 ("" if never
@@ -57,10 +44,7 @@ func (h *Handler) SteamGameResponse(
 	if err != nil {
 		return nil, err
 	}
-	return &gamesv1.SteamGameResponse{
-		Game:         protoGame(d.Game),
-		Achievements: protoAchievements(d.Achievements),
-	}, nil
+	return protomap.SteamGame(d), nil
 }
 
 // RecentGames returns recently-active games as proto for the dashboard app.
@@ -72,5 +56,5 @@ func (h *Handler) RecentGames(
 	if err != nil {
 		return nil, err
 	}
-	return protoRecentGames(recent), nil
+	return protomap.RecentGames(recent), nil
 }

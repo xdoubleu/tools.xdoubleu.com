@@ -40,7 +40,7 @@ func (a *Games) Routes(prefix string, mux *http.ServeMux) {
 // RegisterMCPTools exposes the app's read-only RPCs as MCP tools, scoped to
 // the caller.
 func (a *Games) RegisterMCPTools(srv *mcp.Server) {
-	gamesmcp.Register(srv, a.connectHandler())
+	gamesmcp.Register(srv, a.services)
 }
 
 func (a *Games) connectHandler() *connect.Handler {

@@ -2,11 +2,10 @@ package connect
 
 import (
 	"context"
-	"time"
 
 	"connectrpc.com/connect/v2"
 
-	"tools.xdoubleu.com/apps/games/internal/models"
+	"tools.xdoubleu.com/apps/games/internal/protomap"
 	"tools.xdoubleu.com/apps/games/internal/services"
 	gamesv1 "tools.xdoubleu.com/gen/games/v1"
 	gamesv1connect "tools.xdoubleu.com/gen/games/v1/gamesv1connect"
@@ -48,7 +47,7 @@ func (h *Handler) GetSteam(
 		)
 	}
 
-	dateStart, dateEnd := parseDateRangeFromStrings(req.DateStart, req.DateEnd)
+	dateStart, dateEnd := protomap.DateRange(req.DateStart, req.DateEnd)
 
 	steam, err := h.SteamResponse(ctx, user.ID, dateStart, dateEnd)
 	if err != nil {
@@ -132,7 +131,7 @@ func (h *Handler) SetGameFavourite(
 	}
 
 	return &gamesv1.SetGameFavouriteResponse{
-		Game: protoGame(*game),
+		Game: protomap.Game(*game),
 	}, nil
 }
 
@@ -161,7 +160,7 @@ func (h *Handler) GetSteamDistribution(
 	return &gamesv1.GetSteamDistributionResponse{
 		Data: &gamesv1.SteamDistributionResponse{
 			Label: label,
-			Games: protoGames(bucketGames),
+			Games: protomap.Games(bucketGames),
 		},
 	}, nil
 }
@@ -184,7 +183,7 @@ func (h *Handler) GetRecentlyActiveGames(
 	}
 
 	return &gamesv1.GetRecentlyActiveGamesResponse{
-		Games: protoRecentGames(games),
+		Games: protomap.RecentGames(games),
 	}, nil
 }
 
@@ -205,79 +204,6 @@ func (h *Handler) GetWishlist(
 		return nil, connecttools.MapError(err)
 	}
 
-	games := make([]*gamesv1.WishlistGame, len(items))
-	for i, it := range items {
-		games[i] = &gamesv1.WishlistGame{
-			Id:       int32(it.ID), //nolint:gosec // int32 safe for domain values
-			Name:     it.Name,
-			ImageUrl: it.ImageURL,
-			Priority: int32(it.Priority), //nolint:gosec // safe for domain values
-			AddedAt:  "",
-		}
-		if it.AddedAt != nil {
-			games[i].AddedAt = it.AddedAt.Format(time.RFC3339)
-		}
-	}
+	games := protomap.Wishlist(items)
 	return &gamesv1.GetWishlistResponse{Games: games}, nil
-}
-
-func protoGame(g models.Game) *gamesv1.Game {
-	return &gamesv1.Game{
-		Id:                  int32(g.ID), //nolint:gosec // int32 safe for domain values
-		Name:                g.Name,
-		IsDelisted:          g.IsDelisted,
-		InCompletionAverage: g.InCompletionAverage,
-		CompletionRate:      g.CompletionRate,
-		Contribution:        g.Contribution,
-		Playtime:            int32(g.Playtime), //nolint:gosec // safe for domain values
-		ImageUrl:            g.ImageURL,
-		LastSyncedAt:        g.LastSyncedAt.Format(time.RFC3339),
-		Favourite:           g.Favourite,
-	}
-}
-
-func protoGames(games []models.Game) []*gamesv1.Game {
-	result := make([]*gamesv1.Game, len(games))
-	for i, g := range games {
-		result[i] = protoGame(g)
-	}
-	return result
-}
-
-func protoRecentGames(games []models.RecentGame) []*gamesv1.RecentGame {
-	result := make([]*gamesv1.RecentGame, len(games))
-	for i, g := range games {
-		result[i] = &gamesv1.RecentGame{
-			Id:             int32(g.ID), //nolint:gosec // int32 safe for domain values
-			Name:           g.Name,
-			CompletionRate: g.CompletionRate,
-			ImageUrl:       g.ImageURL,
-			LastPlayedAt:   g.LastPlayed.Format(models.ProgressDateFormat),
-			Playtime:       int32(g.Playtime), //nolint:gosec // safe for domain values
-		}
-	}
-	return result
-}
-
-func protoAchievements(achievements []models.Achievement) []*gamesv1.Achievement {
-	result := make([]*gamesv1.Achievement, len(achievements))
-	for i, a := range achievements {
-		result[i] = &gamesv1.Achievement{
-			Name:          a.Name,
-			DisplayName:   a.DisplayName,
-			Description:   a.Description,
-			IconUrl:       a.IconURL,
-			Achieved:      a.Achieved,
-			GlobalPercent: a.GlobalPercent,
-		}
-	}
-	return result
-}
-
-func convertIntSlice(ints []int) []int32 {
-	result := make([]int32, len(ints))
-	for i, v := range ints {
-		result[i] = int32(v) //nolint:gosec // int32 safe for domain values
-	}
-	return result
 }

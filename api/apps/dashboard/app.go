@@ -40,6 +40,7 @@ type TodayApps struct {
 
 type Dashboard struct {
 	app.Base
+	todaySvc      *services.TodayService
 	todayHandler  *connect.TodayHandler
 	publicHandler *connect.PublicHandler
 }
@@ -58,11 +59,11 @@ func New(
 	today TodayApps,
 ) *Dashboard {
 	shares := services.NewShareService(account.NewProfileSharesRepository(db))
+	todaySvc := services.NewTodayService(logger, todaySources(today))
 	return &Dashboard{
-		Base: app.NewBase(ctx, authService, logger, cfg),
-		todayHandler: connect.NewTodayHandler(
-			services.NewTodayService(logger, todaySources(today)),
-		),
+		Base:          app.NewBase(ctx, authService, logger, cfg),
+		todaySvc:      todaySvc,
+		todayHandler:  connect.NewTodayHandler(todaySvc),
 		publicHandler: connect.NewPublicHandler(shares, gamesApp, booksApp, feedsApp),
 	}
 }
