@@ -121,14 +121,20 @@ func (m *mcpToken) Reject() {
 }
 
 // mcpServers is the proxy routes for the configured servers that are signed in, and
-// the names of the ones that are not. Headless runs get only servers with jobs set.
+// the names of the ones that are not. Headless runs get only servers with jobs set,
+// and the repo's file can narrow both.
 func (r *Runner) mcpServers(
-	headless bool,
+	headless bool, repo RepoConfig,
 ) ([]vm.MCPServer, []string, error) {
 	var servers []vm.MCPServer
 	var missing []string
 	hc := &http.Client{Timeout: oauthTimeout}
-	for _, cfg := range r.Config.MCP {
+	allowed, unknown := repo.narrow(r.Config.MCP)
+	for _, name := range unknown {
+		fmt.Fprintf(r.Notes, "wardcase: the repo lists MCP server %s, which the device "+
+			"does not configure\n", name)
+	}
+	for _, cfg := range allowed {
 		if headless && !cfg.Jobs {
 			continue
 		}
@@ -154,9 +160,13 @@ func (r *Runner) mcpServers(
 // addMCP puts the configured, signed-in servers on the proxy and tells the VM their
 // names; the ones not signed in are named on Notes.
 func (r *Runner) addMCP(
-	egress *vm.EgressConfig, env map[string]string, headless bool,
+	egress *vm.EgressConfig, env map[string]string, headless bool, checkout string,
 ) error {
-	servers, missing, err := r.mcpServers(headless)
+	repo, err := LoadRepoConfig(checkout)
+	if err != nil {
+		return err
+	}
+	servers, missing, err := r.mcpServers(headless, repo)
 	if err != nil {
 		return err
 	}

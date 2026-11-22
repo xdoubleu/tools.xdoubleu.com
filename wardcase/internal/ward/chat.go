@@ -102,7 +102,7 @@ func (r *Runner) startChat(
 		return nil, fmt.Errorf("outcome directory: %w", err)
 	}
 	maps(env, h.SessionEnv(vm.SandboxSessionDir))
-	if err = r.addMCP(&egress, env, true); err != nil {
+	if err = r.addMCP(&egress, env, true, checkout); err != nil {
 		_ = os.RemoveAll(outcomeDir)
 		return nil, err
 	}
