@@ -2,6 +2,7 @@ package mealplans_test
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 
 	"github.com/google/uuid"
@@ -60,4 +61,58 @@ func TestMCPListPlans_CreatesDefaultPlanForNewUser(t *testing.T) {
 	text, ok := res.Content[0].(*mcp.TextContent)
 	require.True(t, ok)
 	assert.Contains(t, text.Text, "My Meal Plan")
+}
+
+func TestMCPPlanTools(t *testing.T) {
+	//nolint:exhaustruct // only ID and role matter
+	user := sharedmodels.User{
+		ID:   "mcp-user-" + uuid.NewString(),
+		Role: sharedmodels.RoleAdmin,
+	}
+	session := newMCPSession(t, user)
+	call := func(name string, args map[string]any) *mcp.CallToolResult {
+		res, err := session.CallTool(
+			t.Context(),
+			//nolint:exhaustruct // only name and arguments matter
+			&mcp.CallToolParams{Name: name, Arguments: args},
+		)
+		require.NoError(t, err)
+		return res
+	}
+	text := func(res *mcp.CallToolResult) string {
+		require.NotEmpty(t, res.Content)
+		tc, ok := res.Content[0].(*mcp.TextContent)
+		require.True(t, ok)
+		return tc.Text
+	}
+
+	list := call("mealplans_list_plans", nil)
+	require.False(t, list.IsError)
+	var parsed struct {
+		Plans []struct {
+			ID string `json:"id"`
+		} `json:"plans"`
+	}
+	require.NoError(t, json.Unmarshal([]byte(text(list)), &parsed))
+	require.NotEmpty(t, parsed.Plans)
+	planID := parsed.Plans[0].ID
+
+	got := call("mealplans_get_plan", map[string]any{"id": planID})
+	require.False(t, got.IsError)
+	assert.Contains(t, text(got), planID)
+	assert.Contains(t, text(got), "isOwner")
+
+	assert.True(t, call("mealplans_get_plan", map[string]any{"id": "nope"}).IsError)
+
+	sug := call("mealplans_suggest_recipes", map[string]any{
+		"plan_id": planID, "meal_date": "2026-01-05", "meal_slot": "evening",
+	})
+	require.False(t, sug.IsError)
+
+	assert.True(t, call("mealplans_suggest_recipes", map[string]any{
+		"plan_id": "nope", "meal_date": "2026-01-05", "meal_slot": "evening",
+	}).IsError)
+	assert.True(t, call("mealplans_suggest_recipes", map[string]any{
+		"plan_id": planID, "meal_date": "bad", "meal_slot": "evening",
+	}).IsError)
 }

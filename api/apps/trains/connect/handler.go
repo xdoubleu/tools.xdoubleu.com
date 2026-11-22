@@ -39,5 +39,7 @@ func mapError(err error) error {
 		connecttools.Code(services.ErrInvalidCommute, connect.CodeInvalidArgument),
 		connecttools.Code(services.ErrInvalidJourneyID, connect.CodeInvalidArgument),
 		connecttools.Code(services.ErrInvalidDate, connect.CodeInvalidArgument),
+		connecttools.Code(services.ErrInvalidTime, connect.CodeInvalidArgument),
+		connecttools.Code(services.ErrJourneyIDRequired, connect.CodeInvalidArgument),
 	)
 }
