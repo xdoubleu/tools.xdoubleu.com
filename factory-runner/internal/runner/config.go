@@ -55,8 +55,10 @@ type Config struct {
 	Mode string `json:"mode,omitempty"`
 	// OnLimit is what a Claude usage limit does: OnLimitWait (also the empty
 	// default) holds claims until it resets; OnLimitFallback is accepted but inert
-	// until a fallback harness exists.
+	// until a fallback harness exists, and needs FallbackModel.
 	OnLimit string `json:"onLimit,omitempty"`
+	// FallbackModel is the OpenRouter model id OnLimitFallback runs on; empty is unset.
+	FallbackModel string `json:"fallbackModel,omitempty"`
 	// MaxJobs is how many jobs run at once, one VM each; 0 means DefaultMaxJobs.
 	MaxJobs int `json:"maxJobs,omitempty"`
 }
@@ -177,6 +179,8 @@ func LoadConfig(path string) (Config, error) {
 		Mode:       "",
 		MaxJobs:    0,
 		OnLimit:    "",
+
+		FallbackModel: "",
 	}
 	data, err := os.ReadFile(path)
 	if errors.Is(err, os.ErrNotExist) {
@@ -299,7 +303,30 @@ func (c *Config) SetOnLimit(v string) error {
 	if v != OnLimitWait && v != OnLimitFallback {
 		return fmt.Errorf("on-limit %q must be wait or fallback", v)
 	}
+	if v == OnLimitFallback && c.FallbackModel == "" {
+		return errors.New("on-limit fallback needs a fallback-model first")
+	}
 	c.OnLimit = v
+	return nil
+}
+
+// ClearFallbackModel is the fallback-model argument that unsets it.
+const ClearFallbackModel = "none"
+
+// SetFallbackModel sets the OpenRouter model id used when on-limit is fallback;
+// ClearFallbackModel unsets it, which on-limit fallback refuses.
+func (c *Config) SetFallbackModel(v string) error {
+	if v == ClearFallbackModel {
+		if c.EffectiveOnLimit() == OnLimitFallback {
+			return errors.New("fallback-model cannot be cleared while on-limit is fallback")
+		}
+		c.FallbackModel = ""
+		return nil
+	}
+	if !validModel(v) {
+		return fmt.Errorf("fallback-model %q is not a valid model id", v)
+	}
+	c.FallbackModel = v
 	return nil
 }
 

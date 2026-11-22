@@ -86,7 +86,7 @@ func testConfig(server, image string) runner.Config {
 	return runner.Config{
 		Server: server, Repos: nil, Image: image,
 		DataDir: "", GoModCache: "", NPMCache: "", BotEmail: "", Mode: "", MaxJobs: 0,
-		OnLimit: "",
+		OnLimit: "", FallbackModel: "",
 	}
 }
 
