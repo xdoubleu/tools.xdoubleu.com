@@ -319,14 +319,16 @@ func (r *Runner) runOnce(
 
 // harness builds the named harness, its environment and the proxy's credentials.
 // Claude Code's token goes in the VM, which can send it only to Anthropic through
-// the proxy (adr-0043); OpenRouter's, OpenAI's and Gemini's keys stay on the host and the
-// proxy adds them.
+// the proxy (adr-0043); OpenRouter's, OpenAI's and Gemini's keys stay on the host and
+// the proxy adds them.
 func (r *Runner) harness(
 	name string,
 ) (interactive, map[string]string, vm.EgressConfig, error) {
 	egress := vm.EgressConfig{
-		Server: "", MCPToken: nil, OpenRouterKey: nil, OpenAIKey: nil, GeminiKey: nil, MCPServers: nil,
-		MCPRejected: nil, Transport: nil, Anthropic: "", OpenRouter: "", OpenAI: "", Gemini: "",
+		Server: "", MCPToken: nil, OpenRouterKey: nil, OpenAIKey: nil,
+		GeminiKey: nil, MCPServers: nil,
+		MCPRejected: nil, Transport: nil, Anthropic: "", OpenRouter: "", OpenAI: "",
+		Gemini:  "",
 		GoProxy: "", NPM: "", RubyGems: "", NixCache: "", NixSrc: "", Log: nil,
 	}
 	switch name {

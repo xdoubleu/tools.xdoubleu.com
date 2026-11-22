@@ -37,6 +37,9 @@ type Harness interface {
 	ACP() []string
 }
 
+// errorEvent is the type of a harness stream's error event.
+const errorEvent = "error"
+
 // transportErrorLine matches an error event whose text is a provider transport
 // failure. A usage limit is LimitFrom's, and any other error is the work's.
 func transportErrorLine(line []byte) bool {
@@ -241,7 +244,7 @@ func (OpenCode) LimitFrom(line []byte) (bool, time.Time) {
 		Type string `json:"type"`
 	}
 	// Only an error event counts: the agent's own text may talk about limits.
-	if json.Unmarshal(line, &event) != nil || event.Type != "error" {
+	if json.Unmarshal(line, &event) != nil || event.Type != errorEvent {
 		return false, time.Time{}
 	}
 	// The texts of OpenRouter's credit and rate-limit errors.

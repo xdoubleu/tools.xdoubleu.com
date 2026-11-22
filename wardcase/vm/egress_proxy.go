@@ -159,14 +159,8 @@ func NewEgressProxy(cfg EgressConfig) (*EgressProxy, error) {
 			return nil, err
 		}
 	}
-	if cfg.GeminiKey != nil {
-		key := cfg.GeminiKey
-		err := p.addRoute("gemini", "/gemini/", false, orDefault(cfg.Gemini, geminiURL),
-			func(context.Context) (string, error) { return key() }, nil)
-		if err != nil {
-			return nil, err
-		}
-		p.routes[len(p.routes)-1].header = geminiKeyHeader
+	if err := p.addGeminiRoute(cfg); err != nil {
+		return nil, err
 	}
 	if err := p.addMCPServers(cfg.MCPServers); err != nil {
 		return nil, err
@@ -216,6 +210,22 @@ func NewEgressProxy(cfg EgressConfig) (*EgressProxy, error) {
 		ErrorHandler:   p.upstreamError,
 	}
 	return p, nil
+}
+
+// addGeminiRoute adds /gemini when there is a key; Gemini takes it in a header of its
+// own rather than as a bearer.
+func (p *EgressProxy) addGeminiRoute(cfg EgressConfig) error {
+	if cfg.GeminiKey == nil {
+		return nil
+	}
+	key := cfg.GeminiKey
+	err := p.addRoute("gemini", "/gemini/", false, orDefault(cfg.Gemini, geminiURL),
+		func(context.Context) (string, error) { return key() }, nil)
+	if err != nil {
+		return err
+	}
+	p.routes[len(p.routes)-1].header = geminiKeyHeader
+	return nil
 }
 
 // addRoute adds a fixed route to base.

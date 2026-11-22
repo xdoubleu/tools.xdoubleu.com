@@ -92,7 +92,8 @@ func (Gemini) LimitFrom(line []byte) (bool, time.Time) {
 	if json.Unmarshal(line, &event) != nil {
 		return false, time.Time{}
 	}
-	if event.Type != "error" && !(event.Type == "result" && event.Status == "error") {
+	if event.Type != errorEvent &&
+		(event.Type != "result" || event.Status != errorEvent) {
 		return false, time.Time{}
 	}
 	text := strings.ToLower(event.Message + " " + event.Error.Message)

@@ -101,7 +101,8 @@ func LoadConfig(path string) (Config, error) {
 func (c Config) validate() error {
 	for i, name := range c.Order {
 		if !ValidHarness(name) {
-			return fmt.Errorf("order: unknown harness %q (claude, opencode, codex or gemini)", name)
+			return fmt.Errorf("order: unknown harness %q (claude, opencode, codex or gemini)",
+				name)
 		}
 		if slices.Index(c.Order, name) != i {
 			return fmt.Errorf("order: %q is listed twice", name)

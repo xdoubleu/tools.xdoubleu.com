@@ -1,5 +1,5 @@
-// Command wardcase runs an agent harness (Claude Code, OpenCode, Codex, Gemini) in the job
-// VM on the current checkout, so any ADE or terminal gets the same sandbox.
+// Command wardcase runs an agent harness (Claude Code, OpenCode, Codex, Gemini) in
+// the job VM on the current checkout, so any ADE or terminal gets the same sandbox.
 // Experimental.
 package main
 
@@ -119,7 +119,8 @@ func secret(
 	store ward.Secrets, args []string, in io.Reader, out, errOut io.Writer,
 ) int {
 	if len(args) != 2 || args[0] != "set" || !ward.ValidSecret(args[1]) {
-		fmt.Fprintln(errOut, "usage: wardcase secret set <anthropic|openrouter|openai|gemini>")
+		fmt.Fprintln(errOut,
+			"usage: wardcase secret set <anthropic|openrouter|openai|gemini>")
 		return exitUsage
 	}
 	line, err := bufio.NewReader(in).ReadString('\n')

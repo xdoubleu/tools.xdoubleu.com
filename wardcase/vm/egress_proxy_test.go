@@ -55,6 +55,7 @@ func proxyFor(
 		MCPToken:      func(context.Context) (string, error) { return "mcp-token", nil },
 		OpenRouterKey: func() (string, error) { return "real-or-key", nil },
 		OpenAIKey:     nil,
+		GeminiKey:     nil,
 		MCPServers: []vm.MCPServer{{
 			Name: "posthog", URL: up.srv.URL + "/mcp",
 			Token:    func(context.Context) (string, error) { return "real-ph-key", nil },
@@ -240,7 +241,8 @@ func TestResponsesStreamAsTheyArrive(t *testing.T) {
 	up := httptest.NewServer(http.HandlerFunc(events))
 	defer up.Close()
 	p, err := vm.NewEgressProxy(vm.EgressConfig{
-		Server: "", MCPToken: nil, OpenRouterKey: nil, OpenAIKey: nil, GeminiKey: nil, MCPServers: nil,
+		Server: "", MCPToken: nil, OpenRouterKey: nil, OpenAIKey: nil,
+		GeminiKey: nil, MCPServers: nil,
 		MCPRejected: nil,
 		Transport:   nil, Anthropic: up.URL, OpenRouter: "", OpenAI: "", Gemini: "",
 		GoProxy: "", NPM: "", RubyGems: "", NixCache: "", NixSrc: "", Log: nil,
@@ -264,9 +266,11 @@ func TestResponsesStreamAsTheyArrive(t *testing.T) {
 
 func TestABadUpstreamBaseIsRejectedWhenBuildingTheProxy(t *testing.T) {
 	_, err := vm.NewEgressProxy(vm.EgressConfig{
-		Server: "", MCPToken: nil, OpenRouterKey: nil, OpenAIKey: nil, GeminiKey: nil, MCPServers: nil,
+		Server: "", MCPToken: nil, OpenRouterKey: nil, OpenAIKey: nil,
+		GeminiKey: nil, MCPServers: nil,
 		MCPRejected: nil,
-		Transport:   nil, Anthropic: "not a url", OpenRouter: "", OpenAI: "", Gemini: "",
+		Transport:   nil, Anthropic: "not a url", OpenRouter: "", OpenAI: "",
+		Gemini:  "",
 		GoProxy: "",
 		NPM:     "", RubyGems: "", NixCache: "", NixSrc: "", Log: nil,
 	})
@@ -413,8 +417,10 @@ func TestABadMCPServerIsRefusedWhenBuildingTheProxy(t *testing.T) {
 	} {
 		_, err := vm.NewEgressProxy(vm.EgressConfig{
 			MCPServers: []vm.MCPServer{srv}, Server: "", MCPToken: nil, OpenRouterKey: nil,
-			OpenAIKey: nil, GeminiKey: nil, MCPRejected: nil, Transport: nil, Anthropic: "", OpenRouter: "",
-			OpenAI: "", Gemini: "", GoProxy: "", NPM: "", RubyGems: "", NixCache: "", NixSrc: "", Log: nil,
+			OpenAIKey: nil,
+			GeminiKey: nil, MCPRejected: nil, Transport: nil, Anthropic: "", OpenRouter: "",
+			OpenAI: "",
+			Gemini: "", GoProxy: "", NPM: "", RubyGems: "", NixCache: "", NixSrc: "", Log: nil,
 		})
 		assert.Error(t, err, srv.Name)
 	}

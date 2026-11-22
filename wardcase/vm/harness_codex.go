@@ -104,7 +104,7 @@ func (Codex) LimitFrom(line []byte) (bool, time.Time) {
 		} `json:"error"`
 	}
 	if json.Unmarshal(line, &event) != nil ||
-		(event.Type != "error" && event.Type != "turn.failed") {
+		(event.Type != errorEvent && event.Type != "turn.failed") {
 		return false, time.Time{}
 	}
 	text := strings.ToLower(event.Message + " " + event.Error.Message)
