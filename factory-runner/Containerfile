@@ -67,7 +67,9 @@ RUN case "${TARGETARCH}" in amd64) a=x86_64 ;; arm64) a=aarch64 ;; *) exit 1 ;; 
 # The flake's dev shell (flake.nix), realised here so a job's toolchain is the one
 # CI and local dev use (docs/adr-0054). The profile is the GC root that keeps it
 # through the prune; the cap fails the build rather than grow the image unbounded.
-ENV PATH=/home/node/.nix-profile/bin:$PATH
+# The devshell bin goes last, so the image's own go and node stay first, while the
+# lint tools (golangci-lint, sqlfluff, buf) resolve for a gate's non-login shell.
+ENV PATH=/home/node/.nix-profile/bin:$PATH:/nix/var/nix/profiles/devshell/bin
 COPY --chown=node:node flake.nix flake.lock /opt/flake/
 ARG NIX_STORE_MAX=4294967296
 RUN case "${TARGETARCH}" in amd64) s=x86_64-linux ;; arm64) s=aarch64-linux ;; *) exit 1 ;; esac \
