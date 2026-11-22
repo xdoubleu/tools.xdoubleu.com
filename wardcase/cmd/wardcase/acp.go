@@ -25,12 +25,16 @@ func acpCommand(
 	out, errOut io.Writer,
 ) int {
 	harness := ward.OpenCode
-	if len(args) > 1 || (len(args) == 1 && !ward.HasACP(args[0])) {
+	if len(args) > 1 {
 		fmt.Fprintln(errOut, acpUsage)
 		return exitUsage
 	}
-	if len(args) == 1 {
-		harness = args[0]
+	for _, name := range args {
+		if !ward.HasACP(name) {
+			fmt.Fprintln(errOut, acpUsage)
+			return exitUsage
+		}
+		harness = name
 	}
 	cfg, err := ward.LoadConfig(ward.ConfigPath(home))
 	if err != nil {

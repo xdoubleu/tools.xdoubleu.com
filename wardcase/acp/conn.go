@@ -174,11 +174,11 @@ func (c *Conn) answer(ctx context.Context, id json.RawMessage, m message) {
 	case errors.As(err, &rpc):
 		out.Error = rpc
 	case err != nil:
-		out.Error = &RPCError{Code: codeInternal, Message: err.Error()}
+		out.Error = &RPCError{Code: codeInternal, Message: err.Error(), Data: nil}
 	default:
 		raw, mErr := json.Marshal(result)
 		if mErr != nil {
-			out.Error = &RPCError{Code: codeInternal, Message: mErr.Error()}
+			out.Error = &RPCError{Code: codeInternal, Message: mErr.Error(), Data: nil}
 		} else {
 			out.Result = raw
 		}

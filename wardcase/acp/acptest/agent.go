@@ -13,6 +13,10 @@ import (
 
 const sessionID = "s1"
 
+func option(id, kind string) map[string]string {
+	return map[string]string{"optionId": id, "name": id, "kind": kind}
+}
+
 // Agent answers a prompt with a message chunk, a permission request and a closing
 // chunk. A prompt reading "wait" holds the turn until session/cancel.
 type Agent struct {
@@ -109,9 +113,8 @@ func (a *Agent) prompt(
 	options := a.Options
 	if options == nil {
 		options = []map[string]string{
-			{"optionId": "no", "name": "Reject", "kind": "reject_once"},
-			{"optionId": "yes", "name": "Allow", "kind": "allow_once"},
-			{"optionId": "always", "name": "Always", "kind": "allow_always"},
+			option("no", "reject_once"), option("yes", "allow_once"),
+			option("always", "allow_always"),
 		}
 	}
 	var out json.RawMessage
