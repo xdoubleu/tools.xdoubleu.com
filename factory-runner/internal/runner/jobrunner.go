@@ -794,6 +794,7 @@ func (r *JobRunner) invocation(
 	}
 	env := harness.SessionEnv(SandboxSessionDir)
 	env["FACTORY_JOB"] = job.ID
+	env["WARDCASE_RUN"] = job.ID
 	env["FACTORY_OUTCOME_PATH"] = SandboxOutcomePath
 	env[MCPServersEnv] = "posthog" // routed by the job proxy
 	author := cmp.Or(job.MCPClientID, "factory")

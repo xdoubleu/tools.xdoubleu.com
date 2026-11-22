@@ -49,15 +49,15 @@ func TestRealVMReachesOnlyTheProxyAndTheProxyAddsTheKey(t *testing.T) {
 	}
 	script := `
 curl -sS -m 8 -X POST -H 'Authorization: Bearer replaced-by-the-host-proxy' \
-  -d '{}' "$FACTORY_PROXY/openrouter/v1/chat/completions"; echo
-curl -sS -m 8 -o /dev/null -w 'other=%{http_code}\n' "$FACTORY_PROXY/other"
+  -d '{}' "$WARDCASE_PROXY/openrouter/v1/chat/completions"; echo
+curl -sS -m 8 -o /dev/null -w 'other=%{http_code}\n' "$WARDCASE_PROXY/other"
 curl -sS -m 4 -o /dev/null https://example.com && echo NET=leak || echo NET=blocked
 curl -sS -m 4 -o /dev/null http://1.1.1.1 && echo NET=leak || echo NET=blocked
 `
 	var log bytes.Buffer
 	code, err := box.Run(context.Background(), vm.SandboxSpec{
 		CloneDir: dirs[0], OutcomeDir: dirs[1], SessionDir: dirs[2],
-		Env: map[string]string{"FACTORY_JOB": "realvm-proxy"}, Command: []string{"sh", "-c", script}, Stdin: "", Log: &log,
+		Env: map[string]string{"WARDCASE_RUN": "realvm-proxy"}, Command: []string{"sh", "-c", script}, Stdin: "", Log: &log,
 	})
 	require.NoError(t, err, log.String())
 	assert.Zero(t, code, log.String())

@@ -54,7 +54,7 @@ echo "STDIN=$(cat)"
 		CloneDir:   clone,
 		OutcomeDir: outcome,
 		SessionDir: session,
-		Env:        map[string]string{"FACTORY_JOB": "realvm-test", "SECRET": "s3cret"},
+		Env:        map[string]string{"WARDCASE_RUN": "realvm-test", "SECRET": "s3cret"},
 		Command:    []string{"sh", "-c", script},
 		Stdin:      "prompt text",
 		Log:        &log,
@@ -79,7 +79,7 @@ echo "STDIN=$(cat)"
 	_, err = vm.OSExecer{BinDirs: nil}.Exec(context.Background(),
 		[]string{"container", "ls", "-a", "--quiet"}, nil, &left)
 	require.NoError(t, err)
-	assert.NotContains(t, left.String(), "factory-job-realvm")
+	assert.NotContains(t, left.String(), "wardcase-realvm")
 }
 
 func TestRealVMSeedsClaudesConfigSoThePluginsAreVisible(t *testing.T) {
@@ -108,7 +108,7 @@ func TestRealVMSeedsClaudesConfigSoThePluginsAreVisible(t *testing.T) {
 		OutcomeDir: outcome,
 		SessionDir: session,
 		Env: map[string]string{
-			"FACTORY_JOB":        "realvm-seed",
+			"WARDCASE_RUN":       "realvm-seed",
 			"CLAUDE_CONFIG_DIR":  vm.SandboxSessionDir,
 			"CLAUDE_CONFIG_SEED": vm.ClaudeConfigSeed,
 		},

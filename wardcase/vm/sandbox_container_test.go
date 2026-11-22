@@ -118,7 +118,7 @@ func spec(t *testing.T, log io.Writer) vm.SandboxSpec {
 		CloneDir:    "/data/jobs/j1/clone",
 		OutcomeDir:  "/data/jobs/j1/outcome",
 		SessionDir:  "/data/sessions/t1",
-		Env:         map[string]string{"FACTORY_JOB": "0a1b2c3d-4e5f", "SECRET": "s3cret"},
+		Env:         map[string]string{"WARDCASE_RUN": "0a1b2c3d-4e5f", "SECRET": "s3cret"},
 		Command:     []string{"claude", "-p"},
 		Proxy:       nil,
 		Stdin:       "do the thing",
@@ -181,7 +181,7 @@ func TestTheSandboxStartsAPlaceholderVMOnItsOwnNetworkThenRunsTheJobInIt(t *test
 	run := strings.Join(exec.find("run")[0], " ")
 	for _, want := range []string{
 		"--read-only", "--tmpfs /tmp", "--cap-drop ALL", "--user 1000:1000",
-		"--network factory-job-0a1b2c3d4e5f",
+		"--network wardcase-0a1b2c3d4e5f",
 		"type=bind,source=/data/jobs/j1/clone,target=/work",
 		"type=bind,source=/data/jobs/j1/outcome,target=/outcome",
 		"type=bind,source=/data/sessions/t1,target=/session",
@@ -191,11 +191,11 @@ func TestTheSandboxStartsAPlaceholderVMOnItsOwnNetworkThenRunsTheJobInIt(t *test
 	}
 	assert.NotContains(t, run, "readonly", "no cache mounts unless configured")
 
-	assert.Contains(t, envBody, "FACTORY_JOB=0a1b2c3d-4e5f\n")
+	assert.Contains(t, envBody, "WARDCASE_RUN=0a1b2c3d-4e5f\n")
 	assert.Contains(t, envBody, "GOPROXY=file:///opt/gomodcache/cache/download,http://")
 	assert.Contains(t, envBody, "/goproxy/\n")
 	assert.Contains(t, envBody, "/npm/\n")
-	assert.Contains(t, envBody, "FACTORY_GATEWAY=10.231.7.1\n")
+	assert.Contains(t, envBody, "WARDCASE_GATEWAY=10.231.7.1\n")
 	assert.NoFileExists(t, envFile, "the env file is removed afterwards")
 
 	// The secret is in the file, never in argv.
@@ -203,7 +203,7 @@ func TestTheSandboxStartsAPlaceholderVMOnItsOwnNetworkThenRunsTheJobInIt(t *test
 		assert.NotContains(t, strings.Join(c, " "), "s3cret")
 	}
 	execLine := strings.Join(exec.find("exec")[0], " ")
-	assert.Contains(t, execLine, "--workdir /work factory-job-0a1b2c3d4e5f sh -c")
+	assert.Contains(t, execLine, "--workdir /work wardcase-0a1b2c3d4e5f sh -c")
 	assert.Contains(t, execLine, "npm ci")
 	assert.True(t, strings.HasSuffix(execLine, "exec \"$@\" sh claude -p"), execLine)
 }
@@ -294,7 +294,7 @@ func TestTheJobsExitCodeIsReturnedAndTheVMStillCleanedUp(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, 3, code)
 	last := exec.calls[len(exec.calls)-1]
-	assert.Equal(t, []string{"container", "network", "delete", "factory-job-0a1b2c3d4e5f"},
+	assert.Equal(t, []string{"container", "network", "delete", "wardcase-0a1b2c3d4e5f"},
 		last)
 }
 

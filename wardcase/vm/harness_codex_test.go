@@ -22,7 +22,7 @@ func TestCodexRunsHeadlessWithThePromptOnStdin(t *testing.T) {
 	assert.Contains(t, start[2], "exec codex \"$@\" exec --json")
 	assert.Contains(t, start[2], "--dangerously-bypass-approvals-and-sandbox")
 	assert.True(t, strings.HasSuffix(start[2], " -"), "the prompt is read from stdin")
-	assert.Contains(t, start[2], `$FACTORY_PROXY/openai/v1`)
+	assert.Contains(t, start[2], `$WARDCASE_PROXY/openai/v1`)
 
 	again := vm.Codex{}.Resume("019a-thread")
 	assert.Equal(t, []string{"codex", "019a-thread"}, again[3:])
@@ -33,7 +33,7 @@ func TestCodexRunsHeadlessWithThePromptOnStdin(t *testing.T) {
 func TestCodexTerminalPassesArgsOnAndPointsAtTheProxy(t *testing.T) {
 	argv := vm.Codex{}.Interactive([]string{"--version"})
 	assert.Equal(t, []string{"codex", "--version"}, argv[3:])
-	assert.Contains(t, argv[2], `$FACTORY_PROXY/openai/v1`)
+	assert.Contains(t, argv[2], `$WARDCASE_PROXY/openai/v1`)
 }
 
 func TestCodexHoldsOnlyAPlaceholderKey(t *testing.T) {
@@ -107,7 +107,7 @@ func TestTheShellStepHandsCodexItsFlagsAndTheProxyBase(t *testing.T) {
 		_ = os.Remove(out)
 		cmd := exec.Command(argv[0], argv[1:]...)
 		cmd.Env = append(os.Environ(), "PATH="+dir+":"+os.Getenv("PATH"),
-			"FACTORY_PROXY="+proxy)
+			"WARDCASE_PROXY="+proxy)
 		cmd.Stdin = strings.NewReader("do it $(id)")
 		b, err := cmd.CombinedOutput()
 		require.NoError(t, err, string(b))

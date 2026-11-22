@@ -87,7 +87,7 @@ func agentRun(
 		require.NoError(t, os.MkdirAll(d, 0o777))
 		require.NoError(t, os.Chmod(d, 0o777))
 	}
-	env["FACTORY_JOB"] = "realvm-agent"
+	env["WARDCASE_RUN"] = "realvm-agent"
 	var log bytes.Buffer
 	_, err = box.Run(context.Background(), vm.SandboxSpec{
 		CloneDir: dirs[0], OutcomeDir: dirs[1], SessionDir: dirs[2], Env: env, Command: append([]string{"timeout", "90"}, command...),

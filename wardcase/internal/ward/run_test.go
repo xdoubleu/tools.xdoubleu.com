@@ -190,7 +190,7 @@ func TestClaudeRunsInteractivelyInTheVMOnTheWorktree(t *testing.T) {
 	assert.True(t, r.spec.SkipInstall)
 	assert.Equal(t, "oat-token", r.spec.Env["CLAUDE_CODE_OAUTH_TOKEN"])
 	assert.Equal(t, vm.MCPOff, r.spec.Env[vm.MCPEnv])
-	assert.True(t, strings.HasPrefix(r.spec.Env["FACTORY_JOB"], "wardcase-"))
+	assert.NotEmpty(t, r.spec.Env["WARDCASE_RUN"])
 	assert.Equal(t, "/session", r.spec.Env["CLAUDE_CONFIG_DIR"])
 	assert.NotNil(t, r.spec.Proxy)
 	assert.Equal(t, "--resume", r.command[len(r.command)-1])

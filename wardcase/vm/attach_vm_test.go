@@ -50,7 +50,7 @@ func TestRealVMOnAWorktree(t *testing.T) {
 
 	s, err := box.Open(context.Background(), vm.SandboxSpec{
 		CloneDir: wt, OutcomeDir: outcome, SessionDir: session,
-		Env:     map[string]string{"FACTORY_JOB": "wardcase-realvm"},
+		Env:     map[string]string{"WARDCASE_RUN": "wardcase-realvm"},
 		Command: nil, Proxy: nil, Stdin: "", Log: nil,
 		Mounts:      []vm.Mount{{Source: common, Target: common, ReadOnly: false}},
 		SkipInstall: true,
@@ -104,7 +104,7 @@ func TestRealVMStartsEachHarnessInteractively(t *testing.T) {
 	}{vm.ClaudeCode{}, vm.OpenCode{Model: "vendor/model"}, vm.Codex{}} {
 		dir := t.TempDir()
 		env := h.SessionEnv(vm.SandboxSessionDir)
-		env["FACTORY_JOB"] = "wardcase-harness"
+		env["WARDCASE_RUN"] = "wardcase-harness"
 		env[vm.MCPEnv] = vm.MCPOff
 		s, openErr := box.Open(context.Background(), vm.SandboxSpec{
 			CloneDir: dir, OutcomeDir: t.TempDir(), SessionDir: t.TempDir(), Env: env,
