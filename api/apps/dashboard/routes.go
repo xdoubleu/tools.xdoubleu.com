@@ -14,11 +14,12 @@ import (
 // registered in internal/platform/account behind auth.Access.
 func (a *Dashboard) Routes(_ string, mux *http.ServeMux) {
 	iapp.MountConnect(mux, a.Logger, a.Auth.Access, func(s *connect.Server) {
-		dashboardv1connect.RegisterTodayServiceHandler(s, &todayConnectHandler{app: a})
+		dashboardv1connect.RegisterTodayServiceHandler(s, a.todayHandler)
 	})
 	iapp.MountConnect(mux, a.Logger, nil, func(s *connect.Server) {
-		handler := &publicConnectHandler{app: a}
-		dashboardv1connect.RegisterPublicGamesDashboardServiceHandler(s, handler)
-		dashboardv1connect.RegisterPublicReadingDashboardServiceHandler(s, handler)
+		dashboardv1connect.RegisterPublicGamesDashboardServiceHandler(s, a.publicHandler)
+		dashboardv1connect.RegisterPublicReadingDashboardServiceHandler(
+			s, a.publicHandler,
+		)
 	})
 }
