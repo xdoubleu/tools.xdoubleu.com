@@ -22,20 +22,20 @@ func (l *listExec) Exec(
 }
 
 func TestPruneImagesRunsOnlyForTheImplicitReleaseImage(t *testing.T) {
-	old := Release
-	t.Cleanup(func() { Release = old })
+	old := WardcaseVersion
+	t.Cleanup(func() { WardcaseVersion = old })
 	cfg := runner.Config{
 		Server: "", Repos: nil, Image: "", DataDir: "", GoModCache: "", NPMCache: "",
 		BotEmail: "", Mode: "", MaxJobs: 0, OnLimit: "", FallbackModel: "",
 	}
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 
-	Release = "abc"
+	WardcaseVersion = "abc"
 	x := &listExec{calls: 0}
 	pruneImages(context.Background(), cfg, x, log)
 	assert.Positive(t, x.calls)
 
-	Release = runner.DevRelease
+	WardcaseVersion = runner.DevRelease
 	x = &listExec{calls: 0}
 	pruneImages(context.Background(), cfg, x, log)
 	assert.Zero(t, x.calls)

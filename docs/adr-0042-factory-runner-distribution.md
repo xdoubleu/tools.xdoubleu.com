@@ -29,17 +29,12 @@ without the server being able to push arbitrary code.
   commit the served binary was built from. The runner and the board both read it,
   so no proto, config or image variable carries the version. It is always this
   commit: no build cache, because a pure-Go build takes seconds.
-- **A versioned job image rides the same release.** The job image (adr-0043) is
-  tagged `factory-job:<release>` locally. The ~1.6 GB image is pushed to the public
-  GHCR package `ghcr.io/xdoubleu/tools.xdoubleu.com/factory-job-image:<input hash>`
-  (and `:latest`), rebuilt only when the Containerfile, dependency manifests or ISO
-  week change, with a registry layer cache; the newest 10 hash tags are kept. Each
-  release stages only a small signed manifest (`<release> <image digest>`) into
-  `downloads/`. The runner ensures the image is present — verifying the ed25519
-  signature against its compiled-in key, checking the release, `container image
-  pull`-ing `…@sha256:<digest>`, checking the pulled digest and tagging it — at
-  start and after each self-update, so only changed layers transfer and the image's
-  pinned tool versions change only with a runner release.
+- **Jobs run in wardcase's base image.** The runner is built with the newest
+  `wardcase-v*` version (`-X main.WardcaseVersion`) and, at start and after each
+  self-update, `container image pull`s `ghcr.io/xdoubleu/wardcase:<version>`
+  ([adr-0055](adr-0055-wardcase-harness-sandbox.md)) when it is absent. No job
+  image is built from this repo and no manifest is staged into `downloads/`; the
+  toolchain comes from the checkout's flake.
 - **Update only when idle.** Hourly, if no job runs, the runner reads the release
   file; if it differs it downloads the binary and signature beside the heartbeat
   loop (so a slow download never makes it look offline), verifies, checks it is
@@ -54,9 +49,9 @@ without the server being able to push arbitrary code.
   (config and data stay there) is moved to `/Applications`, the LaunchAgent
   repointed and reloaded, and the old copy removed once it runs from the new one.
   If `/Applications` isn't writable the runner warns and keeps the old path.
-- **Old job images are pruned** at start (so after each self-update): every other
-  `factory-job:*` tag goes, except the current release's and any a container uses,
-  since several jobs run at once. Failures are logged, never fatal. It has to be a bundle for macOS to show the runner's
+- **Old base images are pruned** at start (so after each self-update): every other
+  `ghcr.io/xdoubleu/wardcase:*` tag goes, except the current one and any a container
+  uses, since several jobs run at once. Failures are logged, never fatal. It has to be a bundle for macOS to show the runner's
   notifications, so install and self-update re-seal it with an ad-hoc signature.
 - **Awake only while a job runs.** `Activity` holds `caffeinate -is -w <pid>` while
   any job runs. A closed lid stays awake only on AC power with an external display.

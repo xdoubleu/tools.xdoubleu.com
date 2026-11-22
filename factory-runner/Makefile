@@ -2,6 +2,8 @@
 # (a `nix develop` shell still wins).
 export PATH := $(PATH):/nix/var/nix/profiles/devshell/bin
 
+# The wardcase release whose base image jobs run in (wardcase-v<version> tags).
+WARDCASE_VERSION ?= dev
 RELEASE ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo dev)
 
 test:
@@ -61,7 +63,7 @@ lint/fix: tools/lint
 
 # CGO_ENABLED=1 fails a cgo-less build rather than shipping the no-menu-bar stub.
 build:
-	CGO_ENABLED=1 go build -ldflags="-w -s -X main.Release=$(RELEASE) -X main.UpdatePublicKey=$(UPDATE_PUBLIC_KEY)" \
+	CGO_ENABLED=1 go build -ldflags="-w -s -X main.Release=$(RELEASE) -X main.WardcaseVersion=$(WARDCASE_VERSION) -X main.UpdatePublicKey=$(UPDATE_PUBLIC_KEY)" \
 		-o=./bin/factory-runner-darwin-arm64 ./cmd/factory-runner
 
 # Packages FactoryRunner.app + the drag-to-Applications .dmg plus the raw binary
@@ -71,4 +73,4 @@ dist: build
 	RELEASE=$(RELEASE) ./cmd/factory-runner/assets/package.sh
 
 image:
-	container build -t factory-job:dev -f Containerfile ..
+	container build -t ghcr.io/xdoubleu/wardcase:dev -f ../wardcase/Containerfile ..

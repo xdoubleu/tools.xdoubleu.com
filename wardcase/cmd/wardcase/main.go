@@ -5,7 +5,6 @@ package main
 
 import (
 	"bufio"
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -58,11 +57,8 @@ one takes over, as the config's overflow (ask, auto, off) allows.
 //nolint:gochecknoglobals // set by the linker
 var Version = "dev"
 
-// ImageRepo is where each release publishes its base image.
-const ImageRepo = "ghcr.io/xdoubleu/wardcase"
-
 // ImageRef is the base image of one release.
-func ImageRef(version string) string { return ImageRepo + ":" + version }
+func ImageRef(version string) string { return vm.ImageRef(version) }
 
 // stateDirPerm is the mode of wardcase's own state directories.
 const stateDirPerm = 0o750
@@ -226,21 +222,7 @@ func newProxy(cfg vm.EgressConfig) (vm.ProxyListener, error) {
 func ensureImage(
 	ctx context.Context, execer vm.Execer, image string, notes io.Writer,
 ) error {
-	var out bytes.Buffer
-	code, err := execer.Exec(ctx, []string{vm.ContainerCLI, "image", "inspect", image},
-		nil, &out)
-	if err == nil && code == 0 {
-		return nil
-	}
-	fmt.Fprintf(notes, "wardcase: pulling %s\n", image)
-	out.Reset()
-	code, err = execer.Exec(ctx, []string{vm.ContainerCLI, "image", "pull", image},
-		nil, &out)
-	if err != nil || code != 0 {
-		return fmt.Errorf("pull %s: %w", image, errors.Join(err,
-			fmt.Errorf("exit %d: %s", code, strings.TrimSpace(out.String()))))
-	}
-	return nil
+	return vm.EnsureImage(ctx, execer, image, notes)
 }
 
 func isTerminal(f *os.File) bool {

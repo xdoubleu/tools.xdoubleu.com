@@ -9,6 +9,8 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+
+	"tools.xdoubleu.com/wardcase/vm"
 )
 
 const (
@@ -19,8 +21,8 @@ const (
 	// factory App's. It is on a reserved domain, so it matches no GitHub account.
 	DefaultBotEmail = "factory-bot@users.invalid"
 
-	// DefaultImage is the job image `make image` builds.
-	DefaultImage = "factory-job:dev"
+	// DefaultImage is the base image `make image` builds.
+	DefaultImage = vm.ImageRepo + ":dev"
 
 	// DefaultMaxJobs is how many jobs run at once until `config max-jobs` says
 	// otherwise; MaxJobsLimit is the most it allows.
@@ -93,8 +95,8 @@ func (c Config) JobImage() string {
 }
 
 // ReleaseImage is the image a job runs for a release: an explicit config
-// override wins; otherwise the versioned factory-job:<release>, or the dev image
-// for a dev build (no release).
+// override wins; otherwise wardcase's base image of that version, or the dev image
+// for a dev build (no version).
 func (c Config) ReleaseImage(release string) string {
 	if c.Image != "" {
 		return c.Image
@@ -102,11 +104,11 @@ func (c Config) ReleaseImage(release string) string {
 	if release == "" || release == DevRelease {
 		return DefaultImage
 	}
-	return "factory-job:" + release
+	return vm.ImageRef(release)
 }
 
 // JobImageAutoDownload reports whether the implicit image a release needs should
-// be fetched from the release server: never for an explicit config override or a
+// be pulled from GHCR: never for an explicit config override or a
 // dev build, which need a local `make image` instead.
 func (c Config) JobImageAutoDownload(release string) bool {
 	return c.Image == "" && release != "" && release != DevRelease

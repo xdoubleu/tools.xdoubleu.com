@@ -2,7 +2,7 @@
 
 - Status: Proposed
 - Issues: T-652, T-721, T-736; related T-478, T-539, T-541, T-491, T-575, T-648, T-735
-- Affects: `wardcase/vm/` (`Sandbox`), `factory-runner/Containerfile`, `flake.nix`
+- Affects: `wardcase/vm/` (`Sandbox`), `factory-runner/Containerfile`, `flake.nix` <!-- historical -->
 - Revisits: [adr-0043](adr-0043-factory-runner-sandbox.md)
 
 ## Context
@@ -21,7 +21,7 @@ The spike ran without network; the gates below were measured later on the runner
   4. Start latency is within 1.5x of the current VM.
   5. No direct network, with credentials injected only on approved endpoints, passes `scripts/factory_sandbox_probe.sh`.
 - **Keep the current VM** until then. A second backend is another `Sandbox` implementation; one with its own proxy, as OpenShell has, also replaces the egress proxy.
-- **Nix flake first (T-722).** The toolchain and a size-capped shared cache fix most of the tool-drift and disk tasks on any runtime; a new runtime alone removes few of them. `flake.nix` holds every tool, including Playwright's browsers and PostgreSQL; `flake.lock` is the only pin. The job image realises the shell into `/nix` under a 3 GiB cap, and CI builds the same shell. A writable shared `/nix` for wardcase is T-738.
+- **Nix flake first (T-722).** The toolchain and a size-capped shared cache fix most of the tool-drift and disk tasks on any runtime; a new runtime alone removes few of them. `flake.nix` holds every tool, including Playwright's browsers and PostgreSQL; `flake.lock` is the only pin. Jobs and CI use the same shell, jobs under a 3 GiB `/nix` cap. A writable shared `/nix` for wardcase is T-738.
 
 ## Consequences
 

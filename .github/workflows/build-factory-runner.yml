@@ -26,7 +26,10 @@ jobs:
       - name: Build
         working-directory: './factory-runner'
         run: |
-          make dist RELEASE=${{ github.sha }} \
+          # Jobs run in wardcase's base image of the newest wardcase-v* tag (adr-0043).
+          version=$(git ls-remote --tags --refs origin 'wardcase-v*' \
+            | sed 's|.*refs/tags/wardcase-v||' | sort -V | tail -n 1)
+          make dist RELEASE=${{ github.sha }} WARDCASE_VERSION="${version:-dev}" \
             UPDATE_PUBLIC_KEY=${{ vars.FACTORY_RUNNER_UPDATE_PUBKEY }}
           echo -n "${{ github.sha }}" > dist/factory-runner-release.txt
       # Runners only install self-updates signed by the release key. Signed only
@@ -51,116 +54,3 @@ jobs:
           name: factory-runner-dist
           path: factory-runner/dist
           retention-days: 1
-
-  # The job image (adr-0043) is pushed to GHCR, tagged by a hash of its inputs plus
-  # the ISO week (plugin marketplaces are unpinned) and rebuilt only on a miss;
-  # registry layer cache keeps a rebuild cheap. Each commit gets a small signed
-  # manifest naming the image digest, which build-api stages (adr-0042).
-  # arm64: the runner Macs are Apple silicon. Signed on main with the runner key.
-  build-factory-job-image:
-    name: Build factory job image (arm64)
-    # Native arm64: no QEMU, so it also builds on PRs to catch a broken image.
-    runs-on: ubuntu-26.04-arm
-    permissions:
-      contents: read
-      # Main pushes the image and prunes old versions; PRs only read.
-      packages: write
-    env:
-      GH_TOKEN: ${{ github.token }}
-      PUBLISH: ${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}
-      IMAGE: ghcr.io/xdoubleu/tools.xdoubleu.com/factory-job-image
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
-      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
-      - name: Log in to GHCR
-        if: env.PUBLISH == 'true'
-        run: echo "$GH_TOKEN" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
-      - name: Key the image by its inputs
-        id: key
-        run: |
-          week=$(date -u +%G-%V)
-          key=$( (cat factory-runner/Containerfile flake.nix flake.lock \
-            selfupdate/go.mod selfupdate/go.sum api/go.mod api/go.sum \
-            factory-runner/go.mod factory-runner/go.sum \
-            wardcase/go.mod wardcase/go.sum \
-            kobo-gateway/go.mod kobo-gateway/go.sum \
-            web/package.json web/package-lock.json; echo "$week") \
-            | sha256sum | cut -c1-16)
-          echo "key=$key" >> "$GITHUB_OUTPUT"
-          # The package is public, so a hit needs no login (a PR can check too).
-          if docker buildx imagetools inspect "$IMAGE:$key" >/dev/null 2>&1; then
-            echo "hit=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "hit=false" >> "$GITHUB_OUTPUT"
-          fi
-      - name: Build the image
-        if: steps.key.outputs.hit != 'true'
-        run: |
-          out=(--output type=cacheonly)
-          if [ "$PUBLISH" = true ]; then
-            out=(--push --tag "$IMAGE:${{ steps.key.outputs.key }}" --tag "$IMAGE:latest"
-              --cache-to "type=registry,ref=$IMAGE:buildcache,mode=max")
-          fi
-          docker buildx build \
-            --platform linux/arm64 \
-            --provenance=false \
-            --label org.opencontainers.image.source=https://github.com/${{ github.repository }} \
-            --cache-from "type=registry,ref=$IMAGE:buildcache" \
-            --metadata-file image-metadata.json \
-            "${out[@]}" \
-            -f factory-runner/Containerfile .
-      - name: Resolve the image digest
-        if: env.PUBLISH == 'true'
-        id: digest
-        run: |
-          if [ "${{ steps.key.outputs.hit }}" = true ]; then
-            digest=$(docker buildx imagetools inspect "$IMAGE:${{ steps.key.outputs.key }}" \
-              --format '{{json .Manifest}}' | jq -r .digest)
-          else
-            digest=$(jq -r '."containerimage.digest"' image-metadata.json)
-          fi
-          case "$digest" in
-            sha256:????????????????????????????????????????????????????????????????) ;;
-            *) echo "::error::bad image digest '$digest'"; exit 1 ;;
-          esac
-          echo "hex=${digest#sha256:}" >> "$GITHUB_OUTPUT"
-      - name: Write the manifest
-        if: env.PUBLISH == 'true'
-        run: |
-          mkdir -p factory-runner/dist
-          printf '%s %s\n' "${{ github.sha }}" "${{ steps.digest.outputs.hex }}" \
-            > factory-runner/dist/factory-job-image.txt
-      - name: Sign the job-image manifest
-        if: env.PUBLISH == 'true'
-        env:
-          FACTORY_RUNNER_SIGNING_KEY: ${{ secrets.FACTORY_RUNNER_SIGNING_KEY }}
-        working-directory: './kobo-gateway'
-        run: |
-          if [ -z "$FACTORY_RUNNER_SIGNING_KEY" ]; then
-            echo "::warning::FACTORY_RUNNER_SIGNING_KEY is unset; the job image stays unsigned."
-            exit 0
-          fi
-          KOBO_GATEWAY_SIGNING_KEY="$FACTORY_RUNNER_SIGNING_KEY" \
-            go run ./cmd/kobo-sign sign ../factory-runner/dist/factory-job-image.txt
-      # Keep the 10 newest input-hash tags; latest and buildcache are never pruned.
-      - name: Prune old image versions
-        if: env.PUBLISH == 'true' && steps.key.outputs.hit != 'true'
-        continue-on-error: true
-        run: |
-          pkg="tools.xdoubleu.com%2Ffactory-job-image"
-          gh api --paginate "/users/${{ github.repository_owner }}/packages/container/$pkg/versions" \
-            | jq -r '[.[] | select(.metadata.container.tags | (length > 0
-                and all(test("^[0-9a-f]{16}$"))))]
-              | sort_by(.created_at) | reverse | .[10:] | .[].id' \
-            | while read -r id; do
-                gh api -X DELETE "/users/${{ github.repository_owner }}/packages/container/$pkg/versions/$id"
-              done
-      # build-api stages the manifest and its signature.
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
-        with:
-          name: factory-runner-image-dist
-          path: factory-runner/dist/factory-job-image.*
-          retention-days: 1
-          if-no-files-found: ignore
