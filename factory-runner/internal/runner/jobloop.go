@@ -285,7 +285,7 @@ func (l *jobLoop) attempt(command []string, prompt string) step {
 	}
 	res.waitingOn = waitingOn(text)
 	// A reported problem that no longer reproduces leaves nothing to commit,
-	// check or publish; the agent has already closed the task.
+	// check or publish; the server moves the task to Done from the outcome line.
 	if _, ok := findLine(text, "Already-fixed:"); ok && res.blocked == "" &&
 		len(res.waitingOn) == 0 {
 		res.succeeded = true
