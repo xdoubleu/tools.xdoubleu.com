@@ -24,7 +24,7 @@ import (
 
 func ended(state string) githubapp.PullRequestStatus {
 	return githubapp.PullRequestStatus{State: state, CI: "", Review: "", Mergeable: "",
-		MergeSHA: ""}
+		MergeSHA: "", HeadSHA: ""}
 }
 
 func pullURL(number int) string {
@@ -64,7 +64,7 @@ func TestAnOpenPullRequestsChecksAndReviewAreKeptOnItsJob(t *testing.T) {
 	gh.answer(42, githubapp.PullRequestStatus{
 		State: githubapp.StateOpen, CI: githubapp.CIFailing,
 		Review: githubapp.ReviewChangesRequested, Mergeable: "",
-		MergeSHA: "",
+		MergeSHA: "", HeadSHA: "",
 	}, nil)
 
 	require.NoError(t, env.poll(t))
@@ -81,7 +81,7 @@ func TestAnOpenPullRequestsChecksAndReviewAreKeptOnItsJob(t *testing.T) {
 	gh.answer(42, githubapp.PullRequestStatus{
 		State: githubapp.StateOpen, CI: githubapp.CIPassing, Review: githubapp.ReviewApproved,
 		Mergeable: "",
-		MergeSHA:  "",
+		MergeSHA:  "", HeadSHA: "",
 	}, nil)
 	require.NoError(t, env.poll(t))
 	job = env.task(t, task.Id).Jobs[0]
@@ -252,7 +252,7 @@ func TestATasksPullRequestStatusIsOnTheBoardAndTheTask(t *testing.T) {
 	gh.answer(7, githubapp.PullRequestStatus{
 		State: githubapp.StateOpen, CI: githubapp.CIFailing,
 		Review: githubapp.ReviewApproved, Mergeable: "",
-		MergeSHA: "",
+		MergeSHA: "", HeadSHA: "",
 	}, nil)
 	require.NoError(t, env.poll(t))
 
@@ -342,7 +342,7 @@ func TestAnOpenPullRequestLinkingATaskIsListedWithItsChecks(t *testing.T) {
 	gh.openLinked(pullURL(12), 12, "no link here")
 	gh.answer(11, githubapp.PullRequestStatus{
 		State: githubapp.StateOpen, CI: githubapp.CIPending, Review: "", Mergeable: "",
-		MergeSHA: "",
+		MergeSHA: "", HeadSHA: "",
 	}, nil)
 
 	require.NoError(t, env.poll(t))
@@ -493,7 +493,7 @@ func TestAnArmedPullRequestThatCannotMergeIsFlaggedOnItsTaskAndCounted(t *testin
 	gh.openLinked(pullURL(61), 61, "Task: conflicting ("+task.Id+")")
 	gh.answer(61, githubapp.PullRequestStatus{
 		State: githubapp.StateOpen, CI: githubapp.CIPassing, Review: "",
-		Mergeable: githubapp.MergeConflicting, MergeSHA: "",
+		Mergeable: githubapp.MergeConflicting, MergeSHA: "", HeadSHA: "",
 	}, nil)
 	before := gaugeValue(t, "factory_pull_requests_unmergeable")
 
@@ -517,7 +517,7 @@ func TestAnArmedPullRequestThatCannotMergeIsFlaggedOnItsTaskAndCounted(t *testin
 	// Once it can merge, the flag clears.
 	gh.answer(61, githubapp.PullRequestStatus{
 		State: githubapp.StateOpen, CI: githubapp.CIPassing, Review: "",
-		Mergeable: "", MergeSHA: "",
+		Mergeable: "", MergeSHA: "", HeadSHA: "",
 	}, nil)
 	require.NoError(t, env.poll(t))
 	assert.Empty(t, env.task(t, task.Id).Task.PrMergeable)

@@ -108,7 +108,7 @@ func status(t *testing.T, p *pulls) githubapp.PullRequestStatus {
 
 func ended(state string) githubapp.PullRequestStatus {
 	return githubapp.PullRequestStatus{State: state, CI: "", Review: "", Mergeable: "",
-		MergeSHA: ""}
+		MergeSHA: "", HeadSHA: ""}
 }
 
 func TestAMergedOrClosedPullRequestNeedsNoChecksOrReviews(t *testing.T) {

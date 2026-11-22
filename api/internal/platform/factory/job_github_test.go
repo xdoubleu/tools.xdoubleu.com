@@ -44,10 +44,15 @@ type fakeGitHub struct {
 const testRelease = "release-sha"
 
 func (f *fakeGitHub) OpenPullRequests(
-	_ context.Context, _, _ string,
+	_ context.Context, _, name string,
 ) ([]githubapp.OpenPullRequest, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
+	// Only the seeded repo has them: another repo listing them too would repeat
+	// each pull request.
+	if name != "tools.xdoubleu.com" {
+		return nil, f.listErr
+	}
 	return f.open, f.listErr
 }
 

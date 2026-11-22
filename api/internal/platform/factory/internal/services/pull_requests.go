@@ -547,7 +547,10 @@ func (s *JobService) syncLinked(ctx context.Context) error {
 		return errors.Join(append(failures, err)...)
 	}
 	for _, r := range toReview {
-		if err = s.reviewOpenTask(ctx, r.task, r.url); err != nil {
+		if err = s.reviewOpenTask(ctx, r.task, r.url); err == nil {
+			err = s.resolveConflict(ctx, r)
+		}
+		if err != nil {
 			failures = append(failures, fmt.Errorf("pull request %s: %w", r.url, err))
 		}
 	}
@@ -613,14 +616,19 @@ func (s *JobService) readOpenPull(
 	reviews := make([]linkedReview, len(tasks))
 	for i, task := range tasks {
 		rows[i] = linkedRow(o.pull.URL, task.ID, status)
-		reviews[i] = linkedReview{task: task, url: o.pull.URL}
+		reviews[i] = linkedReview{
+			task: task, url: o.pull.URL, repo: o.repo, branch: o.pull.Branch, status: status,
+		}
 	}
 	return rows, reviews, nil
 }
 
 type linkedReview struct {
-	task *models.Task
-	url  string
+	task   *models.Task
+	url    string
+	repo   models.Repo
+	branch string
+	status PullRequestStatus
 }
 
 func linkedRow(

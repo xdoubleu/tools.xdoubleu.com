@@ -97,7 +97,7 @@ func (p githubPort) PullRequest(
 	s, err := p.gh.PullRequest(ctx, owner, repo, number)
 	return services.PullRequestStatus{
 		State: s.State, CI: s.CI, Review: s.Review,
-		Mergeable: s.Mergeable, MergeSHA: s.MergeSHA,
+		Mergeable: s.Mergeable, MergeSHA: s.MergeSHA, HeadSHA: s.HeadSHA,
 	}, mapGitHubErr(err)
 }
 

@@ -45,6 +45,8 @@ type PullRequestStatus struct {
 	Mergeable string
 	// MergeSHA is the commit a merged pull request produced; empty otherwise.
 	MergeSHA string
+	// HeadSHA is the tip of an open pull request's branch; empty otherwise.
+	HeadSHA string
 }
 
 // MergedPullRequest is a merged pull request, with the title, branch and body its
