@@ -125,6 +125,8 @@ linters:
             - "**/apps/feeds/connect/**"
             - "**/apps/feeds/mcp/**"
             - "**/apps/feeds/http/**"
+            - "**/apps/games/connect/**"
+            - "**/apps/games/mcp/**"
             - "!**/*_test.go"
           deny:
             - pkg: tools.xdoubleu.com/apps/shoppinglist/internal/repositories
@@ -132,6 +134,8 @@ linters:
             - pkg: tools.xdoubleu.com/apps/movies/internal/repositories
               desc: adapters call services, never repositories
             - pkg: tools.xdoubleu.com/apps/feeds/internal/repositories
+              desc: adapters call services, never repositories
+            - pkg: tools.xdoubleu.com/apps/games/internal/repositories
               desc: adapters call services, never repositories
             - pkg: github.com/jackc/pgx
               desc: adapters do not touch the database
@@ -142,6 +146,7 @@ linters:
             - "**/apps/shoppinglist/internal/services/**"
             - "**/apps/movies/internal/services/**"
             - "**/apps/feeds/internal/services/**"
+            - "**/apps/games/internal/services/**"
             - "!**/*_test.go"
           deny:
             - pkg: connectrpc.com/connect

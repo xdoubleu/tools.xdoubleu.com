@@ -1,4 +1,4 @@
-package games
+package services
 
 import (
 	"testing"
