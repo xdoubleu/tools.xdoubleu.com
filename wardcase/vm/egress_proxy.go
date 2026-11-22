@@ -23,6 +23,7 @@ const (
 	anthropicURL  = "https://api.anthropic.com"
 	openRouterURL = "https://openrouter.ai/api"
 	openAIURL     = "https://api.openai.com"
+	geminiURL     = "https://generativelanguage.googleapis.com"
 	goProxyURL    = "https://proxy.golang.org"
 	npmURL        = "https://registry.npmjs.org"
 	rubyGemsURL   = "https://rubygems.org"
@@ -45,6 +46,8 @@ type EgressConfig struct {
 	MCPToken      func(ctx context.Context) (string, error)
 	OpenRouterKey func() (string, error)
 	OpenAIKey     func() (string, error)
+	// GeminiKey is Gemini's API key, added as its x-goog-api-key header.
+	GeminiKey func() (string, error)
 	// MCPServers are further MCP servers, each reached at /mcp-<name>.
 	MCPServers []MCPServer
 	// MCPRejected, when set, is called when the board answers 401, so a token it
@@ -56,6 +59,7 @@ type EgressConfig struct {
 	Anthropic  string
 	OpenRouter string
 	OpenAI     string
+	Gemini     string
 	GoProxy    string
 	NPM        string
 	RubyGems   string
@@ -97,6 +101,8 @@ type route struct {
 	// auth, when set, replaces the request's Authorization with its result;
 	// otherwise the request's own passes through.
 	auth func(ctx context.Context) (string, error)
+	// header names the header auth fills; empty means Authorization.
+	header string
 	// rejected, when set, hears of a 401 from the upstream.
 	rejected func()
 	// readOnly refuses everything but GET and HEAD.
@@ -113,6 +119,9 @@ type EgressProxy struct {
 }
 
 type authKey struct{}
+
+// geminiKeyHeader carries Gemini's API key, which it does not take as a bearer.
+const geminiKeyHeader = "X-Goog-Api-Key"
 
 // bearer turns a stored key into a route's Authorization.
 func bearer(key func() (string, error)) func(context.Context) (string, error) {
@@ -149,6 +158,9 @@ func NewEgressProxy(cfg EgressConfig) (*EgressProxy, error) {
 		if err != nil {
 			return nil, err
 		}
+	}
+	if err := p.addGeminiRoute(cfg); err != nil {
+		return nil, err
 	}
 	if err := p.addMCPServers(cfg.MCPServers); err != nil {
 		return nil, err
@@ -200,6 +212,22 @@ func NewEgressProxy(cfg EgressConfig) (*EgressProxy, error) {
 	return p, nil
 }
 
+// addGeminiRoute adds /gemini when there is a key; Gemini takes it in a header of its
+// own rather than as a bearer.
+func (p *EgressProxy) addGeminiRoute(cfg EgressConfig) error {
+	if cfg.GeminiKey == nil {
+		return nil
+	}
+	key := cfg.GeminiKey
+	err := p.addRoute("gemini", "/gemini/", false, orDefault(cfg.Gemini, geminiURL),
+		func(context.Context) (string, error) { return key() }, nil)
+	if err != nil {
+		return err
+	}
+	p.routes[len(p.routes)-1].header = geminiKeyHeader
+	return nil
+}
+
 // addRoute adds a fixed route to base.
 func (p *EgressProxy) addRoute(
 	name, prefix string, exact bool, base string,
@@ -211,7 +239,7 @@ func (p *EgressProxy) addRoute(
 	}
 	p.routes = append(p.routes, route{
 		name: name, prefix: prefix, exact: exact, target: target, auth: auth,
-		rejected: rejected, readOnly: false,
+		rejected: rejected, readOnly: false, header: "",
 	})
 	return nil
 }
@@ -275,7 +303,7 @@ func (p *EgressProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	if rt.auth != nil {
 		header, err := rt.auth(ctx)
-		if err != nil || header == "Bearer " {
+		if err != nil || header == "" || header == "Bearer " {
 			// The error never carries a response body or a secret, so it is safe to log.
 			p.log.Error("egress credential unavailable", "route", rt.name, "err", err)
 			http.Error(w, "credential unavailable", http.StatusBadGateway)
@@ -313,7 +341,13 @@ func (p *EgressProxy) rewrite(pr *httputil.ProxyRequest) {
 	}
 	if header, ok := pr.In.Context().Value(authKey{}).(string); ok {
 		out.Header.Del("X-Api-Key")
-		out.Header.Set("Authorization", header)
+		out.Header.Del(geminiKeyHeader)
+		if rt.header != "" {
+			out.Header.Del("Authorization")
+			out.Header.Set(rt.header, header)
+		} else {
+			out.Header.Set("Authorization", header)
+		}
 	}
 	p.log.Info("egress", "route", rt.name, "method", out.Method)
 }

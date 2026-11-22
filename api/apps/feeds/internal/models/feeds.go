@@ -167,3 +167,12 @@ type ReadStat struct {
 	Read       int
 	Bookmarked int
 }
+
+// SuggestionCriteria bounds which feed categories the suggestions query returns.
+type SuggestionCriteria struct {
+	Since      time.Time
+	MinItems   int
+	MaxReadPct int
+	// MaxCategoryLen (bytes) leaves out categories no rule could hold.
+	MaxCategoryLen int
+}

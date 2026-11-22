@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/internal/platform/factory/internal/models"
-	"tools.xdoubleu.com/internal/platform/identity/agentaccounts"
 )
 
 const (
@@ -23,11 +22,11 @@ type JobAccounts interface {
 	CreateForJob(
 		ctx context.Context,
 		createdBy, name string,
-		scope agentaccounts.Scope,
-	) (*agentaccounts.Account, string, error)
+		scope JobScope,
+	) (clientID, secret string, err error)
 	RevokeForJob(ctx context.Context, jobID uuid.UUID) error
 	ActiveJobs(ctx context.Context) ([]uuid.UUID, error)
-	ScopeOf(ctx context.Context, userID uuid.UUID) (*agentaccounts.Scope, error)
+	ScopeOf(ctx context.Context, userID uuid.UUID) (*JobScope, error)
 	// OwnerNames maps each account's user to the name of the person who owns it,
 	// or "" when that person can't be resolved. Unknown users are left out.
 	OwnerNames(ctx context.Context, userIDs []uuid.UUID) (map[uuid.UUID]string, error)
@@ -53,8 +52,8 @@ func (s *JobService) issueAccount(
 	job := &claimed.Job
 	name := "job #" + job.ID.String()[:shortJobIDLen] + " · " +
 		string(job.Harness)
-	account, secret, err := s.accounts.CreateForJob(ctx, jobOwner(job), name,
-		agentaccounts.Scope{JobID: job.ID, TaskID: job.TaskID})
+	clientID, secret, err := s.accounts.CreateForJob(ctx, jobOwner(job), name,
+		JobScope{JobID: job.ID, TaskID: job.TaskID})
 	if err != nil {
 		// The reason names no internals: it is posted on the task.
 		reason := "Could not create the job's agent account."
@@ -67,7 +66,7 @@ func (s *JobService) issueAccount(
 		}
 		return err
 	}
-	claimed.MCPClientID, claimed.MCPClientSecret = account.ClientID, secret
+	claimed.MCPClientID, claimed.MCPClientSecret = clientID, secret
 	return nil
 }
 
@@ -170,4 +169,10 @@ func (s *JobService) ActorLabels(
 		out[actor] = actor + " (agent of " + owner + ")"
 	}
 	return out
+}
+
+// JobScope is the one job and task an agent account was made for.
+type JobScope struct {
+	JobID  uuid.UUID
+	TaskID uuid.UUID
 }

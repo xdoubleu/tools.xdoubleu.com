@@ -10,7 +10,6 @@ import (
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/internal/platform/factory/internal/models"
-	"tools.xdoubleu.com/internal/platform/githubapp"
 )
 
 const (
@@ -31,7 +30,7 @@ const lostRequeuePrompt = "The runner running this job was lost. Continue where 
 func (s *JobService) livePR(
 	ctx context.Context,
 	job *models.Job,
-) *githubapp.PullRequestStatus {
+) *PullRequestStatus {
 	if s.github == nil || job == nil || job.PRURL == "" {
 		return nil
 	}
@@ -81,9 +80,9 @@ func (s *JobService) settle(
 		}
 	}
 	switch state {
-	case githubapp.StateMerged:
+	case StateMerged:
 		return s.toTesting(ctx, task, url, sha, body)
-	case githubapp.StateOpen:
+	case StateOpen:
 		return s.finishTask(ctx, task.ID, systemAuthor,
 			body+" Its pull request is open: "+url, models.StatusInReview)
 	}
@@ -222,7 +221,7 @@ func (s *JobService) reconcileNeedsYou(
 	ctx context.Context,
 	t *models.Task,
 ) (bool, error) {
-	if t.PRState != githubapp.StateMerged {
+	if t.PRState != StateMerged {
 		return false, nil
 	}
 	jobs, err := s.jobs.ByTask(ctx, t.ID)

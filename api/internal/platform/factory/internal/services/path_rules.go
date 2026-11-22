@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"tools.xdoubleu.com/internal/platform/factory/internal/models"
-	"tools.xdoubleu.com/internal/platform/githubapp"
 )
 
 var errNotPullRequest = errors.New("not a pull request address")
@@ -171,7 +170,7 @@ func (s *JobService) BackfillPathRules(ctx context.Context) (int, error) {
 	var failures []error
 	for i := range tasks {
 		t := &tasks[i]
-		if t.Status != models.StatusTesting || t.PRState != githubapp.StateMerged {
+		if t.Status != models.StatusTesting || t.PRState != StateMerged {
 			continue
 		}
 		files, readErr := s.changedFiles(ctx, t.PRURL)

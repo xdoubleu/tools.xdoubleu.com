@@ -15,8 +15,6 @@ import (
 
 	"tools.xdoubleu.com/internal/kit/database"
 	"tools.xdoubleu.com/internal/platform/factory/internal/models"
-	"tools.xdoubleu.com/internal/platform/factory/internal/repositories"
-	"tools.xdoubleu.com/internal/platform/slack"
 )
 
 const (
@@ -34,7 +32,7 @@ const (
 )
 
 type RunnerService struct {
-	repo *repositories.RunnersRepository
+	repo RunnerStore
 	now  func() time.Time
 	say  notices
 }
@@ -102,16 +100,35 @@ func ValidRunnerName(name string) (string, bool) {
 	return name, true
 }
 
+// requireBrowser refuses an actor that is not a browser session: pairing is an
+// admin act that a bearer token must never perform.
+func requireBrowser(actor models.Actor) error {
+	if !actor.Browser {
+		return forbidden("runners can only be managed in a browser session")
+	}
+	return nil
+}
+
 // Create adds a runner waiting to pair and returns its single-use code, which
 // can't be shown again. Another active runner is a conflict: revoke it first.
+// confirm is the step-up check, run once the name is valid.
 func (s *RunnerService) Create(
 	ctx context.Context,
-	createdBy, name string,
+	actor models.Actor,
+	name string,
+	confirm func(context.Context) error,
 ) (*models.Runner, string, error) {
+	if err := requireBrowser(actor); err != nil {
+		return nil, "", err
+	}
 	name, ok := ValidRunnerName(name)
 	if !ok {
 		return nil, "", badRequest("name must be 1 to 80 printable characters")
 	}
+	if err := confirm(ctx); err != nil {
+		return nil, "", err
+	}
+	createdBy := actor.String()
 	code, err := newCode()
 	if err != nil {
 		return nil, "", err
@@ -141,7 +158,7 @@ func (s *RunnerService) Pair(
 	if err != nil {
 		return "", nil, err
 	}
-	s.say.say(ctx, ":link: A runner paired: "+slack.Escape(runner.Name))
+	s.say.say(ctx, ":link: A runner paired: "+escape(runner.Name))
 	return token, runner, nil
 }
 
@@ -170,15 +187,25 @@ func (s *RunnerService) Heartbeat(
 }
 
 // List returns every runner.
-func (s *RunnerService) List(ctx context.Context) ([]models.Runner, error) {
+func (s *RunnerService) List(
+	ctx context.Context,
+	actor models.Actor,
+) ([]models.Runner, error) {
+	if err := requireBrowser(actor); err != nil {
+		return nil, err
+	}
 	return s.repo.List(ctx)
 }
 
 // Revoke ends a runner at once.
 func (s *RunnerService) Revoke(
 	ctx context.Context,
+	actor models.Actor,
 	id uuid.UUID,
 ) (*models.Runner, error) {
+	if err := requireBrowser(actor); err != nil {
+		return nil, err
+	}
 	return s.repo.Revoke(ctx, id)
 }
 

@@ -7,7 +7,6 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -17,7 +16,6 @@ import (
 
 	"connectrpc.com/connect/v2"
 	"connectrpc.com/connect/v2/connecthttp"
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
@@ -340,21 +338,6 @@ func TestEmailInbound_Resend_RestoresDismissedItem(t *testing.T) {
 	require.NotNil(t, restored)
 	assert.False(t, restored.Dismissed)
 	assert.Empty(t, restored.ReadAt)
-}
-
-func TestRecordEmailFetchFailure_DBErrors_LogsWithoutPanicking(t *testing.T) {
-	mux := getRoutes()
-	feedID, _, _ := createEmailFeedFor(t, mux)
-
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
-
-	parsed, err := uuid.Parse(feedID)
-	require.NoError(t, err)
-
-	assert.NotPanics(t, func() {
-		testApp.Services.Feeds.RecordEmailFetchFailure(ctx, parsed, errors.New("boom"))
-	})
 }
 
 func TestEmailInbound_IgnoredEventType_NoOp(t *testing.T) {

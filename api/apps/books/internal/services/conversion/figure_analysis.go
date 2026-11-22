@@ -23,7 +23,6 @@ import (
 	"golang.org/x/net/html/charset"
 
 	"tools.xdoubleu.com/apps/books/internal/models"
-	"tools.xdoubleu.com/apps/books/internal/repositories"
 	"tools.xdoubleu.com/apps/books/pkg/ebooks"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
 )
@@ -35,13 +34,13 @@ const epubCharsPerPage = 2000
 // FigureService measures the figure density of stored PDFs and EPUBs.
 type FigureService struct {
 	logger      *slog.Logger
-	bookFiles   *repositories.BookFilesRepository
+	bookFiles   bookFileStore
 	objectStore objectstore.Client
 }
 
 func NewFigureService(
 	logger *slog.Logger,
-	bookFiles *repositories.BookFilesRepository,
+	bookFiles bookFileStore,
 	objectStore objectstore.Client,
 ) *FigureService {
 	return &FigureService{

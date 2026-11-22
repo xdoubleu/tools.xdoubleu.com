@@ -15,7 +15,6 @@ import (
 	xhtml "golang.org/x/net/html"
 
 	"tools.xdoubleu.com/apps/books/internal/models"
-	"tools.xdoubleu.com/apps/books/internal/repositories"
 	"tools.xdoubleu.com/apps/books/pkg/ebooks"
 	"tools.xdoubleu.com/internal/kit/database"
 )
@@ -96,14 +95,14 @@ type Resource struct {
 // Service derives Readium manifests from stored EPUBs and streams single
 // zip entries. It reads only stored bytes, never a user-supplied URL.
 type Service struct {
-	bookFiles *repositories.BookFilesRepository
+	bookFiles bookFileStore
 	archives  *archiveCache
 }
 
 // NewService wires the book-file lookup and the stored-zip opener into a
 // Service.
 func NewService(
-	bookFiles *repositories.BookFilesRepository,
+	bookFiles bookFileStore,
 	openStoredZip func(ctx context.Context, key string) (*ebooks.TempZip, error),
 ) *Service {
 	return &Service{

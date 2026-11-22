@@ -32,7 +32,13 @@ type Harness interface {
 	// TransientError reports whether one line of output says the harness could not
 	// reach its provider at all: a failure the next run may not hit.
 	TransientError(line []byte) bool
+	// ACP is the argv that serves the Agent Client Protocol over stdio, or nil when
+	// the harness has no ACP server for a chat (adr-0060).
+	ACP() []string
 }
+
+// errorEvent is the type of a harness stream's error event.
+const errorEvent = "error"
 
 // transportErrorLine matches an error event whose text is a provider transport
 // failure. A usage limit is LimitFrom's, and any other error is the work's.
@@ -64,6 +70,10 @@ func transportErrorLine(line []byte) bool {
 // the Agent SDK. The flags follow Claude Code's documented print mode and are
 // checked on the Mac by the sandbox probe's manual list.
 type ClaudeCode struct{}
+
+// ACP implements Harness: Anthropic's Agent SDK terms keep Claude Code out of a
+// chat served to others, so it has none (adr-0060).
+func (ClaudeCode) ACP() []string { return nil }
 
 // Command implements Harness.
 func (ClaudeCode) Command() []string {
@@ -234,7 +244,7 @@ func (OpenCode) LimitFrom(line []byte) (bool, time.Time) {
 		Type string `json:"type"`
 	}
 	// Only an error event counts: the agent's own text may talk about limits.
-	if json.Unmarshal(line, &event) != nil || event.Type != "error" {
+	if json.Unmarshal(line, &event) != nil || event.Type != errorEvent {
 		return false, time.Time{}
 	}
 	// The texts of OpenRouter's credit and rate-limit errors.
@@ -311,7 +321,14 @@ const (
 		`--auto -m "openrouter/$1" --session "$2" "$(cat)"`
 	openCodeTerminal = openCodePrelude + `shift
 exec opencode --standalone "$@"`
+	openCodeACP = openCodePrelude + `exec opencode acp`
 )
+
+// ACP implements Harness: OpenCode serves ACP on stdio from `opencode acp`, the
+// working directory being the checkout.
+func (o OpenCode) ACP() []string {
+	return []string{"sh", "-c", openCodeACP, openCodeBin, o.Model}
+}
 
 // Interactive is the argv for OpenCode's terminal UI, with args passed on.
 func (o OpenCode) Interactive(args []string) []string {

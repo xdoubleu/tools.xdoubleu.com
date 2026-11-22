@@ -9,7 +9,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/platform/factory/internal/models"
 )
 
@@ -20,9 +19,16 @@ func input(title, body string, p models.Priority, labels []string) TaskInput {
 
 func status(t *testing.T, err error) int {
 	t.Helper()
-	var httpErr *app.HTTPError
-	require.True(t, errors.As(err, &httpErr))
-	return httpErr.Status
+	switch {
+	case errors.Is(err, ErrInvalid):
+		return http.StatusBadRequest
+	case errors.Is(err, ErrForbidden):
+		return http.StatusForbidden
+	case errors.Is(err, ErrConflict):
+		return http.StatusConflict
+	}
+	require.Fail(t, "not a domain error", "%v", err)
+	return 0
 }
 
 func TestNormaliseTitleBounds(t *testing.T) {
