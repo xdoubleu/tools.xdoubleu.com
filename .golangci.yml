@@ -192,22 +192,19 @@ linters:
               desc: services reach storage through their own interfaces
             - pkg: net/http
               desc: services know no transport
-        hexagonal-trains-adapters:
+        hexagonal-dashboard-adapters:
           files:
-            - "**/apps/trains/connect/**"
-            - "**/apps/trains/mcp/**"
-            - "**/apps/trains/http/**"
+            - "**/apps/dashboard/connect/**"
+            - "**/apps/dashboard/mcp/**"
             - "!**/*_test.go"
           deny:
-            - pkg: tools.xdoubleu.com/apps/trains/internal/repositories
-              desc: adapters call services, never repositories
             - pkg: github.com/jackc/pgx
               desc: adapters do not touch the database
             - pkg: tools.xdoubleu.com/internal/kit/database/postgres
               desc: adapters do not touch the database
-        hexagonal-trains-services:
+        hexagonal-dashboard-services:
           files:
-            - "**/apps/trains/internal/services/**"
+            - "**/apps/dashboard/internal/services/**"
             - "!**/*_test.go"
           deny:
             - pkg: connectrpc.com/connect
@@ -312,6 +309,32 @@ linters:
         hexagonal-taste-services:
           files:
             - "**/apps/taste/internal/services/**"
+            - "!**/*_test.go"
+          deny:
+            - pkg: connectrpc.com/connect
+              desc: services know no transport
+            - pkg: tools.xdoubleu.com/gen
+              desc: services use domain types, not generated protos
+            - pkg: github.com/jackc/pgx
+              desc: services reach storage through their own interfaces
+            - pkg: net/http
+              desc: services know no transport
+        hexagonal-trains-adapters:
+          files:
+            - "**/apps/trains/connect/**"
+            - "**/apps/trains/mcp/**"
+            - "**/apps/trains/http/**"
+            - "!**/*_test.go"
+          deny:
+            - pkg: tools.xdoubleu.com/apps/trains/internal/repositories
+              desc: adapters call services, never repositories
+            - pkg: github.com/jackc/pgx
+              desc: adapters do not touch the database
+            - pkg: tools.xdoubleu.com/internal/kit/database/postgres
+              desc: adapters do not touch the database
+        hexagonal-trains-services:
+          files:
+            - "**/apps/trains/internal/services/**"
             - "!**/*_test.go"
           deny:
             - pkg: connectrpc.com/connect
