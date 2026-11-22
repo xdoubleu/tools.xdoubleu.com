@@ -2,6 +2,8 @@ package threading_test
 
 import (
 	"context"
+	"fmt"
+	"io"
 	"log/slog"
 	"testing"
 	"time"
@@ -80,4 +82,44 @@ func TestWorkerPoolWaitGivesUpWhenContextIsDone(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 20*time.Millisecond)
 	defer cancel()
 	require.ErrorIs(t, pool.Wait(ctx), context.DeadlineExceeded)
+}
+
+type recordHandler struct {
+	slog.Handler
+	records chan slog.Record
+}
+
+func (h recordHandler) Handle(_ context.Context, r slog.Record) error {
+	h.records <- r
+	return nil
+}
+
+func TestWorkerLogsFailedWorkWithErrorChain(t *testing.T) {
+	t.Parallel()
+
+	records := make(chan slog.Record, 1)
+	logger := slog.New(recordHandler{
+		Handler: slog.NewTextHandler(io.Discard, nil),
+		records: records,
+	})
+	pool := threading.NewWorkerPool(context.Background(), logger, 1, 1)
+
+	pool.EnqueueWork(func(_ context.Context, _ *slog.Logger) error {
+		return fmt.Errorf("x: %w", context.Canceled)
+	})
+
+	select {
+	case r := <-records:
+		assert.Equal(t, "work item failed", r.Message)
+		var logged error
+		r.Attrs(func(a slog.Attr) bool {
+			if err, ok := a.Value.Any().(error); ok && a.Key == "error" {
+				logged = err
+			}
+			return true
+		})
+		require.ErrorIs(t, logged, context.Canceled)
+	case <-time.After(time.Second):
+		t.Fatal("failure was never logged")
+	}
 }
