@@ -23,6 +23,8 @@ GET /books/kobo/{token}/v1/library/{revisionId}/metadata: 403, 403
 GET /books/kobo/{token}/v1/library/{revisionId}/state: 403, 403
 GET /books/kobo/{token}/{revisionId}/{width}/{height}/{greyscale}/image.jpg: 403, 403
 GET /books/kobo/{token}/{revisionId}/{width}/{height}/{quality}/{greyscale}/image.jpg: 403, 403
+GET /factory/chats/{id}/runner: 401, 401
+GET /factory/chats/{id}/ws: 401, 403
 GET /games/api/progress: 401, 426
 GET /health: 200, 200
 GET /learningpaths/oauth/todoist/callback: 401, 302
@@ -138,6 +140,12 @@ POST /factory.v1.AgentAccountService/ListAgentAccounts: 401, 415
 POST /factory.v1.AgentAccountService/RemoveAgentAccountFromFamily: 401, 415
 POST /factory.v1.AgentAccountService/RevokeAgentAccount: 401, 415
 POST /factory.v1.AgentAccountService/RotateAgentAccountSecret: 401, 415
+POST /factory.v1.ChatService/: 401, 403
+POST /factory.v1.ChatService/AnswerChat: 401, 403
+POST /factory.v1.ChatService/ListChats: 401, 403
+POST /factory.v1.ChatService/SendChatMessage: 401, 403
+POST /factory.v1.ChatService/StartChat: 401, 403
+POST /factory.v1.ChatService/StopChat: 401, 403
 POST /factory.v1.RepoService/: 401, 403
 POST /factory.v1.RepoService/CreateRepo: 401, 403
 POST /factory.v1.RepoService/ListRepos: 401, 403

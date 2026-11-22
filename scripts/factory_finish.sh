@@ -49,8 +49,8 @@ if grep -q '^infra/grafana/' <<<"$files"; then
 	res[grafana-verify]="not run (CI checks it)"
 fi
 if grep -q '\.proto$' <<<"$files"; then
-	run proto api make proto/check
-	touched web && run proto web npm run generate:check
+	run proto api make proto/check/local
+	touched web && run proto web npm run generate:check:local
 fi
 run docs . make lint/docs
 

@@ -21,9 +21,9 @@ make db/reset                      # recreate the Postgres volume — shared by 
 ## Architecture
 
 - `NewApps` (`cmd/api/apps.go`) registration order: `books` before `games` (games' last migration drops `backlog` after books adopted its tables); `dashboard` after apps it reads; `trains`/`learningpaths`/`movies`, then `taste` (reads apps; `showsmigrations` fill `podcasts`).
-- `main.go` wraps the pgx pool in `postgres.NewSpanDB` (tracing); migrations use the raw pool. Platform handlers: `internal/platform/obs`, `internal/platform/account` (each `Deps`/`Register`).
-- `ApplyMigrations` takes a Postgres advisory lock (concurrent replicas never race), runs global migrations (`cmd/api/migrations/`), then each app's.
-- `ApplyMigrationsFromFS` (`internal/app/base.go`) runs goose with `WithAllowMissing()`, so out-of-order merges self-heal.
+- `main.go` wraps the pgx pool in `postgres.NewSpanDB` (tracing); migrations use the raw pool. Platform handlers (`internal/platform/obs`, `account`) each have `Deps`/`Register`.
+- `ApplyMigrations` takes a Postgres advisory lock (replicas never race), runs global migrations (`cmd/api/migrations/`), then each app's.
+- `ApplyMigrationsFromFS` (`internal/app/base.go`) runs goose with `WithAllowMissing()`, so out-of-order merges heal.
 
 Per-app layout (`apps/<name>/`; see [hexagonal-apps](../docs/convention-hexagonal-apps.md)):
 
@@ -42,7 +42,6 @@ First-party: HS256 JWT access tokens, opaque rotating refresh tokens, TOTP 2FA +
 - A per-token TTL cache (`AUTH_CACHE_TTL`, default 60s, `0` disables) fronts every resolution — **role/app-access changes lag up to the TTL**.
 - SignOut/UpdatePassword/VerifyMFA/UnenrollTOTP evict the token. **Admin `SetRole`/`SetAppAccess` must call `InvalidateUserCache()`.**
 - `enrichUser` overlays DB `Role`/`AppAccess`; **a DB failure is returned, never swallowed** — the unenriched user would be cached as "no access".
-- `GetCurrentUser` (`account/auth_handlers.go`) shows DB-enriched attributes: `auth.GetUser`, then `appUsersRepo.GetByID`, preferring DB values.
 - `constants.AuthChannelContextKey` is `browser` (cookies) or `mcp` (bearer), same `models.User`; missing is not a browser.
 - Passkeys (`passkeys.go`) sit beside the password. RP ID and origin come from `WEB_URL`. Adding or removing one needs a sign-in under 5 minutes old (`auth_time`).
 - `ResolveToken` verifies session JWTs locally, then falls back to an injected `OAuth2TokenResolver` for `oauth2as` tokens → [`adr-0006`](../docs/adr-0006-embedded-oauth21-authorization-server.md).
@@ -65,6 +64,7 @@ First-party: HS256 JWT access tokens, opaque rotating refresh tokens, TOTP 2FA +
 - **`mcptools`** — `RequireAppAccess`, `AddReadTool`/`AddWriteTool`, `Unwrap`/`Result`, `KeepRequestDeadline`/`BoundToolCalls`/`LogSlowRequests` (tool calls keep their deadline, feed `mcp_tool_duration_seconds`).
 - **`testhelper`** — `ConnectTestDB`, `NewTestConfig`, `BuildMux`, `CreateRequestTester`.
 - Job queue: `internal/kit/threading` + `internal/platform/jobqueue`. Single replica only.
+- **factory chat** — `ChatService` RPCs plus per-chat `wstools` sockets (`factory/http/chats_ws.go`): browser `/ws?after=<seq>` replays then streams, runner `/runner` takes its device token; both `isLongRequest`.
 - **`apps/internal/`** — app-only shared packages: `consumption` (`ListConsumption`/`Find*`/`Want*`), `progressws`/`progresshistory` (job-progress topics, carry-forward reads).
 
 ### Apps — non-obvious rules
@@ -103,8 +103,8 @@ Apps opt in via `MCPToolProvider` (`cmd/api/apps.go`) in `apps/<name>/mcp.go`; s
 ## Testing
 
 - No DB mocking: integration tests hit real Postgres (17, as in production); other mocks: `internal/mocks/`.
-- `make test/cov/diff` (`scripts/diff_coverage.sh`) prints a gate; CI runs it on PRs → [`adr-0013`](../docs/adr-0013-diff-scoped-coverage.md). Offline it uses local `main`. Delete wrappers left unused.
-- **One Postgres container (`api-db-1`) is shared by every worktree.** `docker-compose down` and `make db/reset` hit all sessions; never stop it. `relation ... does not exist` may be leftover state, teardown, or (CI only) a `global.*` table a test assumed: `cmd/api` creates them and package order isn't fixed; fake the interface or create it (`feeds` does).
+- `make test/cov/diff` (`scripts/diff_coverage.sh`) prints a gate; CI runs it on PRs → [`adr-0013`](../docs/adr-0013-diff-scoped-coverage.md).
+- **One Postgres container (`api-db-1`) is shared by every worktree.** `docker-compose down` and `make db/reset` hit all sessions; never stop it. `relation ... does not exist` is leftover state, teardown, or (CI only) a `global.*` table a test assumed: `cmd/api` creates those, so fake the interface or create it (`feeds` does).
 - **`relation "X" already exists` panic** = another worktree's DDL ran without its `goose_db_version` row (in `global`; check via `docker exec api-db-1 psql`). If the schema matches, insert the row.
 - **Concurrent `go test` from two worktrees races on fixtures**, e.g. `TestAppsMCPCallAllToolsAsAdmin`. Re-run alone first.
 - No Docker? Try `.claude/hooks/session-start.sh`, or in a sandbox `scripts/sandbox_postgres.sh`, then `make db/migrate`. Modules resolve offline; build before reporting a gap.

@@ -2841,6 +2841,626 @@ func (x *UpdateRepoResponse) GetRepo() *Repo {
 	return nil
 }
 
+// A chat session: a person talking to a harness on one runner. Its transcript
+// streams over the WebSocket at /factory/chats/{id}/ws.
+type Chat struct {
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	Id     string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	RepoId string                 `protobuf:"bytes,2,opt,name=repo_id,json=repoId,proto3" json:"repo_id,omitempty"`
+	// Empty for a chat about no task.
+	TaskId   string  `protobuf:"bytes,3,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	Harness  Harness `protobuf:"varint,4,opt,name=harness,proto3,enum=factory.v1.Harness" json:"harness,omitempty"`
+	RunnerId string  `protobuf:"bytes,5,opt,name=runner_id,json=runnerId,proto3" json:"runner_id,omitempty"`
+	// idle, working, asking or stopped.
+	State  string `protobuf:"bytes,6,opt,name=state,proto3" json:"state,omitempty"`
+	Branch string `protobuf:"bytes,7,opt,name=branch,proto3" json:"branch,omitempty"`
+	// What the session left behind when it stopped.
+	Report        string `protobuf:"bytes,8,opt,name=report,proto3" json:"report,omitempty"`
+	LastSeq       int32  `protobuf:"varint,9,opt,name=last_seq,json=lastSeq,proto3" json:"last_seq,omitempty"`
+	CreatedBy     string `protobuf:"bytes,10,opt,name=created_by,json=createdBy,proto3" json:"created_by,omitempty"`
+	CreatedAt     string `protobuf:"bytes,11,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt     string `protobuf:"bytes,12,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	StoppedAt     string `protobuf:"bytes,13,opt,name=stopped_at,json=stoppedAt,proto3" json:"stopped_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Chat) Reset() {
+	*x = Chat{}
+	mi := &file_factory_v1_factory_proto_msgTypes[44]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Chat) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Chat) ProtoMessage() {}
+
+func (x *Chat) ProtoReflect() protoreflect.Message {
+	mi := &file_factory_v1_factory_proto_msgTypes[44]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Chat.ProtoReflect.Descriptor instead.
+func (*Chat) Descriptor() ([]byte, []int) {
+	return file_factory_v1_factory_proto_rawDescGZIP(), []int{44}
+}
+
+func (x *Chat) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *Chat) GetRepoId() string {
+	if x != nil {
+		return x.RepoId
+	}
+	return ""
+}
+
+func (x *Chat) GetTaskId() string {
+	if x != nil {
+		return x.TaskId
+	}
+	return ""
+}
+
+func (x *Chat) GetHarness() Harness {
+	if x != nil {
+		return x.Harness
+	}
+	return Harness_HARNESS_UNSPECIFIED
+}
+
+func (x *Chat) GetRunnerId() string {
+	if x != nil {
+		return x.RunnerId
+	}
+	return ""
+}
+
+func (x *Chat) GetState() string {
+	if x != nil {
+		return x.State
+	}
+	return ""
+}
+
+func (x *Chat) GetBranch() string {
+	if x != nil {
+		return x.Branch
+	}
+	return ""
+}
+
+func (x *Chat) GetReport() string {
+	if x != nil {
+		return x.Report
+	}
+	return ""
+}
+
+func (x *Chat) GetLastSeq() int32 {
+	if x != nil {
+		return x.LastSeq
+	}
+	return 0
+}
+
+func (x *Chat) GetCreatedBy() string {
+	if x != nil {
+		return x.CreatedBy
+	}
+	return ""
+}
+
+func (x *Chat) GetCreatedAt() string {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return ""
+}
+
+func (x *Chat) GetUpdatedAt() string {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return ""
+}
+
+func (x *Chat) GetStoppedAt() string {
+	if x != nil {
+		return x.StoppedAt
+	}
+	return ""
+}
+
+type StartChatRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RepoId        string                 `protobuf:"bytes,1,opt,name=repo_id,json=repoId,proto3" json:"repo_id,omitempty"`
+	TaskId        string                 `protobuf:"bytes,2,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	Harness       Harness                `protobuf:"varint,3,opt,name=harness,proto3,enum=factory.v1.Harness" json:"harness,omitempty"`
+	RunnerId      string                 `protobuf:"bytes,4,opt,name=runner_id,json=runnerId,proto3" json:"runner_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StartChatRequest) Reset() {
+	*x = StartChatRequest{}
+	mi := &file_factory_v1_factory_proto_msgTypes[45]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StartChatRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StartChatRequest) ProtoMessage() {}
+
+func (x *StartChatRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_factory_v1_factory_proto_msgTypes[45]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StartChatRequest.ProtoReflect.Descriptor instead.
+func (*StartChatRequest) Descriptor() ([]byte, []int) {
+	return file_factory_v1_factory_proto_rawDescGZIP(), []int{45}
+}
+
+func (x *StartChatRequest) GetRepoId() string {
+	if x != nil {
+		return x.RepoId
+	}
+	return ""
+}
+
+func (x *StartChatRequest) GetTaskId() string {
+	if x != nil {
+		return x.TaskId
+	}
+	return ""
+}
+
+func (x *StartChatRequest) GetHarness() Harness {
+	if x != nil {
+		return x.Harness
+	}
+	return Harness_HARNESS_UNSPECIFIED
+}
+
+func (x *StartChatRequest) GetRunnerId() string {
+	if x != nil {
+		return x.RunnerId
+	}
+	return ""
+}
+
+type StartChatResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Chat          *Chat                  `protobuf:"bytes,1,opt,name=chat,proto3" json:"chat,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StartChatResponse) Reset() {
+	*x = StartChatResponse{}
+	mi := &file_factory_v1_factory_proto_msgTypes[46]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StartChatResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StartChatResponse) ProtoMessage() {}
+
+func (x *StartChatResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_factory_v1_factory_proto_msgTypes[46]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StartChatResponse.ProtoReflect.Descriptor instead.
+func (*StartChatResponse) Descriptor() ([]byte, []int) {
+	return file_factory_v1_factory_proto_rawDescGZIP(), []int{46}
+}
+
+func (x *StartChatResponse) GetChat() *Chat {
+	if x != nil {
+		return x.Chat
+	}
+	return nil
+}
+
+// Hands the harness a message while the chat is idle.
+type SendChatMessageRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Text          string                 `protobuf:"bytes,2,opt,name=text,proto3" json:"text,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SendChatMessageRequest) Reset() {
+	*x = SendChatMessageRequest{}
+	mi := &file_factory_v1_factory_proto_msgTypes[47]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SendChatMessageRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SendChatMessageRequest) ProtoMessage() {}
+
+func (x *SendChatMessageRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_factory_v1_factory_proto_msgTypes[47]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SendChatMessageRequest.ProtoReflect.Descriptor instead.
+func (*SendChatMessageRequest) Descriptor() ([]byte, []int) {
+	return file_factory_v1_factory_proto_rawDescGZIP(), []int{47}
+}
+
+func (x *SendChatMessageRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *SendChatMessageRequest) GetText() string {
+	if x != nil {
+		return x.Text
+	}
+	return ""
+}
+
+type SendChatMessageResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SendChatMessageResponse) Reset() {
+	*x = SendChatMessageResponse{}
+	mi := &file_factory_v1_factory_proto_msgTypes[48]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SendChatMessageResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SendChatMessageResponse) ProtoMessage() {}
+
+func (x *SendChatMessageResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_factory_v1_factory_proto_msgTypes[48]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SendChatMessageResponse.ProtoReflect.Descriptor instead.
+func (*SendChatMessageResponse) Descriptor() ([]byte, []int) {
+	return file_factory_v1_factory_proto_rawDescGZIP(), []int{48}
+}
+
+// Replies to a question the harness asked.
+type AnswerChatRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Text          string                 `protobuf:"bytes,2,opt,name=text,proto3" json:"text,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AnswerChatRequest) Reset() {
+	*x = AnswerChatRequest{}
+	mi := &file_factory_v1_factory_proto_msgTypes[49]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AnswerChatRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AnswerChatRequest) ProtoMessage() {}
+
+func (x *AnswerChatRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_factory_v1_factory_proto_msgTypes[49]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AnswerChatRequest.ProtoReflect.Descriptor instead.
+func (*AnswerChatRequest) Descriptor() ([]byte, []int) {
+	return file_factory_v1_factory_proto_rawDescGZIP(), []int{49}
+}
+
+func (x *AnswerChatRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *AnswerChatRequest) GetText() string {
+	if x != nil {
+		return x.Text
+	}
+	return ""
+}
+
+type AnswerChatResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AnswerChatResponse) Reset() {
+	*x = AnswerChatResponse{}
+	mi := &file_factory_v1_factory_proto_msgTypes[50]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AnswerChatResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AnswerChatResponse) ProtoMessage() {}
+
+func (x *AnswerChatResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_factory_v1_factory_proto_msgTypes[50]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AnswerChatResponse.ProtoReflect.Descriptor instead.
+func (*AnswerChatResponse) Descriptor() ([]byte, []int) {
+	return file_factory_v1_factory_proto_rawDescGZIP(), []int{50}
+}
+
+type StopChatRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Report        string                 `protobuf:"bytes,2,opt,name=report,proto3" json:"report,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StopChatRequest) Reset() {
+	*x = StopChatRequest{}
+	mi := &file_factory_v1_factory_proto_msgTypes[51]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StopChatRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StopChatRequest) ProtoMessage() {}
+
+func (x *StopChatRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_factory_v1_factory_proto_msgTypes[51]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StopChatRequest.ProtoReflect.Descriptor instead.
+func (*StopChatRequest) Descriptor() ([]byte, []int) {
+	return file_factory_v1_factory_proto_rawDescGZIP(), []int{51}
+}
+
+func (x *StopChatRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *StopChatRequest) GetReport() string {
+	if x != nil {
+		return x.Report
+	}
+	return ""
+}
+
+type StopChatResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Chat          *Chat                  `protobuf:"bytes,1,opt,name=chat,proto3" json:"chat,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StopChatResponse) Reset() {
+	*x = StopChatResponse{}
+	mi := &file_factory_v1_factory_proto_msgTypes[52]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StopChatResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StopChatResponse) ProtoMessage() {}
+
+func (x *StopChatResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_factory_v1_factory_proto_msgTypes[52]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StopChatResponse.ProtoReflect.Descriptor instead.
+func (*StopChatResponse) Descriptor() ([]byte, []int) {
+	return file_factory_v1_factory_proto_rawDescGZIP(), []int{52}
+}
+
+func (x *StopChatResponse) GetChat() *Chat {
+	if x != nil {
+		return x.Chat
+	}
+	return nil
+}
+
+// Newest first.
+type ListChatsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ActiveOnly    bool                   `protobuf:"varint,1,opt,name=active_only,json=activeOnly,proto3" json:"active_only,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListChatsRequest) Reset() {
+	*x = ListChatsRequest{}
+	mi := &file_factory_v1_factory_proto_msgTypes[53]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListChatsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListChatsRequest) ProtoMessage() {}
+
+func (x *ListChatsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_factory_v1_factory_proto_msgTypes[53]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListChatsRequest.ProtoReflect.Descriptor instead.
+func (*ListChatsRequest) Descriptor() ([]byte, []int) {
+	return file_factory_v1_factory_proto_rawDescGZIP(), []int{53}
+}
+
+func (x *ListChatsRequest) GetActiveOnly() bool {
+	if x != nil {
+		return x.ActiveOnly
+	}
+	return false
+}
+
+type ListChatsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Chats         []*Chat                `protobuf:"bytes,1,rep,name=chats,proto3" json:"chats,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListChatsResponse) Reset() {
+	*x = ListChatsResponse{}
+	mi := &file_factory_v1_factory_proto_msgTypes[54]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListChatsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListChatsResponse) ProtoMessage() {}
+
+func (x *ListChatsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_factory_v1_factory_proto_msgTypes[54]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListChatsResponse.ProtoReflect.Descriptor instead.
+func (*ListChatsResponse) Descriptor() ([]byte, []int) {
+	return file_factory_v1_factory_proto_rawDescGZIP(), []int{54}
+}
+
+func (x *ListChatsResponse) GetChats() []*Chat {
+	if x != nil {
+		return x.Chats
+	}
+	return nil
+}
+
 var File_factory_v1_factory_proto protoreflect.FileDescriptor
 
 const file_factory_v1_factory_proto_rawDesc = "" +
@@ -3018,7 +3638,51 @@ const file_factory_v1_factory_proto_rawDesc = "" +
 	"\x11UpdateRepoRequest\x12$\n" +
 	"\x04repo\x18\x01 \x01(\v2\x10.factory.v1.RepoR\x04repo\":\n" +
 	"\x12UpdateRepoResponse\x12$\n" +
-	"\x04repo\x18\x01 \x01(\v2\x10.factory.v1.RepoR\x04repo*\xdb\x01\n" +
+	"\x04repo\x18\x01 \x01(\v2\x10.factory.v1.RepoR\x04repo\"\xf1\x02\n" +
+	"\x04Chat\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
+	"\arepo_id\x18\x02 \x01(\tR\x06repoId\x12\x17\n" +
+	"\atask_id\x18\x03 \x01(\tR\x06taskId\x12-\n" +
+	"\aharness\x18\x04 \x01(\x0e2\x13.factory.v1.HarnessR\aharness\x12\x1b\n" +
+	"\trunner_id\x18\x05 \x01(\tR\brunnerId\x12\x14\n" +
+	"\x05state\x18\x06 \x01(\tR\x05state\x12\x16\n" +
+	"\x06branch\x18\a \x01(\tR\x06branch\x12\x16\n" +
+	"\x06report\x18\b \x01(\tR\x06report\x12\x19\n" +
+	"\blast_seq\x18\t \x01(\x05R\alastSeq\x12\x1d\n" +
+	"\n" +
+	"created_by\x18\n" +
+	" \x01(\tR\tcreatedBy\x12\x1d\n" +
+	"\n" +
+	"created_at\x18\v \x01(\tR\tcreatedAt\x12\x1d\n" +
+	"\n" +
+	"updated_at\x18\f \x01(\tR\tupdatedAt\x12\x1d\n" +
+	"\n" +
+	"stopped_at\x18\r \x01(\tR\tstoppedAt\"\x90\x01\n" +
+	"\x10StartChatRequest\x12\x17\n" +
+	"\arepo_id\x18\x01 \x01(\tR\x06repoId\x12\x17\n" +
+	"\atask_id\x18\x02 \x01(\tR\x06taskId\x12-\n" +
+	"\aharness\x18\x03 \x01(\x0e2\x13.factory.v1.HarnessR\aharness\x12\x1b\n" +
+	"\trunner_id\x18\x04 \x01(\tR\brunnerId\"9\n" +
+	"\x11StartChatResponse\x12$\n" +
+	"\x04chat\x18\x01 \x01(\v2\x10.factory.v1.ChatR\x04chat\"<\n" +
+	"\x16SendChatMessageRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04text\x18\x02 \x01(\tR\x04text\"\x19\n" +
+	"\x17SendChatMessageResponse\"7\n" +
+	"\x11AnswerChatRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04text\x18\x02 \x01(\tR\x04text\"\x14\n" +
+	"\x12AnswerChatResponse\"9\n" +
+	"\x0fStopChatRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x16\n" +
+	"\x06report\x18\x02 \x01(\tR\x06report\"8\n" +
+	"\x10StopChatResponse\x12$\n" +
+	"\x04chat\x18\x01 \x01(\v2\x10.factory.v1.ChatR\x04chat\"3\n" +
+	"\x10ListChatsRequest\x12\x1f\n" +
+	"\vactive_only\x18\x01 \x01(\bR\n" +
+	"activeOnly\";\n" +
+	"\x11ListChatsResponse\x12&\n" +
+	"\x05chats\x18\x01 \x03(\v2\x10.factory.v1.ChatR\x05chats*\xdb\x01\n" +
 	"\n" +
 	"TaskStatus\x12\x1b\n" +
 	"\x17TASK_STATUS_UNSPECIFIED\x10\x00\x12\x17\n" +
@@ -3071,7 +3735,14 @@ const file_factory_v1_factory_proto_rawDesc = "" +
 	"\n" +
 	"CreateRepo\x12\x1d.factory.v1.CreateRepoRequest\x1a\x1e.factory.v1.CreateRepoResponse\x12K\n" +
 	"\n" +
-	"UpdateRepo\x12\x1d.factory.v1.UpdateRepoRequest\x1a\x1e.factory.v1.UpdateRepoResponseB-Z+tools.xdoubleu.com/gen/factory/v1;factoryv1b\x06proto3"
+	"UpdateRepo\x12\x1d.factory.v1.UpdateRepoRequest\x1a\x1e.factory.v1.UpdateRepoResponse2\x91\x03\n" +
+	"\vChatService\x12H\n" +
+	"\tStartChat\x12\x1c.factory.v1.StartChatRequest\x1a\x1d.factory.v1.StartChatResponse\x12Z\n" +
+	"\x0fSendChatMessage\x12\".factory.v1.SendChatMessageRequest\x1a#.factory.v1.SendChatMessageResponse\x12K\n" +
+	"\n" +
+	"AnswerChat\x12\x1d.factory.v1.AnswerChatRequest\x1a\x1e.factory.v1.AnswerChatResponse\x12E\n" +
+	"\bStopChat\x12\x1b.factory.v1.StopChatRequest\x1a\x1c.factory.v1.StopChatResponse\x12H\n" +
+	"\tListChats\x12\x1c.factory.v1.ListChatsRequest\x1a\x1d.factory.v1.ListChatsResponseB-Z+tools.xdoubleu.com/gen/factory/v1;factoryv1b\x06proto3"
 
 var (
 	file_factory_v1_factory_proto_rawDescOnce sync.Once
@@ -3086,7 +3757,7 @@ func file_factory_v1_factory_proto_rawDescGZIP() []byte {
 }
 
 var file_factory_v1_factory_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
-var file_factory_v1_factory_proto_msgTypes = make([]protoimpl.MessageInfo, 44)
+var file_factory_v1_factory_proto_msgTypes = make([]protoimpl.MessageInfo, 55)
 var file_factory_v1_factory_proto_goTypes = []any{
 	(TaskStatus)(0),                 // 0: factory.v1.TaskStatus
 	(TaskPriority)(0),               // 1: factory.v1.TaskPriority
@@ -3136,6 +3807,17 @@ var file_factory_v1_factory_proto_goTypes = []any{
 	(*CreateRepoResponse)(nil),      // 45: factory.v1.CreateRepoResponse
 	(*UpdateRepoRequest)(nil),       // 46: factory.v1.UpdateRepoRequest
 	(*UpdateRepoResponse)(nil),      // 47: factory.v1.UpdateRepoResponse
+	(*Chat)(nil),                    // 48: factory.v1.Chat
+	(*StartChatRequest)(nil),        // 49: factory.v1.StartChatRequest
+	(*StartChatResponse)(nil),       // 50: factory.v1.StartChatResponse
+	(*SendChatMessageRequest)(nil),  // 51: factory.v1.SendChatMessageRequest
+	(*SendChatMessageResponse)(nil), // 52: factory.v1.SendChatMessageResponse
+	(*AnswerChatRequest)(nil),       // 53: factory.v1.AnswerChatRequest
+	(*AnswerChatResponse)(nil),      // 54: factory.v1.AnswerChatResponse
+	(*StopChatRequest)(nil),         // 55: factory.v1.StopChatRequest
+	(*StopChatResponse)(nil),        // 56: factory.v1.StopChatResponse
+	(*ListChatsRequest)(nil),        // 57: factory.v1.ListChatsRequest
+	(*ListChatsResponse)(nil),       // 58: factory.v1.ListChatsResponse
 }
 var file_factory_v1_factory_proto_depIdxs = []int32{
 	0,  // 0: factory.v1.Task.status:type_name -> factory.v1.TaskStatus
@@ -3169,47 +3851,62 @@ var file_factory_v1_factory_proto_depIdxs = []int32{
 	41, // 28: factory.v1.CreateRepoResponse.repo:type_name -> factory.v1.Repo
 	41, // 29: factory.v1.UpdateRepoRequest.repo:type_name -> factory.v1.Repo
 	41, // 30: factory.v1.UpdateRepoResponse.repo:type_name -> factory.v1.Repo
-	6,  // 31: factory.v1.TaskService.ListTasks:input_type -> factory.v1.ListTasksRequest
-	8,  // 32: factory.v1.TaskService.SetPickupPaused:input_type -> factory.v1.SetPickupPausedRequest
-	10, // 33: factory.v1.TaskService.GetTask:input_type -> factory.v1.GetTaskRequest
-	13, // 34: factory.v1.TaskService.CreateTask:input_type -> factory.v1.CreateTaskRequest
-	15, // 35: factory.v1.TaskService.UpdateTask:input_type -> factory.v1.UpdateTaskRequest
-	17, // 36: factory.v1.TaskService.MoveTask:input_type -> factory.v1.MoveTaskRequest
-	19, // 37: factory.v1.TaskService.AddComment:input_type -> factory.v1.AddCommentRequest
-	26, // 38: factory.v1.TaskService.RunTask:input_type -> factory.v1.RunTaskRequest
-	28, // 39: factory.v1.TaskService.StopJob:input_type -> factory.v1.StopJobRequest
-	23, // 40: factory.v1.TaskService.ListJobEvents:input_type -> factory.v1.ListJobEventsRequest
-	31, // 41: factory.v1.TaskService.ListRoutines:input_type -> factory.v1.ListRoutinesRequest
-	33, // 42: factory.v1.TaskService.SaveRoutine:input_type -> factory.v1.SaveRoutineRequest
-	35, // 43: factory.v1.TaskService.RunRoutine:input_type -> factory.v1.RunRoutineRequest
-	37, // 44: factory.v1.TaskService.StopRoutine:input_type -> factory.v1.StopRoutineRequest
-	39, // 45: factory.v1.TaskService.DeleteRoutine:input_type -> factory.v1.DeleteRoutineRequest
-	42, // 46: factory.v1.RepoService.ListRepos:input_type -> factory.v1.ListReposRequest
-	44, // 47: factory.v1.RepoService.CreateRepo:input_type -> factory.v1.CreateRepoRequest
-	46, // 48: factory.v1.RepoService.UpdateRepo:input_type -> factory.v1.UpdateRepoRequest
-	7,  // 49: factory.v1.TaskService.ListTasks:output_type -> factory.v1.ListTasksResponse
-	9,  // 50: factory.v1.TaskService.SetPickupPaused:output_type -> factory.v1.SetPickupPausedResponse
-	11, // 51: factory.v1.TaskService.GetTask:output_type -> factory.v1.GetTaskResponse
-	14, // 52: factory.v1.TaskService.CreateTask:output_type -> factory.v1.CreateTaskResponse
-	16, // 53: factory.v1.TaskService.UpdateTask:output_type -> factory.v1.UpdateTaskResponse
-	18, // 54: factory.v1.TaskService.MoveTask:output_type -> factory.v1.MoveTaskResponse
-	20, // 55: factory.v1.TaskService.AddComment:output_type -> factory.v1.AddCommentResponse
-	27, // 56: factory.v1.TaskService.RunTask:output_type -> factory.v1.RunTaskResponse
-	29, // 57: factory.v1.TaskService.StopJob:output_type -> factory.v1.StopJobResponse
-	24, // 58: factory.v1.TaskService.ListJobEvents:output_type -> factory.v1.ListJobEventsResponse
-	32, // 59: factory.v1.TaskService.ListRoutines:output_type -> factory.v1.ListRoutinesResponse
-	34, // 60: factory.v1.TaskService.SaveRoutine:output_type -> factory.v1.SaveRoutineResponse
-	36, // 61: factory.v1.TaskService.RunRoutine:output_type -> factory.v1.RunRoutineResponse
-	38, // 62: factory.v1.TaskService.StopRoutine:output_type -> factory.v1.StopRoutineResponse
-	40, // 63: factory.v1.TaskService.DeleteRoutine:output_type -> factory.v1.DeleteRoutineResponse
-	43, // 64: factory.v1.RepoService.ListRepos:output_type -> factory.v1.ListReposResponse
-	45, // 65: factory.v1.RepoService.CreateRepo:output_type -> factory.v1.CreateRepoResponse
-	47, // 66: factory.v1.RepoService.UpdateRepo:output_type -> factory.v1.UpdateRepoResponse
-	49, // [49:67] is the sub-list for method output_type
-	31, // [31:49] is the sub-list for method input_type
-	31, // [31:31] is the sub-list for extension type_name
-	31, // [31:31] is the sub-list for extension extendee
-	0,  // [0:31] is the sub-list for field type_name
+	2,  // 31: factory.v1.Chat.harness:type_name -> factory.v1.Harness
+	2,  // 32: factory.v1.StartChatRequest.harness:type_name -> factory.v1.Harness
+	48, // 33: factory.v1.StartChatResponse.chat:type_name -> factory.v1.Chat
+	48, // 34: factory.v1.StopChatResponse.chat:type_name -> factory.v1.Chat
+	48, // 35: factory.v1.ListChatsResponse.chats:type_name -> factory.v1.Chat
+	6,  // 36: factory.v1.TaskService.ListTasks:input_type -> factory.v1.ListTasksRequest
+	8,  // 37: factory.v1.TaskService.SetPickupPaused:input_type -> factory.v1.SetPickupPausedRequest
+	10, // 38: factory.v1.TaskService.GetTask:input_type -> factory.v1.GetTaskRequest
+	13, // 39: factory.v1.TaskService.CreateTask:input_type -> factory.v1.CreateTaskRequest
+	15, // 40: factory.v1.TaskService.UpdateTask:input_type -> factory.v1.UpdateTaskRequest
+	17, // 41: factory.v1.TaskService.MoveTask:input_type -> factory.v1.MoveTaskRequest
+	19, // 42: factory.v1.TaskService.AddComment:input_type -> factory.v1.AddCommentRequest
+	26, // 43: factory.v1.TaskService.RunTask:input_type -> factory.v1.RunTaskRequest
+	28, // 44: factory.v1.TaskService.StopJob:input_type -> factory.v1.StopJobRequest
+	23, // 45: factory.v1.TaskService.ListJobEvents:input_type -> factory.v1.ListJobEventsRequest
+	31, // 46: factory.v1.TaskService.ListRoutines:input_type -> factory.v1.ListRoutinesRequest
+	33, // 47: factory.v1.TaskService.SaveRoutine:input_type -> factory.v1.SaveRoutineRequest
+	35, // 48: factory.v1.TaskService.RunRoutine:input_type -> factory.v1.RunRoutineRequest
+	37, // 49: factory.v1.TaskService.StopRoutine:input_type -> factory.v1.StopRoutineRequest
+	39, // 50: factory.v1.TaskService.DeleteRoutine:input_type -> factory.v1.DeleteRoutineRequest
+	42, // 51: factory.v1.RepoService.ListRepos:input_type -> factory.v1.ListReposRequest
+	44, // 52: factory.v1.RepoService.CreateRepo:input_type -> factory.v1.CreateRepoRequest
+	46, // 53: factory.v1.RepoService.UpdateRepo:input_type -> factory.v1.UpdateRepoRequest
+	49, // 54: factory.v1.ChatService.StartChat:input_type -> factory.v1.StartChatRequest
+	51, // 55: factory.v1.ChatService.SendChatMessage:input_type -> factory.v1.SendChatMessageRequest
+	53, // 56: factory.v1.ChatService.AnswerChat:input_type -> factory.v1.AnswerChatRequest
+	55, // 57: factory.v1.ChatService.StopChat:input_type -> factory.v1.StopChatRequest
+	57, // 58: factory.v1.ChatService.ListChats:input_type -> factory.v1.ListChatsRequest
+	7,  // 59: factory.v1.TaskService.ListTasks:output_type -> factory.v1.ListTasksResponse
+	9,  // 60: factory.v1.TaskService.SetPickupPaused:output_type -> factory.v1.SetPickupPausedResponse
+	11, // 61: factory.v1.TaskService.GetTask:output_type -> factory.v1.GetTaskResponse
+	14, // 62: factory.v1.TaskService.CreateTask:output_type -> factory.v1.CreateTaskResponse
+	16, // 63: factory.v1.TaskService.UpdateTask:output_type -> factory.v1.UpdateTaskResponse
+	18, // 64: factory.v1.TaskService.MoveTask:output_type -> factory.v1.MoveTaskResponse
+	20, // 65: factory.v1.TaskService.AddComment:output_type -> factory.v1.AddCommentResponse
+	27, // 66: factory.v1.TaskService.RunTask:output_type -> factory.v1.RunTaskResponse
+	29, // 67: factory.v1.TaskService.StopJob:output_type -> factory.v1.StopJobResponse
+	24, // 68: factory.v1.TaskService.ListJobEvents:output_type -> factory.v1.ListJobEventsResponse
+	32, // 69: factory.v1.TaskService.ListRoutines:output_type -> factory.v1.ListRoutinesResponse
+	34, // 70: factory.v1.TaskService.SaveRoutine:output_type -> factory.v1.SaveRoutineResponse
+	36, // 71: factory.v1.TaskService.RunRoutine:output_type -> factory.v1.RunRoutineResponse
+	38, // 72: factory.v1.TaskService.StopRoutine:output_type -> factory.v1.StopRoutineResponse
+	40, // 73: factory.v1.TaskService.DeleteRoutine:output_type -> factory.v1.DeleteRoutineResponse
+	43, // 74: factory.v1.RepoService.ListRepos:output_type -> factory.v1.ListReposResponse
+	45, // 75: factory.v1.RepoService.CreateRepo:output_type -> factory.v1.CreateRepoResponse
+	47, // 76: factory.v1.RepoService.UpdateRepo:output_type -> factory.v1.UpdateRepoResponse
+	50, // 77: factory.v1.ChatService.StartChat:output_type -> factory.v1.StartChatResponse
+	52, // 78: factory.v1.ChatService.SendChatMessage:output_type -> factory.v1.SendChatMessageResponse
+	54, // 79: factory.v1.ChatService.AnswerChat:output_type -> factory.v1.AnswerChatResponse
+	56, // 80: factory.v1.ChatService.StopChat:output_type -> factory.v1.StopChatResponse
+	58, // 81: factory.v1.ChatService.ListChats:output_type -> factory.v1.ListChatsResponse
+	59, // [59:82] is the sub-list for method output_type
+	36, // [36:59] is the sub-list for method input_type
+	36, // [36:36] is the sub-list for extension type_name
+	36, // [36:36] is the sub-list for extension extendee
+	0,  // [0:36] is the sub-list for field type_name
 }
 
 func init() { file_factory_v1_factory_proto_init() }
@@ -3223,9 +3920,9 @@ func file_factory_v1_factory_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_factory_v1_factory_proto_rawDesc), len(file_factory_v1_factory_proto_rawDesc)),
 			NumEnums:      4,
-			NumMessages:   44,
+			NumMessages:   55,
 			NumExtensions: 0,
-			NumServices:   2,
+			NumServices:   3,
 		},
 		GoTypes:           file_factory_v1_factory_proto_goTypes,
 		DependencyIndexes: file_factory_v1_factory_proto_depIdxs,

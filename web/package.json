@@ -19,6 +19,7 @@
     "test:mutation:diff": "bash scripts/test-mutation-diff.sh",
     "generate": "buf generate",
     "generate:local": "command -v buf >/dev/null 2>&1 || { echo \"buf not found on PATH -- run inside 'nix develop'\" >&2; exit 1; }; buf generate --template buf.gen.local.yaml",
+    "generate:check:local": "before=$(find lib/gen -type f | sort | xargs sha256sum); buf generate --template buf.gen.local.yaml && after=$(find lib/gen -type f | sort | xargs sha256sum); [ \"$before\" = \"$after\" ] || { echo \"lib/gen/ is out of date -- run 'npm run generate' (web) and 'make proto/generate' (api), then commit the results.\" >&2; exit 1; }",
     "generate:check": "before=$(find lib/gen -type f | sort | xargs sha256sum); buf generate && after=$(find lib/gen -type f | sort | xargs sha256sum); [ \"$before\" = \"$after\" ] || { echo \"lib/gen/ is out of date -- run 'npm run generate' (web) and 'make proto/generate' (api), then commit the results.\" >&2; exit 1; }",
     "mobile:audit": "node scripts/mobile-audit.mjs",
     "mobile:audit:local": "node scripts/mobile-audit-local.mjs",

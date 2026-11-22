@@ -190,12 +190,24 @@ func (app *Application) middleware() alice.Chain {
 // isLongRequest marks the routes that legitimately outlast
 // httptools.RequestBudget: FinalizeBookUpload streams up to 250 MB from R2,
 // MCP tool calls wait on external APIs, and the runner's Heartbeat and
-// ClaimJob are held open for 20 seconds.
+// ClaimJob are held open for 20 seconds, and the factory chat sockets stay open
+// for a whole session.
 func isLongRequest(r *http.Request) bool {
-	return r.URL.Path == booksv1connect.BookFilesServiceFinalizeBookUploadProcedure ||
+	return isChatSocket(r.URL.Path) ||
+		r.URL.Path == booksv1connect.BookFilesServiceFinalizeBookUploadProcedure ||
 		r.URL.Path == appsMCPPath ||
 		r.URL.Path == factoryv1connect.RunnerServiceHeartbeatProcedure ||
 		r.URL.Path == factoryv1connect.RunnerServiceClaimJobProcedure
+}
+
+// isChatSocket matches /factory/chats/{id}/ws and /factory/chats/{id}/runner.
+func isChatSocket(path string) bool {
+	rest, ok := strings.CutPrefix(path, "/factory/chats/")
+	if !ok {
+		return false
+	}
+	id, suffix, found := strings.Cut(rest, "/")
+	return found && id != "" && (suffix == "ws" || suffix == "runner")
 }
 
 func (app *Application) domainMiddleware(next http.Handler) http.Handler {

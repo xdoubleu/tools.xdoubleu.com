@@ -132,6 +132,13 @@ func TestIsLongRequest(t *testing.T) {
 		booksv1connect.BookFilesServiceGetBookFileProcedure:        false,
 		// The runner's heartbeat and job claim are held open for 20 seconds; its
 		// other calls are ordinary.
+		"/factory/chats/abc/ws":                                 true,
+		"/factory/chats/abc/runner":                             true,
+		"/factory/chats/abc/other":                              false,
+		"/factory/chats//ws":                                    false,
+		"/factory/chats/abc/ws/x":                               false,
+		"/books/chats/abc/ws":                                   false,
+		factoryv1connect.ChatServiceStartChatProcedure:          false,
 		factoryv1connect.RunnerServiceHeartbeatProcedure:        true,
 		factoryv1connect.RunnerServiceClaimJobProcedure:         true,
 		factoryv1connect.RunnerServiceCheckInProcedure:          false,

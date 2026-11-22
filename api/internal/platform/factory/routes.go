@@ -13,17 +13,24 @@ import (
 )
 
 func (a *Factory) Routes(prefix string, mux *http.ServeMux) {
+	chats := fhttp.NewChatWS(a.Ctx, a.Logger, a.services.Chats, a.services.Runners)
 	deps := &fconnect.Deps{
 		Services:      a.services,
 		Logger:        a.Logger,
 		HeartbeatHold: a.heartbeatHold,
 		StepUp:        a.stepUp,
+		Chats:         chats,
 	}
 	webhook := &fhttp.Webhook{
 		Jobs: a.services.Jobs, Logger: a.Logger, Secret: a.webhookSecret,
 	}
 	// GitHub signs its deliveries (Webhook checks it), so no cookie gate.
 	mux.HandleFunc("POST /"+prefix+"/github-webhook", webhook.Handle)
+	// The browser's socket is cookie-gated like the RPCs; the runner's carries its
+	// device token instead.
+	mux.HandleFunc(
+		"GET /"+prefix+"/chats/{id}/ws", a.Auth.AppAccess(prefix, chats.Browser))
+	mux.HandleFunc("GET /"+prefix+"/chats/{id}/runner", chats.Runner)
 	iapp.MountConnect(
 		mux,
 		a.Logger,
