@@ -17,7 +17,7 @@ var errConfigUsage = errors.New(
 		"repos add|remove <owner/name> | repos list | image <ref> | max-jobs <n> | " +
 		"on-limit wait|fallback | " +
 		"data|gocache|npmcache <dir> | bot-email <address> | " +
-		"secret claude|openrouter|posthog",
+		"secret claude|openrouter",
 )
 
 func (a *app) config(args []string) error {

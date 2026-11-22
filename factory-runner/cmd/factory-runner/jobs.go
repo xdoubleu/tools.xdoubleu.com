@@ -9,6 +9,7 @@ import (
 
 	"tools.xdoubleu.com/factory-runner/internal/runner"
 	"tools.xdoubleu.com/selfupdate/updatesig"
+	"tools.xdoubleu.com/wardcase/session"
 )
 
 // diskFree reads a volume's free bytes; tests replace it.
@@ -70,8 +71,11 @@ func newJobRunner(
 		ClaudeToken:   storedSecret(a.secrets, runner.SecretClaude),
 		OpenRouterKey: storedSecret(a.secrets, runner.SecretOpenRouter),
 		AuthorEmail:   cfg.BotEmail,
-		Proxy: func(job *runner.ClaimedJob) (runner.ProxyListener, error) {
-			return newJobProxy(cfg, job, a.secrets, log)
+		MCP:           session.JobMCPServers,
+		Proxy: func(
+			job *runner.ClaimedJob, servers []runner.MCPServer,
+		) (runner.ProxyListener, error) {
+			return newJobProxy(cfg, job, a.secrets, servers, log)
 		},
 		Activity:         a.activity,
 		DataDir:          dataDir,

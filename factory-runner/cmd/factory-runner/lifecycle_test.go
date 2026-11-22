@@ -311,7 +311,7 @@ func (e *lifeEnv) start() *generation {
 				Run: nil, RunWithEnv: nil,
 			},
 			ClaudeToken: nil, OpenRouterKey: nil, AuthorEmail: "",
-			Proxy: nil, DiskFree: nil, Secrets: nil,
+			MCP: nil, Proxy: nil, DiskFree: nil, Secrets: nil,
 			EventsEvery: 0, RunningPollEvery: 0, Sleep: nil, Now: nil,
 			Sandbox: e.sandbox, Activity: a.activity, DataDir: dir,
 			GitHub: lifeGitHub{}, ServerURL: "https://tools.example.com/",

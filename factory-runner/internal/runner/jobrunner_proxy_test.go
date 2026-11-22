@@ -13,7 +13,7 @@ import (
 
 const claudeToken = "sk-ant-oat01-a-long-enough-setup-token-value"
 
-func proxyOK(*runner.ClaimedJob) (runner.ProxyListener, error) {
+func proxyOK(*runner.ClaimedJob, []runner.MCPServer) (runner.ProxyListener, error) {
 	return &fakeProxy{gateway: new(string), err: nil, port: nil, onStop: func() {}}, nil
 }
 
@@ -24,9 +24,11 @@ func TestAClaudeJobGetsItsTokenItsAuthorAndItsOwnProxy(t *testing.T) {
 	env.runner.ClaudeToken = func() (string, error) { return claudeToken, nil }
 	env.runner.AuthorEmail = "123+factory[bot]@users.noreply.github.com"
 	var proxiedFor string
-	env.runner.Proxy = func(j *runner.ClaimedJob) (runner.ProxyListener, error) {
+	env.runner.Proxy = func(
+		j *runner.ClaimedJob, _ []runner.MCPServer,
+	) (runner.ProxyListener, error) {
 		proxiedFor = j.ID
-		return proxyOK(j)
+		return proxyOK(j, nil)
 	}
 
 	_, err := env.runner.Next(context.Background())
@@ -104,7 +106,9 @@ func TestAStoredOpenRouterKeyLetsAnOpenCodeJobClaim(t *testing.T) {
 
 func TestAProxyThatCannotBeBuiltFailsTheJob(t *testing.T) {
 	env := newEnv(t, writes("Done.", 0), newJob())
-	env.runner.Proxy = func(*runner.ClaimedJob) (runner.ProxyListener, error) {
+	env.runner.Proxy = func(
+		*runner.ClaimedJob, []runner.MCPServer,
+	) (runner.ProxyListener, error) {
 		return nil, errors.New("no key")
 	}
 

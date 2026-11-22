@@ -323,7 +323,7 @@ func newEnv(
 			},
 			Sandbox: sb, Harness: runner.ClaudeCode{}, ClaudeToken: nil,
 			OpenRouterKey: nil, AuthorEmail: "",
-			Proxy: nil, Activity: nil, DataDir: dir, DiskFree: nil, Secrets: nil,
+			MCP: nil, Proxy: nil, Activity: nil, DataDir: dir, DiskFree: nil, Secrets: nil,
 			GitHub: nil, ServerURL: "", PublishRetry: 0,
 			CheckInEvery: 10 * time.Millisecond, Minute: time.Second, EventsEvery: 0,
 			PollEvery: time.Millisecond, RunningPollEvery: 0, MaxWatch: 5 * time.Second,
