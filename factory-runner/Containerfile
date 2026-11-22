@@ -47,7 +47,7 @@ ENV CLAUDE_CONFIG_DIR=/opt/claude-config
 RUN claude plugin marketplace add xdoubleu/skills \
     && claude plugin marketplace add anthropics/claude-plugins-official \
     && claude plugin marketplace add mattpocock/skills \
-    && for p in git-task-flow session-retro git-cleanup github-issue-triage \
+    && for p in git-task-flow session-retro git-cleanup github-issue-triage doc-budgets \
         skill-lifecycle; do claude plugin install "$p@xdoubleu-skills"; done \
     && claude plugin install claude-md-management@claude-plugins-official \
     && claude plugin install mattpocock-skills@mattpocock
