@@ -3,7 +3,6 @@ package services
 import (
 	"context"
 	"errors"
-	"net/http"
 	"slices"
 	"strings"
 	"time"
@@ -11,9 +10,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/platform/factory/internal/models"
-	"tools.xdoubleu.com/internal/platform/factory/internal/repositories"
 )
 
 const (
@@ -25,7 +22,7 @@ const (
 )
 
 type TaskService struct {
-	repo *repositories.TasksRepository
+	repo TaskStore
 }
 
 // TaskInput is the editable part of a task.
@@ -37,11 +34,11 @@ type TaskInput struct {
 }
 
 func badRequest(msg string) error {
-	return &app.HTTPError{Status: http.StatusBadRequest, Message: msg}
+	return &domainError{kind: ErrInvalid, msg: msg}
 }
 
 func forbidden(msg string) error {
-	return &app.HTTPError{Status: http.StatusForbidden, Message: msg}
+	return &domainError{kind: ErrForbidden, msg: msg}
 }
 
 // normalise trims and validates in, defaulting an unset priority to P2.
@@ -110,7 +107,7 @@ func (s *TaskService) Find(
 // Resolve turns a task reference ("T-142", "142" or a legacy UUID) into its key.
 func (s *TaskService) Resolve(ctx context.Context, ref string) (uuid.UUID, error) {
 	id, err := s.repo.Resolve(ctx, ref)
-	if errors.Is(err, repositories.ErrInvalidTaskRef) {
+	if errors.Is(err, models.ErrInvalidTaskRef) {
 		return uuid.Nil, badRequest("invalid task id")
 	}
 	return id, err

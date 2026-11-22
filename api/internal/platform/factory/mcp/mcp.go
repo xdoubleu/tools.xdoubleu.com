@@ -9,7 +9,6 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 
 	factoryv1 "tools.xdoubleu.com/gen/factory/v1"
-	"tools.xdoubleu.com/internal/connecttools"
 	"tools.xdoubleu.com/internal/kit/constants"
 	"tools.xdoubleu.com/internal/kit/contexttools"
 	sharedmodels "tools.xdoubleu.com/internal/models"
@@ -181,7 +180,7 @@ func (t *mcpTools) listRepos(
 ) (proto.Message, error) {
 	repos, err := t.svc.Repos.List(ctx)
 	if err != nil {
-		return nil, connecttools.MapError(err)
+		return nil, fconnect.MapError(err)
 	}
 	out := make([]*factoryv1.Repo, len(repos))
 	for i := range repos {
@@ -216,7 +215,7 @@ func (t *mcpTools) listTasks(
 	}
 	board, err := t.svc.Board.ListTasks(ctx, actor, filter)
 	if err != nil {
-		return nil, connecttools.MapError(err)
+		return nil, fconnect.MapError(err)
 	}
 	return &factoryv1.ListTasksResponse{
 		Tasks: t.present.ProtoTasks(ctx, board.Tasks), PickupPaused: board.PickupPaused,
@@ -233,7 +232,7 @@ func (t *mcpTools) getTask(
 	}
 	detail, err := t.svc.Board.GetTask(ctx, actor, args.ID)
 	if err != nil {
-		return nil, connecttools.MapError(err)
+		return nil, fconnect.MapError(err)
 	}
 	return t.present.ProtoDetail(ctx, detail), nil
 }
@@ -251,7 +250,7 @@ func (t *mcpTools) getJob(
 	}
 	job, events, err := t.svc.Board.GetJob(ctx, actor, id, args.Tail)
 	if err != nil {
-		return nil, connecttools.MapError(err)
+		return nil, fconnect.MapError(err)
 	}
 	return &factoryv1.GetJobResponse{
 		Job:    fconnect.ProtoJob(job),
@@ -277,7 +276,7 @@ func (t *mcpTools) createTask(
 		Labels:   args.Labels,
 	})
 	if err != nil {
-		return nil, connecttools.MapError(err)
+		return nil, fconnect.MapError(err)
 	}
 	return &factoryv1.CreateTaskResponse{Task: t.present.ProtoTaskOf(ctx, task)}, nil
 }
@@ -291,7 +290,7 @@ func (t *mcpTools) commentTask(
 	}
 	comment, err := t.svc.Board.AddComment(ctx, actor, args.TaskID, args.Body)
 	if err != nil {
-		return nil, connecttools.MapError(err)
+		return nil, fconnect.MapError(err)
 	}
 	return &factoryv1.AddCommentResponse{
 		Comment: t.present.ProtoCommentOf(ctx, comment),
@@ -308,7 +307,7 @@ func (t *mcpTools) moveTask(
 	task, err := t.svc.Board.MoveTask(
 		ctx, actor, args.ID, models.Status(args.Status))
 	if err != nil {
-		return nil, connecttools.MapError(err)
+		return nil, fconnect.MapError(err)
 	}
 	return &factoryv1.MoveTaskResponse{Task: t.present.ProtoTaskOf(ctx, task)}, nil
 }
@@ -337,7 +336,7 @@ func (t *mcpTools) updateTask(
 	}
 	task, err := t.svc.Board.UpdateTask(ctx, actor, args.ID, patch)
 	if err != nil {
-		return nil, connecttools.MapError(err)
+		return nil, fconnect.MapError(err)
 	}
 	return &factoryv1.UpdateTaskResponse{Task: t.present.ProtoTaskOf(ctx, task)}, nil
 }
@@ -352,7 +351,7 @@ func (t *mcpTools) moveTasks(
 	res, err := t.svc.Board.MoveTasks(
 		ctx, actor, args.IDs, models.Status(args.Status))
 	if err != nil {
-		return nil, connecttools.MapError(err)
+		return nil, fconnect.MapError(err)
 	}
 	moved := make([]any, len(res.Moved))
 	for i, id := range res.Moved {
@@ -370,7 +369,7 @@ func (t *mcpTools) listRoutines(
 ) (proto.Message, error) {
 	list, err := t.svc.Board.ListRoutines(ctx)
 	if err != nil {
-		return nil, connecttools.MapError(err)
+		return nil, fconnect.MapError(err)
 	}
 	out := make([]*factoryv1.Routine, len(list))
 	for i := range list {
@@ -395,7 +394,7 @@ func (t *mcpTools) setRoutine(
 		IntervalMinutes: args.IntervalMinutes,
 	})
 	if err != nil {
-		return nil, connecttools.MapError(err)
+		return nil, fconnect.MapError(err)
 	}
 	return &factoryv1.SaveRoutineResponse{Routine: fconnect.ProtoRoutine(routine)}, nil
 }
@@ -408,7 +407,7 @@ func (t *mcpTools) deleteRoutine(
 		return nil, err
 	}
 	if err = t.svc.Board.DeleteRoutine(ctx, actor, args.Name); err != nil {
-		return nil, connecttools.MapError(err)
+		return nil, fconnect.MapError(err)
 	}
 	return &factoryv1.DeleteRoutineResponse{}, nil
 }
@@ -422,7 +421,7 @@ func (t *mcpTools) runRoutine(
 	}
 	job, err := t.svc.Board.RunRoutine(ctx, actor, args.Name)
 	if err != nil {
-		return nil, connecttools.MapError(err)
+		return nil, fconnect.MapError(err)
 	}
 	return &factoryv1.RunRoutineResponse{Job: fconnect.ProtoJob(job)}, nil
 }
