@@ -228,3 +228,20 @@ func TestWithoutAProxyOpenCodeIsLeftAlone(t *testing.T) {
 	assert.Empty(t, got.env["OPENCODE_CONFIG"])
 	assert.Empty(t, got.config)
 }
+
+func TestOpenCodeServesACPOnTheSameConfigAsAHeadlessRun(t *testing.T) {
+	h := vm.OpenCode{Model: "vendor/model"}
+	got := runHarness(t, "opencode", h.ACP(), openCodeEnv(true),
+		[]string{"OPENCODE_CONFIG"}, "opencode-job.json")
+
+	assert.Equal(t, []string{"acp"}, got.args)
+	want := filepath.Join(got.home, "opencode-job.json")
+	assert.Equal(t, want, got.env["OPENCODE_CONFIG"])
+	assert.Contains(t, string(got.config), proxyURL+"/openrouter/v1")
+}
+
+func TestOnlyOpenCodeHasAnACPServerForAChat(t *testing.T) {
+	assert.Nil(t, vm.ClaudeCode{}.ACP(), "Anthropic's Agent SDK terms")
+	assert.Nil(t, vm.Codex{}.ACP())
+	assert.NotNil(t, vm.OpenCode{Model: "a/b"}.ACP())
+}

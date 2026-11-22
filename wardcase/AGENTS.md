@@ -3,8 +3,9 @@
 Runs Claude Code, OpenCode or Codex in an Apple `container` VM each run in its own git worktree of the caller's checkout → [`adr-0055`](../docs/adr-0055-wardcase-harness-sandbox.md). **Separate Go module**, imported by `factory-runner`. Experimental.
 
 ```text
-cmd/wardcase/     CLI: run, --print, secret set, config, mcp login|list|logout
-session/          public API: one headless session from a repo URL and branch
+cmd/wardcase/     CLI: run, --print, acp, secret set, config, mcp login|list|logout
+acp/              small ACP client and agent over stdio (acptest/: a scripted agent for tests)
+session/          public API: one headless session, or an interactive Chat, from a repo URL and branch
 internal/ward/    device config, keychain, run loop, worktrees, clone cache, overflow handoff
 vm/               the VM (sandbox*.go), egress proxy, harness adapters
 ```
@@ -15,6 +16,7 @@ vm/               the VM (sandbox*.go), egress proxy, harness adapters
 
 - Each run gets a worktree under the state dir on `wardcase/<id>`, cut from HEAD; `--in-place` skips it, `--resume` reuses the latest. On exit wardcase reports what is left and removes a worktree with nothing left (`internal/ward/worktree.go`).
 - `session.Runner.Run` needs no checkout: it keeps one cached clone per URL under the state dir (`internal/ward/clone.go`), fetching by URL so a rewritten `origin` can't redirect the token, runs git with hooks and fsmonitor off, cuts a worktree on the new branch from `origin/<base>`, runs overflow (`off`/`auto` + fallback) in it and returns the leftover counts. The token reaches git's environment only, never the VM.
+- **Chat** (`session.Runner.Start`, `internal/ward/chat.go`): the harness's ACP server (`vm.Harness.ACP()`; OpenCode only) runs over the VM's stdio; wardcase allows every permission request. `wardcase acp` serves the same session to an ADE → [`adr-0060`](../docs/adr-0060-wardcase-interactive-sessions-over-acp.md).
 - **MCP servers** are `[[mcp]]` config entries, signed in with OAuth on the host (`internal/ward/mcp*.go`); the proxy serves each at `/mcp-<name>` and adds the token, so the VM never holds one → [`adr-0055`](../docs/adr-0055-wardcase-harness-sandbox.md). Names reach the harness prelude through `FACTORY_MCP_SERVERS`.
 - `make test | lint | build`
 - Real VM tests: `WARDCASE_IMAGE=factory-job:<tag> go test -tags container -run TestRealVM ./vm`

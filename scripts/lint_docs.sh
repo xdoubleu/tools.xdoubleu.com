@@ -17,7 +17,7 @@ MAX_COMMENT_LINES = 6
 SKILL_BUDGET = 900
 ADR_BUDGET = 1000
 BUDGETS = {
-    "AGENTS.md": 1070,
+    "AGENTS.md": 1075,
     "CLAUDE.md": 400,
     "api/AGENTS.md": 1400,
     "web/AGENTS.md": 650,

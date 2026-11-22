@@ -44,6 +44,9 @@ type Codex struct{}
 // Command implements Harness.
 func (Codex) Command() []string { return []string{"sh", "-c", codexStart, codexBin} }
 
+// ACP implements Harness: Codex has no ACP server of its own.
+func (Codex) ACP() []string { return nil }
+
 // Resume implements Harness.
 func (Codex) Resume(sessionID string) []string {
 	return []string{"sh", "-c", codexAgain, codexBin, sessionID}
