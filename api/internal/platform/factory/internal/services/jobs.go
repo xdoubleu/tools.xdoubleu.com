@@ -305,10 +305,22 @@ func (s *JobService) CheckIn(
 	return false, err
 }
 
+// alreadyFixed reports whether the outcome has an "Already-fixed:" line: the agent
+// found nothing left to change, so there is no branch for the owner to look at.
+func alreadyFixed(outcome string) bool {
+	for l := range strings.SplitSeq(outcome, "\n") {
+		if strings.HasPrefix(strings.TrimSpace(l), "Already-fixed:") {
+			return true
+		}
+	}
+	return false
+}
+
 // Complete finishes a running job and comments its outcome on the task. A
 // succeeded job that opened a pull request of its own repo moves the task to In
-// review, with the link; any other job moves it to Needs you, because the branch
-// is then only in the Mac's clone. A pull request link is kept for a failed job
+// review, with the link; a succeeded job whose outcome has an Already-fixed: line
+// moves it to Done; any other job moves it to Needs you, because the branch is
+// then only in the Mac's clone. A pull request link is kept for a failed job
 // too, so an open PR is never orphaned. Only the runner that claimed the job may
 // complete it.
 func (s *JobService) Complete(
@@ -369,6 +381,8 @@ func (s *JobService) Complete(
 		if succeeded {
 			next = models.StatusInReview
 		}
+	} else if succeeded && alreadyFixed(outcome) {
+		next = models.StatusDone
 	}
 	body += ":\n\n" + outcome + note
 	author := "runner:" + runnerID.String()

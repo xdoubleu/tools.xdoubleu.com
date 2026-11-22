@@ -541,3 +541,39 @@ func TestAHeldClaimReturnsAJobQueuedDuringTheHold(t *testing.T) {
 		t.Fatal("the held claim did not see the job queued during the hold")
 	}
 }
+
+func TestCompleteMovesAnAlreadyFixedTaskToDoneAndAnUnpublishedOneToNeedsYou(
+	t *testing.T,
+) {
+	env := browserJobEnv(t)
+	cases := map[string]struct {
+		outcome string
+		want    factoryv1.TaskStatus
+	}{
+		"already fixed": {
+			"Checked on main.\nAlready-fixed: the test passes",
+			factoryv1.TaskStatus_TASK_STATUS_DONE,
+		},
+		"not published": {
+			"Not published: pushing is not set up",
+			factoryv1.TaskStatus_TASK_STATUS_NEEDS_YOU,
+		},
+	}
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			task := env.newTask(t, name)
+			env.run(t, task.Id)
+			claimed := env.claim(t)
+			_, err := env.runner.CompleteJob(bearer(env.token),
+				&factoryv1.CompleteJobRequest{
+					JobId: claimed.Id, Succeeded: true, Outcome: tc.outcome,
+				})
+			require.NoError(t, err)
+
+			got := env.task(t, task.Id)
+			assert.Equal(t, tc.want, got.Task.Status)
+			require.Len(t, got.Comments, 1)
+			assert.Contains(t, got.Comments[0].Body, tc.outcome)
+		})
+	}
+}
