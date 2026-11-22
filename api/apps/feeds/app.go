@@ -92,7 +92,11 @@ func NewInner(
 	a.Services = services.New(
 		logger,
 		a.Background,
-		services.Stores{Feeds: repos.Feeds, Items: repos.Items, FilterRules: repos.FilterRules},
+		services.Stores{
+			Feeds:       repos.Feeds,
+			Items:       repos.Items,
+			FilterRules: repos.FilterRules,
+		},
 		webFetchClient,
 		cfg.EmailInboundDomain,
 		authService,

@@ -38,8 +38,10 @@ var _ feedsv1connect.FeedServiceHandler = (*Handler)(nil)
 //
 //nolint:gochecknoglobals // static lookup table, read-only after init
 var feedKinds = map[feedsv1.FeedKind]string{
-	feedsv1.FeedKind_FEED_KIND_EMAIL:  models.FeedSourceEmail,
-	feedsv1.FeedKind_FEED_KIND_SCRAPE: models.FeedSourceScrape,
+	feedsv1.FeedKind_FEED_KIND_UNSPECIFIED: "",
+	feedsv1.FeedKind_FEED_KIND_RSS:         models.FeedSourceRSS,
+	feedsv1.FeedKind_FEED_KIND_EMAIL:       models.FeedSourceEmail,
+	feedsv1.FeedKind_FEED_KIND_SCRAPE:      models.FeedSourceScrape,
 }
 
 func protoFeed(f models.Feed) *feedsv1.Feed {

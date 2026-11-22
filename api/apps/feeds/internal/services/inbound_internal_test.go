@@ -49,6 +49,7 @@ func (f *fakeFeeds) SetFetchResult(
 	_ context.Context, id uuid.UUID, _, _, fetchErr *string,
 ) (*models.Feed, error) {
 	f.results = append(f.results, fetchErr)
+	//nolint:exhaustruct // only the fields under test
 	return &models.Feed{ID: id, LastError: fetchErr}, nil
 }
 
@@ -101,12 +102,16 @@ type inboundFixture struct {
 }
 
 func newInboundFixture() *inboundFixture {
+	//nolint:exhaustruct // only the fields under test
 	feed := models.Feed{ID: uuid.New(), UserID: "u1", SourceType: models.FeedSourceEmail}
+	//nolint:exhaustruct // fakes record into their zero-valued slices
 	feeds := &fakeFeeds{byHash: map[string]models.Feed{tokenHash("abc123"): feed}}
+	//nolint:exhaustruct // fakes record into their zero-valued slices
 	items := &fakeItems{}
+	//nolint:exhaustruct // fakes record into their zero-valued slices
 	mail := &fakeMail{html: "<p>hello</p>"}
 	svc := NewFeedService(
-		slog.Default(), nil, feeds, items, fakeRules{}, nil, "mail.example.com",
+		slog.Default(), nil, feeds, items, fakeRules{filterRulesStore: nil}, nil, "mail.example.com",
 		nil, nil, "", mail,
 	)
 	return &inboundFixture{svc: svc, feeds: feeds, items: items, mail: mail, feed: feed}
@@ -115,6 +120,7 @@ func newInboundFixture() *inboundFixture {
 func TestHandleInboundEmail_IngestsItemForKnownAlias(t *testing.T) {
 	fx := newInboundFixture()
 
+	//nolint:exhaustruct // only the fields under test
 	fx.svc.HandleInboundEmail(context.Background(), InboundEmail{
 		EmailID: "e1", MessageID: "m1", Subject: "Hi",
 		To: []string{"reading+abc123@mail.example.com"},
@@ -132,6 +138,7 @@ func TestHandleInboundEmail_IngestsItemForKnownAlias(t *testing.T) {
 func TestHandleInboundEmail_MissingMessageIDFallsBackToEmailID(t *testing.T) {
 	fx := newInboundFixture()
 
+	//nolint:exhaustruct // only the fields under test
 	fx.svc.HandleInboundEmail(context.Background(), InboundEmail{
 		EmailID: "e1", To: []string{"abc123@mail.example.com"},
 	})
@@ -143,6 +150,7 @@ func TestHandleInboundEmail_MissingMessageIDFallsBackToEmailID(t *testing.T) {
 func TestHandleInboundEmail_BlankSubjectDefaultsTitle(t *testing.T) {
 	fx := newInboundFixture()
 
+	//nolint:exhaustruct // only the fields under test
 	fx.svc.HandleInboundEmail(context.Background(), InboundEmail{
 		EmailID: "e1", To: []string{"abc123@mail.example.com"},
 	})
@@ -154,6 +162,7 @@ func TestHandleInboundEmail_BlankSubjectDefaultsTitle(t *testing.T) {
 func TestHandleInboundEmail_ReceivedForFallback(t *testing.T) {
 	fx := newInboundFixture()
 
+	//nolint:exhaustruct // only the fields under test
 	fx.svc.HandleInboundEmail(context.Background(), InboundEmail{
 		EmailID:     "e1",
 		To:          []string{"someone@else.example.com", "not-an-address"},
@@ -166,6 +175,7 @@ func TestHandleInboundEmail_ReceivedForFallback(t *testing.T) {
 func TestHandleInboundEmail_UnknownAliasIsANoOp(t *testing.T) {
 	fx := newInboundFixture()
 
+	//nolint:exhaustruct // only the fields under test
 	fx.svc.HandleInboundEmail(context.Background(), InboundEmail{
 		EmailID: "e1", To: []string{"unknown@mail.example.com"},
 	})
@@ -178,6 +188,7 @@ func TestHandleInboundEmail_FetchFailureIsRecordedOnTheFeed(t *testing.T) {
 	fx := newInboundFixture()
 	fx.mail.err = errors.New("resend down")
 
+	//nolint:exhaustruct // only the fields under test
 	fx.svc.HandleInboundEmail(context.Background(), InboundEmail{
 		EmailID: "e1", To: []string{"abc123@mail.example.com"},
 	})
@@ -192,6 +203,7 @@ func TestHandleInboundEmail_WithoutMailPortRecordsFailure(t *testing.T) {
 	fx := newInboundFixture()
 	fx.svc.mail = nil
 
+	//nolint:exhaustruct // only the fields under test
 	fx.svc.HandleInboundEmail(context.Background(), InboundEmail{
 		EmailID: "e1", To: []string{"abc123@mail.example.com"},
 	})
@@ -263,6 +275,7 @@ func TestListUnhealthyAs_OnlyAdmins(t *testing.T) {
 type unhealthyFeeds struct{ feedsStore }
 
 func (unhealthyFeeds) ListUnhealthy(context.Context) ([]models.Feed, error) {
+	//nolint:exhaustruct // only the fields under test
 	return []models.Feed{{ID: uuid.New()}}, nil
 }
 

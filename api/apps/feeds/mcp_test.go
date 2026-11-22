@@ -12,7 +12,7 @@ import (
 	sharedmodels "tools.xdoubleu.com/internal/models"
 )
 
-func newMCPSession(t *testing.T) *mcp.ClientSession {
+func newMCPSession(t *testing.T, user *sharedmodels.User) *mcp.ClientSession {
 	t.Helper()
 	ctx := context.Background()
 
@@ -23,12 +23,9 @@ func newMCPSession(t *testing.T) *mcp.ClientSession {
 		return func(
 			ctx context.Context, method string, req mcp.Request,
 		) (mcp.Result, error) {
-			ctx = context.WithValue(
-				ctx,
-				constants.UserContextKey,
-				//nolint:exhaustruct // only ID matters to the feed tools
-				sharedmodels.User{ID: userID},
-			)
+			if user != nil {
+				ctx = context.WithValue(ctx, constants.UserContextKey, *user)
+			}
 			return next(ctx, method, req)
 		}
 	})
@@ -59,9 +56,15 @@ func callFeedsTool(
 	return res
 }
 
+// mcpAdmin passes the tools' app-access gate.
+func mcpAdmin() *sharedmodels.User {
+	//nolint:exhaustruct // ID and role are all the gate and tools read
+	return &sharedmodels.User{ID: userID, Role: sharedmodels.RoleAdmin}
+}
+
 // TestMCPTools_ReadTools exercises every feeds tool against a real app.
 func TestMCPTools_ReadTools(t *testing.T) {
-	session := newMCPSession(t)
+	session := newMCPSession(t, mcpAdmin())
 
 	for _, tc := range []struct {
 		name string
@@ -84,10 +87,17 @@ func TestMCPTools_ReadTools(t *testing.T) {
 }
 
 func TestMCPTools_GetItemUnknownIsAnError(t *testing.T) {
-	session := newMCPSession(t)
+	session := newMCPSession(t, mcpAdmin())
 
 	res := callFeedsTool(t, session, "feeds_get_item", map[string]any{
 		"item_id": "00000000-0000-0000-0000-000000000000",
 	})
+	assert.True(t, res.IsError)
+}
+
+func TestMCPTools_NeedAppAccess(t *testing.T) {
+	session := newMCPSession(t, nil)
+
+	res := callFeedsTool(t, session, "feeds_list_feeds", nil)
 	assert.True(t, res.IsError)
 }

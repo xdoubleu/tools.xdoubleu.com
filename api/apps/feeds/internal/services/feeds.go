@@ -236,7 +236,7 @@ func (s *FeedService) CreateFeed(
 	ctx context.Context,
 	userID string,
 	in NewFeed,
-) (feed *models.Feed, inboundAddress string, err error) {
+) (*models.Feed, string, error) {
 	switch in.Kind {
 	case models.FeedSourceEmail:
 		if in.URL != "" {
@@ -244,11 +244,12 @@ func (s *FeedService) CreateFeed(
 		}
 		return s.CreateEmail(ctx, userID, in.Title)
 	case models.FeedSourceScrape:
-		feed, err = s.CreateScrape(ctx, userID, in.URL)
+		feed, err := s.CreateScrape(ctx, userID, in.URL)
+		return feed, "", err
 	default:
-		feed, err = s.Create(ctx, userID, in.URL, in.Title)
+		feed, err := s.Create(ctx, userID, in.URL, in.Title)
+		return feed, "", err
 	}
-	return feed, "", err
 }
 
 // CreateEmail mints an inbound email alias and stores the feed. The returned
