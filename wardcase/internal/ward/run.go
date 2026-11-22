@@ -60,6 +60,8 @@ type Runner struct {
 	Ask func(question string) bool
 	// Now is the clock; nil means time.Now.
 	Now func() time.Time
+	// extra is what RunSession's caller adds to each run's VM.
+	extra *SessionExtra
 }
 
 // Request is one wardcase invocation.
@@ -281,20 +283,31 @@ func (r *Runner) runOnce(
 		return outcome{}, err
 	}
 	sessionDir := r.sessionDir(checkout, name)
+	if x := r.extra; x != nil && x.SessionDir != "" {
+		sessionDir = x.SessionDir
+	}
 	if err = os.MkdirAll(sessionDir, stateDirPerm); err != nil {
 		return outcome{}, fmt.Errorf("session directory: %w", err)
 	}
-	outcomeDir, err := os.MkdirTemp(r.TempDir, "wardcase-outcome-")
-	if err != nil {
-		return outcome{}, fmt.Errorf("outcome directory: %w", err)
+	outcomeDir := ""
+	if x := r.extra; x != nil && x.OutcomeDir != "" {
+		outcomeDir = x.OutcomeDir
+	} else {
+		if outcomeDir, err = os.MkdirTemp(r.TempDir, "wardcase-outcome-"); err != nil {
+			return outcome{}, fmt.Errorf("outcome directory: %w", err)
+		}
+		defer func() { _ = os.RemoveAll(outcomeDir) }()
 	}
-	defer func() { _ = os.RemoveAll(outcomeDir) }()
 	maps(env, h.SessionEnv(vm.SandboxSessionDir))
 	if err = r.addMCP(&egress, env, headless, checkout); err != nil {
 		return outcome{}, err
 	}
 	env["WARDCASE_RUN"] = randomID()
 	env[vm.MCPEnv] = vm.MCPOff
+	if x := r.extra; x != nil {
+		addChatMCP(&egress, env, ChatRequest{Board: x.Board, MCP: x.MCP})
+		maps(env, x.Env)
+	}
 	proxy, err := r.NewProxy(egress)
 	if err != nil {
 		return outcome{}, fmt.Errorf("the egress proxy: %w", err)

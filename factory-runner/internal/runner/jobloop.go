@@ -68,6 +68,9 @@ type jobLoop struct {
 	events  *eventTap
 	stopped *atomic.Bool
 	session SandboxSession
+	// resume is the harness session the next run continues, "" for a new one; only
+	// runs through the session API read it.
+	resume string
 	// limit bounds one attempt.
 	limit   time.Duration
 	token   string
@@ -219,6 +222,7 @@ func (l *jobLoop) attempts() result {
 		l.times.retry(s.res.cause)
 		l.note(fmt.Sprintf("Attempt %d: %s, retrying", attempt+1, s.why))
 		command, prompt = l.r.harnessFor(l.job).Resume(sid), s.feedback
+		l.resume = sid
 	}
 }
 
@@ -396,7 +400,8 @@ func (l *jobLoop) agent(command []string, prompt string) (string, *step) {
 		sid != "" && l.ended() == "" && readOutcome(outPath) == "" {
 		l.note("The agent wrote no outcome file, asking once more")
 		nudgeCtx, stop := context.WithTimeout(l.ctx, l.limit)
-		exit, runErr = l.session.Exec(nudgeCtx, l.r.harnessFor(l.job).Resume(sid),
+		l.resume = sid
+		exit, runErr = l.exec(nudgeCtx, l.r.harnessFor(l.job).Resume(sid),
 			noOutcomeNudge, io.MultiWriter(l.tap, l.events))
 		timedOut = errors.Is(nudgeCtx.Err(), context.DeadlineExceeded) &&
 			l.ctx.Err() == nil
@@ -459,7 +464,7 @@ func (l *jobLoop) runAgent(
 	outPath := filepath.Join(l.dirs.outcome, outcomeFile)
 	for run := 1; ; run++ {
 		l.tap.resetTransient()
-		exit, runErr := l.session.Exec(ctx, command, prompt,
+		exit, runErr := l.exec(ctx, command, prompt,
 			io.MultiWriter(l.tap, l.events))
 		timedOut := errors.Is(ctx.Err(), context.DeadlineExceeded) &&
 			l.ctx.Err() == nil
@@ -471,6 +476,7 @@ func (l *jobLoop) runAgent(
 		l.sleep(transientWait << (run - 1))
 		if sid := l.tap.Session(); sid != "" {
 			command = l.r.harnessFor(l.job).Resume(sid)
+			l.resume = sid
 		}
 	}
 }

@@ -66,7 +66,7 @@ func (sf *sessionFixture) request(branch string) ward.SessionRequest {
 	return ward.SessionRequest{
 		Source: ward.Source{URL: sf.origin, Base: "main", Branch: branch, Token: ""},
 		Prompt: "fix it", Harness: ward.Claude, Fallback: "", Overflow: "",
-		OpenCodeModel: "", Dir: "", ResumeID: "",
+		OpenCodeModel: "", Dir: "", ResumeID: "", Extra: nil,
 	}
 }
 
@@ -275,4 +275,23 @@ func TestASessionInANonCheckoutFails(t *testing.T) {
 	req.Dir = t.TempDir()
 	_, err := sf.f.r.RunSession(context.Background(), req)
 	require.ErrorContains(t, err, "not a git checkout")
+}
+
+func TestASessionTakesTheCallersEnvironmentAndDirectories(t *testing.T) {
+	sf := newSessionFixture(t)
+	outcome, sessions := t.TempDir(), t.TempDir()
+	req := sf.request("agent/extra")
+	req.Extra = &ward.SessionExtra{
+		Env: map[string]string{"FACTORY_JOB": "j1"}, OutcomeDir: outcome,
+		SessionDir: sessions, Board: nil, MCP: nil,
+	}
+	sf.f.box.act = func(_ int, r run, _ io.Writer) int {
+		assert.Equal(t, "j1", r.spec.Env["FACTORY_JOB"])
+		assert.Equal(t, outcome, r.spec.OutcomeDir)
+		assert.Equal(t, sessions, r.spec.SessionDir)
+		return 0
+	}
+	_, err := sf.f.r.RunSession(context.Background(), req)
+	require.NoError(t, err)
+	assert.DirExists(t, outcome, "the caller's outcome directory is kept")
 }

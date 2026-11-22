@@ -13,6 +13,7 @@ internal/runner/
   claimstate.go, watchdog.go  why claims hold (`status`); stall watchdog
   jobrunner.go                claim loop, `max_jobs`; prompt; Checks:/Blocked:/Waiting-on:/Already-fixed:
   sessions.go, jobsweep.go    hourly dir sweep
+  attemptsession.go           Claude attempts via wardcase/session
   jobloop.go, pullstatus.go, gates.go, routines.go  attempts until merge; CI verdict; routines
   gitclone.go, hostcheck.go   clone; host checks
   events.go, publish.go       board log lines; push, open the PR
@@ -31,6 +32,8 @@ The server is untrusted; each job needs UUID ids, an allowlisted repo, an `agent
 - Each attempt is host-checked: real commits, no secret. A pass is pushed and opened as a PR → [`adr-0045`](../docs/adr-0045-factory-github-app.md).
 - The device token lives only in the keychain.
 
+A Claude job's attempts run through `wardcase/session` (`attemptsession.go`) on the job's clone and branch, with the job's env, outcome and session dirs and board account. `on-limit fallback` sets `OverflowAuto` on the `fallback-model`; `wait`, a Reply or no model sets `OverflowOff`, and the limited job returns to the queue. The OpenRouter key stays on the host (session Secrets); overflow logic is wardcase's. Tests fake `SessionAPI`.
+
 `jobLoop` resumes the agent's session in one VM with each failure (gate, push, CI) until the PR merges, sharing no state → [`adr-0044`](../docs/adr-0044-factory-jobs-queue.md). A run that lost its provider is repeated in place; a block carries its last lines.
 
 ## Distribution → [`adr-0042`](../docs/adr-0042-factory-runner-distribution.md)
@@ -39,7 +42,7 @@ The server is untrusted; each job needs UUID ids, an allowlisted repo, an `agent
 
 `factory-runner status` and the menu show the claim state: claiming, or the one reason it holds. Each minute the watchdog compares the heartbeat's queued-jobs count with it; after 10 minutes of work waiting beside a free slot it logs why and repairs (frees leaked slots, retries the job image, restarts a stuck drain). `lifecycle_test.go` runs the real daemon, claim loop and update drain against fakes; add a scenario for each new stall.
 
-`on-limit fallback` needs `fallback-model <id>` (`none` clears). Menu bar and `config …`/`pair` write one config file; `install` and first launch link `factory-runner` onto PATH. Log `~/Library/Logs/factory-runner.log` → [`adr-0049`](../docs/adr-0049-factory-runner-menu-bar.md).
+`on-limit fallback` needs `fallback-model <id>` (`none` clears); gates still run in the job VM. Menu bar and `config …`/`pair` write one config file; `install` and first launch link `factory-runner` onto PATH. Log `~/Library/Logs/factory-runner.log` → [`adr-0049`](../docs/adr-0049-factory-runner-menu-bar.md).
 
 ## Building
 
