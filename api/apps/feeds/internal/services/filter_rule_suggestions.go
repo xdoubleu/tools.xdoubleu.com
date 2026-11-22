@@ -9,7 +9,6 @@ import (
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/feeds/internal/models"
-	"tools.xdoubleu.com/apps/feeds/internal/repositories"
 )
 
 // A feed category is suggested for a rule once it has at least
@@ -27,7 +26,7 @@ func (s *FeedService) GetFilterRuleSuggestions(
 	ctx context.Context,
 	userID string,
 ) ([]models.FilterRuleSuggestion, error) {
-	return s.filterRules.ListSuggestions(ctx, userID, repositories.SuggestionCriteria{
+	return s.filterRules.ListSuggestions(ctx, userID, models.SuggestionCriteria{
 		Since:          time.Now().Add(-SuggestionWindow),
 		MinItems:       SuggestionMinItems,
 		MaxReadPct:     SuggestionMaxReadPct,

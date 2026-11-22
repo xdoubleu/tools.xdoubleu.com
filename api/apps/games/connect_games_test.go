@@ -248,3 +248,18 @@ func TestConnectGetWishlist(t *testing.T) {
 	assert.EqualValues(t, 3, resp.Games[1].Id)
 	assert.Empty(t, resp.Games[1].AddedAt)
 }
+
+func TestConnectIntegrationsRoundTrip(t *testing.T) {
+	client := newGamesTestClient(t)
+	ctx, info := connect.NewClientContext(t.Context())
+	info.RequestHeader().Set("Cookie", accessToken.String())
+
+	_, err := client.SaveIntegrations(ctx, &gamesv1.SaveIntegrationsRequest{
+		Integrations: &gamesv1.Integrations{SteamUserId: "76561198000000001"},
+	})
+	require.NoError(t, err)
+
+	resp, err := client.GetIntegrations(ctx, &gamesv1.GetIntegrationsRequest{})
+	require.NoError(t, err)
+	assert.Equal(t, "76561198000000001", resp.Integrations.SteamUserId)
+}

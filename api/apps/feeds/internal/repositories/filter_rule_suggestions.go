@@ -2,7 +2,6 @@ package repositories
 
 import (
 	"context"
-	"time"
 
 	"github.com/google/uuid"
 
@@ -10,15 +9,6 @@ import (
 	"tools.xdoubleu.com/internal/kit/database"
 	"tools.xdoubleu.com/internal/kit/database/postgres"
 )
-
-// SuggestionCriteria bounds which feed categories ListSuggestions returns.
-type SuggestionCriteria struct {
-	Since      time.Time
-	MinItems   int
-	MaxReadPct int
-	// MaxCategoryLen (bytes) leaves out categories no rule could hold.
-	MaxCategoryLen int
-}
 
 // ListSuggestions returns, per feed and category (grouped ignoring case),
 // the user's items published since c.Since that are ingested, unfiltered
@@ -29,7 +19,7 @@ type SuggestionCriteria struct {
 func (repo *FilterRulesRepository) ListSuggestions(
 	ctx context.Context,
 	userID string,
-	c SuggestionCriteria,
+	c models.SuggestionCriteria,
 ) ([]models.FilterRuleSuggestion, error) {
 	query := `
 		WITH counts AS (

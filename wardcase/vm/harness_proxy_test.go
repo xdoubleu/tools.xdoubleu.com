@@ -228,3 +228,57 @@ func TestWithoutAProxyOpenCodeIsLeftAlone(t *testing.T) {
 	assert.Empty(t, got.env["OPENCODE_CONFIG"])
 	assert.Empty(t, got.config)
 }
+
+func TestOpenCodeServesACPOnTheSameConfigAsAHeadlessRun(t *testing.T) {
+	h := vm.OpenCode{Model: "vendor/model"}
+	got := runHarness(t, "opencode", h.ACP(), openCodeEnv(true),
+		[]string{"OPENCODE_CONFIG"}, "opencode-job.json")
+
+	assert.Equal(t, []string{"acp"}, got.args)
+	want := filepath.Join(got.home, "opencode-job.json")
+	assert.Equal(t, want, got.env["OPENCODE_CONFIG"])
+	assert.Contains(t, string(got.config), proxyURL+"/openrouter/v1")
+}
+
+func TestOnlyClaudeHasNoACPServerForAChat(t *testing.T) {
+	assert.Nil(t, vm.ClaudeCode{}.ACP(), "Anthropic's Agent SDK terms")
+	assert.NotNil(t, vm.Codex{}.ACP())
+	assert.NotNil(t, vm.Gemini{}.ACP())
+	assert.NotNil(t, vm.OpenCode{Model: "a/b"}.ACP())
+}
+
+func TestCodexServesACPThroughTheAdapterOnTheProxy(t *testing.T) {
+	got := runHarness(t, "codex-acp", vm.Codex{}.ACP(),
+		[]string{"FACTORY_PROXY=" + proxyURL}, nil, "none")
+
+	assert.Equal(t, []string{
+		"-c", `openai_base_url="` + proxyURL + `/openai/v1"`,
+		"-c", "approval_policy=never", "-c", "sandbox_mode=danger-full-access",
+	}, got.args)
+}
+
+func TestGeminiServesACPOnTheProxyRoute(t *testing.T) {
+	got := runHarness(t, "gemini", vm.Gemini{}.ACP(),
+		[]string{"FACTORY_PROXY=" + proxyURL}, []string{"GOOGLE_GEMINI_BASE_URL"}, "none")
+
+	assert.Equal(t, []string{"--acp"}, got.args)
+	assert.Equal(t, proxyURL+"/gemini", got.env["GOOGLE_GEMINI_BASE_URL"])
+}
+
+func TestGeminiWithoutAProxyKeepsItsDefaultEndpoint(t *testing.T) {
+	got := runHarness(t, "gemini", vm.Gemini{}.Command(), nil,
+		[]string{"GOOGLE_GEMINI_BASE_URL"}, "none")
+
+	assert.Equal(t, []string{"--yolo", "--output-format", "stream-json"}, got.args)
+	assert.Empty(t, got.env["GOOGLE_GEMINI_BASE_URL"])
+}
+
+func TestGeminiResumeAndTerminalPassTheirArguments(t *testing.T) {
+	again := runHarness(t, "gemini", vm.Gemini{}.Resume("sess-1"), nil, nil, "none")
+	assert.Equal(t, []string{"--yolo", "--output-format", "stream-json", "--resume",
+		"sess-1"}, again.args)
+
+	term := runHarness(t, "gemini", vm.Gemini{}.Interactive([]string{"--version"}), nil,
+		nil, "none")
+	assert.Equal(t, []string{"--yolo", "--version"}, term.args)
+}

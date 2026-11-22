@@ -3,7 +3,7 @@ package games
 import (
 	"context"
 
-	"tools.xdoubleu.com/apps/games/internal/repositories"
+	"tools.xdoubleu.com/apps/games/internal/models"
 )
 
 // Integrations is the public-facing settings type for Backlog integrations.
@@ -29,7 +29,7 @@ func (app *Games) SaveIntegrations(
 	userID string,
 	i Integrations,
 ) error {
-	return app.services.Integrations.Save(ctx, repositories.UserIntegrations{
+	return app.services.Integrations.Save(ctx, models.UserIntegrations{
 		UserID:      userID,
 		SteamUserID: i.SteamUserID,
 	})

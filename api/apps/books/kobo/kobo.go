@@ -6,22 +6,22 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
+	"time"
 
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/books/internal/models"
-	"tools.xdoubleu.com/apps/books/internal/repositories"
 )
 
 // Service manages Kobo e-reader device registrations and their sync
 // tokens. Tokens are high-entropy secrets embedded in the device's
 // api_endpoint URL; only their SHA-256 hash is stored.
 type Service struct {
-	repo *repositories.KoboDevicesRepository
+	repo deviceStore
 }
 
 // NewService wires the device repository into a Service.
-func NewService(repo *repositories.KoboDevicesRepository) *Service {
+func NewService(repo deviceStore) *Service {
 	return &Service{repo: repo}
 }
 
@@ -63,6 +63,15 @@ func (s *Service) ListKoboDevices(
 	userID string,
 ) ([]models.KoboDevice, error) {
 	return s.repo.ListKoboDevices(ctx, userID)
+}
+
+// LastSeenAt is the most recent sync across the user's devices, or nil when
+// none has synced.
+func (s *Service) LastSeenAt(
+	ctx context.Context,
+	userID string,
+) (*time.Time, error) {
+	return s.repo.GetLastSeenAt(ctx, userID)
 }
 
 // DisconnectKoboDevice deletes the device record, revoking its token.

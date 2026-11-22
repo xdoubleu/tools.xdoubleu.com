@@ -4,7 +4,6 @@ import (
 	"context"
 	"log/slog"
 
-	"tools.xdoubleu.com/apps/games/internal/repositories"
 	"tools.xdoubleu.com/apps/games/pkg/steam"
 	"tools.xdoubleu.com/apps/internal/progressws"
 	"tools.xdoubleu.com/internal/config"
@@ -17,6 +16,7 @@ type Services struct {
 	Steam        *SteamService
 	Progress     *ProgressService
 	Integrations *IntegrationsService
+	Library      *LibraryService
 	WebSocket    *progressws.Service
 }
 
@@ -25,28 +25,30 @@ func New(
 	logger *slog.Logger,
 	config config.Config,
 	jobQueue *jobqueue.JobQueue,
-	repositories *repositories.Repositories,
+	stores Stores,
 	steamFactory func(apiKey string) steam.Client,
 	authService auth.Service,
 ) *Services {
 	integrations := &IntegrationsService{
-		repo: repositories.Integrations,
+		repo: stores.Integrations,
 	}
 
 	steamSvc := &SteamService{
 		logger:        logger,
 		clientFactory: steamFactory,
 		steamAPIKey:   config.SteamAPIKey,
-		steam:         repositories.Steam,
-		progress:      repositories.Progress,
+		steam:         stores.Steam,
 		integrations:  integrations,
 	}
+
+	progress := NewProgressService(stores.Progress, steamSvc)
 
 	return &Services{
 		Auth:         authService,
 		Steam:        steamSvc,
-		Progress:     NewProgressService(repositories.Progress, steamSvc),
+		Progress:     progress,
 		Integrations: integrations,
+		Library:      NewLibraryService(steamSvc, progress),
 		WebSocket: progressws.NewService(
 			ctx,
 			logger,

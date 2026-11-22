@@ -3,8 +3,12 @@ package books
 import (
 	"net/http"
 
-	"connectrpc.com/connect/v2"
+	connectv2 "connectrpc.com/connect/v2"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 
+	"tools.xdoubleu.com/apps/books/connect"
+	booksserver "tools.xdoubleu.com/apps/books/http"
+	booksmcp "tools.xdoubleu.com/apps/books/mcp"
 	booksv1connect "tools.xdoubleu.com/gen/books/v1/booksv1connect"
 	iapp "tools.xdoubleu.com/internal/app"
 )
@@ -21,8 +25,8 @@ func (a *Books) booksRoutes(prefix string, mux *http.ServeMux) {
 		func(next http.HandlerFunc) http.HandlerFunc {
 			return a.services.Auth.AppAccess(prefix, next)
 		},
-		func(s *connect.Server) {
-			handler := &booksConnectHandler{app: a}
+		func(s *connectv2.Server) {
+			handler := a.connectHandler()
 			booksv1connect.RegisterLibraryServiceHandler(s, handler)
 			booksv1connect.RegisterBookFilesServiceHandler(s, handler)
 			booksv1connect.RegisterKoboServiceHandler(s, handler)
@@ -33,7 +37,19 @@ func (a *Books) booksRoutes(prefix string, mux *http.ServeMux) {
 
 func (a *Books) Routes(prefix string, mux *http.ServeMux) {
 	a.booksRoutes(prefix, mux)
-	a.coverRoutes(prefix, mux)
-	a.webPubRoutes(prefix, mux)
-	a.koboRoutes(prefix, mux)
+	booksserver.New(a.services, a.kobo, a.Logger).Register(prefix, mux)
+}
+
+// RegisterMCPTools exposes the books app's read-only RPCs on the combined apps
+// MCP server. Every tool returns the calling user's own library data.
+func (a *Books) RegisterMCPTools(srv *mcp.Server) {
+	booksmcp.Register(
+		srv,
+		a.services,
+		a.clients.PublicAPIBaseURL,
+	)
+}
+
+func (a *Books) connectHandler() *connect.Handler {
+	return connect.NewHandler(a.services, a.Logger, a.clients.PublicAPIBaseURL)
 }

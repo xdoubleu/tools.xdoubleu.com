@@ -451,7 +451,8 @@ func execArgv(
 ) []string {
 	// The clone belongs to another uid on the host, so git must be told to trust it.
 	script := "set -e\nmkdir -p \"$HOME\"\n" +
-		"git config --global --add safe.directory " + SandboxCloneDir + "\n"
+		"git config --global --add safe.directory " + SandboxCloneDir + "\n" +
+		bundlerMirrorScript
 	for _, m := range spec.Mounts {
 		// A target is a clean absolute path; quoted for the shell.
 		script += "git config --global --add safe.directory '" +
@@ -471,6 +472,16 @@ func execArgv(
 		"--user", sandboxUser, "--workdir", SandboxCloneDir, name, "sh", "-c", script, "sh")
 	return append(argv, spec.Command...)
 }
+
+// bundlerMirrorScript points bundler at the proxy's read-only rubygems route. The
+// mirror key is not a valid environment variable name, so `container exec
+// --env-file` drops it; bundler reads it from its user config instead.
+const bundlerMirrorScript = `if [ -n "$FACTORY_PROXY" ]; then
+mkdir -p "$HOME/.bundle"
+printf -- '---\nBUNDLE_MIRROR__HTTPS://RUBYGEMS__ORG/: "%s/rubygems/"\n' \
+  "$FACTORY_PROXY" > "$HOME/.bundle/config"
+fi
+`
 
 // postgresScript starts a throwaway trust-auth cluster on the tmpfs, reachable as
 // postgres@localhost:5432, when the image has Postgres. A failure is reported, not
@@ -550,8 +561,6 @@ func (s *ContainerSandbox) registryEnv(proxyURL string) map[string]string {
 	}
 	env["npm_config_registry"] = proxyURL + "/npm/"
 	env["npm_config_prefer_offline"] = "true"
-	// Bundler fetches the gem index and gems through the read-only rubygems route.
-	env["BUNDLE_MIRROR__HTTPS://RUBYGEMS__ORG/"] = proxyURL + "/rubygems/"
 	return env
 }
 

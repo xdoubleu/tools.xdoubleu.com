@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"tools.xdoubleu.com/apps/books/internal/repositories"
 	"tools.xdoubleu.com/apps/internal/progresshistory"
 )
 
@@ -13,7 +12,7 @@ type ProgressService struct {
 	history *progresshistory.Service
 }
 
-func NewProgressService(progress *repositories.ProgressRepository) *ProgressService {
+func NewProgressService(progress progresshistory.Repository) *ProgressService {
 	return &ProgressService{
 		history: progresshistory.NewService(progress),
 	}

@@ -515,3 +515,29 @@ func TestStopSkipsFinishedJobs(t *testing.T) {
 	_, err = env.stop(t, task.Id)
 	assert.Equal(t, connect.CodeAlreadyExists, code(err))
 }
+
+func TestAHeldClaimReturnsAJobQueuedDuringTheHold(t *testing.T) {
+	env := newJobEnvWith(t, true, constants.ChannelBrowser,
+		factory.WithHeartbeatHold(10*time.Second))
+	task := env.newTask(t, "queued mid-hold")
+
+	got := make(chan *factoryv1.ClaimedJob, 1)
+	go func() {
+		resp, err := env.runner.ClaimJob(bearer(env.token), &factoryv1.ClaimJobRequest{})
+		if err != nil {
+			got <- nil
+			return
+		}
+		got <- resp.Job
+	}()
+	time.Sleep(200 * time.Millisecond)
+	queued := env.run(t, task.Id)
+
+	select {
+	case claimed := <-got:
+		require.NotNil(t, claimed)
+		assert.Equal(t, queued.Id, claimed.Id)
+	case <-time.After(5 * time.Second):
+		t.Fatal("the held claim did not see the job queued during the hold")
+	}
+}
