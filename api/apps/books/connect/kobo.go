@@ -1,4 +1,4 @@
-package books
+package connect
 
 import (
 	"context"
@@ -14,7 +14,7 @@ import (
 	sharedmodels "tools.xdoubleu.com/internal/models"
 )
 
-func (h *booksConnectHandler) EnableKoboSync(
+func (h *Handler) EnableKoboSync(
 	ctx context.Context,
 	req *booksv1.EnableKoboSyncRequest,
 ) (*booksv1.EnableKoboSyncResponse, error) {
@@ -32,10 +32,10 @@ func (h *booksConnectHandler) EnableKoboSync(
 			"invalid book ID",
 		)
 	}
-	if err = h.app.services.Books.EnableKoboSync(ctx, user.ID, bookID); err != nil {
+	if err = h.services.Books.EnableKoboSync(ctx, user.ID, bookID); err != nil {
 		return nil, mapError(err)
 	}
-	statusResult, err := h.app.services.Books.GetKEPUBStatus(ctx, user.ID, bookID)
+	statusResult, err := h.services.Books.GetKEPUBStatus(ctx, user.ID, bookID)
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -45,7 +45,7 @@ func (h *booksConnectHandler) EnableKoboSync(
 	}, nil
 }
 
-func (h *booksConnectHandler) RegisterKoboDevice(
+func (h *Handler) RegisterKoboDevice(
 	ctx context.Context,
 	req *booksv1.RegisterKoboDeviceRequest,
 ) (*booksv1.RegisterKoboDeviceResponse, error) {
@@ -56,7 +56,7 @@ func (h *booksConnectHandler) RegisterKoboDevice(
 			"unauthorized",
 		)
 	}
-	device, rawToken, err := h.app.services.Kobo.RegisterKoboDevice(
+	device, rawToken, err := h.services.Kobo.RegisterKoboDevice(
 		ctx, user.ID, req.Name, req.Serial,
 	)
 	if err != nil {
@@ -68,7 +68,7 @@ func (h *booksConnectHandler) RegisterKoboDevice(
 	}, nil
 }
 
-func (h *booksConnectHandler) ListKoboDevices(
+func (h *Handler) ListKoboDevices(
 	ctx context.Context,
 	_ *booksv1.ListKoboDevicesRequest,
 ) (*booksv1.ListKoboDevicesResponse, error) {
@@ -79,7 +79,7 @@ func (h *booksConnectHandler) ListKoboDevices(
 			"unauthorized",
 		)
 	}
-	devices, err := h.app.services.Kobo.ListKoboDevices(ctx, user.ID)
+	devices, err := h.services.Kobo.ListKoboDevices(ctx, user.ID)
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -88,13 +88,13 @@ func (h *booksConnectHandler) ListKoboDevices(
 	}
 	for i, d := range devices {
 		// Debug-logging state lives in memory, not the DB row.
-		d.LoggingEnabled = h.app.services.KoboLog.IsEnabled(d.ID)
+		d.LoggingEnabled = h.services.KoboLog.IsEnabled(d.ID)
 		resp.Devices[i] = koboDeviceProto(d)
 	}
 	return resp, nil
 }
 
-func (h *booksConnectHandler) DisconnectKoboDevice(
+func (h *Handler) DisconnectKoboDevice(
 	ctx context.Context,
 	req *booksv1.DisconnectKoboDeviceRequest,
 ) (*booksv1.DisconnectKoboDeviceResponse, error) {
@@ -112,7 +112,7 @@ func (h *booksConnectHandler) DisconnectKoboDevice(
 			"invalid device ID",
 		)
 	}
-	err = h.app.services.Kobo.DisconnectKoboDevice(ctx, user.ID, deviceID)
+	err = h.services.Kobo.DisconnectKoboDevice(ctx, user.ID, deviceID)
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -134,7 +134,7 @@ func koboDeviceProto(d models.KoboDevice) *booksv1.KoboDevice {
 	}
 }
 
-func (h *booksConnectHandler) ListKoboStoreBooks(
+func (h *Handler) ListKoboStoreBooks(
 	ctx context.Context,
 	_ *booksv1.ListKoboStoreBooksRequest,
 ) (*booksv1.ListKoboStoreBooksResponse, error) {
@@ -145,7 +145,7 @@ func (h *booksConnectHandler) ListKoboStoreBooks(
 			"unauthorized",
 		)
 	}
-	books, err := h.app.services.Books.ListKoboStoreBooks(ctx, user.ID)
+	books, err := h.services.Books.ListKoboStoreBooks(ctx, user.ID)
 	if err != nil {
 		return nil, mapError(err)
 	}

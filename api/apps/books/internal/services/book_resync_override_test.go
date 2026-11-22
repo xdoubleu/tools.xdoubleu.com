@@ -466,7 +466,7 @@ func TestExternalToBook_MetadataSourceProvenance(t *testing.T) {
 		"hand-entered books must not claim source provenance")
 }
 
-// GetSourceStats: service passthrough.
+// GetSourceStats: service passthrough into the service type.
 
 func TestGetSourceStats_Passthrough(t *testing.T) {
 	want := &repositories.SourceStats{ //nolint:exhaustruct // partial
@@ -480,7 +480,7 @@ func TestGetSourceStats_Passthrough(t *testing.T) {
 
 	got, err := svc.GetSourceStats(context.Background())
 	require.NoError(t, err)
-	assert.Equal(t, want, got)
+	assert.Equal(t, SourceStats(*want), *got)
 }
 
 func TestListBooksInExactSources_Passthrough(t *testing.T) {

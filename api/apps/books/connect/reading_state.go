@@ -1,4 +1,4 @@
-package books
+package connect
 
 import (
 	"context"
@@ -16,7 +16,7 @@ import (
 	sharedmodels "tools.xdoubleu.com/internal/models"
 )
 
-func (h *booksConnectHandler) UpdateReadingProgress(
+func (h *Handler) UpdateReadingProgress(
 	ctx context.Context,
 	req *booksv1.UpdateReadingProgressRequest,
 ) (*booksv1.UpdateReadingProgressResponse, error) {
@@ -53,7 +53,7 @@ func (h *booksConnectHandler) UpdateReadingProgress(
 	if req.Location != "" {
 		location = &req.Location
 	}
-	err = h.app.services.Books.UpdateReadingProgress(
+	err = h.services.Books.UpdateReadingProgress(
 		ctx,
 		models.BookReadingState{ //nolint:exhaustruct //UpdatedAt set by DB
 			UserID:   user.ID,
@@ -72,7 +72,7 @@ func (h *booksConnectHandler) UpdateReadingProgress(
 }
 
 // GetReadingState returns an empty state when the book has none yet.
-func (h *booksConnectHandler) GetReadingState(
+func (h *Handler) GetReadingState(
 	ctx context.Context,
 	req *booksv1.GetReadingStateRequest,
 ) (*booksv1.GetReadingStateResponse, error) {
@@ -90,7 +90,7 @@ func (h *booksConnectHandler) GetReadingState(
 			"invalid book ID",
 		)
 	}
-	state, err := h.app.services.Books.GetReadingState(ctx, user.ID, bookID)
+	state, err := h.services.Books.GetReadingState(ctx, user.ID, bookID)
 	if errors.Is(err, database.ErrResourceNotFound) {
 		return &booksv1.GetReadingStateResponse{}, nil
 	}
@@ -102,7 +102,7 @@ func (h *booksConnectHandler) GetReadingState(
 		out.PhysicalPage, out.PhysicalExcerpt = h.physicalAt(
 			ctx, user.ID, bookID, *state.Position,
 		)
-		out.Position = readingPositionToProto(h.app.services.Positions.ReaderPosition(
+		out.Position = readingPositionToProto(h.services.Positions.ReaderPosition(
 			ctx, user.ID, bookID, *state.Position,
 		))
 	}
@@ -110,7 +110,7 @@ func (h *booksConnectHandler) GetReadingState(
 }
 
 // TranslateReadingPosition adds the forms GetReadingState would.
-func (h *booksConnectHandler) TranslateReadingPosition(
+func (h *Handler) TranslateReadingPosition(
 	ctx context.Context,
 	req *booksv1.TranslateReadingPositionRequest,
 ) (*booksv1.TranslateReadingPositionResponse, error) {
@@ -135,7 +135,7 @@ func (h *booksConnectHandler) TranslateReadingPosition(
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
-	pos := h.app.services.Positions.ReaderPosition(ctx, user.ID, bookID, *position)
+	pos := h.services.Positions.ReaderPosition(ctx, user.ID, bookID, *position)
 	page, _ := h.physicalAt(ctx, user.ID, bookID, *position)
 	return &booksv1.TranslateReadingPositionResponse{
 		Position:     readingPositionToProto(pos),
@@ -144,28 +144,28 @@ func (h *booksConnectHandler) TranslateReadingPosition(
 }
 
 // physicalAt is the physical copy's page at pos and the sentence there.
-func (h *booksConnectHandler) physicalAt(
+func (h *Handler) physicalAt(
 	ctx context.Context,
 	userID string,
 	bookID uuid.UUID,
 	pos models.ReadingPosition,
 ) (int32, string) {
-	page, excerpt := h.app.services.Physical.Locate(ctx, userID, bookID, pos)
-	return int32FromInt(page), excerpt
+	page, excerpt := h.services.Physical.Locate(ctx, userID, bookID, pos)
+	return Int32FromInt(page), excerpt
 }
 
 func readingPositionToProto(p models.ReadingPosition) *booksv1.ReadingPosition {
 	return &booksv1.ReadingPosition{
 		Href:   p.Href,
-		Offset: int32FromInt(p.Offset),
-		Page:   int32FromInt(p.Page),
+		Offset: Int32FromInt(p.Offset),
+		Page:   Int32FromInt(p.Page),
 	}
 }
 
 func readingStateToProto(state *models.BookReadingState) *booksv1.BookReadingStateData {
 	out := &booksv1.BookReadingStateData{
 		Source:    state.Source,
-		Percent:   int32FromInt(state.Percent),
+		Percent:   Int32FromInt(state.Percent),
 		Location:  stringPtr(state.Location),
 		UpdatedAt: state.UpdatedAt.Format(time.RFC3339),
 	}

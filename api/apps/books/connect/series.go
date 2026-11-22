@@ -1,4 +1,4 @@
-package books
+package connect
 
 import (
 	"context"
@@ -15,7 +15,7 @@ import (
 	sharedmodels "tools.xdoubleu.com/internal/models"
 )
 
-func (h *booksConnectHandler) GetSeries(
+func (h *Handler) GetSeries(
 	ctx context.Context,
 	req *booksv1.GetSeriesRequest,
 ) (*booksv1.GetSeriesResponse, error) {
@@ -34,11 +34,11 @@ func (h *booksConnectHandler) GetSeries(
 		)
 	}
 
-	view, err := h.app.services.Books.GetSeries(ctx, user.ID, name)
+	view, err := h.services.Books.GetSeries(ctx, user.ID, name)
 	if err != nil {
 		return nil, mapError(err)
 	}
-	return protoSeries(view, h.app.clients.PublicAPIBaseURL), nil
+	return protoSeries(view, h.coverBaseURL), nil
 }
 
 func protoSeries(
@@ -51,7 +51,7 @@ func protoSeries(
 			Position: e.Position,
 		}
 		if e.UserBook != nil {
-			entry.UserBook = protoUserBook(*e.UserBook, coverBaseURL)
+			entry.UserBook = ProtoUserBook(*e.UserBook, coverBaseURL)
 		}
 		if e.External != nil {
 			entry.External = protoExternalBook(*e.External)

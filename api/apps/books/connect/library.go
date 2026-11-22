@@ -1,4 +1,4 @@
-package books
+package connect
 
 import (
 	"context"
@@ -17,7 +17,7 @@ import (
 	sharedmodels "tools.xdoubleu.com/internal/models"
 )
 
-func (h *booksConnectHandler) GetLibrary(
+func (h *Handler) GetLibrary(
 	ctx context.Context,
 	_ *booksv1.GetLibraryRequest,
 ) (*booksv1.GetLibraryResponse, error) {
@@ -28,22 +28,22 @@ func (h *booksConnectHandler) GetLibrary(
 			"unauthorized",
 		)
 	}
-	data, err := h.app.buildLibraryData(ctx, user.ID)
+	data, err := h.services.Books.LibraryView(ctx, user.ID)
 	if err != nil {
 		return nil, mapError(err)
 	}
-	base := h.app.clients.PublicAPIBaseURL
+	base := h.coverBaseURL
 	return &booksv1.GetLibraryResponse{
 		Library: &booksv1.LibraryResponse{
-			Reading:  protoUserBooks(data.Reading, base),
-			Wishlist: protoUserBooks(data.Wishlist, base),
-			Finished: protoUserBooks(data.Finished, base),
-			Shelves:  protoBookshelves(data.Shelves, base),
+			Reading:  ProtoUserBooks(data.Reading, base),
+			Wishlist: ProtoUserBooks(data.Wishlist, base),
+			Finished: ProtoUserBooks(data.Finished, base),
+			Shelves:  ProtoShelves(data.Shelves, base),
 		},
 	}, nil
 }
 
-func (h *booksConnectHandler) GetBooksProgress(
+func (h *Handler) GetBooksProgress(
 	ctx context.Context,
 	req *booksv1.GetBooksProgressRequest,
 ) (*booksv1.GetBooksProgressResponse, error) {
@@ -55,7 +55,7 @@ func (h *booksConnectHandler) GetBooksProgress(
 		)
 	}
 	dateStart, dateEnd := parseDateRangeFromStrings(req.DateStart, req.DateEnd)
-	labels, values, err := h.app.services.Progress.GetByDates(
+	labels, values, err := h.services.Progress.GetByDates(
 		ctx, user.ID, dateStart, dateEnd,
 	)
 	if err != nil {
@@ -71,7 +71,7 @@ func (h *booksConnectHandler) GetBooksProgress(
 	}, nil
 }
 
-func (h *booksConnectHandler) SearchLibrary(
+func (h *Handler) SearchLibrary(
 	ctx context.Context,
 	req *booksv1.SearchLibraryRequest,
 ) (*booksv1.SearchLibraryResponse, error) {
@@ -87,7 +87,7 @@ func (h *booksConnectHandler) SearchLibrary(
 			Books: []*booksv1.UserBook{},
 		}, nil
 	}
-	libraryResults, hasMore, err := h.app.services.Books.SearchLibrary(
+	libraryResults, hasMore, err := h.services.Books.SearchLibrary(
 		ctx,
 		user.ID,
 		req.Query,
@@ -98,12 +98,12 @@ func (h *booksConnectHandler) SearchLibrary(
 		return nil, mapError(err)
 	}
 	return &booksv1.SearchLibraryResponse{
-		Books:   protoUserBooks(libraryResults, h.app.clients.PublicAPIBaseURL),
+		Books:   ProtoUserBooks(libraryResults, h.coverBaseURL),
 		HasMore: hasMore,
 	}, nil
 }
 
-func (h *booksConnectHandler) SearchExternal(
+func (h *Handler) SearchExternal(
 	ctx context.Context,
 	req *booksv1.SearchExternalRequest,
 ) (*booksv1.SearchExternalResponse, error) {
@@ -119,14 +119,14 @@ func (h *booksConnectHandler) SearchExternal(
 			Results: []*booksv1.ExternalBookResult{},
 		}, nil
 	}
-	results := h.app.services.Books.SearchExternal(ctx, req.Query)
+	results := h.services.Books.SearchExternal(ctx, req.Query)
 	results = services.FilterExternalByQuery(req.Query, results)
 	return &booksv1.SearchExternalResponse{
 		Results: protoExternalBooks(results),
 	}, nil
 }
 
-func (h *booksConnectHandler) GetExternalBook(
+func (h *Handler) GetExternalBook(
 	ctx context.Context,
 	req *booksv1.GetExternalBookRequest,
 ) (*booksv1.GetExternalBookResponse, error) {
@@ -137,7 +137,7 @@ func (h *booksConnectHandler) GetExternalBook(
 			"unauthorized",
 		)
 	}
-	book, err := h.app.services.Books.GetExternal(
+	book, err := h.services.Books.GetExternal(
 		ctx,
 		req.Provider,
 		req.ProviderId,
@@ -150,7 +150,7 @@ func (h *booksConnectHandler) GetExternalBook(
 	}, nil
 }
 
-func (h *booksConnectHandler) CreateBook(
+func (h *Handler) CreateBook(
 	ctx context.Context,
 	req *booksv1.CreateBookRequest,
 ) (*booksv1.CreateBookResponse, error) {
@@ -190,14 +190,14 @@ func (h *booksConnectHandler) CreateBook(
 	if req.OwnDigital {
 		initialTags = append(initialTags, models.TagOwnDigital)
 	}
-	_, err := h.app.services.Books.AddToLibrary(ctx, user.ID, ext, status, initialTags)
+	_, err := h.services.Books.AddToLibrary(ctx, user.ID, ext, status, initialTags)
 	if err != nil {
 		return nil, mapError(err)
 	}
 	return &booksv1.CreateBookResponse{}, nil
 }
 
-func (h *booksConnectHandler) UpdateBookStatus(
+func (h *Handler) UpdateBookStatus(
 	ctx context.Context,
 	req *booksv1.UpdateBookStatusRequest,
 ) (*booksv1.UpdateBookStatusResponse, error) {
@@ -215,7 +215,7 @@ func (h *booksConnectHandler) UpdateBookStatus(
 			"invalid book ID",
 		)
 	}
-	existing, err := h.app.services.Books.GetUserBook(ctx, user.ID, bookID)
+	existing, err := h.services.Books.GetUserBook(ctx, user.ID, bookID)
 	if err != nil && !errors.Is(err, database.ErrResourceNotFound) {
 		return nil, mapError(err)
 	}
@@ -233,11 +233,11 @@ func (h *booksConnectHandler) UpdateBookStatus(
 		Rating:     rating,
 		FinishedAt: buildFinishedAt(existing, req.Status),
 	}
-	if err = h.app.services.Books.UpdateStatus(ctx, user.ID, ub); err != nil {
+	if err = h.services.Books.UpdateStatus(ctx, user.ID, ub); err != nil {
 		return nil, mapError(err)
 	}
 	if req.Status == models.StatusRead {
-		if rebuildErr := h.app.rebuildReadProgress(ctx, user.ID); rebuildErr != nil {
+		if rebuildErr := h.rebuild(ctx, user.ID); rebuildErr != nil {
 			return nil, mapError(rebuildErr)
 		}
 	}
@@ -247,7 +247,7 @@ func (h *booksConnectHandler) UpdateBookStatus(
 // UpdateFinishedAt lets a user manually correct their read-date history
 // (e.g. after a resync guesses wrong, or to log a re-read). Dates are
 // date-only (YYYY-MM-DD); blank entries are skipped.
-func (h *booksConnectHandler) UpdateFinishedAt(
+func (h *Handler) UpdateFinishedAt(
 	ctx context.Context,
 	req *booksv1.UpdateFinishedAtRequest,
 ) (*booksv1.UpdateFinishedAtResponse, error) {
@@ -279,17 +279,17 @@ func (h *booksConnectHandler) UpdateFinishedAt(
 		}
 		finishedAt = append(finishedAt, t)
 	}
-	err = h.app.services.Books.UpdateFinishedAt(ctx, user.ID, bookID, finishedAt)
+	err = h.services.Books.UpdateFinishedAt(ctx, user.ID, bookID, finishedAt)
 	if err != nil {
 		return nil, mapError(err)
 	}
-	if rebuildErr := h.app.rebuildReadProgress(ctx, user.ID); rebuildErr != nil {
+	if rebuildErr := h.rebuild(ctx, user.ID); rebuildErr != nil {
 		return nil, mapError(rebuildErr)
 	}
 	return &booksv1.UpdateFinishedAtResponse{}, nil
 }
 
-func (h *booksConnectHandler) RemoveBook(
+func (h *Handler) RemoveBook(
 	ctx context.Context,
 	req *booksv1.RemoveBookRequest,
 ) (*booksv1.RemoveBookResponse, error) {
@@ -307,16 +307,16 @@ func (h *booksConnectHandler) RemoveBook(
 			"invalid book ID",
 		)
 	}
-	if err = h.app.services.Books.RemoveFromLibrary(ctx, user.ID, bookID); err != nil {
+	if err = h.services.Books.RemoveFromLibrary(ctx, user.ID, bookID); err != nil {
 		return nil, mapError(err)
 	}
-	if rebuildErr := h.app.rebuildReadProgress(ctx, user.ID); rebuildErr != nil {
+	if rebuildErr := h.rebuild(ctx, user.ID); rebuildErr != nil {
 		return nil, mapError(rebuildErr)
 	}
 	return &booksv1.RemoveBookResponse{}, nil
 }
 
-func (h *booksConnectHandler) UpdateProgress(
+func (h *Handler) UpdateProgress(
 	ctx context.Context,
 	req *booksv1.UpdateProgressRequest,
 ) (*booksv1.UpdateProgressResponse, error) {
@@ -348,10 +348,10 @@ func (h *booksConnectHandler) UpdateProgress(
 	// newer, finer digital position back to the page's start.
 	pageChanged := req.ProgressMode == models.ProgressModePages
 	if pageChanged {
-		ub, getErr := h.app.services.Books.GetUserBook(ctx, user.ID, bookID)
+		ub, getErr := h.services.Books.GetUserBook(ctx, user.ID, bookID)
 		pageChanged = getErr != nil || ub.CurrentPage != int(req.CurrentPage)
 	}
-	err = h.app.services.Books.UpdateProgress(
+	err = h.services.Books.UpdateProgress(
 		ctx,
 		user.ID,
 		bookID,
@@ -360,7 +360,7 @@ func (h *booksConnectHandler) UpdateProgress(
 		int(req.ProgressPercent),
 	)
 	if err == nil && pageChanged {
-		err = h.app.services.Physical.SyncPage(
+		err = h.services.Physical.SyncPage(
 			ctx, user.ID, bookID, int(req.CurrentPage), readAt,
 		)
 	}
@@ -370,7 +370,7 @@ func (h *booksConnectHandler) UpdateProgress(
 	return &booksv1.UpdateProgressResponse{}, nil
 }
 
-func (h *booksConnectHandler) GetBookContent(
+func (h *Handler) GetBookContent(
 	ctx context.Context,
 	req *booksv1.GetBookContentRequest,
 ) (*booksv1.GetBookContentResponse, error) {
@@ -388,7 +388,7 @@ func (h *booksConnectHandler) GetBookContent(
 			"invalid book ID",
 		)
 	}
-	html, err := h.app.services.Books.GetContentHTML(ctx, user.ID, bookID)
+	html, err := h.services.Books.GetContentHTML(ctx, user.ID, bookID)
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -396,11 +396,11 @@ func (h *booksConnectHandler) GetBookContent(
 	if html == "" {
 		// Ownership was already confirmed by GetContentHTML above, so a
 		// failure here is unexpected rather than a legitimate not-found.
-		ub, ubErr := h.app.services.Books.GetUserBook(ctx, user.ID, bookID)
+		ub, ubErr := h.services.Books.GetUserBook(ctx, user.ID, bookID)
 		if ubErr != nil {
 			return nil, mapError(ubErr)
 		}
-		html = h.app.services.Ingest.BackfillContentHTML(ctx, ub.Book)
+		html = h.services.Ingest.BackfillContentHTML(ctx, ub.Book)
 	}
 
 	return &booksv1.GetBookContentResponse{

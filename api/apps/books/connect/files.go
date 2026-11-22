@@ -1,4 +1,4 @@
-package books
+package connect
 
 import (
 	"context"
@@ -16,7 +16,7 @@ import (
 	"tools.xdoubleu.com/internal/platform/communication/httptools"
 )
 
-func (h *booksConnectHandler) GetBookFile(
+func (h *Handler) GetBookFile(
 	ctx context.Context,
 	req *booksv1.GetBookFileRequest,
 ) (*booksv1.GetBookFileResponse, error) {
@@ -34,7 +34,7 @@ func (h *booksConnectHandler) GetBookFile(
 			"invalid book ID",
 		)
 	}
-	result, err := h.app.services.Books.GetBookFile(
+	result, err := h.services.Books.GetBookFile(
 		ctx, user.ID, bookID, req.Format,
 	)
 	if err != nil {
@@ -50,7 +50,7 @@ func (h *booksConnectHandler) GetBookFile(
 // maybeStartKEPUBConversion queues a conversion for the workers role when the
 // KEPUB is missing or stale and a source exists, returning
 // FileStatusConverting; otherwise kepubStatus unchanged.
-func (h *booksConnectHandler) maybeStartKEPUBConversion(
+func (h *Handler) maybeStartKEPUBConversion(
 	ctx context.Context,
 	userID string,
 	bookID uuid.UUID,
@@ -62,15 +62,15 @@ func (h *booksConnectHandler) maybeStartKEPUBConversion(
 		return kepubStatus
 	}
 
-	if err := h.app.services.KEPUBQueue.Request(ctx, userID, bookID); err != nil {
-		h.app.Logger.ErrorContext(ctx, "queue kepub conversion",
+	if err := h.services.KEPUBQueue.Request(ctx, userID, bookID); err != nil {
+		h.logger.ErrorContext(ctx, "queue kepub conversion",
 			"book_id", bookID, "err", err)
 		return kepubStatus
 	}
 	return models.FileStatusConverting
 }
 
-func (h *booksConnectHandler) RequestKEPUBConversion(
+func (h *Handler) RequestKEPUBConversion(
 	ctx context.Context,
 	req *booksv1.RequestKEPUBConversionRequest,
 ) (*booksv1.RequestKEPUBConversionResponse, error) {
@@ -88,7 +88,7 @@ func (h *booksConnectHandler) RequestKEPUBConversion(
 			"invalid book ID",
 		)
 	}
-	statusResult, err := h.app.services.Books.GetKEPUBStatus(ctx, user.ID, bookID)
+	statusResult, err := h.services.Books.GetKEPUBStatus(ctx, user.ID, bookID)
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -98,7 +98,7 @@ func (h *booksConnectHandler) RequestKEPUBConversion(
 	}, nil
 }
 
-func (h *booksConnectHandler) GetKEPUBStatus(
+func (h *Handler) GetKEPUBStatus(
 	ctx context.Context,
 	req *booksv1.GetKEPUBStatusRequest,
 ) (*booksv1.GetKEPUBStatusResponse, error) {
@@ -116,7 +116,7 @@ func (h *booksConnectHandler) GetKEPUBStatus(
 			"invalid book ID",
 		)
 	}
-	result, err := h.app.services.Books.GetKEPUBStatus(ctx, user.ID, bookID)
+	result, err := h.services.Books.GetKEPUBStatus(ctx, user.ID, bookID)
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -124,7 +124,7 @@ func (h *booksConnectHandler) GetKEPUBStatus(
 	// RequestKEPUBConversion would, so "converting" resolves.
 	kepubStatus := result.KepubStatus
 	if result.KepubStale && (result.HasEPUB || result.HasPDF) {
-		kepubStatus = h.app.startKEPUBRegeneration(ctx, user.ID, bookID, kepubStatus)
+		kepubStatus = h.startKEPUBRegeneration(ctx, user.ID, bookID, kepubStatus)
 	}
 	return &booksv1.GetKEPUBStatusResponse{
 		HasEpub:     result.HasEPUB,
@@ -133,7 +133,7 @@ func (h *booksConnectHandler) GetKEPUBStatus(
 	}, nil
 }
 
-func (h *booksConnectHandler) CreateBookUpload(
+func (h *Handler) CreateBookUpload(
 	ctx context.Context,
 	req *booksv1.CreateBookUploadRequest,
 ) (*booksv1.CreateBookUploadResponse, error) {
@@ -144,7 +144,7 @@ func (h *booksConnectHandler) CreateBookUpload(
 			"unauthorized",
 		)
 	}
-	uploadID, url, alreadyExists, err := h.app.services.Books.CreateUpload(
+	uploadID, url, alreadyExists, err := h.services.Books.CreateUpload(
 		ctx,
 		user.ID,
 		req.Filename,
@@ -162,7 +162,7 @@ func (h *booksConnectHandler) CreateBookUpload(
 	}, nil
 }
 
-func (h *booksConnectHandler) FinalizeBookUpload(
+func (h *Handler) FinalizeBookUpload(
 	ctx context.Context,
 	req *booksv1.FinalizeBookUploadRequest,
 ) (*booksv1.FinalizeBookUploadResponse, error) {
@@ -177,7 +177,7 @@ func (h *booksConnectHandler) FinalizeBookUpload(
 	// fit the route's budget.
 	finalizeCtx, cancel := httptools.Detach(ctx)
 	defer cancel()
-	result, err := h.app.services.Books.FinalizeUpload(
+	result, err := h.services.Books.FinalizeUpload(
 		finalizeCtx,
 		user.ID,
 		req.UploadId,
@@ -202,14 +202,14 @@ func (h *booksConnectHandler) FinalizeBookUpload(
 // startKEPUBRegeneration queues a stale KEPUB's regeneration for the workers
 // role: the request must never wait on a PDF conversion (ADR-0017). It
 // returns FileStatusConverting, or current when queueing failed.
-func (app *Books) startKEPUBRegeneration(
+func (h *Handler) startKEPUBRegeneration(
 	ctx context.Context,
 	userID string,
 	bookID uuid.UUID,
 	current string,
 ) string {
-	if err := app.services.KEPUBQueue.Request(ctx, userID, bookID); err != nil {
-		app.Logger.ErrorContext(ctx, "queue kepub regeneration",
+	if err := h.services.KEPUBQueue.Request(ctx, userID, bookID); err != nil {
+		h.logger.ErrorContext(ctx, "queue kepub regeneration",
 			"book_id", bookID, "err", err)
 		return current
 	}

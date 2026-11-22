@@ -25,6 +25,7 @@ import (
 type Services struct {
 	Auth       auth.Service
 	Books      *BookService
+	Catalog    *CatalogService
 	Conversion *conversion.Service
 	KEPUBQueue *conversion.KEPUBQueue
 	Figures    *conversion.FigureService
@@ -95,6 +96,7 @@ func New(
 	return &Services{
 		Auth:       authService,
 		Books:      booksSvc,
+		Catalog:    nil, // set once the resync job exists
 		Conversion: conversionSvc,
 		KEPUBQueue: conversion.NewKEPUBQueue(
 			logger, repositories.KEPUBRequests, conversionSvc,
