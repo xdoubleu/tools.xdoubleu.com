@@ -10,6 +10,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"tools.xdoubleu.com/apps/books"
+	"tools.xdoubleu.com/apps/dashboard/connect"
+	"tools.xdoubleu.com/apps/dashboard/internal/services"
 	"tools.xdoubleu.com/apps/feeds"
 	"tools.xdoubleu.com/apps/games"
 	"tools.xdoubleu.com/apps/learningpaths"
@@ -38,11 +40,8 @@ type TodayApps struct {
 
 type Dashboard struct {
 	app.Base
-	games         *games.Games
-	books         *books.Books
-	feeds         *feeds.Feeds
-	today         TodayApps
-	profileShares *account.ProfileSharesRepository
+	todayHandler  *connect.TodayHandler
+	publicHandler *connect.PublicHandler
 }
 
 // New constructs the dashboard app. gamesApp and every app in today must
@@ -58,13 +57,13 @@ func New(
 	feedsApp *feeds.Feeds,
 	today TodayApps,
 ) *Dashboard {
+	shares := services.NewShareService(account.NewProfileSharesRepository(db))
 	return &Dashboard{
-		Base:          app.NewBase(ctx, authService, logger, cfg),
-		games:         gamesApp,
-		books:         booksApp,
-		feeds:         feedsApp,
-		today:         today,
-		profileShares: account.NewProfileSharesRepository(db),
+		Base: app.NewBase(ctx, authService, logger, cfg),
+		todayHandler: connect.NewTodayHandler(
+			services.NewTodayService(logger, todaySources(today)),
+		),
+		publicHandler: connect.NewPublicHandler(shares, gamesApp, booksApp, feedsApp),
 	}
 }
 
