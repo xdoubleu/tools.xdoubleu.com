@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Issues: #1473 (part of epic #1471)
-- Affects: `api/apps/learningpaths/mcp.go`, `api/cmd/api/mcp_apps.go`, `api/internal/platform/mcptools/`
+- Affects: `api/apps/learningpaths/mcp/`, `api/cmd/api/mcp_apps.go`, `api/internal/platform/mcptools/`
 
 ## Context
 

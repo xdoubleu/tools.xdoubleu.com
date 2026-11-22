@@ -5,20 +5,16 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"net/http"
 
 	"github.com/google/uuid"
 
-	"tools.xdoubleu.com/apps/books"
-	"tools.xdoubleu.com/apps/feeds"
 	"tools.xdoubleu.com/apps/learningpaths/internal/models"
-	booksv1 "tools.xdoubleu.com/gen/books/v1"
 	iapp "tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/kit/database"
 )
 
-// learningPathsStore is the storage surface LearningPathService needs.
-type learningPathsStore interface {
+// LearningPathsStore is the storage surface LearningPathService needs.
+type LearningPathsStore interface {
 	ListForUser(
 		ctx context.Context, userID string, limit, offset int32,
 	) ([]models.LearningPath, bool, error)
@@ -52,26 +48,32 @@ type learningPathsStore interface {
 	SetPaused(ctx context.Context, id uuid.UUID, userID string, paused bool) error
 }
 
-// BookLookup is the books surface (*books.Books) for linked resources.
+// ErrExternalBookNotFound is returned by BookLookup.EnsureLibraryBook for a
+// provider reference no provider resolves.
+var ErrExternalBookNotFound = errors.New("external book not found")
+
+// BookLookup is the books surface for linked resources. A book that is
+// missing or not the user's reports database.ErrResourceNotFound.
 type BookLookup interface {
-	GetLibraryBookByID(
+	GetLibraryBook(
 		ctx context.Context, userID string, bookID uuid.UUID,
-	) (*booksv1.UserBook, error)
+	) (*models.LinkedBook, error)
 	EnsureLibraryBook(
 		ctx context.Context, userID, provider, providerID, shelf string,
 	) (uuid.UUID, error)
 }
 
-// FeedItemLookup is the feeds surface (*feeds.Feeds) for linked resources.
+// FeedItemLookup is the feeds surface for linked resources. A missing item
+// reports database.ErrResourceNotFound.
 type FeedItemLookup interface {
-	GetItemByID(
+	GetFeedItem(
 		ctx context.Context, userID string, itemID uuid.UUID,
-	) (*feeds.SharedItem, error)
+	) (*models.LinkedFeedItem, error)
 }
 
 type LearningPathService struct {
 	logger  *slog.Logger
-	repo    learningPathsStore
+	repo    LearningPathsStore
 	books   BookLookup
 	feeds   FeedItemLookup
 	todoist *TodoistService
@@ -150,7 +152,7 @@ func (s *LearningPathService) resolveItemLinks(
 			if modules[i].Items[j].LinkedBookID == nil {
 				continue
 			}
-			book, err := s.books.GetLibraryBookByID(
+			book, err := s.books.GetLibraryBook(
 				ctx,
 				userID,
 				*modules[i].Items[j].LinkedBookID,
@@ -162,14 +164,9 @@ func (s *LearningPathService) resolveItemLinks(
 				modules[i].Items[j].Completed = false
 				continue
 			}
-			modules[i].Items[j].LinkedBook = &models.LinkedBook{
-				Title:           book.Book.GetTitle(),
-				Status:          book.Status,
-				ProgressPercent: int(book.ProgressPercent),
-				CoverURL:        book.Book.GetCoverUrl(),
-			}
+			modules[i].Items[j].LinkedBook = book
 			modules[i].Items[j].Completed =
-				book.ProgressPercent >= int32(models.FullProgressPercent)
+				book.ProgressPercent >= models.FullProgressPercent
 		}
 	}
 	return nil
@@ -185,7 +182,7 @@ func (s *LearningPathService) resolveResourceLinks(
 ) error {
 	for i := range resources {
 		if resources[i].LinkedBookID != nil {
-			book, err := s.books.GetLibraryBookByID(
+			book, err := s.books.GetLibraryBook(
 				ctx,
 				userID,
 				*resources[i].LinkedBookID,
@@ -194,16 +191,11 @@ func (s *LearningPathService) resolveResourceLinks(
 				return err
 			}
 			if book != nil {
-				resources[i].LinkedBook = &models.LinkedBook{
-					Title:           book.Book.GetTitle(),
-					Status:          book.Status,
-					ProgressPercent: int(book.ProgressPercent),
-					CoverURL:        book.Book.GetCoverUrl(),
-				}
+				resources[i].LinkedBook = book
 			}
 		}
 		if resources[i].LinkedFeedItemID != nil {
-			item, err := s.feeds.GetItemByID(
+			item, err := s.feeds.GetFeedItem(
 				ctx,
 				userID,
 				*resources[i].LinkedFeedItemID,
@@ -212,12 +204,7 @@ func (s *LearningPathService) resolveResourceLinks(
 				return err
 			}
 			if item != nil {
-				resources[i].LinkedFeedItem = &models.LinkedFeedItem{
-					Title:      item.Title,
-					SourceURL:  item.SourceURL,
-					Read:       item.Read,
-					Bookmarked: item.Bookmarked,
-				}
+				resources[i].LinkedFeedItem = item
 			}
 		}
 	}
@@ -245,12 +232,11 @@ func (s *LearningPathService) validateResourceLinks(
 			return err
 		}
 		if r.LinkedFeedItemID != nil {
-			if _, err := s.feeds.GetItemByID(ctx, userID, *r.LinkedFeedItemID); err != nil {
+			if _, err := s.feeds.GetFeedItem(ctx, userID, *r.LinkedFeedItemID); err != nil {
 				if errors.Is(err, database.ErrResourceNotFound) {
-					return &iapp.HTTPError{
-						Status:  http.StatusBadRequest,
-						Message: "linked_feed_item_id does not resolve to one of your feed items",
-					}
+					return iapp.NewBadRequestError(
+						"linked_feed_item_id does not resolve to one of your feed items",
+					)
 				}
 				return err
 			}
@@ -269,12 +255,11 @@ func (s *LearningPathService) validateBookLink(
 	if bookID == nil {
 		return nil
 	}
-	if _, err := s.books.GetLibraryBookByID(ctx, userID, *bookID); err != nil {
+	if _, err := s.books.GetLibraryBook(ctx, userID, *bookID); err != nil {
 		if errors.Is(err, database.ErrResourceNotFound) {
-			return &iapp.HTTPError{
-				Status:  http.StatusBadRequest,
-				Message: "linked_book_id does not resolve to a book in your library",
-			}
+			return iapp.NewBadRequestError(
+				"linked_book_id does not resolve to a book in your library",
+			)
 		}
 		return err
 	}
@@ -385,14 +370,11 @@ func (s *LearningPathService) linkExternalBooks(
 				it.ExternalBook.Provider, it.ExternalBook.ProviderID,
 				models.LearnShelf,
 			)
-			if errors.Is(err, books.ErrExternalBookNotFound) {
-				return &iapp.HTTPError{
-					Status: http.StatusBadRequest,
-					Message: fmt.Sprintf(
-						"external_book %s/%s does not resolve to a book",
-						it.ExternalBook.Provider, it.ExternalBook.ProviderID,
-					),
-				}
+			if errors.Is(err, ErrExternalBookNotFound) {
+				return iapp.NewBadRequestError(fmt.Sprintf(
+					"external_book %s/%s does not resolve to a book",
+					it.ExternalBook.Provider, it.ExternalBook.ProviderID,
+				))
 			}
 			if err != nil {
 				return err
@@ -444,10 +426,9 @@ func (s *LearningPathService) RecordItemProgress(
 		return err
 	}
 	if item.Item.LinkedBookID != nil {
-		return &iapp.HTTPError{
-			Status:  http.StatusBadRequest,
-			Message: "book-linked items complete automatically from your reading progress",
-		}
+		return iapp.NewBadRequestError(
+			"book-linked items complete automatically from your reading progress",
+		)
 	}
 	if err = s.repo.RecordItemProgress(ctx, itemID, userID, completed); err != nil {
 		return err
@@ -483,11 +464,16 @@ func (s *LearningPathService) SetPaused(
 	return nil
 }
 
-// GetProgress is Get, named for the progress read.
-func (s *LearningPathService) GetProgress(
+// Progress derives userID's per-module and overall completion counts for a
+// path; book-linked items count as complete once their book is.
+func (s *LearningPathService) Progress(
 	ctx context.Context,
 	id uuid.UUID,
 	userID string,
-) (*models.LearningPath, error) {
-	return s.Get(ctx, id, userID)
+) (*models.Progress, error) {
+	lp, err := s.Get(ctx, id, userID)
+	if err != nil {
+		return nil, err
+	}
+	return models.ProgressOf(lp), nil
 }

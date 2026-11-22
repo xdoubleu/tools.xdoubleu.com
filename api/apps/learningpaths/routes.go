@@ -4,8 +4,11 @@ import (
 	"fmt"
 	"net/http"
 
-	"connectrpc.com/connect/v2"
+	connectv2 "connectrpc.com/connect/v2"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 
+	"tools.xdoubleu.com/apps/learningpaths/connect"
+	lpmcp "tools.xdoubleu.com/apps/learningpaths/mcp"
 	"tools.xdoubleu.com/gen/learningpaths/v1/learningpathsv1connect"
 	iapp "tools.xdoubleu.com/internal/app"
 )
@@ -17,14 +20,14 @@ func (a *LearningPaths) Routes(prefix string, mux *http.ServeMux) {
 		func(next http.HandlerFunc) http.HandlerFunc {
 			return a.services.Auth.AppAccess(prefix, next)
 		},
-		func(s *connect.Server) {
+		func(s *connectv2.Server) {
 			learningpathsv1connect.RegisterLearningPathsServiceHandler(
 				s,
-				&learningPathsConnectHandler{app: a},
+				connect.NewHandler(a.services.LearningPaths),
 			)
 			learningpathsv1connect.RegisterTodoistServiceHandler(
 				s,
-				&todoistConnectHandler{app: a},
+				connect.NewTodoistHandler(a.services.Todoist),
 			)
 		},
 	)
@@ -36,4 +39,10 @@ func (a *LearningPaths) Routes(prefix string, mux *http.ServeMux) {
 		fmt.Sprintf("GET /%s/oauth/todoist/callback", prefix),
 		a.services.Auth.Access(a.todoistOAuthCallbackRoute()),
 	)
+}
+
+// RegisterMCPTools exposes four read and three write tools on the combined
+// apps MCP server.
+func (a *LearningPaths) RegisterMCPTools(srv *mcp.Server) {
+	lpmcp.Register(srv, a.services.LearningPaths, a.services.Todoist)
 }

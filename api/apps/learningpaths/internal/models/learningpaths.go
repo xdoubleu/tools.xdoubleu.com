@@ -151,3 +151,46 @@ func (lp *LearningPath) ItemDue(it Item) string {
 	}
 	return lp.ReminderSchedules[NormalizeItemType(it.Type)]
 }
+
+// Progress is a path's completion counts, overall and per module.
+type Progress struct {
+	PathID         uuid.UUID
+	Title          string
+	TotalItems     int32
+	CompletedItems int32
+	Modules        []ModuleProgress
+}
+
+// ModuleProgress is one module's completion counts.
+type ModuleProgress struct {
+	ID             uuid.UUID
+	Title          string
+	TotalItems     int32
+	CompletedItems int32
+}
+
+// ProgressOf derives per-module and overall completion counts from lp's tree.
+func ProgressOf(lp *LearningPath) *Progress {
+	out := &Progress{
+		PathID:         lp.ID,
+		Title:          lp.Title,
+		TotalItems:     0,
+		CompletedItems: 0,
+		Modules:        make([]ModuleProgress, len(lp.Modules)),
+	}
+	for i, m := range lp.Modules {
+		mp := ModuleProgress{
+			ID: m.ID, Title: m.Title, TotalItems: 0, CompletedItems: 0,
+		}
+		for _, it := range m.Items {
+			mp.TotalItems++
+			if it.Completed {
+				mp.CompletedItems++
+			}
+		}
+		out.Modules[i] = mp
+		out.TotalItems += mp.TotalItems
+		out.CompletedItems += mp.CompletedItems
+	}
+	return out
+}

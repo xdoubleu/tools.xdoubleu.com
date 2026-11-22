@@ -122,11 +122,16 @@ linters:
             - "**/apps/movies/connect/**"
             - "**/apps/movies/mcp/**"
             - "**/apps/movies/http/**"
+            - "**/apps/learningpaths/connect/**"
+            - "**/apps/learningpaths/mcp/**"
+            - "**/apps/learningpaths/http/**"
             - "!**/*_test.go"
           deny:
             - pkg: tools.xdoubleu.com/apps/shoppinglist/internal/repositories
               desc: adapters call services, never repositories
             - pkg: tools.xdoubleu.com/apps/movies/internal/repositories
+              desc: adapters call services, never repositories
+            - pkg: tools.xdoubleu.com/apps/learningpaths/internal/repositories
               desc: adapters call services, never repositories
             - pkg: github.com/jackc/pgx
               desc: adapters do not touch the database
@@ -136,6 +141,7 @@ linters:
           files:
             - "**/apps/shoppinglist/internal/services/**"
             - "**/apps/movies/internal/services/**"
+            - "**/apps/learningpaths/internal/services/**"
             - "!**/*_test.go"
           deny:
             - pkg: connectrpc.com/connect

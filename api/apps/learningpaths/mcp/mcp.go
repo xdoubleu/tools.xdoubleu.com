@@ -1,12 +1,22 @@
-package learningpaths
+// Package mcp exposes the learningpaths tools on the apps MCP server.
+package mcp
 
 import (
 	"context"
 
+	"connectrpc.com/connect/v2"
+	"github.com/google/uuid"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"google.golang.org/protobuf/proto"
 
+	"tools.xdoubleu.com/apps/learningpaths/internal/models"
+	"tools.xdoubleu.com/apps/learningpaths/internal/protomap"
+	"tools.xdoubleu.com/apps/learningpaths/internal/services"
 	learningpathsv1 "tools.xdoubleu.com/gen/learningpaths/v1"
+	"tools.xdoubleu.com/internal/connecttools"
+	"tools.xdoubleu.com/internal/kit/constants"
+	"tools.xdoubleu.com/internal/kit/contexttools"
+	sharedmodels "tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/platform/mcptools"
 )
 
@@ -87,17 +97,25 @@ type mcpRecordProgressArgs struct {
 	Completed bool   `json:"completed" jsonschema:"mark complete/incomplete"`
 }
 
-// RegisterMCPTools exposes four read and three write tools on the combined
-// apps MCP server.
-func (a *LearningPaths) RegisterMCPTools(srv *mcp.Server) {
-	h := &learningPathsConnectHandler{app: a}
-	th := &todoistConnectHandler{app: a}
+type tools struct {
+	paths   *services.LearningPathService
+	todoist *services.TodoistService
+}
+
+// Register exposes four read and three write tools on the combined apps MCP
+// server. The write tools call the same service methods as their RPCs.
+func Register(
+	srv *mcp.Server,
+	paths *services.LearningPathService,
+	todoist *services.TodoistService,
+) {
+	h := &tools{paths: paths, todoist: todoist}
 
 	mcptools.AddReadTool(srv, mcpAppName, "learningpaths_get_todoist_status",
 		"A path's Todoist reminder state as stored (no Todoist call): connection, "+
 			"requested scope and whether it needs a reconnect, the user's shared "+
 			"project id, and the active module's items with their task ids.",
-		th.mcpGetTodoistStatus)
+		h.mcpGetTodoistStatus)
 	mcptools.AddReadTool(srv, mcpAppName, "learningpaths_list_paths",
 		"All learning paths owned by the calling user.", h.mcpListPaths)
 	mcptools.AddReadTool(srv, mcpAppName, "learningpaths_get_path",
@@ -146,135 +164,238 @@ func authoringGuideHandler(_ context.Context, _ *mcp.ReadResourceRequest,
 	}}, nil
 }
 
-func toProtoModules(in []mcpModuleArg) []*learningpathsv1.Module {
-	modules := make([]*learningpathsv1.Module, len(in))
+func userID(ctx context.Context) (string, error) {
+	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
+	if user == nil {
+		return "", connect.Errorf(
+			connect.CodeUnauthenticated, "user not authenticated",
+		)
+	}
+	return user.ID, nil
+}
+
+func parseID(raw, what string) (uuid.UUID, error) {
+	id, err := uuid.Parse(raw)
+	if err != nil {
+		return uuid.Nil, connect.Errorf(
+			connect.CodeInvalidArgument, "invalid %s", what,
+		)
+	}
+	return id, nil
+}
+
+func toModules(in []mcpModuleArg) []models.Module {
+	modules := make([]models.Module, len(in))
 	for i, m := range in {
-		items := make([]*learningpathsv1.Item, len(m.Items))
+		items := make([]models.Item, len(m.Items))
 		for j, it := range m.Items {
-			items[j] = &learningpathsv1.Item{
+			//nolint:exhaustruct //ID/ModuleID assigned by the repository
+			items[j] = models.Item{
 				Type:         it.Type,
 				Description:  it.Description,
+				SortOrder:    j,
 				Completed:    it.Completed,
 				Due:          it.Due,
-				LinkedBookId: it.LinkedBookID,
-			}
-			if it.ExternalBook != nil {
-				items[j].ExternalBook = &learningpathsv1.ExternalBookRef{
-					Provider:   it.ExternalBook.Provider,
-					ProviderId: it.ExternalBook.ProviderID,
-				}
+				LinkedBookID: parseOptionalUUID(it.LinkedBookID),
+				ExternalBook: toExternalBook(it.ExternalBook),
 			}
 		}
-		modules[i] = &learningpathsv1.Module{
-			Title: m.Title,
-			Items: items,
-			Quiz:  toProtoQuiz(m.Quiz),
+		//nolint:exhaustruct //ID/LearningPathID assigned by the repository
+		modules[i] = models.Module{
+			Title:     m.Title,
+			SortOrder: i,
+			Items:     items,
+			Quiz:      toQuiz(m.Quiz),
 		}
 	}
 	return modules
 }
 
-func toProtoQuiz(in []mcpQuizQuestionArg) []*learningpathsv1.QuizQuestion {
-	quiz := make([]*learningpathsv1.QuizQuestion, len(in))
+func toExternalBook(in *mcpExternalBookArg) *models.ExternalBookRef {
+	if in == nil || in.Provider == "" || in.ProviderID == "" {
+		return nil
+	}
+	return &models.ExternalBookRef{Provider: in.Provider, ProviderID: in.ProviderID}
+}
+
+func toQuiz(in []mcpQuizQuestionArg) []models.QuizQuestion {
+	quiz := make([]models.QuizQuestion, len(in))
 	for i, q := range in {
-		quiz[i] = &learningpathsv1.QuizQuestion{
+		quiz[i] = models.QuizQuestion{
 			Prompt:             q.Prompt,
 			Options:            q.Options,
-			CorrectAnswerIndex: q.CorrectAnswerIndex,
+			CorrectAnswerIndex: int(q.CorrectAnswerIndex),
 		}
 	}
 	return quiz
 }
 
-func toProtoResources(in []mcpResourceArg) []*learningpathsv1.Resource {
-	resources := make([]*learningpathsv1.Resource, len(in))
+func toResources(in []mcpResourceArg) []models.Resource {
+	resources := make([]models.Resource, len(in))
 	for i, r := range in {
-		resources[i] = &learningpathsv1.Resource{
-			Text: r.Text,
-		}
+		//nolint:exhaustruct //ID/LearningPathID assigned by the repository
+		resources[i] = models.Resource{Text: r.Text, SortOrder: i}
 	}
 	return resources
 }
 
-func (h *learningPathsConnectHandler) mcpListPaths(
+// parseOptionalUUID treats an absent or malformed id as no link; the service
+// validates well-formed ones.
+func parseOptionalUUID(s *string) *uuid.UUID {
+	if s == nil || *s == "" {
+		return nil
+	}
+	id, err := uuid.Parse(*s)
+	if err != nil {
+		return nil
+	}
+	return &id
+}
+
+func (h *tools) mcpListPaths(
 	ctx context.Context, args mcpListPathsArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(
-		h.ListLearningPaths(ctx, &learningpathsv1.ListLearningPathsRequest{
-			Limit:  args.Limit,
-			Offset: args.Offset,
-		}),
-	)
+	uid, err := userID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	list, hasMore, err := h.paths.List(ctx, uid, args.Limit, args.Offset)
+	if err != nil {
+		return nil, connecttools.MapError(err)
+	}
+	return &learningpathsv1.ListLearningPathsResponse{
+		LearningPaths: protomap.LearningPaths(list),
+		HasMore:       hasMore,
+	}, nil
 }
 
-func (h *learningPathsConnectHandler) mcpGetPath(
+func (h *tools) mcpGetPath(
 	ctx context.Context, args mcpPathIDArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(
-		h.GetLearningPath(ctx, &learningpathsv1.GetLearningPathRequest{Id: args.ID}),
-	)
+	uid, err := userID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	id, err := parseID(args.ID, "learning path ID")
+	if err != nil {
+		return nil, err
+	}
+	lp, err := h.paths.Get(ctx, id, uid)
+	if err != nil {
+		return nil, connecttools.MapError(err)
+	}
+	return &learningpathsv1.GetLearningPathResponse{
+		LearningPath: protomap.LearningPath(lp),
+	}, nil
 }
 
-func (h *todoistConnectHandler) mcpGetTodoistStatus(
+func (h *tools) mcpGetTodoistStatus(
 	ctx context.Context, args mcpPathIDArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(
-		h.GetTodoistSyncState(
-			ctx,
-			&learningpathsv1.GetTodoistSyncStateRequest{LearningPathId: args.ID},
-		),
-	)
+	uid, err := userID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	id, err := parseID(args.ID, "learning path ID")
+	if err != nil {
+		return nil, err
+	}
+	state, err := h.todoist.SyncState(ctx, uid, id)
+	if err != nil {
+		return nil, connecttools.MapError(err)
+	}
+	return protomap.TodoistSyncState(state), nil
 }
 
-func (h *learningPathsConnectHandler) mcpGetProgress(
+func (h *tools) mcpGetProgress(
 	ctx context.Context, args mcpPathIDArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(
-		h.GetLearningPathProgress(
-			ctx,
-			&learningpathsv1.GetLearningPathProgressRequest{Id: args.ID},
-		),
-	)
+	uid, err := userID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	id, err := parseID(args.ID, "learning path ID")
+	if err != nil {
+		return nil, err
+	}
+	progress, err := h.paths.Progress(ctx, id, uid)
+	if err != nil {
+		return nil, connecttools.MapError(err)
+	}
+	return protomap.Progress(progress), nil
 }
 
-func (h *learningPathsConnectHandler) mcpCreatePath(
+func (h *tools) mcpCreatePath(
 	ctx context.Context, args mcpCreatePathArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(
-		h.CreateLearningPath(ctx, &learningpathsv1.CreateLearningPathRequest{
-			Title:             args.Title,
-			Goal:              args.Goal,
-			Routine:           args.Routine,
-			Modules:           toProtoModules(args.Modules),
-			Resources:         toProtoResources(args.Resources),
-			ReminderSchedules: args.ReminderSchedules,
-		}),
-	)
+	uid, err := userID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	//nolint:exhaustruct //ID/UserID/timestamps assigned by the service/repository
+	lp := models.LearningPath{
+		Title:             args.Title,
+		Goal:              args.Goal,
+		Routine:           args.Routine,
+		Modules:           toModules(args.Modules),
+		Resources:         toResources(args.Resources),
+		ReminderSchedules: args.ReminderSchedules,
+	}
+	created, err := h.paths.Create(ctx, uid, lp)
+	if err != nil {
+		return nil, connecttools.MapError(err)
+	}
+	return &learningpathsv1.CreateLearningPathResponse{
+		LearningPath: protomap.LearningPath(created),
+	}, nil
 }
 
-func (h *learningPathsConnectHandler) mcpUpdatePath(
+func (h *tools) mcpUpdatePath(
 	ctx context.Context, args mcpUpdatePathArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(
-		h.UpdateLearningPath(ctx, &learningpathsv1.UpdateLearningPathRequest{
-			Id:                args.ID,
-			Title:             args.Title,
-			Goal:              args.Goal,
-			Routine:           args.Routine,
-			Modules:           toProtoModules(args.Modules),
-			Resources:         toProtoResources(args.Resources),
-			ReminderSchedules: args.ReminderSchedules,
-		}),
-	)
+	uid, err := userID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	id, err := parseID(args.ID, "learning path ID")
+	if err != nil {
+		return nil, err
+	}
+	//nolint:exhaustruct //UserID/timestamps assigned by the service/repository
+	lp := models.LearningPath{
+		ID:                id,
+		Title:             args.Title,
+		Goal:              args.Goal,
+		Routine:           args.Routine,
+		Modules:           toModules(args.Modules),
+		Resources:         toResources(args.Resources),
+		ReminderSchedules: args.ReminderSchedules,
+	}
+	if err = h.paths.Update(ctx, uid, lp); err != nil {
+		return nil, connecttools.MapError(err)
+	}
+	updated, err := h.paths.Get(ctx, id, uid)
+	if err != nil {
+		return nil, connecttools.MapError(err)
+	}
+	return &learningpathsv1.UpdateLearningPathResponse{
+		LearningPath: protomap.LearningPath(updated),
+	}, nil
 }
 
-func (h *learningPathsConnectHandler) mcpRecordProgress(
+func (h *tools) mcpRecordProgress(
 	ctx context.Context, args mcpRecordProgressArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(
-		h.RecordItemProgress(ctx, &learningpathsv1.RecordItemProgressRequest{
-			ItemId:    args.ItemID,
-			Completed: args.Completed,
-		}),
-	)
+	uid, err := userID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	itemID, err := parseID(args.ItemID, "item ID")
+	if err != nil {
+		return nil, err
+	}
+	if err = h.paths.RecordItemProgress(ctx, uid, itemID, args.Completed); err != nil {
+		return nil, connecttools.MapError(err)
+	}
+	return &learningpathsv1.RecordItemProgressResponse{}, nil
 }

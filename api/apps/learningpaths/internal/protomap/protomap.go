@@ -1,37 +1,19 @@
-package learningpaths
+// Package protomap converts learningpaths domain models to and from the
+// generated wire messages.
+package protomap
 
 import (
-	"context"
 	"time"
 
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/learningpaths/internal/models"
+	"tools.xdoubleu.com/apps/learningpaths/internal/services"
 	learningpathsv1 "tools.xdoubleu.com/gen/learningpaths/v1"
-	"tools.xdoubleu.com/gen/learningpaths/v1/learningpathsv1connect"
-	"tools.xdoubleu.com/internal/kit/constants"
-	"tools.xdoubleu.com/internal/kit/contexttools"
-	sharedmodels "tools.xdoubleu.com/internal/models"
 )
 
-type learningPathsConnectHandler struct {
-	app *LearningPaths
-}
-
-//
-//nolint:lll //type names are what they are
-var _ learningpathsv1connect.LearningPathsServiceHandler = (*learningPathsConnectHandler)(
-	nil,
-)
-
-func getUser(ctx context.Context) *sharedmodels.User {
-	return contexttools.GetValue[sharedmodels.User](
-		ctx,
-		constants.UserContextKey,
-	)
-}
-
-func protoLearningPath(lp *models.LearningPath) *learningpathsv1.LearningPath {
+// LearningPath maps a path with its tree to the wire message.
+func LearningPath(lp *models.LearningPath) *learningpathsv1.LearningPath {
 	if lp == nil {
 		return nil
 	}
@@ -61,10 +43,11 @@ func protoLearningPath(lp *models.LearningPath) *learningpathsv1.LearningPath {
 	}
 }
 
-func protoLearningPaths(list []models.LearningPath) []*learningpathsv1.LearningPath {
+// LearningPaths maps a list of paths to wire messages.
+func LearningPaths(list []models.LearningPath) []*learningpathsv1.LearningPath {
 	result := make([]*learningpathsv1.LearningPath, len(list))
 	for i := range list {
-		result[i] = protoLearningPath(&list[i])
+		result[i] = LearningPath(&list[i])
 	}
 	return result
 }
@@ -105,6 +88,7 @@ func quizCorrectIndex(q models.QuizQuestion) int32 {
 	return int32(q.CorrectAnswerIndex)
 }
 
+// protoItem maps one item to the wire message.
 func protoItem(it *models.Item) *learningpathsv1.Item {
 	if it == nil {
 		return nil
@@ -183,9 +167,9 @@ func protoLinkedFeedItem(li *models.LinkedFeedItem) *learningpathsv1.LinkedFeedI
 	}
 }
 
-// dtoToModules converts Module messages to models. Wire IDs are ignored:
+// ModulesFromProto converts Module messages to models. Wire IDs are ignored:
 // Create/Update replace the whole tree.
-func dtoToModules(in []*learningpathsv1.Module) []models.Module {
+func ModulesFromProto(in []*learningpathsv1.Module) []models.Module {
 	modules := make([]models.Module, len(in))
 	for i, m := range in {
 		if m == nil {
@@ -204,7 +188,7 @@ func dtoToModules(in []*learningpathsv1.Module) []models.Module {
 				Completed:    it.Completed,
 				Due:          it.Due,
 				LinkedBookID: parseOptionalUUID(it.LinkedBookId),
-				ExternalBook: dtoToExternalBook(it.ExternalBook),
+				ExternalBook: externalBookFromProto(it.ExternalBook),
 			}
 		}
 		//nolint:exhaustruct //ID/LearningPathID assigned by the repository
@@ -212,20 +196,22 @@ func dtoToModules(in []*learningpathsv1.Module) []models.Module {
 			Title:     m.Title,
 			SortOrder: i,
 			Items:     items,
-			Quiz:      dtoToQuiz(m.Quiz),
+			Quiz:      quizFromProto(m.Quiz),
 		}
 	}
 	return modules
 }
 
-func dtoToExternalBook(in *learningpathsv1.ExternalBookRef) *models.ExternalBookRef {
+func externalBookFromProto(
+	in *learningpathsv1.ExternalBookRef,
+) *models.ExternalBookRef {
 	if in == nil || in.Provider == "" || in.ProviderId == "" {
 		return nil
 	}
 	return &models.ExternalBookRef{Provider: in.Provider, ProviderID: in.ProviderId}
 }
 
-func dtoToQuiz(in []*learningpathsv1.QuizQuestion) []models.QuizQuestion {
+func quizFromProto(in []*learningpathsv1.QuizQuestion) []models.QuizQuestion {
 	quiz := make([]models.QuizQuestion, len(in))
 	for i, q := range in {
 		if q == nil {
@@ -240,41 +226,29 @@ func dtoToQuiz(in []*learningpathsv1.QuizQuestion) []models.QuizQuestion {
 	return quiz
 }
 
-// progressFromLearningPath derives per-module and overall completion counts.
-func progressFromLearningPath(
-	lp *models.LearningPath,
-) *learningpathsv1.GetLearningPathProgressResponse {
-	modules := make([]*learningpathsv1.ModuleProgress, len(lp.Modules))
-	var totalItems, completedItems int32
-	for i, m := range lp.Modules {
-		var moduleTotal, moduleCompleted int32
-		for _, it := range m.Items {
-			moduleTotal++
-			if it.Completed {
-				moduleCompleted++
-			}
-		}
+// Progress maps a path's completion counts to the wire response.
+func Progress(p *models.Progress) *learningpathsv1.GetLearningPathProgressResponse {
+	modules := make([]*learningpathsv1.ModuleProgress, len(p.Modules))
+	for i, m := range p.Modules {
 		modules[i] = &learningpathsv1.ModuleProgress{
 			Id:             m.ID.String(),
 			Title:          m.Title,
-			TotalItems:     moduleTotal,
-			CompletedItems: moduleCompleted,
+			TotalItems:     m.TotalItems,
+			CompletedItems: m.CompletedItems,
 		}
-		totalItems += moduleTotal
-		completedItems += moduleCompleted
 	}
 	return &learningpathsv1.GetLearningPathProgressResponse{
-		LearningPathId: lp.ID.String(),
-		Title:          lp.Title,
-		TotalItems:     totalItems,
-		CompletedItems: completedItems,
+		LearningPathId: p.PathID.String(),
+		Title:          p.Title,
+		TotalItems:     p.TotalItems,
+		CompletedItems: p.CompletedItems,
 		Modules:        modules,
 	}
 }
 
-// dtoToResources converts Resource messages to models. A non-UUID link ID is
+// ResourcesFromProto converts Resource messages to models. A non-UUID link ID is
 // treated as absent; validateResourceLinks catches well-formed bad IDs.
-func dtoToResources(in []*learningpathsv1.Resource) []models.Resource {
+func ResourcesFromProto(in []*learningpathsv1.Resource) []models.Resource {
 	resources := make([]models.Resource, len(in))
 	for i, r := range in {
 		if r == nil {
@@ -300,4 +274,36 @@ func parseOptionalUUID(s *string) *uuid.UUID {
 		return nil
 	}
 	return &id
+}
+
+// TodoistSyncState maps a path's stored Todoist state to the wire response.
+func TodoistSyncState(
+	state *services.SyncState,
+) *learningpathsv1.GetTodoistSyncStateResponse {
+	items := make([]*learningpathsv1.TodoistItemState, len(state.Items))
+	for i, it := range state.Items {
+		items[i] = &learningpathsv1.TodoistItemState{
+			ItemId:        it.ID.String(),
+			Description:   it.Description,
+			Due:           it.Due,
+			Completed:     it.Completed,
+			TodoistTaskId: derefString(it.TodoistTaskID),
+		}
+	}
+	return &learningpathsv1.GetTodoistSyncStateResponse{
+		Connected:        state.Status.Connected,
+		NeedsReconnect:   state.Status.NeedsReconnect,
+		RequestedScope:   state.Status.RequestedScope,
+		TodoistProjectId: state.ProjectID,
+		ActiveModule:     state.ActiveModule,
+		Items:            items,
+		Paused:           state.Paused,
+	}
+}
+
+func derefString(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
 }

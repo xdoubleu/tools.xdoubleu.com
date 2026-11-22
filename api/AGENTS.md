@@ -81,7 +81,7 @@ First-party: HS256 JWT access tokens, opaque rotating refresh tokens, TOTP 2FA +
 - **learningpaths** → [`adr-0023`](../docs/adr-0023-learningpaths-mcp-write-tools.md):
   - Scoped by `user_id`; another user's path reads as not-found.
   - Proto nests `LearningPath{modules{items}}`; Create/Update replace the whole tree; `RecordItemProgress` is the single-item exception.
-  - MCP write tools are gated by `RequireAppAccess` and scope via context, never an argument. Authoring guidance lives in tool descriptions and `mcp_authoring_guide.go`.
+  - MCP write tools are gated by `RequireAppAccess` and scope via context, never an argument. Authoring guidance lives in tool descriptions and `mcp/guide.go`.
   - Todoist: per-user `learningpaths.oauth_connections` (PK `user_id, provider`), separate from admin `global.oauth_connections`; `learningpaths/internal/todoist` is create+delete, idempotent — only the active module's items are tasks.
   - Linked books/feed items resolve through exported `Books`/`Feeds` methods, never their internals.
 

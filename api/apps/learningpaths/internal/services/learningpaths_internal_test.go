@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"errors"
+	"net/http"
 	"testing"
 
 	"github.com/google/uuid"
@@ -10,17 +11,16 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/oauth2"
 
-	"tools.xdoubleu.com/apps/feeds"
 	"tools.xdoubleu.com/apps/learningpaths/internal/mocks"
 	"tools.xdoubleu.com/apps/learningpaths/internal/models"
 	"tools.xdoubleu.com/apps/learningpaths/internal/todoist"
-	booksv1 "tools.xdoubleu.com/gen/books/v1"
+	iapp "tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/kit/database"
 	"tools.xdoubleu.com/internal/kit/logging"
 	"tools.xdoubleu.com/internal/platform/oauthconn"
 )
 
-// fakeLearningPathsStore is an in-memory learningPathsStore.
+// fakeLearningPathsStore is an in-memory LearningPathsStore.
 type fakeLearningPathsStore struct {
 	lp     *models.LearningPath
 	getErr error
@@ -256,7 +256,7 @@ func newFixture() *models.LearningPath {
 // no linked resources (resource_links_test.go covers those). The Todoist
 // service is a real one with a mock client and a not-connected fake store, so
 // Create/RecordItemProgress can call SyncUser harmlessly against the fake.
-func newTestService(store learningPathsStore) *LearningPathService {
+func newTestService(store LearningPathsStore) *LearningPathService {
 	//nolint:exhaustruct //endpoint URLs, not credentials
 	conf := &oauth2.Config{ClientID: "id", ClientSecret: "secret"}
 	todoistSvc := NewTodoistService(
@@ -281,7 +281,7 @@ type fakeBookLookup struct {
 	calls        int
 	errAfterCall int
 	genericErr   error
-	book         *booksv1.UserBook
+	book         *models.LinkedBook
 
 	// EnsureLibraryBook fixtures: ensureID is returned (or ensureErr), and
 	// ensureShelves records each call's shelf.
@@ -297,9 +297,9 @@ func (f *fakeBookLookup) EnsureLibraryBook(
 	return f.ensureID, f.ensureErr
 }
 
-func (f *fakeBookLookup) GetLibraryBookByID(
+func (f *fakeBookLookup) GetLibraryBook(
 	_ context.Context, _ string, _ uuid.UUID,
-) (*booksv1.UserBook, error) {
+) (*models.LinkedBook, error) {
 	f.calls++
 	if f.errAfterCall != 0 && f.calls >= f.errAfterCall {
 		return nil, f.genericErr
@@ -312,12 +312,12 @@ type fakeFeedItemLookup struct {
 	calls        int
 	errAfterCall int
 	genericErr   error
-	item         *feeds.SharedItem
+	item         *models.LinkedFeedItem
 }
 
-func (f *fakeFeedItemLookup) GetItemByID(
+func (f *fakeFeedItemLookup) GetFeedItem(
 	_ context.Context, _ string, _ uuid.UUID,
-) (*feeds.SharedItem, error) {
+) (*models.LinkedFeedItem, error) {
 	f.calls++
 	if f.errAfterCall != 0 && f.calls >= f.errAfterCall {
 		return nil, f.genericErr
@@ -691,4 +691,79 @@ func TestCreate_ResolveResourceLinks_PropagatesBookLookupError(t *testing.T) {
 	})
 	assert.ErrorIs(t, err, lookupErr)
 	assert.True(t, store.resourcesReplaced)
+}
+
+//nolint:exhaustruct // sparse fixtures
+func TestProgress_CountsItemsPerModule(t *testing.T) {
+	bookID := uuid.New()
+	done := models.Item{ID: uuid.New(), Completed: true}
+	todo := models.Item{ID: uuid.New()}
+	linked := models.Item{ID: uuid.New(), LinkedBookID: &bookID}
+	m1, m2 := uuid.New(), uuid.New()
+	lp := newFixture()
+	//nolint:exhaustruct //unset fields are the fixture defaults
+	store := &fakeLearningPathsStore{
+		lp: lp,
+		modules: []models.Module{
+			{ID: m1, Title: "One", Items: []models.Item{done, todo}},
+			{ID: m2, Title: "Two", Items: []models.Item{linked}},
+		},
+	}
+	svc := newTestService(store)
+	//nolint:exhaustruct //unset fields are the fixture defaults
+	svc.books = &fakeBookLookup{book: &models.LinkedBook{ProgressPercent: 100}}
+
+	p, err := svc.Progress(t.Context(), uuid.New(), lp.UserID)
+	require.NoError(t, err)
+	assert.Equal(t, lp.Title, p.Title)
+	assert.Equal(t, int32(3), p.TotalItems)
+	// A book at 100% completes its linked item.
+	assert.Equal(t, int32(2), p.CompletedItems)
+	require.Len(t, p.Modules, 2)
+	assert.Equal(t, m1, p.Modules[0].ID)
+	assert.Equal(t, int32(1), p.Modules[0].CompletedItems)
+	assert.Equal(t, int32(1), p.Modules[1].CompletedItems)
+}
+
+//nolint:exhaustruct // sparse fixtures
+func TestProgress_OtherUserNotFound(t *testing.T) {
+	//nolint:exhaustruct //unset fields are the fixture defaults
+	svc := newTestService(&fakeLearningPathsStore{lp: newFixture()})
+
+	_, err := svc.Progress(t.Context(), uuid.New(), "other")
+	assert.ErrorIs(t, err, database.ErrResourceNotFound)
+}
+
+//nolint:exhaustruct // sparse fixtures
+func TestCreate_UnknownBookLinkIsBadRequest(t *testing.T) {
+	bookID := uuid.New()
+	//nolint:exhaustruct //unset fields are the fixture defaults
+	svc := newTestService(&fakeLearningPathsStore{lp: newFixture()})
+	svc.books = &fakeBookLookup{
+		errAfterCall: 1, genericErr: database.ErrResourceNotFound,
+	}
+
+	_, err := svc.Create(t.Context(), "owner", models.LearningPath{
+		Modules: []models.Module{{Items: []models.Item{{LinkedBookID: &bookID}}}},
+	})
+	var httpErr *iapp.HTTPError
+	require.ErrorAs(t, err, &httpErr)
+	assert.Equal(t, http.StatusBadRequest, httpErr.Status)
+}
+
+//nolint:exhaustruct // sparse fixtures
+func TestCreate_UnknownFeedLinkIsBadRequest(t *testing.T) {
+	feedID := uuid.New()
+	//nolint:exhaustruct //unset fields are the fixture defaults
+	svc := newTestService(&fakeLearningPathsStore{lp: newFixture()})
+	svc.feeds = &fakeFeedItemLookup{
+		errAfterCall: 1, genericErr: database.ErrResourceNotFound,
+	}
+
+	_, err := svc.Create(t.Context(), "owner", models.LearningPath{
+		Resources: []models.Resource{{LinkedFeedItemID: &feedID}},
+	})
+	var httpErr *iapp.HTTPError
+	require.ErrorAs(t, err, &httpErr)
+	assert.Equal(t, http.StatusBadRequest, httpErr.Status)
 }
