@@ -47,7 +47,7 @@ func TestNormalizeISBN13(t *testing.T) {
 }
 
 func TestCatalog_RejectsNonAdminBeforeTouchingStorage(t *testing.T) {
-	resync := &fakeResync{}
+	resync := new(fakeResync)
 	// nil book and progress services: any admin-gated call reaching them panics.
 	svc := NewCatalogService(nil, nil, nil, resync)
 	ctx := context.Background()
@@ -69,7 +69,7 @@ func TestCatalog_RejectsNonAdminBeforeTouchingStorage(t *testing.T) {
 		t, svc.ApplyBookSource(ctx, member, id, "unicat", 0, "", ""), ErrAdminRequired,
 	)
 	require.ErrorIs(t, svc.SetBookISBN(ctx, member, id, "9780140449112"), ErrAdminRequired)
-	_, err = svc.UpdateBook(ctx, member, id, &models.Book{}, "")
+	_, err = svc.UpdateBook(ctx, member, id, new(models.Book), "")
 	require.ErrorIs(t, err, ErrAdminRequired)
 	_, err = svc.GetSourceStats(ctx, member)
 	require.ErrorIs(t, err, ErrAdminRequired)
@@ -83,7 +83,7 @@ func TestCatalog_RejectsNonAdminBeforeTouchingStorage(t *testing.T) {
 }
 
 func TestCatalog_ResyncControl(t *testing.T) {
-	resync := &fakeResync{}
+	resync := new(fakeResync)
 	svc := NewCatalogService(nil, nil, nil, resync)
 	admin := user(string(sharedmodels.RoleAdmin))
 
@@ -96,7 +96,7 @@ func TestCatalog_ResyncControl(t *testing.T) {
 }
 
 func TestCatalog_AdminEditValidation(t *testing.T) {
-	svc := NewCatalogService(nil, nil, nil, &fakeResync{})
+	svc := NewCatalogService(nil, nil, nil, new(fakeResync))
 	ctx := context.Background()
 	admin := user(string(sharedmodels.RoleAdmin))
 	id := uuid.New()
