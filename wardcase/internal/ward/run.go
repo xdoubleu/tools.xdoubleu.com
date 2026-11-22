@@ -272,7 +272,7 @@ func (r *Runner) runOnce(
 	}
 	defer func() { _ = os.RemoveAll(outcomeDir) }()
 	maps(env, h.SessionEnv(vm.SandboxSessionDir))
-	if err = r.addMCP(&egress, env, headless); err != nil {
+	if err = r.addMCP(&egress, env, headless, checkout); err != nil {
 		return outcome{}, err
 	}
 	env["WARDCASE_RUN"] = randomID()
