@@ -30,8 +30,7 @@ Per-app layout (`apps/<name>/`; see [hexagonal-apps](../docs/convention-hexagona
 ```
 app.go         # embeds app.Base; books/games route test seeding through a test-only TestSeeds handle
 routes.go      # ConnectRPC handler behind the AppAccess gate
-connect_*.go   # service implementations
-mcp.go         # optional MCPToolProvider
+connect/       # Connect adapter (plus optional mcp/, http/)
 internal/{dtos,models,repositories,services,jobs,mocks}/
 migrations/    # Goose SQL, own schema only
 ```
