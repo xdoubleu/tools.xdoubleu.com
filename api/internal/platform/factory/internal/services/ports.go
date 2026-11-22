@@ -199,6 +199,12 @@ type JobStore interface {
 		id uuid.UUID,
 	) error
 	OldestQueued(ctx context.Context) (*models.Job, error)
+	RecordFinishedBy(
+		ctx context.Context,
+		id, runnerID uuid.UUID,
+		harness models.Harness,
+		model string,
+	) error
 	RecordTimings(
 		ctx context.Context,
 		id, runnerID uuid.UUID,

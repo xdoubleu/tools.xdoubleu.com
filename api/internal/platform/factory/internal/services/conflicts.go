@@ -72,6 +72,7 @@ func (s *JobService) resolveConflict(ctx context.Context, r linkedReview) error 
 		SessionID: "", Outcome: "", ParentJobID: parent, PRURL: "", RunnerID: nil,
 		PRState: "", PRCI: "", PRReview: "", CreatedBy: conflictAuthor,
 		CreatedAt: time.Time{}, Routine: "", Limited: false, LimitResetsAt: nil,
+		FinishedHarness: "", FinishedModel: "",
 		StartedAt: nil, LastCheckIn: nil, FinishedAt: nil,
 	}); err != nil {
 		return err

@@ -177,6 +177,10 @@ message CompleteJobRequest {
   // Tasks (T-n) the job's task waits for, from the agent's Waiting-on line. The
   // server moves the task to Backlog with a comment naming them and files nothing.
   repeated string waiting_on = 10;
+  // Set only when the job continued on the fallback after its harness hit its usage
+  // limit: the harness and model that finished it. Unset when the first one did.
+  Harness finished_harness = 11;
+  string finished_model = 12;
 }
 // JobTimings are a job's phase durations in seconds and how many attempts were
 // repeated, by the stage that failed.

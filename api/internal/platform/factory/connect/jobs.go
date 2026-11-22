@@ -269,6 +269,10 @@ func (h *runnerHandler) CompleteJob(
 	// The job is already over, so a report that fails must not fail the call.
 	_ = h.app.Services.Jobs.ReportBlocked(
 		ctx, runner.ID, id, req.GetBlocked(), req.GetWaitingOn())
+	if fh := req.GetFinishedHarness(); fh != factoryv1.Harness_HARNESS_UNSPECIFIED {
+		_ = h.app.Services.Jobs.RecordFinishedBy(
+			ctx, runner.ID, id, harnessFromProto(fh), req.GetFinishedModel())
+	}
 	if t := req.GetTimings(); t != nil {
 		_ = h.app.Services.Jobs.RecordTimings(ctx, runner.ID, id, models.JobTimings{
 			Agent: t.GetAgentSeconds(), Gates: t.GetGatesSeconds(),

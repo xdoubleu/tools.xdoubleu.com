@@ -167,6 +167,7 @@ func (s *JobService) queueRoutine(
 		ParentJobID: nil, PRURL: "", RunnerID: nil, PRState: "", PRCI: "",
 		PRReview: "", CreatedBy: createdBy, CreatedAt: time.Time{},
 		Limited: false, LimitResetsAt: nil,
+		FinishedHarness: "", FinishedModel: "",
 		StartedAt: nil, LastCheckIn: nil, FinishedAt: nil,
 	})
 	if errors.Is(err, database.ErrResourceConflict) {

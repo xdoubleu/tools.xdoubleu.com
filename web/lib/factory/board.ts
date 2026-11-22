@@ -451,11 +451,21 @@ export function jobLimitNote(job: Pick<Job, 'limited' | 'limitResetsAt'>): strin
   return when ? `stopped by the Claude limit, resets ${when}` : 'stopped by the Claude limit'
 }
 
-/** What ran a job, "OpenCode · vendor/model"; "" while the server didn't say. */
-export function jobRunner(job: Pick<Job, 'harness' | 'model'>): string {
+/**
+ * What ran a job, "OpenCode · vendor/model"; "" while the server didn't say. A job
+ * that continued on the fallback adds what finished it: "Claude Code → OpenCode · m".
+ */
+export function jobRunner(
+  job: Pick<Job, 'harness' | 'model' | 'finishedHarness' | 'finishedModel'>
+): string {
   if (job.harness === Harness.UNSPECIFIED) return ''
-  const label = harnessLabel(job.harness)
-  return job.model ? `${label} · ${job.model}` : label
+  const named = (harness: Harness, model: string) => {
+    const label = harnessLabel(harness)
+    return model ? `${label} · ${model}` : label
+  }
+  const first = named(job.harness, job.model)
+  if (job.finishedHarness === Harness.UNSPECIFIED) return first
+  return `${first} → ${named(job.finishedHarness, job.finishedModel)}`
 }
 
 /**

@@ -223,6 +223,9 @@ func ProtoJob(j *models.Job) *factoryv1.Job {
 		Limited:       j.Limited,
 		LimitResetsAt: limitResetsAt,
 		Outcome:       truncateOutcome(j.Outcome),
+
+		FinishedHarness: HarnessToProto(j.FinishedHarness),
+		FinishedModel:   j.FinishedModel,
 	}
 }
 

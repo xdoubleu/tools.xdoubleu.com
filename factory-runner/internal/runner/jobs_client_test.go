@@ -99,7 +99,7 @@ func TestCompleteJobSendsTheResult(t *testing.T) {
 		c.CompleteJob(context.Background(), "frt_x", "j1", runner.JobEnd{
 			Succeeded: true, Outcome: "done", SessionID: "s1", PRURL: "https://x/pr",
 			Limited: false, ResetsAt: time.Time{}, Blocked: "", WaitingOn: nil,
-			Times: nil, Total: 0,
+			FinishedHarness: "", FinishedModel: "", Times: nil, Total: 0,
 		}),
 	)
 
@@ -114,9 +114,27 @@ func TestCompleteJobSendsTheResult(t *testing.T) {
 		late.CompleteJob(context.Background(), "frt_x", "j1", runner.JobEnd{
 			Succeeded: true, Outcome: "", SessionID: "", PRURL: "",
 			Limited: false, ResetsAt: time.Time{}, Blocked: "", WaitingOn: nil,
-			Times: nil, Total: 0,
+			FinishedHarness: "", FinishedModel: "", Times: nil, Total: 0,
 		}),
 	)
+}
+
+func TestCompleteJobNamesWhatFinishedAfterAFallback(t *testing.T) {
+	var body string
+	c := serve(t, func(w http.ResponseWriter, r *http.Request) {
+		raw, _ := io.ReadAll(r.Body)
+		body = string(raw)
+		_, _ = w.Write([]byte(`{}`))
+	})
+	require.NoError(t, c.CompleteJob(context.Background(), "frt_x", "j1",
+		runner.JobEnd{
+			Succeeded: true, Outcome: "", SessionID: "", PRURL: "", Limited: false,
+			ResetsAt: time.Time{}, Blocked: "", WaitingOn: nil,
+			FinishedHarness: runner.HarnessOpenCode, FinishedModel: "vendor/model",
+			Times: nil, Total: 0,
+		}))
+	assert.Contains(t, body, `"finishedHarness":"HARNESS_OPENCODE"`)
+	assert.Contains(t, body, `"finishedModel":"vendor/model"`)
 }
 
 func TestCompleteJobSendsThePhaseTimings(t *testing.T) {
@@ -132,7 +150,7 @@ func TestCompleteJobSendsThePhaseTimings(t *testing.T) {
 		runner.JobEnd{
 			Succeeded: false, Outcome: "", SessionID: "", PRURL: "", Limited: false,
 			ResetsAt: time.Time{}, Blocked: "", WaitingOn: nil,
-			Times: p, Total: 20 * time.Second,
+			FinishedHarness: "", FinishedModel: "", Times: p, Total: 20 * time.Second,
 		}))
 	assert.Contains(t, body, `"timings":{"agentSeconds":2,"gatesSeconds":0,`+
 		`"publishSeconds":3,`+

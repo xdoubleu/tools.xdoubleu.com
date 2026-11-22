@@ -95,6 +95,10 @@ type JobEnd struct {
 	// WaitingOn is the tasks (T-n) the job's task depends on; the server moves it to
 	// Backlog naming them and files nothing.
 	WaitingOn []string
+	// FinishedHarness and FinishedModel name what finished the job after it
+	// continued on the fallback; empty when the first harness did.
+	FinishedHarness string
+	FinishedModel   string
 	// Times and Total are where the job's time went; nil when it never ran.
 	Times *phaseTimes
 	Total time.Duration
@@ -110,6 +114,9 @@ type completeJobRequest struct {
 	LimitResetsAt string   `json:"limitResetsAt,omitempty"`
 	Blocked       string   `json:"blocked,omitempty"`
 	WaitingOn     []string `json:"waitingOn,omitempty"`
+
+	FinishedHarness string `json:"finishedHarness,omitempty"`
+	FinishedModel   string `json:"finishedModel,omitempty"`
 
 	Timings *timingsJSON `json:"timings,omitempty"`
 }
@@ -254,6 +261,7 @@ func (c *Client) CompleteJob(
 		JobID: jobID, Succeeded: end.Succeeded, Outcome: end.Outcome,
 		SessionID: end.SessionID, PRURL: end.PRURL, Limited: end.Limited,
 		LimitResetsAt: "", Blocked: end.Blocked, WaitingOn: end.WaitingOn,
+		FinishedHarness: end.FinishedHarness, FinishedModel: end.FinishedModel,
 		Timings: end.Times.json(end.Total),
 	}
 	if !end.ResetsAt.IsZero() {

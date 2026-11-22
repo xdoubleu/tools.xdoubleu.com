@@ -172,6 +172,7 @@ func (s *JobService) resume(ctx context.Context, t *models.Task) error {
 		ParentJobID: &last.ID, PRURL: "", RunnerID: nil, PRState: "", PRCI: "",
 		PRReview: "", CreatedBy: imageResumeAuthor, CreatedAt: time.Time{},
 		Routine: "", Limited: false, LimitResetsAt: nil,
+		FinishedHarness: "", FinishedModel: "",
 		StartedAt: nil, LastCheckIn: nil, FinishedAt: nil,
 	}); err != nil {
 		return err

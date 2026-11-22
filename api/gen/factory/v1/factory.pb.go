@@ -1390,9 +1390,13 @@ type Job struct {
 	Routine string `protobuf:"bytes,14,opt,name=routine,proto3" json:"routine,omitempty"`
 	// How the job ended, as the agent wrote it, or why it failed, was lost or was
 	// stopped; empty while it runs. Truncated.
-	Outcome       string `protobuf:"bytes,15,opt,name=outcome,proto3" json:"outcome,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Outcome string `protobuf:"bytes,15,opt,name=outcome,proto3" json:"outcome,omitempty"`
+	// The harness and model that finished the job when it continued on the fallback
+	// after the first hit its usage limit; unspecified and empty otherwise.
+	FinishedHarness Harness `protobuf:"varint,16,opt,name=finished_harness,json=finishedHarness,proto3,enum=factory.v1.Harness" json:"finished_harness,omitempty"`
+	FinishedModel   string  `protobuf:"bytes,17,opt,name=finished_model,json=finishedModel,proto3" json:"finished_model,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *Job) Reset() {
@@ -1526,6 +1530,20 @@ func (x *Job) GetRoutine() string {
 func (x *Job) GetOutcome() string {
 	if x != nil {
 		return x.Outcome
+	}
+	return ""
+}
+
+func (x *Job) GetFinishedHarness() Harness {
+	if x != nil {
+		return x.FinishedHarness
+	}
+	return Harness_HARNESS_UNSPECIFIED
+}
+
+func (x *Job) GetFinishedModel() string {
+	if x != nil {
+		return x.FinishedModel
 	}
 	return ""
 }
@@ -3546,7 +3564,7 @@ const file_factory_v1_factory_proto_rawDesc = "" +
 	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12\x12\n" +
 	"\x04body\x18\x02 \x01(\tR\x04body\"C\n" +
 	"\x12AddCommentResponse\x12-\n" +
-	"\acomment\x18\x01 \x01(\v2\x13.factory.v1.CommentR\acomment\"\xb3\x03\n" +
+	"\acomment\x18\x01 \x01(\v2\x13.factory.v1.CommentR\acomment\"\x9a\x04\n" +
 	"\x03Job\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\atask_id\x18\x02 \x01(\tR\x06taskId\x12-\n" +
@@ -3564,7 +3582,9 @@ const file_factory_v1_factory_proto_rawDesc = "" +
 	"\alimited\x18\f \x01(\bR\alimited\x12&\n" +
 	"\x0flimit_resets_at\x18\r \x01(\tR\rlimitResetsAt\x12\x18\n" +
 	"\aroutine\x18\x0e \x01(\tR\aroutine\x12\x18\n" +
-	"\aoutcome\x18\x0f \x01(\tR\aoutcome\"i\n" +
+	"\aoutcome\x18\x0f \x01(\tR\aoutcome\x12>\n" +
+	"\x10finished_harness\x18\x10 \x01(\x0e2\x13.factory.v1.HarnessR\x0ffinishedHarness\x12%\n" +
+	"\x0efinished_model\x18\x11 \x01(\tR\rfinishedModel\"i\n" +
 	"\bJobEvent\x12\x10\n" +
 	"\x03seq\x18\x01 \x01(\x05R\x03seq\x12\x12\n" +
 	"\x04kind\x18\x02 \x01(\tR\x04kind\x12\x18\n" +
@@ -3836,77 +3856,78 @@ var file_factory_v1_factory_proto_depIdxs = []int32{
 	5,  // 13: factory.v1.AddCommentResponse.comment:type_name -> factory.v1.Comment
 	3,  // 14: factory.v1.Job.status:type_name -> factory.v1.JobStatus
 	2,  // 15: factory.v1.Job.harness:type_name -> factory.v1.Harness
-	22, // 16: factory.v1.ListJobEventsResponse.events:type_name -> factory.v1.JobEvent
-	21, // 17: factory.v1.GetJobResponse.job:type_name -> factory.v1.Job
-	22, // 18: factory.v1.GetJobResponse.events:type_name -> factory.v1.JobEvent
-	21, // 19: factory.v1.RunTaskResponse.job:type_name -> factory.v1.Job
-	21, // 20: factory.v1.StopJobResponse.job:type_name -> factory.v1.Job
-	21, // 21: factory.v1.Routine.last_job:type_name -> factory.v1.Job
-	30, // 22: factory.v1.ListRoutinesResponse.routines:type_name -> factory.v1.Routine
-	30, // 23: factory.v1.SaveRoutineResponse.routine:type_name -> factory.v1.Routine
-	21, // 24: factory.v1.RunRoutineResponse.job:type_name -> factory.v1.Job
-	21, // 25: factory.v1.StopRoutineResponse.job:type_name -> factory.v1.Job
-	41, // 26: factory.v1.ListReposResponse.repos:type_name -> factory.v1.Repo
-	41, // 27: factory.v1.CreateRepoRequest.repo:type_name -> factory.v1.Repo
-	41, // 28: factory.v1.CreateRepoResponse.repo:type_name -> factory.v1.Repo
-	41, // 29: factory.v1.UpdateRepoRequest.repo:type_name -> factory.v1.Repo
-	41, // 30: factory.v1.UpdateRepoResponse.repo:type_name -> factory.v1.Repo
-	2,  // 31: factory.v1.Chat.harness:type_name -> factory.v1.Harness
-	2,  // 32: factory.v1.StartChatRequest.harness:type_name -> factory.v1.Harness
-	48, // 33: factory.v1.StartChatResponse.chat:type_name -> factory.v1.Chat
-	48, // 34: factory.v1.StopChatResponse.chat:type_name -> factory.v1.Chat
-	48, // 35: factory.v1.ListChatsResponse.chats:type_name -> factory.v1.Chat
-	6,  // 36: factory.v1.TaskService.ListTasks:input_type -> factory.v1.ListTasksRequest
-	8,  // 37: factory.v1.TaskService.SetPickupPaused:input_type -> factory.v1.SetPickupPausedRequest
-	10, // 38: factory.v1.TaskService.GetTask:input_type -> factory.v1.GetTaskRequest
-	13, // 39: factory.v1.TaskService.CreateTask:input_type -> factory.v1.CreateTaskRequest
-	15, // 40: factory.v1.TaskService.UpdateTask:input_type -> factory.v1.UpdateTaskRequest
-	17, // 41: factory.v1.TaskService.MoveTask:input_type -> factory.v1.MoveTaskRequest
-	19, // 42: factory.v1.TaskService.AddComment:input_type -> factory.v1.AddCommentRequest
-	26, // 43: factory.v1.TaskService.RunTask:input_type -> factory.v1.RunTaskRequest
-	28, // 44: factory.v1.TaskService.StopJob:input_type -> factory.v1.StopJobRequest
-	23, // 45: factory.v1.TaskService.ListJobEvents:input_type -> factory.v1.ListJobEventsRequest
-	31, // 46: factory.v1.TaskService.ListRoutines:input_type -> factory.v1.ListRoutinesRequest
-	33, // 47: factory.v1.TaskService.SaveRoutine:input_type -> factory.v1.SaveRoutineRequest
-	35, // 48: factory.v1.TaskService.RunRoutine:input_type -> factory.v1.RunRoutineRequest
-	37, // 49: factory.v1.TaskService.StopRoutine:input_type -> factory.v1.StopRoutineRequest
-	39, // 50: factory.v1.TaskService.DeleteRoutine:input_type -> factory.v1.DeleteRoutineRequest
-	42, // 51: factory.v1.RepoService.ListRepos:input_type -> factory.v1.ListReposRequest
-	44, // 52: factory.v1.RepoService.CreateRepo:input_type -> factory.v1.CreateRepoRequest
-	46, // 53: factory.v1.RepoService.UpdateRepo:input_type -> factory.v1.UpdateRepoRequest
-	49, // 54: factory.v1.ChatService.StartChat:input_type -> factory.v1.StartChatRequest
-	51, // 55: factory.v1.ChatService.SendChatMessage:input_type -> factory.v1.SendChatMessageRequest
-	53, // 56: factory.v1.ChatService.AnswerChat:input_type -> factory.v1.AnswerChatRequest
-	55, // 57: factory.v1.ChatService.StopChat:input_type -> factory.v1.StopChatRequest
-	57, // 58: factory.v1.ChatService.ListChats:input_type -> factory.v1.ListChatsRequest
-	7,  // 59: factory.v1.TaskService.ListTasks:output_type -> factory.v1.ListTasksResponse
-	9,  // 60: factory.v1.TaskService.SetPickupPaused:output_type -> factory.v1.SetPickupPausedResponse
-	11, // 61: factory.v1.TaskService.GetTask:output_type -> factory.v1.GetTaskResponse
-	14, // 62: factory.v1.TaskService.CreateTask:output_type -> factory.v1.CreateTaskResponse
-	16, // 63: factory.v1.TaskService.UpdateTask:output_type -> factory.v1.UpdateTaskResponse
-	18, // 64: factory.v1.TaskService.MoveTask:output_type -> factory.v1.MoveTaskResponse
-	20, // 65: factory.v1.TaskService.AddComment:output_type -> factory.v1.AddCommentResponse
-	27, // 66: factory.v1.TaskService.RunTask:output_type -> factory.v1.RunTaskResponse
-	29, // 67: factory.v1.TaskService.StopJob:output_type -> factory.v1.StopJobResponse
-	24, // 68: factory.v1.TaskService.ListJobEvents:output_type -> factory.v1.ListJobEventsResponse
-	32, // 69: factory.v1.TaskService.ListRoutines:output_type -> factory.v1.ListRoutinesResponse
-	34, // 70: factory.v1.TaskService.SaveRoutine:output_type -> factory.v1.SaveRoutineResponse
-	36, // 71: factory.v1.TaskService.RunRoutine:output_type -> factory.v1.RunRoutineResponse
-	38, // 72: factory.v1.TaskService.StopRoutine:output_type -> factory.v1.StopRoutineResponse
-	40, // 73: factory.v1.TaskService.DeleteRoutine:output_type -> factory.v1.DeleteRoutineResponse
-	43, // 74: factory.v1.RepoService.ListRepos:output_type -> factory.v1.ListReposResponse
-	45, // 75: factory.v1.RepoService.CreateRepo:output_type -> factory.v1.CreateRepoResponse
-	47, // 76: factory.v1.RepoService.UpdateRepo:output_type -> factory.v1.UpdateRepoResponse
-	50, // 77: factory.v1.ChatService.StartChat:output_type -> factory.v1.StartChatResponse
-	52, // 78: factory.v1.ChatService.SendChatMessage:output_type -> factory.v1.SendChatMessageResponse
-	54, // 79: factory.v1.ChatService.AnswerChat:output_type -> factory.v1.AnswerChatResponse
-	56, // 80: factory.v1.ChatService.StopChat:output_type -> factory.v1.StopChatResponse
-	58, // 81: factory.v1.ChatService.ListChats:output_type -> factory.v1.ListChatsResponse
-	59, // [59:82] is the sub-list for method output_type
-	36, // [36:59] is the sub-list for method input_type
-	36, // [36:36] is the sub-list for extension type_name
-	36, // [36:36] is the sub-list for extension extendee
-	0,  // [0:36] is the sub-list for field type_name
+	2,  // 16: factory.v1.Job.finished_harness:type_name -> factory.v1.Harness
+	22, // 17: factory.v1.ListJobEventsResponse.events:type_name -> factory.v1.JobEvent
+	21, // 18: factory.v1.GetJobResponse.job:type_name -> factory.v1.Job
+	22, // 19: factory.v1.GetJobResponse.events:type_name -> factory.v1.JobEvent
+	21, // 20: factory.v1.RunTaskResponse.job:type_name -> factory.v1.Job
+	21, // 21: factory.v1.StopJobResponse.job:type_name -> factory.v1.Job
+	21, // 22: factory.v1.Routine.last_job:type_name -> factory.v1.Job
+	30, // 23: factory.v1.ListRoutinesResponse.routines:type_name -> factory.v1.Routine
+	30, // 24: factory.v1.SaveRoutineResponse.routine:type_name -> factory.v1.Routine
+	21, // 25: factory.v1.RunRoutineResponse.job:type_name -> factory.v1.Job
+	21, // 26: factory.v1.StopRoutineResponse.job:type_name -> factory.v1.Job
+	41, // 27: factory.v1.ListReposResponse.repos:type_name -> factory.v1.Repo
+	41, // 28: factory.v1.CreateRepoRequest.repo:type_name -> factory.v1.Repo
+	41, // 29: factory.v1.CreateRepoResponse.repo:type_name -> factory.v1.Repo
+	41, // 30: factory.v1.UpdateRepoRequest.repo:type_name -> factory.v1.Repo
+	41, // 31: factory.v1.UpdateRepoResponse.repo:type_name -> factory.v1.Repo
+	2,  // 32: factory.v1.Chat.harness:type_name -> factory.v1.Harness
+	2,  // 33: factory.v1.StartChatRequest.harness:type_name -> factory.v1.Harness
+	48, // 34: factory.v1.StartChatResponse.chat:type_name -> factory.v1.Chat
+	48, // 35: factory.v1.StopChatResponse.chat:type_name -> factory.v1.Chat
+	48, // 36: factory.v1.ListChatsResponse.chats:type_name -> factory.v1.Chat
+	6,  // 37: factory.v1.TaskService.ListTasks:input_type -> factory.v1.ListTasksRequest
+	8,  // 38: factory.v1.TaskService.SetPickupPaused:input_type -> factory.v1.SetPickupPausedRequest
+	10, // 39: factory.v1.TaskService.GetTask:input_type -> factory.v1.GetTaskRequest
+	13, // 40: factory.v1.TaskService.CreateTask:input_type -> factory.v1.CreateTaskRequest
+	15, // 41: factory.v1.TaskService.UpdateTask:input_type -> factory.v1.UpdateTaskRequest
+	17, // 42: factory.v1.TaskService.MoveTask:input_type -> factory.v1.MoveTaskRequest
+	19, // 43: factory.v1.TaskService.AddComment:input_type -> factory.v1.AddCommentRequest
+	26, // 44: factory.v1.TaskService.RunTask:input_type -> factory.v1.RunTaskRequest
+	28, // 45: factory.v1.TaskService.StopJob:input_type -> factory.v1.StopJobRequest
+	23, // 46: factory.v1.TaskService.ListJobEvents:input_type -> factory.v1.ListJobEventsRequest
+	31, // 47: factory.v1.TaskService.ListRoutines:input_type -> factory.v1.ListRoutinesRequest
+	33, // 48: factory.v1.TaskService.SaveRoutine:input_type -> factory.v1.SaveRoutineRequest
+	35, // 49: factory.v1.TaskService.RunRoutine:input_type -> factory.v1.RunRoutineRequest
+	37, // 50: factory.v1.TaskService.StopRoutine:input_type -> factory.v1.StopRoutineRequest
+	39, // 51: factory.v1.TaskService.DeleteRoutine:input_type -> factory.v1.DeleteRoutineRequest
+	42, // 52: factory.v1.RepoService.ListRepos:input_type -> factory.v1.ListReposRequest
+	44, // 53: factory.v1.RepoService.CreateRepo:input_type -> factory.v1.CreateRepoRequest
+	46, // 54: factory.v1.RepoService.UpdateRepo:input_type -> factory.v1.UpdateRepoRequest
+	49, // 55: factory.v1.ChatService.StartChat:input_type -> factory.v1.StartChatRequest
+	51, // 56: factory.v1.ChatService.SendChatMessage:input_type -> factory.v1.SendChatMessageRequest
+	53, // 57: factory.v1.ChatService.AnswerChat:input_type -> factory.v1.AnswerChatRequest
+	55, // 58: factory.v1.ChatService.StopChat:input_type -> factory.v1.StopChatRequest
+	57, // 59: factory.v1.ChatService.ListChats:input_type -> factory.v1.ListChatsRequest
+	7,  // 60: factory.v1.TaskService.ListTasks:output_type -> factory.v1.ListTasksResponse
+	9,  // 61: factory.v1.TaskService.SetPickupPaused:output_type -> factory.v1.SetPickupPausedResponse
+	11, // 62: factory.v1.TaskService.GetTask:output_type -> factory.v1.GetTaskResponse
+	14, // 63: factory.v1.TaskService.CreateTask:output_type -> factory.v1.CreateTaskResponse
+	16, // 64: factory.v1.TaskService.UpdateTask:output_type -> factory.v1.UpdateTaskResponse
+	18, // 65: factory.v1.TaskService.MoveTask:output_type -> factory.v1.MoveTaskResponse
+	20, // 66: factory.v1.TaskService.AddComment:output_type -> factory.v1.AddCommentResponse
+	27, // 67: factory.v1.TaskService.RunTask:output_type -> factory.v1.RunTaskResponse
+	29, // 68: factory.v1.TaskService.StopJob:output_type -> factory.v1.StopJobResponse
+	24, // 69: factory.v1.TaskService.ListJobEvents:output_type -> factory.v1.ListJobEventsResponse
+	32, // 70: factory.v1.TaskService.ListRoutines:output_type -> factory.v1.ListRoutinesResponse
+	34, // 71: factory.v1.TaskService.SaveRoutine:output_type -> factory.v1.SaveRoutineResponse
+	36, // 72: factory.v1.TaskService.RunRoutine:output_type -> factory.v1.RunRoutineResponse
+	38, // 73: factory.v1.TaskService.StopRoutine:output_type -> factory.v1.StopRoutineResponse
+	40, // 74: factory.v1.TaskService.DeleteRoutine:output_type -> factory.v1.DeleteRoutineResponse
+	43, // 75: factory.v1.RepoService.ListRepos:output_type -> factory.v1.ListReposResponse
+	45, // 76: factory.v1.RepoService.CreateRepo:output_type -> factory.v1.CreateRepoResponse
+	47, // 77: factory.v1.RepoService.UpdateRepo:output_type -> factory.v1.UpdateRepoResponse
+	50, // 78: factory.v1.ChatService.StartChat:output_type -> factory.v1.StartChatResponse
+	52, // 79: factory.v1.ChatService.SendChatMessage:output_type -> factory.v1.SendChatMessageResponse
+	54, // 80: factory.v1.ChatService.AnswerChat:output_type -> factory.v1.AnswerChatResponse
+	56, // 81: factory.v1.ChatService.StopChat:output_type -> factory.v1.StopChatResponse
+	58, // 82: factory.v1.ChatService.ListChats:output_type -> factory.v1.ListChatsResponse
+	60, // [60:83] is the sub-list for method output_type
+	37, // [37:60] is the sub-list for method input_type
+	37, // [37:37] is the sub-list for extension type_name
+	37, // [37:37] is the sub-list for extension extendee
+	0,  // [0:37] is the sub-list for field type_name
 }
 
 func init() { file_factory_v1_factory_proto_init() }
