@@ -39,7 +39,7 @@ func TestTitleOrDefault(t *testing.T) {
 func TestBuildItemWhitespaceTitleFallsBackToCanonical(t *testing.T) {
 	s := NewFeedService(
 		slog.Default(), nil, nil, nil, nil, mocks.NewMockWebFetchClient(), "", nil, nil,
-		"",
+		"", nil,
 	)
 	//nolint:exhaustruct // only title/link/description are relevant here
 	item := &gofeed.Item{

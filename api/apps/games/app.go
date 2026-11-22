@@ -84,7 +84,11 @@ func NewInner(
 		logger,
 		a.Config,
 		a.jobQueue,
-		a.repositories,
+		services.Stores{
+			Steam:        a.repositories.Steam,
+			Progress:     a.repositories.Progress,
+			Integrations: a.repositories.Integrations,
+		},
 		steamFactory,
 		authService,
 	)

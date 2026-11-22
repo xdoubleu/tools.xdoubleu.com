@@ -53,8 +53,8 @@ func CurrentKEPUBConverterVersion() int16 {
 // Service produces KEPUBs from stored EPUBs or PDFs via EnsureKEPUB.
 type Service struct {
 	logger      *slog.Logger
-	books       *repositories.BooksRepository
-	bookFiles   *repositories.BookFilesRepository
+	books       bookStore
+	bookFiles   bookFileStore
 	objectStore objectstore.Client
 	converter   EPUBConverter
 	convertPDF  PDFConverter
@@ -64,8 +64,8 @@ type Service struct {
 // select the defaults.
 func NewService(
 	logger *slog.Logger,
-	books *repositories.BooksRepository,
-	bookFiles *repositories.BookFilesRepository,
+	books bookStore,
+	bookFiles bookFileStore,
 	objectStore objectstore.Client,
 	converter EPUBConverter,
 	convertPDF PDFConverter,

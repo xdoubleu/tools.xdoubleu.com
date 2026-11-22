@@ -17,8 +17,8 @@ ADR-0046 aimed for anyone to self-host the apps: a Compose file, a Helm chart, a
 - **When to extract:** large components once their contract is stable; small helpers only with a second consumer ([adr-0009](adr-0009-sentrytools-extracted-module.md) shows the cost of one).
 - **Hexagonal apps:** Connect handlers and MCP tools are two presentation adapters over the same app services, with no logic of their own. MCP-from-Connect is therefore not a component.
 - **Layers:**
-  - The factory becomes a standalone local app that owns the board and jobs. An optional server syncs it and allows remote control; tools.xdoubleu.com runs one. It is the layer an ADE such as Orca replaces.
-  - wardcase never depends on the factory. The factory uses wardcase's Go API, and an ADE uses its CLI.
+  - The factory becomes a standalone local app that owns the board and jobs. An optional server syncs it and allows remote control; tools.xdoubleu.com runs one. It is the layer an ADE such as Orca replaces, and gains a chat ([adr-0060](adr-0060-wardcase-interactive-sessions-over-acp.md)).
+  - wardcase never depends on the factory. The factory uses wardcase's Go API, and an ADE uses its CLI, also as an ACP agent ([adr-0060](adr-0060-wardcase-interactive-sessions-over-acp.md)).
   - wardcase owns isolation: every session it starts runs in its own worktree or clone, so sessions never collide. When the harness exits, it reports work left in that worktree.
 - **Skills are generic.** No skill is specific to this repo. Each reads repo specifics (commands, labels, MCP tools) from a config file and lives in the owner's marketplace. The doc-budget check moves there as well. `ready-issues-sweep` and `subissue-sweep` retire with the GitHub-issue mode.
 

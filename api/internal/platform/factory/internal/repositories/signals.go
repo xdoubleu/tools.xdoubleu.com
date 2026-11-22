@@ -8,14 +8,6 @@ import (
 	"tools.xdoubleu.com/internal/platform/factory/internal/models"
 )
 
-// FailureCounts are the counts behind the factory failure gauges.
-type FailureCounts struct {
-	RedPullRequests   int
-	JobsWithoutPR     int
-	UnverifiedOutcome int
-	StuckPullRequests int
-}
-
 // FailureCounts counts open pull requests with failing CI, and the jobs that
 // finished since the given time without a pull request or with an outcome that
 // admits the work was not checked. Routine jobs are skipped: they open no pull
@@ -23,8 +15,8 @@ type FailureCounts struct {
 func (r *JobsRepository) FailureCounts(
 	ctx context.Context,
 	since, stuckBefore time.Time,
-) (FailureCounts, error) {
-	var c FailureCounts
+) (models.FailureCounts, error) {
+	var c models.FailureCounts
 	err := r.db.QueryRow(ctx, `
 		SELECT
 			(SELECT count(*) FROM factory.linked_pull_requests

@@ -3,12 +3,8 @@ package services
 import (
 	"context"
 	"errors"
-	"fmt"
-	"io"
-	"net/http"
 	"slices"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -24,12 +20,6 @@ const (
 	// maxImageResumes is how many times a task is resumed on a new image before
 	// a sandbox block goes to Needs you.
 	maxImageResumes = 2
-
-	// JobImageManifest is the manifest build-api stages under /downloads/.
-	JobImageManifest = "factory-job-image.txt"
-	maxManifestBytes = 1 << 10
-	// ManifestTimeout bounds one manifest download.
-	ManifestTimeout = 30 * time.Second
 )
 
 const imageResumePrompt = "The job image has been updated, so the tool or access " +
@@ -38,35 +28,6 @@ const imageResumePrompt = "The job image has been updated, so the tool or access
 
 // DigestSource returns the job image digest currently published.
 type DigestSource func(ctx context.Context) (string, error)
-
-// ManifestDigest reads the digest from the manifest served under webURL: a
-// first-party URL from config, not user input.
-func ManifestDigest(webURL string, client *http.Client) DigestSource {
-	return func(ctx context.Context) (string, error) {
-		url := strings.TrimRight(webURL, "/") + "/downloads/" + JobImageManifest
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-		if err != nil {
-			return "", err
-		}
-		resp, err := client.Do(req)
-		if err != nil {
-			return "", err
-		}
-		defer resp.Body.Close()
-		if resp.StatusCode != http.StatusOK {
-			return "", fmt.Errorf("job image manifest: %s", resp.Status)
-		}
-		raw, err := io.ReadAll(io.LimitReader(resp.Body, maxManifestBytes))
-		if err != nil {
-			return "", err
-		}
-		release, digest, ok := strings.Cut(strings.TrimSpace(string(raw)), " ")
-		if !ok || release == "" || strings.ContainsAny(digest, " \n") || digest == "" {
-			return "", errors.New("job image manifest is malformed")
-		}
-		return digest, nil
-	}
-}
 
 // SetImageDigestSource turns on resuming parked tasks when the digest changes.
 func (s *JobService) SetImageDigestSource(src DigestSource) { s.imageDigest = src }

@@ -7,12 +7,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/jackc/pgx/v5"
 	"golang.org/x/sync/errgroup"
 
 	"tools.xdoubleu.com/apps/games/internal/helper"
 	"tools.xdoubleu.com/apps/games/internal/models"
-	"tools.xdoubleu.com/apps/games/internal/repositories"
 	"tools.xdoubleu.com/apps/games/pkg/steam"
 )
 
@@ -20,8 +18,7 @@ type SteamService struct {
 	logger        *slog.Logger
 	clientFactory func(apiKey string) steam.Client
 	steamAPIKey   string
-	steam         *repositories.SteamRepository
-	progress      *repositories.ProgressRepository
+	steam         SteamStore
 	integrations  *IntegrationsService
 }
 
@@ -73,19 +70,7 @@ func (service *SteamService) SyncUser(ctx context.Context, userID string) error 
 
 	labels, values := buildProgress(averagedAchievements(complete, gamesMap))
 
-	err = service.steam.WithTx(ctx, func(tx pgx.Tx) error {
-		if errIn := service.steam.UpsertGames(ctx, tx, gamesMap, userID); errIn != nil {
-			return errIn
-		}
-		for gameID, rows := range fetched {
-			if errIn := service.steam.ReplaceAchievements(
-				ctx, tx, userID, gameID, rows,
-			); errIn != nil {
-				return errIn
-			}
-		}
-		return service.progress.UpsertTx(ctx, tx, userID, labels, values)
-	})
+	err = service.steam.SaveLibrary(ctx, userID, gamesMap, fetched, labels, values)
 	if err != nil {
 		return err
 	}
@@ -600,19 +585,7 @@ func (service *SteamService) SyncGame(
 
 	labels, values := buildProgress(averagedAchievements(complete, gamesMap))
 
-	return service.steam.WithTx(ctx, func(tx pgx.Tx) error {
-		if errIn := service.steam.ReplaceAchievements(
-			ctx, tx, userID, gameID, rows,
-		); errIn != nil {
-			return errIn
-		}
-		if errIn := service.steam.UpsertGames(
-			ctx, tx, map[int]*models.Game{gameID: game}, userID,
-		); errIn != nil {
-			return errIn
-		}
-		return service.progress.UpsertTx(ctx, tx, userID, labels, values)
-	})
+	return service.steam.SaveGame(ctx, userID, game, rows, labels, values)
 }
 
 // GetRecentlyActive returns up to recentGamesLimit most recently played games.

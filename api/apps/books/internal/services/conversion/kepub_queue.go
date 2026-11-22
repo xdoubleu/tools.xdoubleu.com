@@ -5,8 +5,6 @@ import (
 	"log/slog"
 
 	"github.com/google/uuid"
-
-	"tools.xdoubleu.com/apps/books/internal/repositories"
 )
 
 // kepubDrainBatch bounds one drain run so a long PDF conversion backlog
@@ -17,13 +15,13 @@ const kepubDrainBatch = 3
 // workers role, which drains them through Service.
 type KEPUBQueue struct {
 	logger     *slog.Logger
-	requests   *repositories.KEPUBRequestsRepository
+	requests   kepubRequestStore
 	conversion *Service
 }
 
 func NewKEPUBQueue(
 	logger *slog.Logger,
-	requests *repositories.KEPUBRequestsRepository,
+	requests kepubRequestStore,
 	conversion *Service,
 ) *KEPUBQueue {
 	return &KEPUBQueue{logger: logger, requests: requests, conversion: conversion}

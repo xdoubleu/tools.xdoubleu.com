@@ -11,13 +11,15 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"tools.xdoubleu.com/apps/books/pkg/coverfetch"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
+	"tools.xdoubleu.com/internal/config"
 	"tools.xdoubleu.com/internal/kit/logging"
 )
 
 // TestCacheCoverFromURL_SlowSourceFailsFast is a regression test for #769: a
 // cover source that never responds must not hang the request past
-// coverFetchTimeout, since GetBookCover's read-time self-heal calls this
+// the fetch timeout, since GetBookCover's read-time self-heal calls this
 // inline in the public cover handler.
 func TestCacheCoverFromURL_SlowSourceFailsFast(t *testing.T) {
 	block := make(chan struct{})
@@ -32,9 +34,9 @@ func TestCacheCoverFromURL_SlowSourceFailsFast(t *testing.T) {
 	}()
 
 	svc := &BookService{ //nolint:exhaustruct // partial
-		logger:      logging.NewNopLogger(),
-		objectStore: objectstore.NewFake(),
-		coverClient: newCoverClient("test"),
+		logger:       logging.NewNopLogger(),
+		objectStore:  objectstore.NewFake(),
+		coverFetcher: coverfetch.New("test"),
 	}
 
 	start := time.Now()
@@ -64,8 +66,8 @@ func coverServer(t *testing.T, body []byte) *httptest.Server {
 func TestCacheCoverFromURL_StoresSniffedImage(t *testing.T) {
 	store := objectstore.NewFake()
 	svc := &BookService{ //nolint:exhaustruct // partial
-		objectStore: store,
-		coverClient: newCoverClient("test"),
+		objectStore:  store,
+		coverFetcher: coverfetch.New("test"),
 	}
 	bookID := uuid.New()
 
@@ -79,8 +81,8 @@ func TestCacheCoverFromURL_StoresSniffedImage(t *testing.T) {
 
 func TestCacheCoverFromURL_RejectsNonImage(t *testing.T) {
 	svc := &BookService{ //nolint:exhaustruct // partial
-		objectStore: objectstore.NewFake(),
-		coverClient: newCoverClient("test"),
+		objectStore:  objectstore.NewFake(),
+		coverFetcher: coverfetch.New("test"),
 	}
 	srv := coverServer(t, []byte("<html><script>alert(1)</script></html>"))
 	assert.Error(t, svc.cacheCoverFromURL(t.Context(), uuid.New(), srv.URL))
@@ -88,8 +90,8 @@ func TestCacheCoverFromURL_RejectsNonImage(t *testing.T) {
 
 func TestCacheCoverFromURL_RejectsNonHTTPScheme(t *testing.T) {
 	svc := &BookService{ //nolint:exhaustruct // partial
-		objectStore: objectstore.NewFake(),
-		coverClient: newCoverClient("test"),
+		objectStore:  objectstore.NewFake(),
+		coverFetcher: coverfetch.New("test"),
 	}
 	assert.Error(
 		t,
@@ -100,10 +102,22 @@ func TestCacheCoverFromURL_RejectsNonHTTPScheme(t *testing.T) {
 // The default client, like production, refuses private addresses.
 func TestCacheCoverFromURL_BlocksPrivateAddressByDefault(t *testing.T) {
 	svc := &BookService{ //nolint:exhaustruct // partial
-		objectStore: objectstore.NewFake(),
+		objectStore:  objectstore.NewFake(),
+		coverFetcher: coverfetch.New(config.ProdEnv),
 	}
 	srv := coverServer(t, []byte(pngBytes))
 	err := svc.cacheCoverFromURL(t.Context(), uuid.New(), srv.URL)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "non-public")
+}
+
+func TestCacheCoverFromURL_NoFetcher(t *testing.T) {
+	svc := &BookService{ //nolint:exhaustruct // partial
+		objectStore: objectstore.NewFake(),
+	}
+	require.ErrorContains(
+		t,
+		svc.cacheCoverFromURL(t.Context(), uuid.New(), "https://example.com/c.jpg"),
+		"no cover fetcher",
+	)
 }

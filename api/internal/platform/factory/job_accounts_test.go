@@ -15,12 +15,11 @@ import (
 	factoryv1 "tools.xdoubleu.com/gen/factory/v1"
 	"tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/platform/factory"
-	"tools.xdoubleu.com/internal/platform/factory/internal/services"
 	"tools.xdoubleu.com/internal/platform/identity/agentaccounts"
 )
 
 // fakeAccounts stands in for the agent account store: the factory only knows it
-// through services.JobAccounts, and the store itself is tested against its own
+// through factory.JobAccounts, and the store itself is tested against its own
 // tables in internal/platform/identity/agentaccounts.
 type fakeAccounts struct {
 	mu       sync.Mutex
@@ -118,7 +117,7 @@ func (f *fakeAccounts) OwnerNames(
 	return out, nil
 }
 
-var _ services.JobAccounts = (*fakeAccounts)(nil)
+var _ factory.JobAccounts = (*fakeAccounts)(nil)
 
 // of is the account the job has, failing the test if it has none.
 func (f *fakeAccounts) of(t *testing.T, jobID string) accountOf {
@@ -250,7 +249,7 @@ func (brokenAccounts) OwnerNames(
 	return nil, errors.New("accounts are down")
 }
 
-var _ services.JobAccounts = brokenAccounts{}
+var _ factory.JobAccounts = brokenAccounts{}
 
 func TestAJobThatCannotHaveAnAccountIsFailedNotRun(t *testing.T) {
 	env := newJobEnvWith(t, true, "browser", factory.WithJobAccounts(brokenAccounts{}))

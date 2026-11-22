@@ -2,7 +2,6 @@ package repositories
 
 import (
 	"context"
-	"errors"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -77,11 +76,26 @@ func (r *TasksRepository) List(
 	ctx context.Context,
 	query string,
 ) ([]models.Task, error) {
+	return r.Find(ctx, models.TaskFilter{
+		Query: query, Status: "", RepoID: nil, Label: "",
+	})
+}
+
+// Find is List narrowed by every non-empty field of the filter.
+func (r *TasksRepository) Find(
+	ctx context.Context,
+	f models.TaskFilter,
+) ([]models.Task, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT `+listColumns+`
 		FROM factory.tasks t
-		WHERE $1 = '' OR position(lower($1) in lower(t.title || E'\n' || t.body)) > 0
-		ORDER BY updated_at DESC, id`, query)
+		WHERE ($1 = '' OR position(lower($1) in lower(t.title || E'\n' || t.body)) > 0)
+			AND ($2::text = '' OR t.status::text = $2::text)
+			AND ($3::uuid IS NULL OR t.repo_id = $3::uuid)
+			AND ($4 = '' OR EXISTS (
+				SELECT 1 FROM unnest(t.labels) l WHERE lower(l) = lower($4)))
+		ORDER BY updated_at DESC, id`,
+		f.Query, string(f.Status), f.RepoID, f.Label)
 	if err != nil {
 		return nil, err
 	}
@@ -127,9 +141,6 @@ func (r *TasksRepository) Get(ctx context.Context, id uuid.UUID) (*models.Task, 
 		SELECT `+getColumns+` FROM factory.tasks t WHERE id = $1`, id))
 }
 
-// ErrInvalidTaskRef is a task reference that is neither a number nor a UUID.
-var ErrInvalidTaskRef = errors.New("invalid task reference")
-
 // ByKeys loads the tasks with the given keys or numbers in one query.
 func (r *TasksRepository) ByKeys(
 	ctx context.Context,
@@ -162,7 +173,7 @@ func (r *TasksRepository) Resolve(ctx context.Context, ref string) (uuid.UUID, e
 	}
 	number, ok := models.ParseTaskRef(ref)
 	if !ok {
-		return uuid.Nil, ErrInvalidTaskRef
+		return uuid.Nil, models.ErrInvalidTaskRef
 	}
 	return r.IDByNumber(ctx, number)
 }
@@ -347,15 +358,6 @@ func (r *TasksRepository) Comments(
 	return out, rows.Err()
 }
 
-// PickupCandidate is a Ready task as a human approved it.
-type PickupCandidate struct {
-	TaskID uuid.UUID
-	Number int64
-	RepoID uuid.UUID
-	Title  string
-	Body   string
-}
-
 // repoBlock is the Ready task of a repo with auto pickup off.
 type repoBlock struct {
 	id   uuid.UUID
@@ -408,7 +410,9 @@ func (r *TasksRepository) NoteAutoPickupOff(ctx context.Context) error {
 // the Ready snapshots existed has no approved text and is skipped, as is one that
 // pickupSkipReason rules out; that reason is stored in pickup_blocked and cleared
 // once the task is clear again. None is not found.
-func (r *TasksRepository) NextReady(ctx context.Context) (*PickupCandidate, error) {
+func (r *TasksRepository) NextReady(
+	ctx context.Context,
+) (*models.PickupCandidate, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT t.id, t.number, t.repo_id, t.ready_title, t.ready_body, t.labels,
 			t.pickup_blocked, r.owner || '/' || r.name
@@ -468,7 +472,7 @@ func (r *TasksRepository) NextReady(ctx context.Context) (*PickupCandidate, erro
 
 // readyRow is a Ready task NextReady is still vetting.
 type readyRow struct {
-	c       PickupCandidate
+	c       models.PickupCandidate
 	labels  []string
 	blocked string
 	repo    string

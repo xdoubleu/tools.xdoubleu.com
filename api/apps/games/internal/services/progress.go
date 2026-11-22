@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"tools.xdoubleu.com/apps/games/internal/models"
-	"tools.xdoubleu.com/apps/games/internal/repositories"
 	"tools.xdoubleu.com/apps/internal/progresshistory"
 	"tools.xdoubleu.com/internal/kit/database"
 )
@@ -18,12 +17,12 @@ var ErrInvalidBucket = errors.New("invalid bucket index")
 
 type ProgressService struct {
 	history  *progresshistory.Service
-	progress *repositories.ProgressRepository
+	progress ProgressStore
 	steam    *SteamService
 }
 
 func NewProgressService(
-	progress *repositories.ProgressRepository,
+	progress ProgressStore,
 	steam *SteamService,
 ) *ProgressService {
 	return &ProgressService{
