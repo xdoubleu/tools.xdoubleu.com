@@ -141,3 +141,17 @@ func TestPasskeyRPCs_StaleSignInNeedsReauthentication(t *testing.T) {
 	_, err = client.RemovePasskey(ctx, &authv1.RemovePasskeyRequest{Id: uuid.NewString()})
 	requireCode(t, err, connect.CodeFailedPrecondition)
 }
+
+func TestPasskeySignInRPCs_UnauthenticatedBeginAndBadFinish(t *testing.T) {
+	client := mfaClient(t)
+	ctx := context.Background()
+
+	begin, err := client.PasskeySignInBegin(ctx, &authv1.PasskeySignInBeginRequest{})
+	require.NoError(t, err)
+	assert.Contains(t, begin.OptionsJson, `"challenge"`)
+
+	_, err = client.PasskeySignInFinish(ctx, &authv1.PasskeySignInFinishRequest{
+		CredentialJson: "{}",
+	})
+	requireCode(t, err, connect.CodeUnauthenticated)
+}

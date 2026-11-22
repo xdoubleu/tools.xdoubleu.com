@@ -51,7 +51,10 @@ import {
   useRenamePasskey,
   useRemovePasskey,
   useRegisterPasskey,
-  passkeysSupported
+  passkeysSupported,
+  passkeySignInSupported,
+  conditionalPasskeyAvailable,
+  usePasskeySignIn
 } from '@/hooks/useAuth'
 
 const mockUseSWR = vi.mocked(useSWR)
@@ -353,5 +356,73 @@ describe('passkey hooks', () => {
       await expect(result.current('Laptop')).rejects.toThrow('No passkey was created.')
       expect(passkeyRegisterFinish).not.toHaveBeenCalled()
     })
+  })
+})
+
+describe('passkey sign-in hooks', () => {
+  afterEach(() => vi.unstubAllGlobals())
+
+  class FakeCredential {
+    toJSON() {
+      return { id: 'cred' }
+    }
+  }
+
+  it('reports support only when the browser has the request JSON helper', () => {
+    expect(passkeySignInSupported()).toBe(false)
+    vi.stubGlobal('PublicKeyCredential', { parseRequestOptionsFromJSON: vi.fn() })
+    expect(passkeySignInSupported()).toBe(true)
+  })
+
+  it('reports conditional mediation from the browser', async () => {
+    await expect(conditionalPasskeyAvailable()).resolves.toBe(false)
+    vi.stubGlobal('PublicKeyCredential', {
+      parseRequestOptionsFromJSON: vi.fn(),
+      isConditionalMediationAvailable: vi.fn().mockResolvedValue(true)
+    })
+    await expect(conditionalPasskeyAvailable()).resolves.toBe(true)
+    vi.stubGlobal('PublicKeyCredential', { parseRequestOptionsFromJSON: vi.fn() })
+    await expect(conditionalPasskeyAvailable()).resolves.toBe(false)
+  })
+
+  const setup = (got: unknown) => {
+    const passkeySignInBegin = vi.fn().mockResolvedValue({
+      optionsJson: JSON.stringify({ challenge: 'abc' })
+    })
+    const passkeySignInFinish = vi.fn().mockResolvedValue({})
+    // @ts-expect-error -- mock client returns partial shape
+    mockCreateServiceClient.mockReturnValue({ passkeySignInBegin, passkeySignInFinish })
+    const get = vi.fn().mockResolvedValue(got)
+    vi.stubGlobal(
+      'PublicKeyCredential',
+      Object.assign(FakeCredential, { parseRequestOptionsFromJSON: vi.fn((o) => ({ parsed: o })) })
+    )
+    vi.stubGlobal('navigator', { credentials: { get } })
+    return { passkeySignInFinish, get }
+  }
+
+  it('runs begin, the authenticator, then finish', async () => {
+    const { passkeySignInFinish, get } = setup(new FakeCredential())
+    await renderHook(() => usePasskeySignIn()).result.current(false)
+    expect(get).toHaveBeenCalledWith({ publicKey: { parsed: { challenge: 'abc' } } })
+    expect(passkeySignInFinish).toHaveBeenCalledWith({
+      credentialJson: JSON.stringify({ id: 'cred' }),
+      rememberMe: false
+    })
+  })
+
+  it('asks for conditional mediation when autofilling', async () => {
+    const { get } = setup(new FakeCredential())
+    const signal = new AbortController().signal
+    await renderHook(() => usePasskeySignIn()).result.current(true, { conditional: true, signal })
+    expect(get).toHaveBeenCalledWith(expect.objectContaining({ mediation: 'conditional', signal }))
+  })
+
+  it('throws when the authenticator returns no passkey', async () => {
+    const { passkeySignInFinish } = setup(null)
+    await expect(renderHook(() => usePasskeySignIn()).result.current(true)).rejects.toThrow(
+      'No passkey was used.'
+    )
+    expect(passkeySignInFinish).not.toHaveBeenCalled()
   })
 })

@@ -3,6 +3,7 @@ package account
 import (
 	"context"
 	"errors"
+	"net/http"
 	"time"
 
 	"connectrpc.com/connect/v2"
@@ -10,6 +11,7 @@ import (
 
 	authv1 "tools.xdoubleu.com/gen/auth/v1"
 	"tools.xdoubleu.com/internal/platform/auth"
+	"tools.xdoubleu.com/internal/platform/middleware"
 )
 
 // passkeyErrorCode adds the passkey rejections to AuthErrorCode's mapping. A
@@ -154,4 +156,53 @@ func (h *authConnectHandler) RemovePasskey(
 		return nil, passkeyError(err)
 	}
 	return &authv1.RemovePasskeyResponse{}, nil
+}
+
+// peerIP is the caller's address as the rate limiter sees it.
+func peerIP(info *connect.CallInfo) string {
+	r := &http.Request{
+		RemoteAddr: info.PeerAddr,
+		Header:     http.Header{},
+	}
+	if forwarded := info.RequestHeader().Get("X-Forwarded-For"); forwarded != "" {
+		r.Header.Set("X-Forwarded-For", forwarded)
+	}
+	ip, err := middleware.ClientIP(r)
+	if err != nil {
+		return info.PeerAddr
+	}
+	return ip
+}
+
+func (h *authConnectHandler) PasskeySignInBegin(
+	ctx context.Context,
+	_ *authv1.PasskeySignInBeginRequest,
+) (*authv1.PasskeySignInBeginResponse, error) {
+	options, err := h.app.Auth.BeginPasskeySignIn(ctx)
+	if err != nil {
+		return nil, passkeyError(err)
+	}
+	return &authv1.PasskeySignInBeginResponse{OptionsJson: string(options)}, nil
+}
+
+func (h *authConnectHandler) PasskeySignInFinish(
+	ctx context.Context,
+	req *authv1.PasskeySignInFinishRequest,
+) (*authv1.PasskeySignInFinishResponse, error) {
+	info, _ := connect.CallInfoForServerContext(ctx)
+	accessToken, refreshToken, err := h.app.Auth.FinishPasskeySignIn(
+		ctx, peerIP(info), []byte(req.CredentialJson),
+	)
+	if err != nil {
+		if errors.Is(err, auth.ErrPasskeysUnavailable) {
+			return nil, passkeyError(err)
+		}
+		return nil, connect.NewError(SignInErrorCode(err), err.Error()).WithCause(err)
+	}
+	if err = h.completeMFA(
+		info.ResponseHeader(), *accessToken, *refreshToken, req.RememberMe,
+	); err != nil {
+		return nil, err
+	}
+	return &authv1.PasskeySignInFinishResponse{}, nil
 }

@@ -1882,6 +1882,177 @@ func (*RemovePasskeyResponse) Descriptor() ([]byte, []int) {
 	return file_auth_v1_auth_proto_rawDescGZIP(), []int{40}
 }
 
+type PasskeySignInBeginRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PasskeySignInBeginRequest) Reset() {
+	*x = PasskeySignInBeginRequest{}
+	mi := &file_auth_v1_auth_proto_msgTypes[41]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PasskeySignInBeginRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PasskeySignInBeginRequest) ProtoMessage() {}
+
+func (x *PasskeySignInBeginRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_auth_v1_auth_proto_msgTypes[41]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PasskeySignInBeginRequest.ProtoReflect.Descriptor instead.
+func (*PasskeySignInBeginRequest) Descriptor() ([]byte, []int) {
+	return file_auth_v1_auth_proto_rawDescGZIP(), []int{41}
+}
+
+type PasskeySignInBeginResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// PublicKeyCredentialRequestOptionsJSON for navigator.credentials.get().
+	OptionsJson   string `protobuf:"bytes,1,opt,name=options_json,json=optionsJson,proto3" json:"options_json,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PasskeySignInBeginResponse) Reset() {
+	*x = PasskeySignInBeginResponse{}
+	mi := &file_auth_v1_auth_proto_msgTypes[42]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PasskeySignInBeginResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PasskeySignInBeginResponse) ProtoMessage() {}
+
+func (x *PasskeySignInBeginResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_auth_v1_auth_proto_msgTypes[42]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PasskeySignInBeginResponse.ProtoReflect.Descriptor instead.
+func (*PasskeySignInBeginResponse) Descriptor() ([]byte, []int) {
+	return file_auth_v1_auth_proto_rawDescGZIP(), []int{42}
+}
+
+func (x *PasskeySignInBeginResponse) GetOptionsJson() string {
+	if x != nil {
+		return x.OptionsJson
+	}
+	return ""
+}
+
+type PasskeySignInFinishRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// JSON of the credential navigator.credentials.get() returned
+	// (AuthenticationResponseJSON).
+	CredentialJson string `protobuf:"bytes,1,opt,name=credential_json,json=credentialJson,proto3" json:"credential_json,omitempty"`
+	RememberMe     bool   `protobuf:"varint,2,opt,name=remember_me,json=rememberMe,proto3" json:"remember_me,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *PasskeySignInFinishRequest) Reset() {
+	*x = PasskeySignInFinishRequest{}
+	mi := &file_auth_v1_auth_proto_msgTypes[43]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PasskeySignInFinishRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PasskeySignInFinishRequest) ProtoMessage() {}
+
+func (x *PasskeySignInFinishRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_auth_v1_auth_proto_msgTypes[43]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PasskeySignInFinishRequest.ProtoReflect.Descriptor instead.
+func (*PasskeySignInFinishRequest) Descriptor() ([]byte, []int) {
+	return file_auth_v1_auth_proto_rawDescGZIP(), []int{43}
+}
+
+func (x *PasskeySignInFinishRequest) GetCredentialJson() string {
+	if x != nil {
+		return x.CredentialJson
+	}
+	return ""
+}
+
+func (x *PasskeySignInFinishRequest) GetRememberMe() bool {
+	if x != nil {
+		return x.RememberMe
+	}
+	return false
+}
+
+type PasskeySignInFinishResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PasskeySignInFinishResponse) Reset() {
+	*x = PasskeySignInFinishResponse{}
+	mi := &file_auth_v1_auth_proto_msgTypes[44]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PasskeySignInFinishResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PasskeySignInFinishResponse) ProtoMessage() {}
+
+func (x *PasskeySignInFinishResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_auth_v1_auth_proto_msgTypes[44]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PasskeySignInFinishResponse.ProtoReflect.Descriptor instead.
+func (*PasskeySignInFinishResponse) Descriptor() ([]byte, []int) {
+	return file_auth_v1_auth_proto_rawDescGZIP(), []int{44}
+}
+
 var File_auth_v1_auth_proto protoreflect.FileDescriptor
 
 const file_auth_v1_auth_proto_rawDesc = "" +
@@ -1978,7 +2149,15 @@ const file_auth_v1_auth_proto_rawDesc = "" +
 	"\x15RenamePasskeyResponse\"&\n" +
 	"\x14RemovePasskeyRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"\x17\n" +
-	"\x15RemovePasskeyResponse2\xdf\f\n" +
+	"\x15RemovePasskeyResponse\"\x1b\n" +
+	"\x19PasskeySignInBeginRequest\"?\n" +
+	"\x1aPasskeySignInBeginResponse\x12!\n" +
+	"\foptions_json\x18\x01 \x01(\tR\voptionsJson\"f\n" +
+	"\x1aPasskeySignInFinishRequest\x12'\n" +
+	"\x0fcredential_json\x18\x01 \x01(\tR\x0ecredentialJson\x12\x1f\n" +
+	"\vremember_me\x18\x02 \x01(\bR\n" +
+	"rememberMe\"\x1d\n" +
+	"\x1bPasskeySignInFinishResponse2\xa0\x0e\n" +
 	"\vAuthService\x129\n" +
 	"\x06SignIn\x12\x16.auth.v1.SignInRequest\x1a\x17.auth.v1.SignInResponse\x12B\n" +
 	"\tMFAEnroll\x12\x19.auth.v1.MFAEnrollRequest\x1a\x1a.auth.v1.MFAEnrollResponse\x12T\n" +
@@ -2000,7 +2179,9 @@ const file_auth_v1_auth_proto_rawDesc = "" +
 	"\x15PasskeyRegisterFinish\x12%.auth.v1.PasskeyRegisterFinishRequest\x1a&.auth.v1.PasskeyRegisterFinishResponse\x12K\n" +
 	"\fListPasskeys\x12\x1c.auth.v1.ListPasskeysRequest\x1a\x1d.auth.v1.ListPasskeysResponse\x12N\n" +
 	"\rRenamePasskey\x12\x1d.auth.v1.RenamePasskeyRequest\x1a\x1e.auth.v1.RenamePasskeyResponse\x12N\n" +
-	"\rRemovePasskey\x12\x1d.auth.v1.RemovePasskeyRequest\x1a\x1e.auth.v1.RemovePasskeyResponseB'Z%tools.xdoubleu.com/gen/auth/v1;authv1b\x06proto3"
+	"\rRemovePasskey\x12\x1d.auth.v1.RemovePasskeyRequest\x1a\x1e.auth.v1.RemovePasskeyResponse\x12]\n" +
+	"\x12PasskeySignInBegin\x12\".auth.v1.PasskeySignInBeginRequest\x1a#.auth.v1.PasskeySignInBeginResponse\x12`\n" +
+	"\x13PasskeySignInFinish\x12#.auth.v1.PasskeySignInFinishRequest\x1a$.auth.v1.PasskeySignInFinishResponseB'Z%tools.xdoubleu.com/gen/auth/v1;authv1b\x06proto3"
 
 var (
 	file_auth_v1_auth_proto_rawDescOnce sync.Once
@@ -2014,7 +2195,7 @@ func file_auth_v1_auth_proto_rawDescGZIP() []byte {
 	return file_auth_v1_auth_proto_rawDescData
 }
 
-var file_auth_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 41)
+var file_auth_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 45)
 var file_auth_v1_auth_proto_goTypes = []any{
 	(*SignInRequest)(nil),                   // 0: auth.v1.SignInRequest
 	(*SignInResponse)(nil),                  // 1: auth.v1.SignInResponse
@@ -2057,6 +2238,10 @@ var file_auth_v1_auth_proto_goTypes = []any{
 	(*RenamePasskeyResponse)(nil),           // 38: auth.v1.RenamePasskeyResponse
 	(*RemovePasskeyRequest)(nil),            // 39: auth.v1.RemovePasskeyRequest
 	(*RemovePasskeyResponse)(nil),           // 40: auth.v1.RemovePasskeyResponse
+	(*PasskeySignInBeginRequest)(nil),       // 41: auth.v1.PasskeySignInBeginRequest
+	(*PasskeySignInBeginResponse)(nil),      // 42: auth.v1.PasskeySignInBeginResponse
+	(*PasskeySignInFinishRequest)(nil),      // 43: auth.v1.PasskeySignInFinishRequest
+	(*PasskeySignInFinishResponse)(nil),     // 44: auth.v1.PasskeySignInFinishResponse
 }
 var file_auth_v1_auth_proto_depIdxs = []int32{
 	34, // 0: auth.v1.PasskeyRegisterFinishResponse.passkey:type_name -> auth.v1.Passkey
@@ -2081,28 +2266,32 @@ var file_auth_v1_auth_proto_depIdxs = []int32{
 	35, // 19: auth.v1.AuthService.ListPasskeys:input_type -> auth.v1.ListPasskeysRequest
 	37, // 20: auth.v1.AuthService.RenamePasskey:input_type -> auth.v1.RenamePasskeyRequest
 	39, // 21: auth.v1.AuthService.RemovePasskey:input_type -> auth.v1.RemovePasskeyRequest
-	1,  // 22: auth.v1.AuthService.SignIn:output_type -> auth.v1.SignInResponse
-	3,  // 23: auth.v1.AuthService.MFAEnroll:output_type -> auth.v1.MFAEnrollResponse
-	5,  // 24: auth.v1.AuthService.MFAEnrollVerify:output_type -> auth.v1.MFAEnrollVerifyResponse
-	7,  // 25: auth.v1.AuthService.MFAEnrollSkip:output_type -> auth.v1.MFAEnrollSkipResponse
-	11, // 26: auth.v1.AuthService.MFAChallenge:output_type -> auth.v1.MFAChallengeResponse
-	9,  // 27: auth.v1.AuthService.MFAUnenroll:output_type -> auth.v1.MFAUnenrollResponse
-	13, // 28: auth.v1.AuthService.ForgotPassword:output_type -> auth.v1.ForgotPasswordResponse
-	15, // 29: auth.v1.AuthService.ExchangeToken:output_type -> auth.v1.ExchangeTokenResponse
-	17, // 30: auth.v1.AuthService.UpdatePassword:output_type -> auth.v1.UpdatePasswordResponse
-	19, // 31: auth.v1.AuthService.SignOut:output_type -> auth.v1.SignOutResponse
-	21, // 32: auth.v1.AuthService.GetCurrentUser:output_type -> auth.v1.GetCurrentUserResponse
-	27, // 33: auth.v1.AuthService.ResetPassword:output_type -> auth.v1.ResetPasswordResponse
-	29, // 34: auth.v1.AuthService.RegenerateRecoveryCodes:output_type -> auth.v1.RegenerateRecoveryCodesResponse
-	25, // 35: auth.v1.AuthService.SetTabPins:output_type -> auth.v1.SetTabPinsResponse
-	23, // 36: auth.v1.AuthService.RecordAppOpen:output_type -> auth.v1.RecordAppOpenResponse
-	31, // 37: auth.v1.AuthService.PasskeyRegisterBegin:output_type -> auth.v1.PasskeyRegisterBeginResponse
-	33, // 38: auth.v1.AuthService.PasskeyRegisterFinish:output_type -> auth.v1.PasskeyRegisterFinishResponse
-	36, // 39: auth.v1.AuthService.ListPasskeys:output_type -> auth.v1.ListPasskeysResponse
-	38, // 40: auth.v1.AuthService.RenamePasskey:output_type -> auth.v1.RenamePasskeyResponse
-	40, // 41: auth.v1.AuthService.RemovePasskey:output_type -> auth.v1.RemovePasskeyResponse
-	22, // [22:42] is the sub-list for method output_type
-	2,  // [2:22] is the sub-list for method input_type
+	41, // 22: auth.v1.AuthService.PasskeySignInBegin:input_type -> auth.v1.PasskeySignInBeginRequest
+	43, // 23: auth.v1.AuthService.PasskeySignInFinish:input_type -> auth.v1.PasskeySignInFinishRequest
+	1,  // 24: auth.v1.AuthService.SignIn:output_type -> auth.v1.SignInResponse
+	3,  // 25: auth.v1.AuthService.MFAEnroll:output_type -> auth.v1.MFAEnrollResponse
+	5,  // 26: auth.v1.AuthService.MFAEnrollVerify:output_type -> auth.v1.MFAEnrollVerifyResponse
+	7,  // 27: auth.v1.AuthService.MFAEnrollSkip:output_type -> auth.v1.MFAEnrollSkipResponse
+	11, // 28: auth.v1.AuthService.MFAChallenge:output_type -> auth.v1.MFAChallengeResponse
+	9,  // 29: auth.v1.AuthService.MFAUnenroll:output_type -> auth.v1.MFAUnenrollResponse
+	13, // 30: auth.v1.AuthService.ForgotPassword:output_type -> auth.v1.ForgotPasswordResponse
+	15, // 31: auth.v1.AuthService.ExchangeToken:output_type -> auth.v1.ExchangeTokenResponse
+	17, // 32: auth.v1.AuthService.UpdatePassword:output_type -> auth.v1.UpdatePasswordResponse
+	19, // 33: auth.v1.AuthService.SignOut:output_type -> auth.v1.SignOutResponse
+	21, // 34: auth.v1.AuthService.GetCurrentUser:output_type -> auth.v1.GetCurrentUserResponse
+	27, // 35: auth.v1.AuthService.ResetPassword:output_type -> auth.v1.ResetPasswordResponse
+	29, // 36: auth.v1.AuthService.RegenerateRecoveryCodes:output_type -> auth.v1.RegenerateRecoveryCodesResponse
+	25, // 37: auth.v1.AuthService.SetTabPins:output_type -> auth.v1.SetTabPinsResponse
+	23, // 38: auth.v1.AuthService.RecordAppOpen:output_type -> auth.v1.RecordAppOpenResponse
+	31, // 39: auth.v1.AuthService.PasskeyRegisterBegin:output_type -> auth.v1.PasskeyRegisterBeginResponse
+	33, // 40: auth.v1.AuthService.PasskeyRegisterFinish:output_type -> auth.v1.PasskeyRegisterFinishResponse
+	36, // 41: auth.v1.AuthService.ListPasskeys:output_type -> auth.v1.ListPasskeysResponse
+	38, // 42: auth.v1.AuthService.RenamePasskey:output_type -> auth.v1.RenamePasskeyResponse
+	40, // 43: auth.v1.AuthService.RemovePasskey:output_type -> auth.v1.RemovePasskeyResponse
+	42, // 44: auth.v1.AuthService.PasskeySignInBegin:output_type -> auth.v1.PasskeySignInBeginResponse
+	44, // 45: auth.v1.AuthService.PasskeySignInFinish:output_type -> auth.v1.PasskeySignInFinishResponse
+	24, // [24:46] is the sub-list for method output_type
+	2,  // [2:24] is the sub-list for method input_type
 	2,  // [2:2] is the sub-list for extension type_name
 	2,  // [2:2] is the sub-list for extension extendee
 	0,  // [0:2] is the sub-list for field type_name
@@ -2119,7 +2308,7 @@ func file_auth_v1_auth_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_auth_v1_auth_proto_rawDesc), len(file_auth_v1_auth_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   41,
+			NumMessages:   45,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

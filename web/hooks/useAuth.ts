@@ -124,3 +124,43 @@ export function useRegisterPasskey() {
     ).passkey
   }
 }
+
+/** Whether this browser can sign in with a passkey through the JSON helpers of the WebAuthn API. */
+export function passkeySignInSupported(): boolean {
+  return (
+    typeof window !== 'undefined' &&
+    typeof PublicKeyCredential !== 'undefined' &&
+    'parseRequestOptionsFromJSON' in PublicKeyCredential
+  )
+}
+
+/** Whether the browser can offer passkeys in the autofill of a field marked `webauthn`. */
+export async function conditionalPasskeyAvailable(): Promise<boolean> {
+  if (!passkeySignInSupported()) return false
+  return (await PublicKeyCredential.isConditionalMediationAvailable?.()) === true
+}
+
+/**
+ * Signs in with a discoverable passkey, which counts as MFA: the server's challenge, the
+ * authenticator prompt (or, when `conditional`, the field autofill), then the server's
+ * verification, which sets the session cookies.
+ */
+export function usePasskeySignIn() {
+  const client = createServiceClient(AuthService)
+  return async (
+    rememberMe: boolean,
+    options: { conditional?: boolean; signal?: AbortSignal } = {}
+  ) => {
+    const { optionsJson } = await client.passkeySignInBegin({})
+    const credential = await navigator.credentials.get({
+      publicKey: PublicKeyCredential.parseRequestOptionsFromJSON(JSON.parse(optionsJson)),
+      ...(options.conditional ? { mediation: 'conditional' as const } : {}),
+      signal: options.signal
+    })
+    if (!(credential instanceof PublicKeyCredential)) throw new Error('No passkey was used.')
+    await client.passkeySignInFinish({
+      credentialJson: JSON.stringify(credential.toJSON()),
+      rememberMe
+    })
+  }
+}
