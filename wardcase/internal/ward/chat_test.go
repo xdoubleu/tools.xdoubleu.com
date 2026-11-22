@@ -74,7 +74,11 @@ func TestAChatRunsOpenCodesACPServerAndStreamsAPrompt(t *testing.T) {
 	assert.Equal(t, "opencode", r.command[len(r.command)-2])
 	assert.Equal(t, "vendor/model", r.command[len(r.command)-1])
 	assert.Contains(t, r.command[2], "exec opencode acp")
-	assert.Equal(t, vmCloneDir(chat), r.spec.CloneDir)
+	want, err := filepath.EvalSymlinks(chat.Path())
+	require.NoError(t, err)
+	got, err := filepath.EvalSymlinks(r.spec.CloneDir)
+	require.NoError(t, err)
+	assert.Equal(t, want, got, "the worktree, as git resolves it")
 	assert.Equal(t, "agent/chat", chat.Branch())
 
 	reason, err := chat.Prompt(ctx, "add a file")
@@ -92,8 +96,6 @@ func TestAChatRunsOpenCodesACPServerAndStreamsAPrompt(t *testing.T) {
 	assert.NoDirExists(t, r.spec.CloneDir)
 	assert.NoDirExists(t, r.spec.OutcomeDir)
 }
-
-func vmCloneDir(c *ward.Chat) string { return c.Path() }
 
 func TestClosingAChatReturnsWhatItLeft(t *testing.T) {
 	sf, _ := chatFixture(t)
