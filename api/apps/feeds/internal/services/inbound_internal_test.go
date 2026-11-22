@@ -113,7 +113,8 @@ func newInboundFixture() *inboundFixture {
 	//nolint:exhaustruct // fakes record into their zero-valued slices
 	mail := &fakeMail{html: "<p>hello</p>"}
 	svc := NewFeedService(
-		slog.Default(), nil, feeds, items, fakeRules{filterRulesStore: nil}, nil, "mail.example.com",
+		slog.Default(), nil, feeds, items, fakeRules{filterRulesStore: nil},
+		nil, "mail.example.com",
 		nil, nil, "", mail,
 	)
 	return &inboundFixture{svc: svc, feeds: feeds, items: items, mail: mail, feed: feed}
