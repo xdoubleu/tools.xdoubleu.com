@@ -1,4 +1,4 @@
-package connect
+package protomap_test
 
 import (
 	"math"
@@ -6,10 +6,12 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"tools.xdoubleu.com/apps/books/internal/protomap"
 )
 
 func TestSeriesFromProto(t *testing.T) {
-	assert.Nil(t, seriesFromProto("  ", nil))
+	assert.Nil(t, protomap.SeriesFromProto("  ", nil))
 
 	pos := func(f float64) *float64 { return &f }
 	for _, tc := range []struct {
@@ -23,7 +25,7 @@ func TestSeriesFromProto(t *testing.T) {
 		{pos(math.NaN()), nil},
 		{pos(math.Inf(1)), nil},
 	} {
-		got := seriesFromProto(" Discworld ", tc.in)
+		got := protomap.SeriesFromProto(" Discworld ", tc.in)
 		require.NotNil(t, got)
 		assert.Equal(t, "Discworld", got.Name)
 		assert.Equal(t, tc.want, got.Position)

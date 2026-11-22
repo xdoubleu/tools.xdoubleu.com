@@ -2,13 +2,11 @@ package connect
 
 import (
 	"context"
-	"strings"
-	"time"
 
 	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 
-	"tools.xdoubleu.com/apps/books/kobo"
+	"tools.xdoubleu.com/apps/books/internal/protomap"
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
 	"tools.xdoubleu.com/internal/kit/constants"
 	"tools.xdoubleu.com/internal/kit/contexttools"
@@ -72,7 +70,7 @@ func (h *Handler) GetKoboDeviceLogs(
 	if err != nil {
 		return nil, mapError(err)
 	}
-	return KoboLogsResponse(entries), nil
+	return protomap.KoboLogsResponse(entries), nil
 }
 
 func (h *Handler) ClearKoboDeviceLogs(
@@ -85,38 +83,4 @@ func (h *Handler) ClearKoboDeviceLogs(
 	}
 	h.services.KoboLog.Clear(deviceID.String())
 	return &booksv1.ClearKoboDeviceLogsResponse{}, nil
-}
-
-// koboLogEntryProto converts a captured entry to its proto form. Captured
-// bodies come from arbitrary Kobo/upstream traffic (including binary/gzip
-// responses proxied verbatim) and the 64KB capture cap can slice a body
-// mid-rune, so they are not guaranteed valid UTF-8. proto3 string fields must
-// be valid UTF-8 or marshaling fails, so sanitize here — the single point
-// every captured entry passes through on its way into the response.
-func koboLogEntryProto(e kobo.LogEntry) *booksv1.KoboLogEntry {
-	return &booksv1.KoboLogEntry{
-		Time:         e.Time.Format(time.RFC3339),
-		Method:       e.Method,
-		Path:         e.Path,
-		Query:        e.Query,
-		RequestBody:  strings.ToValidUTF8(e.RequestBody, "�"),
-		Status:       int32(e.Status), //nolint:gosec // HTTP status fits int32
-		ResponseBody: strings.ToValidUTF8(e.ResponseBody, "�"),
-		Notes:        e.Notes,
-		// Header values are proxied from the device and upstream verbatim.
-		RequestHeaders:  validUTF8Map(e.RequestHeaders),
-		ResponseHeaders: validUTF8Map(e.ResponseHeaders),
-		UpstreamHeaders: validUTF8Map(e.UpstreamHeaders),
-	}
-}
-
-func validUTF8Map(m map[string]string) map[string]string {
-	if m == nil {
-		return nil
-	}
-	out := make(map[string]string, len(m))
-	for k, v := range m {
-		out[k] = strings.ToValidUTF8(v, "�")
-	}
-	return out
 }

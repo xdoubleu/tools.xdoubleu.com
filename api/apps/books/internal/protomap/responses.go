@@ -1,4 +1,4 @@
-package connect
+package protomap
 
 import (
 	"time"
@@ -39,12 +39,12 @@ func ProgressResponse(
 func ExternalBooksResponse(
 	results []services.SourceProposal,
 ) *booksv1.SearchExternalResponse {
-	return &booksv1.SearchExternalResponse{Results: protoExternalBooks(results)}
+	return &booksv1.SearchExternalResponse{Results: ProtoExternalBooks(results)}
 }
 
 // ExternalBookResponse is the wire form of one external book.
 func ExternalBookResponse(b services.SourceProposal) *booksv1.GetExternalBookResponse {
-	return &booksv1.GetExternalBookResponse{Result: protoExternalBook(b)}
+	return &booksv1.GetExternalBookResponse{Result: ProtoExternalBook(b)}
 }
 
 // SeriesResponse is the wire form of a series view.
@@ -60,11 +60,11 @@ func ReadingStateResponse(
 	if view == nil {
 		return &booksv1.GetReadingStateResponse{}
 	}
-	out := readingStateToProto(view.State)
+	out := ReadingStateToProto(view.State)
 	if view.HasPosition {
 		out.PhysicalPage = Int32FromInt(view.PhysicalPage)
 		out.PhysicalExcerpt = view.PhysicalExcerpt
-		out.Position = readingPositionToProto(view.Position)
+		out.Position = ReadingPositionToProto(view.Position)
 	}
 	return &booksv1.GetReadingStateResponse{State: out}
 }
@@ -93,7 +93,7 @@ func KoboDevicesResponse(devices []models.KoboDevice) *booksv1.ListKoboDevicesRe
 		Devices: make([]*booksv1.KoboDevice, len(devices)),
 	}
 	for i, d := range devices {
-		resp.Devices[i] = koboDeviceProto(d)
+		resp.Devices[i] = KoboDeviceProto(d)
 	}
 	return resp
 }
@@ -106,7 +106,7 @@ func KoboStoreBooksResponse(
 		Books: make([]*booksv1.KoboStoreBook, len(books)),
 	}
 	for i, b := range books {
-		resp.Books[i] = koboStoreBookProto(b)
+		resp.Books[i] = KoboStoreBookProto(b)
 	}
 	return resp
 }
@@ -117,7 +117,7 @@ func KoboLogsResponse(entries []kobo.LogEntry) *booksv1.GetKoboDeviceLogsRespons
 		Entries: make([]*booksv1.KoboLogEntry, len(entries)),
 	}
 	for i, e := range entries {
-		resp.Entries[i] = koboLogEntryProto(e)
+		resp.Entries[i] = KoboLogEntryProto(e)
 	}
 	return resp
 }

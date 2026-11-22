@@ -9,7 +9,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"google.golang.org/protobuf/proto"
 
-	"tools.xdoubleu.com/apps/books/connect"
+	"tools.xdoubleu.com/apps/books/internal/protomap"
 	"tools.xdoubleu.com/apps/books/internal/services"
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
 	"tools.xdoubleu.com/internal/kit/constants"
@@ -161,7 +161,7 @@ func mcpOptStr(s string) *string {
 func authed(ctx context.Context) (string, error) {
 	user := caller(ctx)
 	if user == nil {
-		return "", connect.MapError(services.ErrUnauthenticated)
+		return "", protomap.MapError(services.ErrUnauthenticated)
 	}
 	return user.ID, nil
 }
@@ -172,7 +172,7 @@ func authedBook(ctx context.Context, rawBookID string) (string, uuid.UUID, error
 	if err != nil {
 		return "", uuid.Nil, err
 	}
-	bookID, err := connect.ParseBookID(rawBookID)
+	bookID, err := protomap.ParseBookID(rawBookID)
 	if err != nil {
 		return "", uuid.Nil, err
 	}
@@ -188,10 +188,10 @@ func (h *tools) mcpGetLibrary(
 	}
 	data, err := h.books.LibraryView(ctx, userID)
 	if err != nil {
-		return nil, connect.MapError(err)
+		return nil, protomap.MapError(err)
 	}
 	return &booksv1.GetLibraryResponse{
-		Library: connect.LibraryResponse(data, h.coverBaseURL),
+		Library: protomap.LibraryResponse(data, h.coverBaseURL),
 	}, nil
 }
 
@@ -205,10 +205,10 @@ func (h *tools) mcpGetBooksProgress(
 	start, end := services.ParseProgressRange(args.DateStart, args.DateEnd)
 	labels, values, err := h.progress.GetByDates(ctx, userID, start, end)
 	if err != nil {
-		return nil, connect.MapError(err)
+		return nil, protomap.MapError(err)
 	}
 	return &booksv1.GetBooksProgressResponse{
-		Progress: connect.ProgressResponse(labels, values, start, end),
+		Progress: protomap.ProgressResponse(labels, values, start, end),
 	}, nil
 }
 
@@ -224,10 +224,10 @@ func (h *tools) mcpSearchLibrary(
 	}
 	results, hasMore, err := h.books.SearchLibrary(ctx, userID, args.Query, 0, 0)
 	if err != nil {
-		return nil, connect.MapError(err)
+		return nil, protomap.MapError(err)
 	}
 	return &booksv1.SearchLibraryResponse{
-		Books:   connect.ProtoUserBooks(results, h.coverBaseURL),
+		Books:   protomap.ProtoUserBooks(results, h.coverBaseURL),
 		HasMore: hasMore,
 	}, nil
 }
@@ -246,7 +246,7 @@ func (h *tools) mcpSearchExternal(
 	results := services.FilterExternalByQuery(
 		args.Query, h.books.SearchExternal(ctx, args.Query),
 	)
-	return connect.ExternalBooksResponse(results), nil
+	return protomap.ExternalBooksResponse(results), nil
 }
 
 func (h *tools) mcpGetSeries(
@@ -258,13 +258,13 @@ func (h *tools) mcpGetSeries(
 	}
 	name := strings.TrimSpace(args.Name)
 	if name == "" {
-		return nil, connect.MapError(services.ErrSeriesNameRequired)
+		return nil, protomap.MapError(services.ErrSeriesNameRequired)
 	}
 	view, err := h.books.GetSeries(ctx, userID, name)
 	if err != nil {
-		return nil, connect.MapError(err)
+		return nil, protomap.MapError(err)
 	}
-	return connect.SeriesResponse(view, h.coverBaseURL), nil
+	return protomap.SeriesResponse(view, h.coverBaseURL), nil
 }
 
 func (h *tools) mcpGetExternalBook(
@@ -275,9 +275,9 @@ func (h *tools) mcpGetExternalBook(
 	}
 	book, err := h.books.GetExternal(ctx, args.Provider, args.ProviderID)
 	if err != nil {
-		return nil, connect.MapError(err)
+		return nil, protomap.MapError(err)
 	}
-	return connect.ExternalBookResponse(*book), nil
+	return protomap.ExternalBookResponse(*book), nil
 }
 
 func (h *tools) mcpGetReadingState(
@@ -289,9 +289,9 @@ func (h *tools) mcpGetReadingState(
 	}
 	view, err := h.library.ReadingState(ctx, userID, bookID)
 	if err != nil {
-		return nil, connect.MapError(err)
+		return nil, protomap.MapError(err)
 	}
-	return connect.ReadingStateResponse(view), nil
+	return protomap.ReadingStateResponse(view), nil
 }
 
 func (h *tools) mcpListResyncProposals(
@@ -299,9 +299,9 @@ func (h *tools) mcpListResyncProposals(
 ) (proto.Message, error) {
 	proposals, err := h.catalog.ListResyncProposals(ctx, caller(ctx))
 	if err != nil {
-		return nil, connect.MapError(err)
+		return nil, protomap.MapError(err)
 	}
-	return connect.ResyncProposalsResponse(proposals), nil
+	return protomap.ResyncProposalsResponse(proposals), nil
 }
 
 func (h *tools) mcpGetBookSources(
@@ -309,9 +309,9 @@ func (h *tools) mcpGetBookSources(
 ) (proto.Message, error) {
 	user := caller(ctx)
 	if err := services.RequireAdmin(user); err != nil {
-		return nil, connect.MapError(err)
+		return nil, protomap.MapError(err)
 	}
-	bookID, err := connect.ParseBookID(args.BookID)
+	bookID, err := protomap.ParseBookID(args.BookID)
 	if err != nil {
 		return nil, err
 	}
@@ -319,9 +319,9 @@ func (h *tools) mcpGetBookSources(
 		ctx, user, bookID, args.OverrideTitle, args.OverrideAuthor,
 	)
 	if err != nil {
-		return nil, connect.MapError(err)
+		return nil, protomap.MapError(err)
 	}
-	return connect.BookSourcesResponse(proposal), nil
+	return protomap.BookSourcesResponse(proposal), nil
 }
 
 func (h *tools) mcpGetSourceStats(
@@ -329,9 +329,9 @@ func (h *tools) mcpGetSourceStats(
 ) (proto.Message, error) {
 	stats, err := h.catalog.GetSourceStats(ctx, caller(ctx))
 	if err != nil {
-		return nil, connect.MapError(err)
+		return nil, protomap.MapError(err)
 	}
-	return connect.SourceStatsResponse(stats), nil
+	return protomap.SourceStatsResponse(stats), nil
 }
 
 func (h *tools) mcpListBooksInExactSources(
@@ -339,9 +339,9 @@ func (h *tools) mcpListBooksInExactSources(
 ) (proto.Message, error) {
 	books, err := h.catalog.ListBooksInExactSources(ctx, caller(ctx), args.Sources)
 	if err != nil {
-		return nil, connect.MapError(err)
+		return nil, protomap.MapError(err)
 	}
-	return connect.BooksInExactSourcesResponse(books, h.coverBaseURL), nil
+	return protomap.BooksInExactSourcesResponse(books, h.coverBaseURL), nil
 }
 
 func (h *tools) mcpFindDuplicates(
@@ -349,9 +349,9 @@ func (h *tools) mcpFindDuplicates(
 ) (proto.Message, error) {
 	groups, err := h.catalog.FindDuplicates(ctx, caller(ctx))
 	if err != nil {
-		return nil, connect.MapError(err)
+		return nil, protomap.MapError(err)
 	}
-	return connect.DuplicatesResponse(groups, h.coverBaseURL), nil
+	return protomap.DuplicatesResponse(groups, h.coverBaseURL), nil
 }
 
 func (h *tools) mcpGetBookFile(
@@ -363,9 +363,9 @@ func (h *tools) mcpGetBookFile(
 	}
 	result, err := h.books.GetBookFile(ctx, userID, bookID, args.Format)
 	if err != nil {
-		return nil, connect.MapError(err)
+		return nil, protomap.MapError(err)
 	}
-	return connect.BookFileResponse(result), nil
+	return protomap.BookFileResponse(result), nil
 }
 
 func (h *tools) mcpGetKEPUBStatus(
@@ -377,9 +377,9 @@ func (h *tools) mcpGetKEPUBStatus(
 	}
 	view, err := h.library.KEPUBStatus(ctx, userID, bookID)
 	if err != nil {
-		return nil, connect.MapError(err)
+		return nil, protomap.MapError(err)
 	}
-	return connect.KEPUBStatusResponse(view), nil
+	return protomap.KEPUBStatusResponse(view), nil
 }
 
 func (h *tools) mcpListKoboDevices(
@@ -391,9 +391,9 @@ func (h *tools) mcpListKoboDevices(
 	}
 	devices, err := h.library.KoboDevices(ctx, userID)
 	if err != nil {
-		return nil, connect.MapError(err)
+		return nil, protomap.MapError(err)
 	}
-	return connect.KoboDevicesResponse(devices), nil
+	return protomap.KoboDevicesResponse(devices), nil
 }
 
 func (h *tools) mcpListKoboStoreBooks(
@@ -405,9 +405,9 @@ func (h *tools) mcpListKoboStoreBooks(
 	}
 	books, err := h.books.ListKoboStoreBooks(ctx, userID)
 	if err != nil {
-		return nil, connect.MapError(err)
+		return nil, protomap.MapError(err)
 	}
-	return connect.KoboStoreBooksResponse(books), nil
+	return protomap.KoboStoreBooksResponse(books), nil
 }
 
 func (h *tools) mcpGetKoboDeviceLogs(
@@ -419,11 +419,11 @@ func (h *tools) mcpGetKoboDeviceLogs(
 	}
 	deviceID, err := uuid.Parse(args.ID)
 	if err != nil {
-		return nil, connect.MapError(services.ErrInvalidDeviceID)
+		return nil, protomap.MapError(services.ErrInvalidDeviceID)
 	}
 	entries, err := h.library.KoboDeviceLogs(ctx, userID, deviceID)
 	if err != nil {
-		return nil, connect.MapError(err)
+		return nil, protomap.MapError(err)
 	}
-	return connect.KoboLogsResponse(entries), nil
+	return protomap.KoboLogsResponse(entries), nil
 }

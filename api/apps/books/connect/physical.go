@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/books/internal/models"
+	"tools.xdoubleu.com/apps/books/internal/protomap"
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
 	"tools.xdoubleu.com/internal/kit/constants"
 	"tools.xdoubleu.com/internal/kit/contexttools"
@@ -34,7 +35,7 @@ func (h *Handler) GetPhysicalCopy(
 	}
 	for _, ch := range view.Chapters {
 		out.Chapters = append(out.Chapters, &booksv1.PhysicalChapter{
-			Title: ch.Title, Position: readingPositionToProto(ch.Position),
+			Title: ch.Title, Position: protomap.ReadingPositionToProto(ch.Position),
 		})
 	}
 	return out, nil
@@ -89,14 +90,14 @@ func physicalCopyCaller(
 
 func physicalCopyToProto(c models.PhysicalCopy) *booksv1.PhysicalCopy {
 	out := &booksv1.PhysicalCopy{
-		PageCount:     Int32FromInt(c.PageCount),
-		TextStartPage: Int32FromInt(c.TextStartPage),
+		PageCount:     protomap.Int32FromInt(c.PageCount),
+		TextStartPage: protomap.Int32FromInt(c.TextStartPage),
 		Anchors:       make([]*booksv1.PhysicalAnchor, 0, len(c.Anchors)),
 	}
 	for _, a := range c.Anchors {
 		out.Anchors = append(out.Anchors, &booksv1.PhysicalAnchor{
-			Page: Int32FromInt(a.Page),
-			Position: readingPositionToProto(models.ReadingPosition{
+			Page: protomap.Int32FromInt(a.Page),
+			Position: protomap.ReadingPositionToProto(models.ReadingPosition{
 				Href: a.Href, Offset: a.Offset, Page: 0,
 			}),
 		})

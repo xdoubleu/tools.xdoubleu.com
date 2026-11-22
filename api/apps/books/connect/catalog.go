@@ -8,6 +8,7 @@ import (
 	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 
+	"tools.xdoubleu.com/apps/books/internal/protomap"
 	"tools.xdoubleu.com/apps/books/internal/services"
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
 )
@@ -42,7 +43,7 @@ func (h *Handler) FindDuplicates(
 		return nil, mapError(err)
 	}
 
-	return DuplicatesResponse(groups, h.coverBaseURL), nil
+	return protomap.DuplicatesResponse(groups, h.coverBaseURL), nil
 }
 
 func (h *Handler) MergeBooks(
@@ -96,7 +97,7 @@ func (h *Handler) MergeBooks(
 		services.MergeRequest{
 			Winner:      winnerID,
 			Losers:      loserIDs,
-			Metadata:    protoBookToModel(req.ResolvedMetadata),
+			Metadata:    protomap.ProtoBookToModel(req.ResolvedMetadata),
 			CoverSource: resolvedCoverSourceBookID,
 			Status:      req.ResolvedStatus,
 		},
@@ -142,19 +143,7 @@ func (h *Handler) ListResyncProposals(
 		return nil, mapError(err)
 	}
 
-	return ResyncProposalsResponse(proposals), nil
-}
-
-// ParseBookID parses a book_id request field.
-func ParseBookID(rawBookID string) (uuid.UUID, error) {
-	bookID, err := uuid.Parse(rawBookID)
-	if err != nil {
-		return uuid.UUID{}, connect.NewError(
-			connect.CodeInvalidArgument,
-			fmt.Errorf("invalid book_id: %w", err).Error(),
-		)
-	}
-	return bookID, nil
+	return protomap.ResyncProposalsResponse(proposals), nil
 }
 
 // requireAdminBookID checks admin access and parses book_id, the common
@@ -166,7 +155,7 @@ func (h *Handler) requireAdminBookID(
 	if err := services.RequireAdmin(caller(ctx)); err != nil {
 		return uuid.UUID{}, mapError(err)
 	}
-	return ParseBookID(rawBookID)
+	return protomap.ParseBookID(rawBookID)
 }
 
 func (h *Handler) ApplyResyncChoice(
@@ -206,7 +195,7 @@ func (h *Handler) GetBookSources(
 		return nil, mapError(err)
 	}
 
-	return BookSourcesResponse(proposal), nil
+	return protomap.BookSourcesResponse(proposal), nil
 }
 
 func (h *Handler) ApplyBookSource(
@@ -266,14 +255,14 @@ func (h *Handler) UpdateBook(
 		coverURL = req.Metadata.CoverUrl
 	}
 	updated, err := h.services.Catalog.UpdateBook(
-		ctx, caller(ctx), bookID, protoBookToModel(req.Metadata), coverURL,
+		ctx, caller(ctx), bookID, protomap.ProtoBookToModel(req.Metadata), coverURL,
 	)
 	if err != nil {
 		return nil, mapISBNError(err)
 	}
 
 	return &booksv1.UpdateBookResponse{
-		Book: protoBook(updated, h.coverBaseURL),
+		Book: protomap.ProtoBook(updated, h.coverBaseURL),
 	}, nil
 }
 
@@ -286,7 +275,7 @@ func (h *Handler) GetSourceStats(
 		return nil, mapError(err)
 	}
 
-	return SourceStatsResponse(stats), nil
+	return protomap.SourceStatsResponse(stats), nil
 }
 
 func (h *Handler) ListBooksInExactSources(
@@ -300,5 +289,5 @@ func (h *Handler) ListBooksInExactSources(
 		return nil, mapError(err)
 	}
 
-	return BooksInExactSourcesResponse(books, h.coverBaseURL), nil
+	return protomap.BooksInExactSourcesResponse(books, h.coverBaseURL), nil
 }

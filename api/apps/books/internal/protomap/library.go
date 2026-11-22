@@ -1,4 +1,4 @@
-package connect
+package protomap
 
 import (
 	"fmt"
@@ -10,10 +10,10 @@ import (
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
 )
 
-// coverProxyURL returns the proxy URL for a book cover served through our own
+// CoverProxyURL returns the proxy URL for a book cover served through our own
 // endpoint. When coverBaseURL is empty (e.g. in tests) it returns an empty
 // string, and the book will have no cover_url in the proto response.
-func coverProxyURL(bookID fmt.Stringer, coverBaseURL string) string {
+func CoverProxyURL(bookID fmt.Stringer, coverBaseURL string) string {
 	if coverBaseURL == "" {
 		return ""
 	}
@@ -21,7 +21,7 @@ func coverProxyURL(bookID fmt.Stringer, coverBaseURL string) string {
 	return coverBaseURL + "/books/api/cover/" + bookID.String()
 }
 
-func protoBook(book *models.Book, coverBaseURL string) *booksv1.Book {
+func ProtoBook(book *models.Book, coverBaseURL string) *booksv1.Book {
 	if book == nil {
 		return nil
 	}
@@ -32,24 +32,24 @@ func protoBook(book *models.Book, coverBaseURL string) *booksv1.Book {
 	// directly.
 	proxyURL := ""
 	if book.CoverURL != nil && *book.CoverURL != "" {
-		proxyURL = coverProxyURL(book.ID, coverBaseURL)
+		proxyURL = CoverProxyURL(book.ID, coverBaseURL)
 	}
 
 	out := &booksv1.Book{
 		Id:          book.ID.String(),
 		Title:       book.Title,
 		Authors:     book.Authors,
-		Isbn13:      stringPtr(book.ISBN13),
+		Isbn13:      StringPtr(book.ISBN13),
 		CoverUrl:    proxyURL,
-		Description: stringPtr(book.Description),
-		PageCount:   int32FromIntPtr(book.PageCount),
-		SourceUrl:   stringPtr(book.SourceURL),
+		Description: StringPtr(book.Description),
+		PageCount:   Int32FromIntPtr(book.PageCount),
+		SourceUrl:   StringPtr(book.SourceURL),
 		HasContent:  book.HasContent,
 	}
 	if book.Series != nil {
 		out.SeriesName = book.Series.Name
 		out.SeriesPosition = book.Series.Position
-		out.SeriesTotal = int32FromIntPtr(book.Series.Total)
+		out.SeriesTotal = Int32FromIntPtr(book.Series.Total)
 	}
 	return out
 }
@@ -85,18 +85,18 @@ func ProtoUserBook(ub models.UserBook, coverBaseURL string) *booksv1.UserBook {
 		Id:                ub.ID.String(),
 		UserId:            ub.UserID,
 		BookId:            ub.BookID.String(),
-		Book:              protoBook(ub.Book, coverBaseURL),
+		Book:              ProtoBook(ub.Book, coverBaseURL),
 		Status:            ub.Status,
 		Tags:              reconcileOwnDigitalTag(ub.Tags, ub.Formats),
 		Formats:           ub.Formats,
 		FileVersions:      ub.FileVersions,
 		ReadSuggestion:    protoReadSuggestion(ub.ReadSuggestion),
-		Rating:            int32PtrFromInt16(ub.Rating),
+		Rating:            Int32PtrFromInt16(ub.Rating),
 		FinishedAt:        finishedAt,
 		ProgressMode:      ub.ProgressMode,
 		CurrentPage:       Int32FromInt(ub.CurrentPage),
 		ProgressPercent:   Int32FromInt(ub.ProgressPercent),
-		PhysicalPageCount: int32FromIntPtr(ub.PhysicalPageCount),
+		PhysicalPageCount: Int32FromIntPtr(ub.PhysicalPageCount),
 		AddedAt:           ub.AddedAt.Format(time.RFC3339),
 		UpdatedAt:         ub.UpdatedAt.Format(time.RFC3339),
 	}
@@ -138,10 +138,10 @@ func ProtoShelves(shelves []services.Shelf, coverBaseURL string) []*booksv1.Book
 	return result
 }
 
-// protoExternalBook maps a search/detail result onto the wire type.
+// ProtoExternalBook maps a search/detail result onto the wire type.
 // ProviderId is the ISBN13 by convention — both Hardcover and UniCat only
 // support fetch-by-ISBN, so that's what GetExternalBook routes on.
-func protoExternalBook(b services.SourceProposal) *booksv1.ExternalBookResult {
+func ProtoExternalBook(b services.SourceProposal) *booksv1.ExternalBookResult {
 	return &booksv1.ExternalBookResult{
 		Provider:    b.Source,
 		ProviderId:  b.ISBN13,
@@ -153,16 +153,16 @@ func protoExternalBook(b services.SourceProposal) *booksv1.ExternalBookResult {
 
 		SeriesName:     b.SeriesName,
 		SeriesPosition: b.SeriesPosition,
-		SeriesTotal:    int32FromIntPtr(b.SeriesTotal),
+		SeriesTotal:    Int32FromIntPtr(b.SeriesTotal),
 	}
 }
 
-func protoExternalBooks(
+func ProtoExternalBooks(
 	books []services.SourceProposal,
 ) []*booksv1.ExternalBookResult {
 	result := make([]*booksv1.ExternalBookResult, len(books))
 	for i, b := range books {
-		result[i] = protoExternalBook(b)
+		result[i] = ProtoExternalBook(b)
 	}
 	return result
 }

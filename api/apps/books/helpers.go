@@ -6,8 +6,8 @@ import (
 
 	"github.com/google/uuid"
 
-	"tools.xdoubleu.com/apps/books/connect"
 	"tools.xdoubleu.com/apps/books/internal/models"
+	"tools.xdoubleu.com/apps/books/internal/protomap"
 	"tools.xdoubleu.com/apps/books/internal/services"
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
 )
@@ -34,10 +34,10 @@ func (app *Books) BuildSharedLibrary(
 
 	base := app.clients.PublicAPIBaseURL
 	return &booksv1.LibraryResponse{
-		Reading:  connect.ProtoUserBooks(data.Reading, base),
-		Wishlist: connect.ProtoUserBooks(data.Wishlist, base),
-		Finished: connect.ProtoUserBooks(data.Finished, base),
-		Shelves:  connect.ProtoShelves(data.Shelves, base),
+		Reading:  protomap.ProtoUserBooks(data.Reading, base),
+		Wishlist: protomap.ProtoUserBooks(data.Wishlist, base),
+		Finished: protomap.ProtoUserBooks(data.Finished, base),
+		Shelves:  protomap.ProtoShelves(data.Shelves, base),
 	}, lastSyncedAt, nil
 }
 
@@ -67,7 +67,7 @@ func (app *Books) GetLibraryBookByID(
 		return nil, err
 	}
 
-	result := connect.ProtoUserBook(*ub, app.clients.PublicAPIBaseURL)
+	result := protomap.ProtoUserBook(*ub, app.clients.PublicAPIBaseURL)
 	return &LibraryBook{
 		Title:           result.Book.GetTitle(),
 		Status:          result.Status,

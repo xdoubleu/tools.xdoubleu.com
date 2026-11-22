@@ -2,12 +2,11 @@ package connect
 
 import (
 	"context"
-	"time"
 
 	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 
-	"tools.xdoubleu.com/apps/books/internal/models"
+	"tools.xdoubleu.com/apps/books/internal/protomap"
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
 	"tools.xdoubleu.com/internal/kit/constants"
 	"tools.xdoubleu.com/internal/kit/contexttools"
@@ -59,7 +58,7 @@ func (h *Handler) RegisterKoboDevice(
 		return nil, mapError(err)
 	}
 	return &booksv1.RegisterKoboDeviceResponse{
-		Device:   koboDeviceProto(device),
+		Device:   protomap.KoboDeviceProto(device),
 		RawToken: rawToken,
 	}, nil
 }
@@ -79,7 +78,7 @@ func (h *Handler) ListKoboDevices(
 	if err != nil {
 		return nil, mapError(err)
 	}
-	return KoboDevicesResponse(devices), nil
+	return protomap.KoboDevicesResponse(devices), nil
 }
 
 func (h *Handler) DisconnectKoboDevice(
@@ -107,21 +106,6 @@ func (h *Handler) DisconnectKoboDevice(
 	return &booksv1.DisconnectKoboDeviceResponse{}, nil
 }
 
-func koboDeviceProto(d models.KoboDevice) *booksv1.KoboDevice {
-	lastSeen := ""
-	if d.LastSeenAt != nil {
-		lastSeen = d.LastSeenAt.Format(time.RFC3339)
-	}
-	return &booksv1.KoboDevice{
-		Id:             d.ID,
-		Name:           d.Name,
-		Serial:         d.Serial,
-		CreatedAt:      d.CreatedAt.Format(time.RFC3339),
-		LastSeenAt:     lastSeen,
-		LoggingEnabled: d.LoggingEnabled,
-	}
-}
-
 func (h *Handler) ListKoboStoreBooks(
 	ctx context.Context,
 	_ *booksv1.ListKoboStoreBooksRequest,
@@ -137,39 +121,5 @@ func (h *Handler) ListKoboStoreBooks(
 	if err != nil {
 		return nil, mapError(err)
 	}
-	return KoboStoreBooksResponse(books), nil
-}
-
-func koboStoreBookProto(b models.KoboStoreBookStatus) *booksv1.KoboStoreBook {
-	out := &booksv1.KoboStoreBook{
-		EntitlementId:  b.EntitlementID,
-		Title:          b.Title,
-		Authors:        b.Authors,
-		Owned:          b.Owned != nil && *b.Owned,
-		LastOutcome:    string(b.LastOutcome),
-		LastReadAt:     formatOptionalTime(b.LastReadAt),
-		LastMirroredAt: formatOptionalTime(b.LastMirroredAt),
-		UpdatedAt:      b.UpdatedAt.Format(time.RFC3339),
-	}
-	if b.ISBN13 != nil {
-		out.Isbn13 = *b.ISBN13
-	}
-	if b.LastPercent != nil {
-		p := int32(*b.LastPercent) //nolint:gosec // a 0-100 percent
-		out.LastPercent = &p
-	}
-	if b.Match != nil {
-		out.LibraryBookId = b.Match.BookID.String()
-		if b.Match.Book != nil {
-			out.LibraryTitle = b.Match.Book.Title
-		}
-	}
-	return out
-}
-
-func formatOptionalTime(t *time.Time) string {
-	if t == nil {
-		return ""
-	}
-	return t.UTC().Format(time.RFC3339)
+	return protomap.KoboStoreBooksResponse(books), nil
 }
