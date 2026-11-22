@@ -82,6 +82,7 @@ func (worker *Worker) do(ctx context.Context, logger *slog.Logger, doWork DoWork
 	defer Recover(ctx, logger, "worker")
 
 	if err := doWork(ctx, logger); err != nil {
-		logger.ErrorContext(ctx, err.Error())
+		// The error stays an attr so sentrytools sees its chain (context.Canceled).
+		logger.ErrorContext(ctx, "work item failed", slog.Any("error", err))
 	}
 }
