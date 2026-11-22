@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	connectv2 "connectrpc.com/connect/v2"
-
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"tools.xdoubleu.com/apps/taste/connect"

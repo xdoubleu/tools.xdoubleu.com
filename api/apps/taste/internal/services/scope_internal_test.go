@@ -1,3 +1,4 @@
+//nolint:exhaustruct // sparse test fixtures
 package services
 
 import (
@@ -72,7 +73,9 @@ func TestScope_SharedFamilyErrorFails(t *testing.T) {
 func openScope(apps ...string) Scope {
 	return Scope{
 		User: "u", Subject: "u",
-		Access: func(name string) bool { return allowApps(apps).CanAccess(context.Background(), name) },
+		Access: func(name string) bool {
+			return allowApps(apps).CanAccess(context.Background(), name)
+		},
 	}
 }
 
