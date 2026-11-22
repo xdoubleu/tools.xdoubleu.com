@@ -25,6 +25,8 @@ type noTopics struct{}
 func (noTopics) EnsureTopic(string) {}
 
 // TestMCPTools exercises the tool wrappers over the recorded iRail responses.
+//
+//nolint:exhaustruct // zero values are the point of these tests
 func TestMCPTools(t *testing.T) {
 	cfg := testhelper.NewTestConfig()
 	var pg postgres.DB = testhelper.ConnectTestDB(cfg.DBDsn)
@@ -70,6 +72,7 @@ func TestMCPTools(t *testing.T) {
 	require.Error(t, err)
 }
 
+//nolint:exhaustruct // zero values are the point of these tests
 func TestMCPIrailDiagnostic(t *testing.T) {
 	svc := services.New(mocks.NewFixtureClient(t), nil)
 	h := &tools{svc: svc}
@@ -102,6 +105,8 @@ func TestMCPIrailDiagnostic(t *testing.T) {
 }
 
 // TestMCPTools_RequireAppAccess rejects a caller without trains access.
+//
+//nolint:exhaustruct // zero values are the point of these tests
 func TestMCPTools_RequireAppAccess(t *testing.T) {
 	ctx := context.WithValue(
 		context.Background(),

@@ -12,6 +12,7 @@ import (
 	sharedmodels "tools.xdoubleu.com/internal/models"
 )
 
+//nolint:exhaustruct // zero values are the point of these tests
 func TestWriteToolsRequireUser(t *testing.T) {
 	ctx := t.Context()
 	tl := &tools{}
@@ -25,6 +26,7 @@ func TestWriteToolsRequireUser(t *testing.T) {
 	assert.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
 }
 
+//nolint:exhaustruct // zero values are the point of these tests
 func TestToolsRejectMalformedRecipeID(t *testing.T) {
 	//nolint:exhaustruct // only the ID matters
 	ctx := context.WithValue(

@@ -13,12 +13,16 @@ import (
 	"tools.xdoubleu.com/internal/platform/mcptools"
 )
 
+//nolint:exhaustruct // zero values are the point of these tests
 func TestToolsRequireUser(t *testing.T) {
 	ctx := t.Context()
 	tl := &tools{}
 	calls := map[string]func() error{
-		"stats":  func() error { _, err := tl.mcpGetStats(ctx, mcpSharedArgs{}); return err },
-		"events": func() error { _, err := tl.mcpListEvents(ctx, mcpListEventsArgs{}); return err },
+		"stats": func() error { _, err := tl.mcpGetStats(ctx, mcpSharedArgs{}); return err },
+		"events": func() error {
+			_, err := tl.mcpListEvents(ctx, mcpListEventsArgs{})
+			return err
+		},
 		"profile": func() error {
 			_, err := tl.mcpGetProfile(ctx, mcpSharedArgs{})
 			return err
@@ -47,6 +51,7 @@ func TestToolsRequireUser(t *testing.T) {
 	}
 }
 
+//nolint:exhaustruct // zero values are the point of these tests
 func TestRemoveFavouriteShowRejectsMalformedID(t *testing.T) {
 	//nolint:exhaustruct // only the ID matters
 	ctx := context.WithValue(

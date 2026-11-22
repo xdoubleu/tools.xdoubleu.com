@@ -205,3 +205,29 @@ func TestMCPTools_UpdateRecipeWithoutCaller(t *testing.T) {
 		assert.True(t, res.IsError)
 	}
 }
+
+// TestMCPTools_WriteErrors: a failing write surfaces as a tool error.
+func TestMCPTools_WriteErrors(t *testing.T) {
+	session := newMCPSession(t, mcpUser(userID))
+	for name, args := range map[string]map[string]any{
+		"recipes_create_recipe": {
+			"name": "x", "steps": []string{}, "base_servings": 1,
+			"ingredients": []map[string]any{
+				{"name": "y", "amount": 1e300, "unit": "g"},
+			},
+		},
+		"recipes_update_recipe": {
+			"id": "00000000-0000-0000-0000-000000000001", "name": "x",
+			"steps": []string{}, "base_servings": 1,
+			"ingredients": []map[string]any{}, "meal_type": "", "effort": "",
+		},
+	} {
+		res, err := session.CallTool(
+			t.Context(),
+			//nolint:exhaustruct // name and arguments are all a call needs
+			&mcp.CallToolParams{Name: name, Arguments: args},
+		)
+		require.NoError(t, err, name)
+		assert.True(t, res.IsError, name)
+	}
+}

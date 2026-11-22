@@ -10,6 +10,7 @@ import (
 	"tools.xdoubleu.com/internal/platform/mcptools"
 )
 
+//nolint:exhaustruct // zero values are the point of these tests
 func TestToolsRequireUser(t *testing.T) {
 	ctx := t.Context()
 	tl := tools{}

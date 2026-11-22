@@ -13,14 +13,27 @@ import (
 	"tools.xdoubleu.com/internal/platform/mcptools"
 )
 
+//nolint:exhaustruct // zero values are the point of these tests
 func TestToolsRequireUser(t *testing.T) {
 	ctx := t.Context()
 	tl := tools{}
 	calls := map[string]func() error{
-		"feeds": func() error { _, err := tl.mcpListFeeds(ctx, mcptools.NoArgs{}); return err },
-		"items": func() error { _, err := tl.mcpListItems(ctx, mcpListItemsArgs{}); return err },
-		"item":  func() error { _, err := tl.mcpGetItem(ctx, mcpGetItemArgs{}); return err },
-		"rules": func() error { _, err := tl.mcpListFilterRules(ctx, mcptools.NoArgs{}); return err },
+		"feeds": func() error {
+			_, err := tl.mcpListFeeds(ctx, mcptools.NoArgs{})
+			return err
+		},
+		"items": func() error {
+			_, err := tl.mcpListItems(ctx, mcpListItemsArgs{})
+			return err
+		},
+		"item": func() error {
+			_, err := tl.mcpGetItem(ctx, mcpGetItemArgs{})
+			return err
+		},
+		"rules": func() error {
+			_, err := tl.mcpListFilterRules(ctx, mcptools.NoArgs{})
+			return err
+		},
 		"suggestions": func() error {
 			_, err := tl.mcpGetFilterRuleSuggestions(ctx, mcptools.NoArgs{})
 			return err
@@ -33,6 +46,7 @@ func TestToolsRequireUser(t *testing.T) {
 	}
 }
 
+//nolint:exhaustruct // zero values are the point of these tests
 func TestToolsRejectMalformedIDs(t *testing.T) {
 	//nolint:exhaustruct // only the ID matters
 	ctx := context.WithValue(
