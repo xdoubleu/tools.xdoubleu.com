@@ -314,3 +314,36 @@ func cleanChatEvents(
 	}
 	return out, nil
 }
+
+// Feed returns a session with its events above afterSeq, oldest first. It checks
+// no actor: the caller has authenticated the person or the pinned runner.
+func (s *ChatService) Feed(
+	ctx context.Context,
+	id uuid.UUID,
+	afterSeq, limit int,
+) (*models.ChatSession, []models.ChatEvent, error) {
+	session, err := s.chats.Get(ctx, id)
+	if err != nil {
+		return nil, nil, err
+	}
+	if limit <= 0 {
+		limit = DefaultChatEvents
+	}
+	events, err := s.chats.After(ctx, id, max(afterSeq, 0), min(limit, MaxChatEvents))
+	return session, events, err
+}
+
+// ForRunner returns a session when it is pinned to the runner.
+func (s *ChatService) ForRunner(
+	ctx context.Context,
+	runnerID, id uuid.UUID,
+) (*models.ChatSession, error) {
+	session, err := s.chats.Get(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if session.RunnerID != runnerID {
+		return nil, forbidden("the session belongs to another runner")
+	}
+	return session, nil
+}

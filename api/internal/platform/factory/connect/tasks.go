@@ -26,6 +26,8 @@ type Deps struct {
 	HeartbeatHold time.Duration
 	// StepUp checks the TOTP code that creating a runner needs.
 	StepUp StepUp
+	// Chats pushes new chat events to the sockets watching them; nil pushes none.
+	Chats ChatPublisher
 }
 
 type taskConnectHandler struct {

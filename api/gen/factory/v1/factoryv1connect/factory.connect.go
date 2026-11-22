@@ -16,6 +16,8 @@ const (
 	TaskServiceName = "factory.v1.TaskService"
 	// RepoServiceName is the fully-qualified name of the RepoService service.
 	RepoServiceName = "factory.v1.RepoService"
+	// ChatServiceName is the fully-qualified name of the ChatService service.
+	ChatServiceName = "factory.v1.ChatService"
 )
 
 // These constants are the procedure names of the RPCs defined in this package. They're exposed at
@@ -63,6 +65,17 @@ const (
 	RepoServiceCreateRepoProcedure = "/factory.v1.RepoService/CreateRepo"
 	// RepoServiceUpdateRepoProcedure is the procedure name of the RepoService's UpdateRepo RPC.
 	RepoServiceUpdateRepoProcedure = "/factory.v1.RepoService/UpdateRepo"
+	// ChatServiceStartChatProcedure is the procedure name of the ChatService's StartChat RPC.
+	ChatServiceStartChatProcedure = "/factory.v1.ChatService/StartChat"
+	// ChatServiceSendChatMessageProcedure is the procedure name of the ChatService's SendChatMessage
+	// RPC.
+	ChatServiceSendChatMessageProcedure = "/factory.v1.ChatService/SendChatMessage"
+	// ChatServiceAnswerChatProcedure is the procedure name of the ChatService's AnswerChat RPC.
+	ChatServiceAnswerChatProcedure = "/factory.v1.ChatService/AnswerChat"
+	// ChatServiceStopChatProcedure is the procedure name of the ChatService's StopChat RPC.
+	ChatServiceStopChatProcedure = "/factory.v1.ChatService/StopChat"
+	// ChatServiceListChatsProcedure is the procedure name of the ChatService's ListChats RPC.
+	ChatServiceListChatsProcedure = "/factory.v1.ChatService/ListChats"
 )
 
 var (
@@ -737,6 +750,209 @@ func (h repoServiceHandler) updateRepo(ctx context.Context, _ connect.Spec, stre
 		return err
 	}
 	res, err := h.svc.UpdateRepo(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+var (
+	chatServiceStartChatSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_factory_v1_factory_proto.Services().ByName("ChatService").Methods().ByName("StartChat"),
+			Procedure:  ChatServiceStartChatProcedure,
+		}
+	})
+	chatServiceSendChatMessageSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_factory_v1_factory_proto.Services().ByName("ChatService").Methods().ByName("SendChatMessage"),
+			Procedure:  ChatServiceSendChatMessageProcedure,
+		}
+	})
+	chatServiceAnswerChatSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_factory_v1_factory_proto.Services().ByName("ChatService").Methods().ByName("AnswerChat"),
+			Procedure:  ChatServiceAnswerChatProcedure,
+		}
+	})
+	chatServiceStopChatSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_factory_v1_factory_proto.Services().ByName("ChatService").Methods().ByName("StopChat"),
+			Procedure:  ChatServiceStopChatProcedure,
+		}
+	})
+	chatServiceListChatsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_factory_v1_factory_proto.Services().ByName("ChatService").Methods().ByName("ListChats"),
+			Procedure:  ChatServiceListChatsProcedure,
+		}
+	})
+)
+
+// ChatServiceClient is a client for the factory.v1.ChatService service.
+type ChatServiceClient interface {
+	StartChat(context.Context, *v1.StartChatRequest) (*v1.StartChatResponse, error)
+	SendChatMessage(context.Context, *v1.SendChatMessageRequest) (*v1.SendChatMessageResponse, error)
+	AnswerChat(context.Context, *v1.AnswerChatRequest) (*v1.AnswerChatResponse, error)
+	StopChat(context.Context, *v1.StopChatRequest) (*v1.StopChatResponse, error)
+	ListChats(context.Context, *v1.ListChatsRequest) (*v1.ListChatsResponse, error)
+}
+
+// NewChatServiceClient constructs a client for the factory.v1.ChatService service. Multiple service
+// clients may share a single connect.Client.
+func NewChatServiceClient(client *connect.Client) ChatServiceClient {
+	return &chatServiceClient{client: client}
+}
+
+// ChatServiceHandler is an implementation of the factory.v1.ChatService service.
+type ChatServiceHandler interface {
+	StartChat(context.Context, *v1.StartChatRequest) (*v1.StartChatResponse, error)
+	SendChatMessage(context.Context, *v1.SendChatMessageRequest) (*v1.SendChatMessageResponse, error)
+	AnswerChat(context.Context, *v1.AnswerChatRequest) (*v1.AnswerChatResponse, error)
+	StopChat(context.Context, *v1.StopChatRequest) (*v1.StopChatResponse, error)
+	ListChats(context.Context, *v1.ListChatsRequest) (*v1.ListChatsResponse, error)
+}
+
+// RegisterChatServiceHandler registers svc as the factory.v1.ChatService implementation on server.
+func RegisterChatServiceHandler(server *connect.Server, svc ChatServiceHandler) {
+	adapter := chatServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: chatServiceStartChatSpec(), Handler: adapter.startChat},
+		connect.Method{Spec: chatServiceSendChatMessageSpec(), Handler: adapter.sendChatMessage},
+		connect.Method{Spec: chatServiceAnswerChatSpec(), Handler: adapter.answerChat},
+		connect.Method{Spec: chatServiceStopChatSpec(), Handler: adapter.stopChat},
+		connect.Method{Spec: chatServiceListChatsSpec(), Handler: adapter.listChats},
+	)
+}
+
+// UnimplementedChatServiceHandler returns CodeUnimplemented from all methods.
+type UnimplementedChatServiceHandler struct{}
+
+func (UnimplementedChatServiceHandler) StartChat(context.Context, *v1.StartChatRequest) (*v1.StartChatResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "factory.v1.ChatService.StartChat is not implemented")
+}
+
+func (UnimplementedChatServiceHandler) SendChatMessage(context.Context, *v1.SendChatMessageRequest) (*v1.SendChatMessageResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "factory.v1.ChatService.SendChatMessage is not implemented")
+}
+
+func (UnimplementedChatServiceHandler) AnswerChat(context.Context, *v1.AnswerChatRequest) (*v1.AnswerChatResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "factory.v1.ChatService.AnswerChat is not implemented")
+}
+
+func (UnimplementedChatServiceHandler) StopChat(context.Context, *v1.StopChatRequest) (*v1.StopChatResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "factory.v1.ChatService.StopChat is not implemented")
+}
+
+func (UnimplementedChatServiceHandler) ListChats(context.Context, *v1.ListChatsRequest) (*v1.ListChatsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "factory.v1.ChatService.ListChats is not implemented")
+}
+
+type chatServiceClient struct {
+	client *connect.Client
+}
+
+func (c *chatServiceClient) StartChat(ctx context.Context, req *v1.StartChatRequest) (*v1.StartChatResponse, error) {
+	var res v1.StartChatResponse
+	if err := c.client.CallUnary(ctx, chatServiceStartChatSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *chatServiceClient) SendChatMessage(ctx context.Context, req *v1.SendChatMessageRequest) (*v1.SendChatMessageResponse, error) {
+	var res v1.SendChatMessageResponse
+	if err := c.client.CallUnary(ctx, chatServiceSendChatMessageSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *chatServiceClient) AnswerChat(ctx context.Context, req *v1.AnswerChatRequest) (*v1.AnswerChatResponse, error) {
+	var res v1.AnswerChatResponse
+	if err := c.client.CallUnary(ctx, chatServiceAnswerChatSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *chatServiceClient) StopChat(ctx context.Context, req *v1.StopChatRequest) (*v1.StopChatResponse, error) {
+	var res v1.StopChatResponse
+	if err := c.client.CallUnary(ctx, chatServiceStopChatSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *chatServiceClient) ListChats(ctx context.Context, req *v1.ListChatsRequest) (*v1.ListChatsResponse, error) {
+	var res v1.ListChatsResponse
+	if err := c.client.CallUnary(ctx, chatServiceListChatsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type chatServiceHandler struct{ svc ChatServiceHandler }
+
+func (h chatServiceHandler) startChat(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.StartChatRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.StartChat(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h chatServiceHandler) sendChatMessage(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SendChatMessageRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SendChatMessage(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h chatServiceHandler) answerChat(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.AnswerChatRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.AnswerChat(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h chatServiceHandler) stopChat(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.StopChatRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.StopChat(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h chatServiceHandler) listChats(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListChatsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListChats(ctx, &req)
 	if err != nil {
 		return err
 	}

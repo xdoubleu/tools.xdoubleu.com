@@ -99,6 +99,7 @@ type mcpRunRoutineArgs struct {
 func Register(srv *mcp.Server, svc *services.Services) {
 	t := &mcpTools{svc: svc, present: &fconnect.Deps{
 		Services: svc, Logger: nil, HeartbeatHold: 0, StepUp: nil,
+		Chats: nil,
 	}}
 
 	mcptools.AddAgentReadTool(srv, mcpAppName, "factory_list_repos",

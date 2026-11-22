@@ -373,3 +373,72 @@ service RepoService {
   rpc CreateRepo(CreateRepoRequest) returns (CreateRepoResponse);
   rpc UpdateRepo(UpdateRepoRequest) returns (UpdateRepoResponse);
 }
+
+// A chat session: a person talking to a harness on one runner. Its transcript
+// streams over the WebSocket at /factory/chats/{id}/ws.
+message Chat {
+  string id = 1;
+  string repo_id = 2;
+  // Empty for a chat about no task.
+  string task_id = 3;
+  Harness harness = 4;
+  string runner_id = 5;
+  // idle, working, asking or stopped.
+  string state = 6;
+  string branch = 7;
+  // What the session left behind when it stopped.
+  string report = 8;
+  int32 last_seq = 9;
+  string created_by = 10;
+  string created_at = 11;
+  string updated_at = 12;
+  string stopped_at = 13;
+}
+
+message StartChatRequest {
+  string repo_id = 1;
+  string task_id = 2;
+  Harness harness = 3;
+  string runner_id = 4;
+}
+message StartChatResponse {
+  Chat chat = 1;
+}
+
+// Hands the harness a message while the chat is idle.
+message SendChatMessageRequest {
+  string id = 1;
+  string text = 2;
+}
+message SendChatMessageResponse {}
+
+// Replies to a question the harness asked.
+message AnswerChatRequest {
+  string id = 1;
+  string text = 2;
+}
+message AnswerChatResponse {}
+
+message StopChatRequest {
+  string id = 1;
+  string report = 2;
+}
+message StopChatResponse {
+  Chat chat = 1;
+}
+
+// Newest first.
+message ListChatsRequest {
+  bool active_only = 1;
+}
+message ListChatsResponse {
+  repeated Chat chats = 1;
+}
+
+service ChatService {
+  rpc StartChat(StartChatRequest) returns (StartChatResponse);
+  rpc SendChatMessage(SendChatMessageRequest) returns (SendChatMessageResponse);
+  rpc AnswerChat(AnswerChatRequest) returns (AnswerChatResponse);
+  rpc StopChat(StopChatRequest) returns (StopChatResponse);
+  rpc ListChats(ListChatsRequest) returns (ListChatsResponse);
+}
