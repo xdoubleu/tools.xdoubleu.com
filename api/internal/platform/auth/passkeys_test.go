@@ -33,6 +33,22 @@ func registrationResponse(
 	origin string,
 ) []byte {
 	t.Helper()
+	response, _ := registrationResponseWithKey(t, optionsJSON, origin)
+	return response
+}
+
+// softKey is a software authenticator's credential.
+type softKey struct {
+	key    *ecdsa.PrivateKey
+	credID []byte
+}
+
+func registrationResponseWithKey(
+	t *testing.T,
+	optionsJSON []byte,
+	origin string,
+) ([]byte, *softKey) {
+	t.Helper()
 	var options struct {
 		Challenge string `json:"challenge"`
 		RP        struct {
@@ -100,7 +116,7 @@ func registrationResponse(
 		},
 	})
 	require.NoError(t, err)
-	return out
+	return out, &softKey{key: key, credID: credID}
 }
 
 // signedInToken signs in for real, so its auth_time is now.

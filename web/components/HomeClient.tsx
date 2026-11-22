@@ -1,6 +1,13 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link } from '@/components/ui/link'
-import { useCurrentUser, useSignIn, useMFAChallenge } from '@/hooks/useAuth'
+import {
+  useCurrentUser,
+  useSignIn,
+  useMFAChallenge,
+  usePasskeySignIn,
+  passkeySignInSupported,
+  conditionalPasskeyAvailable
+} from '@/hooks/useAuth'
 import TodayView from '@/components/today/TodayView'
 import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -39,6 +46,7 @@ export default function HomeClient() {
   const data = isSignedOut(error) ? undefined : lastUser
   const signIn = useSignIn()
   const mFAChallenge = useMFAChallenge()
+  const passkeySignIn = usePasskeySignIn()
 
   // A cached user shows the authenticated view straight away.
   const [authState, setAuthState] = useState<AuthState>(data ? 'authenticated' : 'loading')
@@ -50,6 +58,10 @@ export default function HomeClient() {
   const [mfaCode, setMfaCode] = useState('')
   const [mfaError, setMfaError] = useState<string | null>(null)
   const [mfaSubmitting, setMfaSubmitting] = useState(false)
+  const rememberMeRef = useRef(rememberMe)
+  rememberMeRef.current = rememberMe
+  // The pending autofill request; a modal passkey prompt supersedes it.
+  const conditionalRef = useRef<AbortController | null>(null)
 
   useEffect(() => {
     if (!isLoading) {
@@ -73,6 +85,43 @@ export default function HomeClient() {
       handleMfaChallenge()
     }
   }, [mfaCode, authState, mfaSubmitting])
+
+  useEffect(() => {
+    if (authState !== 'unauthenticated') return
+    const controller = new AbortController()
+    conditionalRef.current = controller
+    void (async () => {
+      try {
+        if (!(await conditionalPasskeyAvailable()) || controller.signal.aborted) return
+        await passkeySignIn(rememberMeRef.current, {
+          conditional: true,
+          signal: controller.signal
+        })
+        window.location.href = safeNext()
+      } catch {
+        // Aborted, dismissed or refused: the form and the button remain.
+      }
+    })()
+    return () => controller.abort()
+  }, [authState])
+
+  const handlePasskeySignIn = async () => {
+    conditionalRef.current?.abort()
+    setSubmitting(true)
+    setSignInError(null)
+    try {
+      await passkeySignIn(rememberMe)
+      window.location.href = safeNext()
+    } catch (err) {
+      if (err instanceof ConnectError) {
+        setSignInError(err.message)
+      } else if (!(err instanceof DOMException && err.name === 'NotAllowedError')) {
+        setSignInError('Passkey sign-in failed.')
+      }
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -169,7 +218,7 @@ export default function HomeClient() {
             <Input
               id="email"
               type="email"
-              autoComplete="username"
+              autoComplete="username webauthn"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -206,6 +255,17 @@ export default function HomeClient() {
           <Button type="submit" disabled={submitting} className="w-full">
             {submitting ? 'Signing in…' : 'Sign in'}
           </Button>
+          {passkeySignInSupported() && (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={handlePasskeySignIn}
+              disabled={submitting}
+              className="w-full"
+            >
+              Sign in with a passkey
+            </Button>
+          )}
         </form>
       </Card>
     </PageContainer>

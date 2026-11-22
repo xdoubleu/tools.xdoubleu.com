@@ -25,6 +25,10 @@ service AuthService {
   rpc ListPasskeys(ListPasskeysRequest) returns (ListPasskeysResponse);
   rpc RenamePasskey(RenamePasskeyRequest) returns (RenamePasskeyResponse);
   rpc RemovePasskey(RemovePasskeyRequest) returns (RemovePasskeyResponse);
+  // Signing in with a discoverable passkey issues a session directly and
+  // counts as MFA. Both RPCs are unauthenticated.
+  rpc PasskeySignInBegin(PasskeySignInBeginRequest) returns (PasskeySignInBeginResponse);
+  rpc PasskeySignInFinish(PasskeySignInFinishRequest) returns (PasskeySignInFinishResponse);
 }
 
 message SignInRequest {
@@ -195,3 +199,19 @@ message RemovePasskeyRequest {
 }
 
 message RemovePasskeyResponse {}
+
+message PasskeySignInBeginRequest {}
+
+message PasskeySignInBeginResponse {
+  // PublicKeyCredentialRequestOptionsJSON for navigator.credentials.get().
+  string options_json = 1;
+}
+
+message PasskeySignInFinishRequest {
+  // JSON of the credential navigator.credentials.get() returned
+  // (AuthenticationResponseJSON).
+  string credential_json = 1;
+  bool remember_me = 2;
+}
+
+message PasskeySignInFinishResponse {}

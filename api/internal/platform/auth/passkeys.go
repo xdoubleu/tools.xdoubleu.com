@@ -66,6 +66,18 @@ type passkeyStore interface {
 	) error
 	// TakePasskeyChallenge removes and returns the user's unexpired challenge.
 	TakePasskeyChallenge(ctx context.Context, userID string) ([]byte, error)
+
+	// SavePasskeyLoginChallenge stores a sign-in session under its challenge.
+	SavePasskeyLoginChallenge(
+		ctx context.Context, challenge string, session []byte, expiresAt time.Time,
+	) error
+	// TakePasskeyLoginChallenge removes and returns the unexpired session.
+	TakePasskeyLoginChallenge(ctx context.Context, challenge string) ([]byte, error)
+	// UpdatePasskeyUsage records a sign-in with the credential.
+	UpdatePasskeyUsage(
+		ctx context.Context, userID string, credentialID []byte,
+		signCount uint32, flags byte,
+	) error
 }
 
 var _ passkeyStore = (*Repository)(nil)
