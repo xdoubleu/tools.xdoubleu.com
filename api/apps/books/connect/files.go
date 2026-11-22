@@ -6,6 +6,7 @@ import (
 	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 
+	"tools.xdoubleu.com/apps/books/internal/protomap"
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
 	"tools.xdoubleu.com/internal/kit/constants"
 	"tools.xdoubleu.com/internal/kit/contexttools"
@@ -37,7 +38,7 @@ func (h *Handler) GetBookFile(
 	if err != nil {
 		return nil, mapError(err)
 	}
-	return BookFileResponse(result), nil
+	return protomap.BookFileResponse(result), nil
 }
 
 func (h *Handler) RequestKEPUBConversion(
@@ -75,7 +76,7 @@ func (h *Handler) GetKEPUBStatus(
 	if err != nil {
 		return nil, mapError(err)
 	}
-	return KEPUBStatusResponse(view), nil
+	return protomap.KEPUBStatusResponse(view), nil
 }
 
 func (h *Handler) CreateBookUpload(

@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/books/internal/models"
+	"tools.xdoubleu.com/apps/books/internal/protomap"
 	"tools.xdoubleu.com/apps/books/internal/services"
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
 	"tools.xdoubleu.com/internal/kit/constants"
@@ -31,7 +32,7 @@ func (h *Handler) GetLibrary(
 		return nil, mapError(err)
 	}
 	return &booksv1.GetLibraryResponse{
-		Library: LibraryResponse(data, h.coverBaseURL),
+		Library: protomap.LibraryResponse(data, h.coverBaseURL),
 	}, nil
 }
 
@@ -54,7 +55,7 @@ func (h *Handler) GetBooksProgress(
 		return nil, mapError(err)
 	}
 	return &booksv1.GetBooksProgressResponse{
-		Progress: ProgressResponse(labels, values, dateStart, dateEnd),
+		Progress: protomap.ProgressResponse(labels, values, dateStart, dateEnd),
 	}, nil
 }
 
@@ -85,7 +86,7 @@ func (h *Handler) SearchLibrary(
 		return nil, mapError(err)
 	}
 	return &booksv1.SearchLibraryResponse{
-		Books:   ProtoUserBooks(libraryResults, h.coverBaseURL),
+		Books:   protomap.ProtoUserBooks(libraryResults, h.coverBaseURL),
 		HasMore: hasMore,
 	}, nil
 }
@@ -108,7 +109,7 @@ func (h *Handler) SearchExternal(
 	}
 	results := h.services.Books.SearchExternal(ctx, req.Query)
 	results = services.FilterExternalByQuery(req.Query, results)
-	return ExternalBooksResponse(results), nil
+	return protomap.ExternalBooksResponse(results), nil
 }
 
 func (h *Handler) GetExternalBook(
@@ -130,7 +131,7 @@ func (h *Handler) GetExternalBook(
 	if err != nil {
 		return nil, mapError(err)
 	}
-	return ExternalBookResponse(*book), nil
+	return protomap.ExternalBookResponse(*book), nil
 }
 
 func (h *Handler) CreateBook(
@@ -156,7 +157,7 @@ func (h *Handler) CreateBook(
 		CoverURL:    req.CoverUrl,
 		Description: req.Description,
 	}
-	if series := seriesFromProto(
+	if series := protomap.SeriesFromProto(
 		req.SeriesName, req.SeriesPosition,
 	); series != nil {
 		ext.SeriesName = series.Name

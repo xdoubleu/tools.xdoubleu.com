@@ -25,6 +25,15 @@ func newBooksMCPSession(t *testing.T, role models.Role) *mcp.ClientSession {
 
 func newBooksMCPSessionAs(t *testing.T, user *models.User) *mcp.ClientSession {
 	t.Helper()
+	return newBooksMCPSessionCtx(t, user, false)
+}
+
+// newBooksMCPSessionCtx optionally hands handlers an already-canceled context
+// so every service call fails.
+func newBooksMCPSessionCtx(
+	t *testing.T, user *models.User, canceled bool,
+) *mcp.ClientSession {
+	t.Helper()
 	ctx := context.Background()
 
 	//nolint:exhaustruct // only Name/Version identify the test server
@@ -36,6 +45,11 @@ func newBooksMCPSessionAs(t *testing.T, user *models.User) *mcp.ClientSession {
 		) (mcp.Result, error) {
 			if user != nil {
 				ctx = context.WithValue(ctx, constants.UserContextKey, *user)
+			}
+			if canceled && method == "tools/call" {
+				var cancel context.CancelFunc
+				ctx, cancel = context.WithCancel(ctx)
+				cancel()
 			}
 			return next(ctx, method, req)
 		}
@@ -214,4 +228,37 @@ func TestMCPLibraryTools_OwnFileAndDevice(t *testing.T) {
 	res = callBooksTool(t, session, "books_search_external",
 		map[string]any{"query": "dune"})
 	assert.False(t, res.IsError, toolText(res))
+}
+
+func TestMCPTools_ServiceErrorsSurface(t *testing.T) {
+	user := models.User{
+		ID: userID, Email: "u@example.com", Role: models.RoleAdmin,
+		AppAccess: []string{"books"}, WriteAccess: nil, PrincipalID: "", HasMFA: false,
+		DisplayName: "",
+	}
+	session := newBooksMCPSessionCtx(t, &user, true)
+	id := uuid.NewString()
+
+	calls := map[string]map[string]any{
+		"books_get_library":                 {},
+		"books_get_books_progress":          {},
+		"books_search_library":              {"query": "x"},
+		"books_get_series":                  {"name": "x"},
+		"books_get_external_book":           {"provider": "nope", "provider_id": "1"},
+		"books_get_reading_state":           {"book_id": id},
+		"books_list_resync_proposals":       {},
+		"books_get_book_sources":            {"book_id": id},
+		"books_get_source_stats":            {},
+		"books_list_books_in_exact_sources": {"sources": []string{"unicat"}},
+		"books_find_duplicates":             {},
+		"books_get_book_file":               {"book_id": id},
+		"books_get_kepub_status":            {"book_id": id},
+		"books_list_kobo_devices":           {},
+		"books_list_kobo_store_books":       {},
+		"books_get_kobo_device_logs":        {"id": id},
+	}
+	for name, args := range calls {
+		res := callBooksTool(t, session, name, args)
+		assert.True(t, res.IsError, name)
+	}
 }

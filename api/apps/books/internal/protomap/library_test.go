@@ -1,5 +1,5 @@
 //nolint:testpackage // testing unexported package-level helpers
-package connect
+package protomap
 
 import (
 	"testing"
@@ -18,7 +18,7 @@ import (
 func TestCoverProxyURL_UsesBooksPrefix(t *testing.T) {
 	bookID := uuid.New()
 
-	got := coverProxyURL(bookID, "http://api.test")
+	got := CoverProxyURL(bookID, "http://api.test")
 
 	assert.Equal(t, "http://api.test/books/api/cover/"+bookID.String(), got)
 }
@@ -33,7 +33,7 @@ func TestProtoBook_CoverURLUsesBooksPrefix(t *testing.T) {
 		UpdatedAt: time.Now(),
 	}
 
-	pb := protoBook(book, "http://api.test")
+	pb := ProtoBook(book, "http://api.test")
 
 	assert.Equal(t, "http://api.test/books/api/cover/"+book.ID.String(), pb.CoverUrl)
 }

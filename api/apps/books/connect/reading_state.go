@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/books/internal/models"
+	"tools.xdoubleu.com/apps/books/internal/protomap"
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
 	"tools.xdoubleu.com/internal/kit/constants"
 	"tools.xdoubleu.com/internal/kit/contexttools"
@@ -93,7 +94,7 @@ func (h *Handler) GetReadingState(
 	if err != nil {
 		return nil, mapError(err)
 	}
-	return ReadingStateResponse(view), nil
+	return protomap.ReadingStateResponse(view), nil
 }
 
 // TranslateReadingPosition adds the forms GetReadingState would.
@@ -124,33 +125,9 @@ func (h *Handler) TranslateReadingPosition(
 	}
 	pos, page := h.services.Library.TranslatePosition(ctx, user.ID, bookID, *position)
 	return &booksv1.TranslateReadingPositionResponse{
-		Position:     readingPositionToProto(pos),
-		PhysicalPage: Int32FromInt(page),
+		Position:     protomap.ReadingPositionToProto(pos),
+		PhysicalPage: protomap.Int32FromInt(page),
 	}, nil
-}
-
-func readingPositionToProto(p models.ReadingPosition) *booksv1.ReadingPosition {
-	return &booksv1.ReadingPosition{
-		Href:   p.Href,
-		Offset: Int32FromInt(p.Offset),
-		Page:   Int32FromInt(p.Page),
-	}
-}
-
-func readingStateToProto(state *models.BookReadingState) *booksv1.BookReadingStateData {
-	out := &booksv1.BookReadingStateData{
-		Source:    state.Source,
-		Percent:   Int32FromInt(state.Percent),
-		Location:  stringPtr(state.Location),
-		UpdatedAt: state.UpdatedAt.Format(time.RFC3339),
-	}
-	if state.Position != nil {
-		out.Position = readingPositionToProto(*state.Position)
-	}
-	if state.ReadAt != nil {
-		out.ReadAt = state.ReadAt.UTC().Format(time.RFC3339)
-	}
-	return out
 }
 
 // readingPositionFromProto accepts nil, {href, offset >= 0} or {page >= 1}.

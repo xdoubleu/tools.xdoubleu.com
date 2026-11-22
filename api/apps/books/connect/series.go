@@ -2,13 +2,11 @@ package connect
 
 import (
 	"context"
-	"math"
 	"strings"
 
 	"connectrpc.com/connect/v2"
 
-	"tools.xdoubleu.com/apps/books/internal/models"
-	"tools.xdoubleu.com/apps/books/internal/services"
+	"tools.xdoubleu.com/apps/books/internal/protomap"
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
 	"tools.xdoubleu.com/internal/kit/constants"
 	"tools.xdoubleu.com/internal/kit/contexttools"
@@ -38,44 +36,5 @@ func (h *Handler) GetSeries(
 	if err != nil {
 		return nil, mapError(err)
 	}
-	return protoSeries(view, h.coverBaseURL), nil
-}
-
-func protoSeries(
-	view *services.SeriesView,
-	coverBaseURL string,
-) *booksv1.GetSeriesResponse {
-	entries := make([]*booksv1.SeriesEntry, len(view.Entries))
-	for i, e := range view.Entries {
-		entry := &booksv1.SeriesEntry{
-			Position: e.Position,
-		}
-		if e.UserBook != nil {
-			entry.UserBook = ProtoUserBook(*e.UserBook, coverBaseURL)
-		}
-		if e.External != nil {
-			entry.External = protoExternalBook(*e.External)
-		}
-		entries[i] = entry
-	}
-	return &booksv1.GetSeriesResponse{
-		Name:                view.Name,
-		Total:               int32FromIntPtr(view.Total),
-		Entries:             entries,
-		ExternalUnavailable: view.ExternalUnavailable,
-	}
-}
-
-// seriesFromProto trims the name (empty means no series) and drops a
-// position that isn't a finite non-negative number.
-func seriesFromProto(name string, position *float64) *models.BookSeries {
-	name = strings.TrimSpace(name)
-	if name == "" {
-		return nil
-	}
-	if position != nil &&
-		(*position < 0 || math.IsNaN(*position) || math.IsInf(*position, 0)) {
-		position = nil
-	}
-	return &models.BookSeries{Name: name, Position: position, Total: nil}
+	return protomap.SeriesResponse(view, h.coverBaseURL), nil
 }
