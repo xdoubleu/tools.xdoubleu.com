@@ -11,6 +11,7 @@ type Repositories struct {
 	Settings *SettingsRepository
 	Linked   *LinkedPullRequestsRepository
 	Routines *RoutinesRepository
+	Chats    *ChatsRepository
 }
 
 func New(db postgres.DB) *Repositories {
@@ -23,5 +24,6 @@ func New(db postgres.DB) *Repositories {
 		Settings: &SettingsRepository{db: db},
 		Linked:   &LinkedPullRequestsRepository{db: db},
 		Routines: &RoutinesRepository{db: db},
+		Chats:    &ChatsRepository{db: db},
 	}
 }

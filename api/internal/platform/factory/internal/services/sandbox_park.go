@@ -166,7 +166,7 @@ func (s *JobService) resume(ctx context.Context, t *models.Task) error {
 	}
 	last := jobs[i]
 	if _, err = s.jobs.Create(ctx, models.Job{
-		ID: uuid.Nil, TaskID: t.ID, TaskNumber: 0, RepoID: last.RepoID,
+		ID: uuid.Nil, Kind: "", TaskID: t.ID, TaskNumber: 0, RepoID: last.RepoID,
 		Harness: "", Model: "", Prompt: imageResumePrompt,
 		Status: "", Branch: last.Branch, SessionID: "", Outcome: "",
 		ParentJobID: &last.ID, PRURL: "", RunnerID: nil, PRState: "", PRCI: "",

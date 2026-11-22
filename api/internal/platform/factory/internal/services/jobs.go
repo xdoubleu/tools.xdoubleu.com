@@ -43,6 +43,7 @@ type JobService struct {
 	settings SettingsStore
 	linked   LinkedPullRequestStore
 	routines RoutineStore
+	chats    ChatStore
 	// imageDigest is nil when parked tasks are never resumed.
 	imageDigest DigestSource
 	// alertedOffline is the queued job the offline-runner notice was last sent for,
@@ -136,7 +137,7 @@ func (s *JobService) Run(
 	}
 
 	job, err := s.jobs.Create(ctx, models.Job{
-		ID: uuid.Nil, TaskID: taskID, TaskNumber: 0, Routine: "", RepoID: repo.ID,
+		ID: uuid.Nil, Kind: "", TaskID: taskID, TaskNumber: 0, Routine: "", RepoID: repo.ID,
 		Harness: "", Model: "",
 		Prompt: promptFor(task), Status: "", Branch: branchFor(task),
 		SessionID: "", Outcome: "", ParentJobID: nil, PRURL: "", RunnerID: nil,
@@ -413,12 +414,32 @@ func (s *JobService) requeueLimited(
 		prompt, parent = limitContinuation, &job.ID
 	}
 	_, err = s.jobs.Create(ctx, models.Job{
-		ID: uuid.Nil, TaskID: job.TaskID, TaskNumber: 0, Routine: "", RepoID: job.RepoID,
-		Harness: "", Model: "", Prompt: prompt, Status: "",
-		Branch: job.Branch, SessionID: "", Outcome: "", ParentJobID: parent,
-		PRURL: "", RunnerID: nil, PRState: "", PRCI: "", PRReview: "",
-		CreatedBy: systemAuthor, CreatedAt: time.Time{}, StartedAt: nil,
-		Limited: false, LimitResetsAt: nil, LastCheckIn: nil, FinishedAt: nil,
+		ID:            uuid.Nil,
+		Kind:          "",
+		TaskID:        job.TaskID,
+		TaskNumber:    0,
+		Routine:       "",
+		RepoID:        job.RepoID,
+		Harness:       "",
+		Model:         "",
+		Prompt:        prompt,
+		Status:        "",
+		Branch:        job.Branch,
+		SessionID:     "",
+		Outcome:       "",
+		ParentJobID:   parent,
+		PRURL:         "",
+		RunnerID:      nil,
+		PRState:       "",
+		PRCI:          "",
+		PRReview:      "",
+		CreatedBy:     systemAuthor,
+		CreatedAt:     time.Time{},
+		StartedAt:     nil,
+		Limited:       false,
+		LimitResetsAt: nil,
+		LastCheckIn:   nil,
+		FinishedAt:    nil,
 	})
 	return err == nil, err
 }
@@ -523,6 +544,12 @@ func (s *JobService) ExpireLost(ctx context.Context) error {
 	}
 	var failures []error
 	for i := range lost {
+		if lost[i].IsChat() {
+			// Best effort: a session that already stopped has nothing to close.
+			_, _ = s.chats.StopForJob(ctx, lost[i].ID,
+				"The runner stopped checking in, so the chat was ended.")
+			continue
+		}
 		if lost[i].IsRoutine() {
 			s.say.say(ctx, ":x: Routine "+lost[i].Routine+
 				" was lost: the runner stopped checking in.")
@@ -570,12 +597,32 @@ func (s *JobService) pickUp(ctx context.Context) error {
 		return s.blockPickup(ctx, next.TaskID, err.Error())
 	}
 	_, err = s.jobs.Create(ctx, models.Job{
-		ID: uuid.Nil, TaskID: next.TaskID, TaskNumber: 0, Routine: "", RepoID: repo.ID,
-		Harness: "", Model: "", Prompt: promptFor(approved), Status: "",
-		Branch: branchFor(approved), SessionID: "", Outcome: "", ParentJobID: nil,
-		PRURL: "", RunnerID: nil, PRState: "", PRCI: "", PRReview: "",
-		CreatedBy: autoPickupAuthor, CreatedAt: time.Time{}, StartedAt: nil,
-		Limited: false, LimitResetsAt: nil, LastCheckIn: nil, FinishedAt: nil,
+		ID:            uuid.Nil,
+		Kind:          "",
+		TaskID:        next.TaskID,
+		TaskNumber:    0,
+		Routine:       "",
+		RepoID:        repo.ID,
+		Harness:       "",
+		Model:         "",
+		Prompt:        promptFor(approved),
+		Status:        "",
+		Branch:        branchFor(approved),
+		SessionID:     "",
+		Outcome:       "",
+		ParentJobID:   nil,
+		PRURL:         "",
+		RunnerID:      nil,
+		PRState:       "",
+		PRCI:          "",
+		PRReview:      "",
+		CreatedBy:     autoPickupAuthor,
+		CreatedAt:     time.Time{},
+		StartedAt:     nil,
+		Limited:       false,
+		LimitResetsAt: nil,
+		LastCheckIn:   nil,
+		FinishedAt:    nil,
 	})
 	if err != nil {
 		return err

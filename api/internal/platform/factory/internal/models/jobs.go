@@ -24,9 +24,20 @@ func (s JobStatus) Finished() bool {
 	return s == JobSucceeded || s == JobFailed || s == JobCancelled || s == JobLost
 }
 
+// JobKind tells a task's or routine's job from a chat session's.
+type JobKind string
+
+const (
+	JobKindTask JobKind = "task"
+	// JobKindChat is a chat session's job: created running, pinned to a runner.
+	JobKindChat JobKind = "chat"
+)
+
 // Job is one run of a harness on a task, on the runner's Mac.
 type Job struct {
 	ID uuid.UUID
+	// Kind is empty on a job to create, which makes it a task job.
+	Kind JobKind
 	// TaskID is uuid.Nil for a routine's job, which has no task.
 	TaskID uuid.UUID
 	// Routine names the routine a task-less job runs; empty for a task's job.
@@ -63,6 +74,11 @@ type Job struct {
 	StartedAt   *time.Time
 	LastCheckIn *time.Time
 	FinishedAt  *time.Time
+}
+
+// IsChat reports whether the job holds a chat session's runner slot.
+func (j *Job) IsChat() bool {
+	return j.Kind == JobKindChat
 }
 
 // IsRoutine reports whether the job belongs to a routine, not a task.
@@ -113,3 +129,62 @@ type FailureCounts struct {
 	UnverifiedOutcome int
 	StuckPullRequests int
 }
+
+// ChatState is where a chat session stands.
+type ChatState string
+
+const (
+	// ChatIdle waits for the person's next message.
+	ChatIdle ChatState = "idle"
+	// ChatWorking is the harness at work on a message.
+	ChatWorking ChatState = "working"
+	// ChatAsking waits for the person to answer a question the harness asked.
+	ChatAsking  ChatState = "asking"
+	ChatStopped ChatState = "stopped"
+)
+
+// ChatSession is an interactive session between a person and a harness on one
+// runner.
+type ChatSession struct {
+	ID     uuid.UUID
+	RepoID uuid.UUID
+	// TaskID is uuid.Nil for a session about no task.
+	TaskID  uuid.UUID
+	Harness Harness
+	// RunnerID is the runner the session is pinned to.
+	RunnerID uuid.UUID
+	// JobID is the chat job that holds the runner's slot.
+	JobID uuid.UUID
+	State ChatState
+	// Branch is the worktree branch the session commits to.
+	Branch string
+	// Report is what the session left behind when it stopped.
+	Report    string
+	LastSeq   int
+	CreatedBy string
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	StoppedAt *time.Time
+}
+
+// ChatEvent is one numbered entry of a chat session's transcript.
+type ChatEvent struct {
+	SessionID uuid.UUID
+	Seq       int
+	Kind      string
+	Payload   string
+	CreatedAt time.Time
+}
+
+// ChatEventInput is an event to append; the store numbers it.
+type ChatEventInput struct {
+	Kind    string
+	Payload string
+}
+
+// The kinds of event the service itself writes; the runner adds its own.
+const (
+	ChatEventMessage = "user_message"
+	ChatEventAnswer  = "user_answer"
+	ChatEventStopped = "stopped"
+)

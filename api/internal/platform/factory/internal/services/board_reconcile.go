@@ -132,7 +132,7 @@ func (s *JobService) requeue(
 		return false, nil
 	}
 	next := models.Job{
-		ID: uuid.Nil, TaskID: task.ID, TaskNumber: 0, RepoID: last.RepoID,
+		ID: uuid.Nil, Kind: "", TaskID: task.ID, TaskNumber: 0, RepoID: last.RepoID,
 		Harness: "", Model: "", Prompt: last.Prompt, Status: "",
 		Branch: last.Branch, SessionID: "", Outcome: "",
 		ParentJobID: last.ParentJobID, PRURL: "", RunnerID: nil, PRState: "",
