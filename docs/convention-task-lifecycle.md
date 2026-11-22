@@ -22,7 +22,7 @@ boundary.
 
 `make factory/finish` (`scripts/factory_finish.sh`) is the job's finish step: it
 runs lint, diff coverage, the web build, proto checks and `make lint/docs` for the
-modules changed since `origin/main`, marks the docker and macOS gates "not run (CI
+modules changed since `origin/main` (the proto checks use the local plugins, `make proto/check/local` and `npm run generate:check:local`, since the sandbox can't reach buf.build), marks the docker and macOS gates "not run (CI
 checks it)", and prints the `Checks:` line to end the outcome with.
 
 A job whose blocker is cleared (its sandbox fix shipped, or the dependency
