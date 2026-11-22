@@ -1,4 +1,4 @@
-package feeds
+package connect
 
 import (
 	"context"
@@ -40,7 +40,7 @@ func protoFilterRule(r models.FilterRule) *feedsv1.FilterRule {
 	}
 }
 
-func (h *feedsConnectHandler) ListFilterRules(
+func (h *Handler) ListFilterRules(
 	ctx context.Context,
 	_ *feedsv1.ListFilterRulesRequest,
 ) (*feedsv1.ListFilterRulesResponse, error) {
@@ -49,7 +49,7 @@ func (h *feedsConnectHandler) ListFilterRules(
 		return nil, cerr
 	}
 
-	rules, err := h.app.Services.Feeds.ListFilterRules(ctx, user.ID)
+	rules, err := h.feeds.ListFilterRules(ctx, user.ID)
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -61,7 +61,7 @@ func (h *feedsConnectHandler) ListFilterRules(
 	return &feedsv1.ListFilterRulesResponse{Rules: out}, nil
 }
 
-func (h *feedsConnectHandler) CreateFilterRule(
+func (h *Handler) CreateFilterRule(
 	ctx context.Context,
 	req *feedsv1.CreateFilterRuleRequest,
 ) (*feedsv1.CreateFilterRuleResponse, error) {
@@ -79,7 +79,7 @@ func (h *feedsConnectHandler) CreateFilterRule(
 		feedID = &parsed
 	}
 
-	rule, err := h.app.Services.Feeds.CreateFilterRule(
+	rule, err := h.feeds.CreateFilterRule(
 		ctx, user.ID, feedID, filterRuleKinds[req.Kind], req.Value,
 	)
 	if err != nil {
@@ -90,7 +90,7 @@ func (h *feedsConnectHandler) CreateFilterRule(
 	}, nil
 }
 
-func (h *feedsConnectHandler) DeleteFilterRule(
+func (h *Handler) DeleteFilterRule(
 	ctx context.Context,
 	req *feedsv1.DeleteFilterRuleRequest,
 ) (*feedsv1.DeleteFilterRuleResponse, error) {
@@ -106,7 +106,7 @@ func (h *feedsConnectHandler) DeleteFilterRule(
 		)
 	}
 
-	if err = h.app.Services.Feeds.DeleteFilterRule(ctx, user.ID, ruleID); err != nil {
+	if err = h.feeds.DeleteFilterRule(ctx, user.ID, ruleID); err != nil {
 		return nil, mapError(err)
 	}
 	return &feedsv1.DeleteFilterRuleResponse{}, nil

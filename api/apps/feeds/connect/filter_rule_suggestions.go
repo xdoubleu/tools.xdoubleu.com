@@ -1,4 +1,4 @@
-package feeds
+package connect
 
 import (
 	"context"
@@ -21,7 +21,7 @@ func protoFilterRuleSuggestion(
 	}
 }
 
-func (h *feedsConnectHandler) GetFilterRuleSuggestions(
+func (h *Handler) GetFilterRuleSuggestions(
 	ctx context.Context,
 	_ *feedsv1.GetFilterRuleSuggestionsRequest,
 ) (*feedsv1.GetFilterRuleSuggestionsResponse, error) {
@@ -30,7 +30,7 @@ func (h *feedsConnectHandler) GetFilterRuleSuggestions(
 		return nil, cerr
 	}
 
-	suggestions, err := h.app.Services.Feeds.GetFilterRuleSuggestions(ctx, user.ID)
+	suggestions, err := h.feeds.GetFilterRuleSuggestions(ctx, user.ID)
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -44,7 +44,7 @@ func (h *feedsConnectHandler) GetFilterRuleSuggestions(
 	}, nil
 }
 
-func (h *feedsConnectHandler) DismissFilterRuleSuggestion(
+func (h *Handler) DismissFilterRuleSuggestion(
 	ctx context.Context,
 	req *feedsv1.DismissFilterRuleSuggestionRequest,
 ) (*feedsv1.DismissFilterRuleSuggestionResponse, error) {
@@ -57,7 +57,7 @@ func (h *feedsConnectHandler) DismissFilterRuleSuggestion(
 		return nil, cerr
 	}
 
-	if err := h.app.Services.Feeds.DismissFilterRuleSuggestion(
+	if err := h.feeds.DismissFilterRuleSuggestion(
 		ctx, user.ID, feedID, req.Category,
 	); err != nil {
 		return nil, mapError(err)

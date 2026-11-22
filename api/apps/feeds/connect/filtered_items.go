@@ -1,4 +1,4 @@
-package feeds
+package connect
 
 import (
 	"context"
@@ -6,7 +6,7 @@ import (
 	feedsv1 "tools.xdoubleu.com/gen/feeds/v1"
 )
 
-func (h *feedsConnectHandler) RestoreFeedItem(
+func (h *Handler) RestoreFeedItem(
 	ctx context.Context,
 	req *feedsv1.RestoreFeedItemRequest,
 ) (*feedsv1.RestoreFeedItemResponse, error) {
@@ -19,7 +19,7 @@ func (h *feedsConnectHandler) RestoreFeedItem(
 		return nil, cerr
 	}
 
-	item, err := h.app.Services.Feeds.RestoreItem(ctx, user.ID, itemID)
+	item, err := h.feeds.RestoreItem(ctx, user.ID, itemID)
 	if err != nil {
 		return nil, mapError(err)
 	}

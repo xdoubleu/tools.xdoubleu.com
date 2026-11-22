@@ -18,10 +18,9 @@ import (
 	"github.com/mmcdole/gofeed"
 
 	"tools.xdoubleu.com/apps/feeds/internal/models"
-	"tools.xdoubleu.com/apps/feeds/internal/repositories"
 	"tools.xdoubleu.com/internal/kit/threading"
 	"tools.xdoubleu.com/internal/kit/webfetch"
-	"tools.xdoubleu.com/internal/platform/account"
+	sharedmodels "tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/platform/mailer"
 	"tools.xdoubleu.com/internal/platform/notifications"
 )
@@ -62,29 +61,31 @@ const quietMinGap = 48 * time.Hour
 type FeedService struct {
 	logger        *slog.Logger
 	background    *threading.Background
-	feeds         *repositories.FeedsRepository
-	items         *repositories.ItemsRepository
-	filterRules   *repositories.FilterRulesRepository
+	feeds         feedsStore
+	items         itemsStore
+	filterRules   filterRulesStore
 	webFetch      webfetch.Client
 	inboundDomain string
 	notifications *notifications.Service
-	users         *account.AppUsersRepository
+	users         userLookup
 	webURL        string
+	mail          ReceivedMail
 }
 
 // NewFeedService constructs a FeedService. An empty inboundDomain disables
-// CreateEmail.
+// CreateEmail; a nil mail disables fetching inbound email bodies.
 func NewFeedService(
 	logger *slog.Logger,
 	background *threading.Background,
-	feeds *repositories.FeedsRepository,
-	items *repositories.ItemsRepository,
-	filterRules *repositories.FilterRulesRepository,
+	feeds feedsStore,
+	items itemsStore,
+	filterRules filterRulesStore,
 	webFetchClient webfetch.Client,
 	inboundDomain string,
 	notifications *notifications.Service,
-	users *account.AppUsersRepository,
+	users userLookup,
 	webURL string,
+	mail ReceivedMail,
 ) *FeedService {
 	return &FeedService{
 		logger:        logger,
@@ -97,6 +98,7 @@ func NewFeedService(
 		notifications: notifications,
 		users:         users,
 		webURL:        webURL,
+		mail:          mail,
 	}
 }
 
@@ -217,6 +219,38 @@ func (s *FeedService) Create(
 	return feed, nil
 }
 
+// ErrEmailFeedHasURL is returned when an email feed is created with a URL.
+var ErrEmailFeedHasURL = errors.New("url must be empty for an email feed")
+
+// NewFeed is a CreateFeed request. Kind is a models.FeedSource* value; any
+// other value creates an RSS/Atom feed.
+type NewFeed struct {
+	Kind  string
+	URL   string
+	Title string
+}
+
+// CreateFeed creates a feed of in.Kind. InboundAddress is set only for an
+// email feed, whose address is never available again.
+func (s *FeedService) CreateFeed(
+	ctx context.Context,
+	userID string,
+	in NewFeed,
+) (feed *models.Feed, inboundAddress string, err error) {
+	switch in.Kind {
+	case models.FeedSourceEmail:
+		if in.URL != "" {
+			return nil, "", ErrEmailFeedHasURL
+		}
+		return s.CreateEmail(ctx, userID, in.Title)
+	case models.FeedSourceScrape:
+		feed, err = s.CreateScrape(ctx, userID, in.URL)
+	default:
+		feed, err = s.Create(ctx, userID, in.URL, in.Title)
+	}
+	return feed, "", err
+}
+
 // CreateEmail mints an inbound email alias and stores the feed. The returned
 // plaintext address is never available again (only its hash is stored).
 func (s *FeedService) CreateEmail(
@@ -256,18 +290,10 @@ func (s *FeedService) CreateEmail(
 	return feed, address, nil
 }
 
-// GetByInboundTokenHash resolves an email feed by its token's SHA-256 hash.
-func (s *FeedService) GetByInboundTokenHash(
-	ctx context.Context,
-	hash string,
-) (*models.Feed, error) {
-	return s.feeds.GetByInboundTokenHash(ctx, hash)
-}
-
-// IngestEmail ingests one inbound email as an item, deduped on Resend's
+// ingestEmail ingests one inbound email as an item, deduped on Resend's
 // messageID. Failures are recorded on the feed rather than returned, since
 // the webhook must still be acked so Resend doesn't retry forever.
-func (s *FeedService) IngestEmail(
+func (s *FeedService) ingestEmail(
 	ctx context.Context,
 	feed models.Feed,
 	messageID, subject, htmlBody string,
@@ -297,9 +323,9 @@ func (s *FeedService) IngestEmail(
 	s.recordFetchResultRaw(ctx, feed.ID, nil, nil, nil)
 }
 
-// RecordEmailFetchFailure records a failure to retrieve an inbound email's
-// body, surfaced like an IngestEmail failure.
-func (s *FeedService) RecordEmailFetchFailure(
+// recordEmailFetchFailure records a failure to retrieve an inbound email's
+// body, surfaced like an ingestEmail failure.
+func (s *FeedService) recordEmailFetchFailure(
 	ctx context.Context,
 	feedID uuid.UUID,
 	fetchErr error,
@@ -455,6 +481,21 @@ func (s *FeedService) pollFeedSpan(ctx context.Context, feed models.Feed) error 
 // ListUnhealthy returns every failing feed across all users.
 func (s *FeedService) ListUnhealthy(ctx context.Context) ([]models.Feed, error) {
 	return s.feeds.ListUnhealthy(ctx)
+}
+
+// ErrAdminRequired is returned when a non-admin calls an admin-only method.
+var ErrAdminRequired = errors.New("admin access required")
+
+// ListUnhealthyAs is ListUnhealthy for an admin caller; nil or any other
+// role gets ErrAdminRequired.
+func (s *FeedService) ListUnhealthyAs(
+	ctx context.Context,
+	caller *sharedmodels.User,
+) ([]models.Feed, error) {
+	if caller == nil || caller.Role != sharedmodels.RoleAdmin {
+		return nil, ErrAdminRequired
+	}
+	return s.ListUnhealthy(ctx)
 }
 
 // pollFeed fetches one feed (conditional GET) and ingests new items.

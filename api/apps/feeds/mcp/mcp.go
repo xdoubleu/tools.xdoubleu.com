@@ -1,4 +1,5 @@
-package feeds
+// Package mcp exposes the feeds app's read RPCs as MCP tools.
+package mcp
 
 import (
 	"context"
@@ -6,6 +7,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"google.golang.org/protobuf/proto"
 
+	"tools.xdoubleu.com/apps/feeds/connect"
 	feedsv1 "tools.xdoubleu.com/gen/feeds/v1"
 	"tools.xdoubleu.com/internal/platform/mcptools"
 )
@@ -21,42 +23,45 @@ type mcpListItemsArgs struct {
 	FilteredOnly bool   `json:"filtered_only,omitempty" jsonschema:"only items filter rules hide, with the rule; ignores unread_only"`
 }
 
-// RegisterMCPTools exposes the app's read-only RPCs as MCP tools, scoped to
-// the caller.
-func (a *Feeds) RegisterMCPTools(srv *mcp.Server) {
-	h := &feedsConnectHandler{app: a}
+// Register exposes the app's read-only RPCs as MCP tools, scoped to the
+// caller.
+func Register(srv *mcp.Server, h *connect.Handler) {
+	t := tools{h: h}
 
 	mcptools.AddReadTool(srv, mcpAppName, "feeds_list_feeds",
 		"The user's RSS/Atom and email-newsletter feed subscriptions.",
-		h.mcpListFeeds)
+		t.mcpListFeeds)
 	mcptools.AddReadTool(srv, mcpAppName, "feeds_list_items",
 		"Items ingested by any of the user's feeds, or with filtered_only "+
 			"the ones filter rules hide. Article bodies are omitted — use "+
 			"feeds_get_item for one item's content.",
-		h.mcpListItems)
+		t.mcpListItems)
 	mcptools.AddReadTool(srv, mcpAppName, "feeds_get_item",
-		"One feed item including its extracted article body.", h.mcpGetItem)
+		"One feed item including its extracted article body.", t.mcpGetItem)
 	mcptools.AddReadTool(srv, mcpAppName, "feeds_list_filter_rules",
 		"The user's rules hiding feed items by category or title, each with "+
-			"how many items it filtered.", h.mcpListFilterRules)
+			"how many items it filtered.", t.mcpListFilterRules)
 	mcptools.AddReadTool(srv, mcpAppName, "feeds_get_filter_rule_suggestions",
 		"Feed categories the user rarely reads (at least 10 items in the last "+
 			"90 days, at most 10% read), not yet covered by a rule or "+
 			"dismissed, as candidate category filter rules.",
-		h.mcpGetFilterRuleSuggestions)
+		t.mcpGetFilterRuleSuggestions)
 }
+
+// tools adapts the ConnectRPC handler to MCP tool signatures.
+type tools struct{ h *connect.Handler }
 
 type mcpGetItemArgs struct {
 	ItemID string `json:"item_id" jsonschema:"the item's id"`
 }
 
-func (h *feedsConnectHandler) mcpListFeeds(
+func (t tools) mcpListFeeds(
 	ctx context.Context, _ mcptools.NoArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.ListFeeds(ctx, &feedsv1.ListFeedsRequest{}))
+	return mcptools.Unwrap(t.h.ListFeeds(ctx, &feedsv1.ListFeedsRequest{}))
 }
 
-func (h *feedsConnectHandler) mcpListItems(
+func (t tools) mcpListItems(
 	ctx context.Context, args mcpListItemsArgs,
 ) (proto.Message, error) {
 	req := &feedsv1.ListFeedItemsRequest{
@@ -68,27 +73,27 @@ func (h *feedsConnectHandler) mcpListItems(
 	if args.FeedID != "" {
 		req.FeedId = proto.String(args.FeedID)
 	}
-	return mcptools.Unwrap(h.ListFeedItems(ctx, req))
+	return mcptools.Unwrap(t.h.ListFeedItems(ctx, req))
 }
 
-func (h *feedsConnectHandler) mcpGetItem(
+func (t tools) mcpGetItem(
 	ctx context.Context, args mcpGetItemArgs,
 ) (proto.Message, error) {
 	return mcptools.Unwrap(
-		h.GetFeedItem(ctx, &feedsv1.GetFeedItemRequest{ItemId: args.ItemID}),
+		t.h.GetFeedItem(ctx, &feedsv1.GetFeedItemRequest{ItemId: args.ItemID}),
 	)
 }
 
-func (h *feedsConnectHandler) mcpListFilterRules(
+func (t tools) mcpListFilterRules(
 	ctx context.Context, _ mcptools.NoArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.ListFilterRules(ctx, &feedsv1.ListFilterRulesRequest{}))
+	return mcptools.Unwrap(t.h.ListFilterRules(ctx, &feedsv1.ListFilterRulesRequest{}))
 }
 
-func (h *feedsConnectHandler) mcpGetFilterRuleSuggestions(
+func (t tools) mcpGetFilterRuleSuggestions(
 	ctx context.Context, _ mcptools.NoArgs,
 ) (proto.Message, error) {
 	return mcptools.Unwrap(
-		h.GetFilterRuleSuggestions(ctx, &feedsv1.GetFilterRuleSuggestionsRequest{}),
+		t.h.GetFilterRuleSuggestions(ctx, &feedsv1.GetFilterRuleSuggestionsRequest{}),
 	)
 }
