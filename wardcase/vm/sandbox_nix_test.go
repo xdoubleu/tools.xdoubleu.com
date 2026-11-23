@@ -17,6 +17,7 @@ import (
 
 const stubNix = `#!/bin/sh
 echo "$*" >> "$CALLS"
+[ "$1" != store ] || echo "gc: cannot access gc-socket" >&2
 [ "$1" = develop ] || exit 0
 while [ "$1" != --command ]; do shift; done
 shift
@@ -113,6 +114,21 @@ func TestTheStoreIsCollectedOnlyPastItsCap(t *testing.T) {
 
 	assert.Empty(t, under, "a second session under the cap reuses the store as it is")
 	assert.Equal(t, "store gc\n", over)
+}
+
+func TestTheStoresCollectionLogsToAFileNotTheJobsOutput(t *testing.T) {
+	root := t.TempDir()
+	require.NoError(t, os.MkdirAll(filepath.Join(root, "store"), 0o755))
+	require.NoError(t, os.WriteFile(filepath.Join(root, "store", "big"),
+		make([]byte, 4096), 0o600))
+
+	calls, out := nixSession(t, root, t.TempDir(), "", nixBox(t, 1024))
+
+	assert.Equal(t, "store gc\n", calls)
+	assert.NotContains(t, out, "gc-socket")
+	logged, err := os.ReadFile(filepath.Join(root, "var", "log", "wardcase-gc.log"))
+	require.NoError(t, err)
+	assert.Contains(t, string(logged), "gc: cannot access gc-socket")
 }
 
 func TestTheFirstSessionSeedsAnEmptyStoreAndLaterOnesKeepIt(t *testing.T) {
