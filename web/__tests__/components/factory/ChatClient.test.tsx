@@ -113,6 +113,23 @@ describe('ChatClient', () => {
     expect(screen.getAllByText('Claude Code').length).toBeGreaterThan(1)
   })
 
+  it('filters the list by repo and shows a paused chat', () => {
+    setup({
+      chats: [
+        chat({ id: 'c1', repoId: 'r1', harness: 2, state: 'paused', taskId: 't1' }),
+        chat({ id: 'c2', repoId: 'gone', harness: 2, state: 'idle' })
+      ]
+    })
+    render(<ChatClient />)
+    expect(screen.getByText('Paused')).toBeInTheDocument()
+    expect(screen.getByText(/linked to a task/)).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText('Filter by repo'), { target: { value: 'r1' } })
+    expect(screen.queryByText('Ready')).not.toBeInTheDocument()
+    expect(screen.getByText('Paused')).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText('Filter by repo'), { target: { value: 'none' } })
+    expect(screen.getByText('No chats for this repo.')).toBeInTheDocument()
+  })
+
   it('shows an error loading chats', () => {
     setup({ error: true })
     render(<ChatClient />)
