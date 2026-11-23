@@ -85,5 +85,5 @@ wardcase adds two read-only routes for Nix flakes, `/nixcache/` (cache.nixos.org
 
 ## Update: sandbox fixes target the flake
 
-A sandbox-fix branch changes only the repo's `flake.nix`/`flake.lock` (a new flake if
-none); the task waits on that PR, not a new job image.
+A sandbox-fix branch changes only the repo's `flake.nix`/`flake.lock`; the task
+waits on that PR, not a new image.
