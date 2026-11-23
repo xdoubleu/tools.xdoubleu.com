@@ -375,7 +375,7 @@ func (l *jobLoop) sandboxFix(text string, res result) (result, *step) {
 		}
 	}
 	if l.sandboxOpened && noWork {
-		// The Containerfile fix is the job's output; the job branch has none.
+		// The flake fix is the job's output; the job branch has none.
 		res.succeeded, res.retry, res.failure, res.cause = true, false, "", ""
 		res.outcome = text
 	}

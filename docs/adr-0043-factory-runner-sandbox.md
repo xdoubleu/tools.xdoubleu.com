@@ -82,3 +82,8 @@ host firewall rule on the network's subnet, or revisit this ADR), Anthropic answ
 on credential intermediation, or `container` changes its networking or CLI.
 
 wardcase adds two read-only routes for Nix flakes, `/nixcache/` (cache.nixos.org) and `/nixsrc/` (codeload.github.com) → [adr-0055](adr-0055-wardcase-harness-sandbox.md).
+
+## Update: sandbox fixes target the flake
+
+A sandbox-fix branch changes only the repo's `flake.nix`/`flake.lock`; the task
+waits on that PR, not a new image.

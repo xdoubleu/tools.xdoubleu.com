@@ -47,8 +47,7 @@ a manual merge until the host arms them.
   ([`convention-feature-review-policy`](convention-feature-review-policy.md)); the Ready
   move and the author checks above are the only human gates before they ship.
 - **Standing exception: a sandbox-gap fix.** A job may also push a second
-  branch `agent/sandbox-<slug>` that changes only `factory-runner/Containerfile` (gone since jobs run on wardcase's base image; tools now come from `flake.nix`), <!-- historical -->
-  every install pinned to a version. The runner opens its own auto-merging PR
+  branch `agent/sandbox-<slug>` that changes only the target repo's `flake.nix` and `flake.lock` (the lock is the pin; a repo without a flake gets a new one). The runner opens its own auto-merging PR
   without a human Ready move; any other change in that branch is refused.
   A refused fix goes back to the agent with the reason, and a valid fix is the
   job's output when its own branch has no commits.

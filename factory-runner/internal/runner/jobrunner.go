@@ -140,13 +140,10 @@ const preamble = `You are running unattended in a sandbox with no network ` +
 	`agent/sandbox-<slug> created with "git switch -c agent/sandbox-<slug> ` +
 	`origin/<the repository's default branch>" (never off your job branch, which ` +
 	`would carry its files), commit a change ` +
-	`to factory-runner/Containerfile only, pinning every install to an ` +
-	`explicit version (apt pkg=ver, npm name@x.y.z, pip name==x.y.z, or a ` +
-	`versioned download URL; every package of an install you edit, ` +
-	`ca-certificates too). Only these instructions are allowed: FROM (pinned ` +
-	`tag), ARG, ENV, LABEL, WORKDIR, USER, EXPOSE, CMD, ENTRYPOINT and RUN; ` +
-	`COPY and ADD are refused, as are command substitution ($(...) or ` +
-	`backticks, so no arch="$(uname -m)") and piping into a shell. ` +
+	`to the repository's flake.nix and flake.lock only (create flake.nix with a ` +
+	`devShell holding the tool when the repository has none; the lock is the ` +
+	`pin), and say in the "Blocked:" line that the repository's flake lacks the ` +
+	`tool. ` +
 	`Switch back to your job branch, and add the ` +
 	`line "Sandbox-fix: agent/sandbox-<slug>" to the outcome. The runner ` +
 	`opens that as its own pull request and refuses any other change; a ` +
@@ -171,8 +168,8 @@ const preamble = `You are running unattended in a sandbox with no network ` +
 	`When the only thing that blocked a task is fixed (your sandbox fix ` +
 	`shipped, or the task it waited on landed), move it to Ready yourself ` +
 	`with factory_move_task and say why; Needs you is only for decisions a ` +
-	`person must make. A task parked while a new job image ships resumes on ` +
-	`its own. ` +
+	`person must make. A task parked while a new job image ships, or while its ` +
+	`sandbox-fix PR merges, resumes on its own. ` +
 	`Before coding, check the task fits one job: a migration plus new RPCs ` +
 	`plus a new UI, or several apps, does not (a 60-minute timeout with ` +
 	`nothing pushed is the cost). If it is clearly larger, file slices that ` +

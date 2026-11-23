@@ -143,3 +143,24 @@ func TestAParkedTaskWithAJobAlreadyQueuedIsOnlyUnparked(t *testing.T) {
 	assert.Equal(t, id, claimed.TaskId)
 	assert.Nil(t, env.claim(t))
 }
+
+func TestAFlakeGapWaitsOnItsSandboxTaskNotOnANewImage(t *testing.T) {
+	env, feed := parkEnv(t)
+	task := env.newTask(t, "needs shellcheck "+uuid.NewString())
+	env.run(t, task.Id)
+	claimed := env.claim(t)
+	_, err := env.runner.CompleteJob(bearer(env.token), &factoryv1.CompleteJobRequest{
+		JobId: claimed.Id, SessionId: "sess-" + claimed.Id,
+		Blocked: "no shellcheck: the repo has no flake.nix " + uuid.NewString(),
+	})
+	require.NoError(t, err)
+
+	got := env.task(t, task.Id)
+	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_BACKLOG, got.Task.Status)
+	assert.NotContains(t, got.Task.Labels, "waiting-on-sandbox")
+	assert.Contains(t, lastComment(got), "Waiting on T-")
+
+	feed.set(uuid.NewString())
+	require.NoError(t, env.app.ResumeParkedNow(context.Background()))
+	assert.Nil(t, env.claim(t), "a new image does not resume it")
+}

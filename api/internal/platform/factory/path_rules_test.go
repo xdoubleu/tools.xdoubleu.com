@@ -39,7 +39,7 @@ func TestAMergedPullRequestGoesToDoneByItsChangedFiles(t *testing.T) {
 		"tests":     {"api/apps/books/foo_test.go", "x.test.ts", "a/b.test.tsx"},
 		"ci":        {".github/workflows/main.yml", "tools/x.sh", "api/Makefile"},
 		"factory":   {"factory-runner/main.go", "api/internal/platform/factory/app.go"},
-		"container": {"factory-runner/Containerfile"},
+		"container": {"factory-runner/Containerfile", "flake.nix"},
 		"mixed":     {"docs/a.md", "x/y_test.go", "factory-runner/z.go", ".github/ci.yml"},
 		"factory gen": {"proto/factory/v1/runners.proto", "api/gen/factory/v1/runners.pb.go",
 			"web/lib/gen/factory/v1/runners_pb.ts"},

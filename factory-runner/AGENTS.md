@@ -28,7 +28,7 @@ The server is untrusted; each job needs UUID ids, an allowlisted repo, an `agent
 
 - A job whose pushed branch exists restores it; only new commits are host-checked.
 - The agent owns the clone; host git there runs with `-c core.hooksPath=/dev/null` and a clean config.
-- `Sandbox-fix:` branches publish only as pinned `Containerfile`-only PRs ([exception](../docs/convention-unattended-agent-trust.md)).
+- `Sandbox-fix:` branches publish only as flake-only PRs ([exception](../docs/convention-unattended-agent-trust.md)).
 - Each attempt is host-checked: real commits, no secret. A pass is pushed and opened as a PR → [`adr-0045`](../docs/adr-0045-factory-github-app.md).
 - The device token lives only in the keychain.
 

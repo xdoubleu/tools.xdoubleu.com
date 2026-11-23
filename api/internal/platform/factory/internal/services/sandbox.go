@@ -147,10 +147,19 @@ func (s *JobService) ReportBlocked(
 	}
 	sandbox, _, err := tasks.ReportSandbox(ctx, actor, job.RepoID, title, body)
 	if err == nil && !job.IsRoutine() && sandbox.ID != job.TaskID {
+		if flakeGapPattern.MatchString(blocked) {
+			// A new job image can't help; the repo's flake fix merging does.
+			return s.backlogWaiting(ctx, job,
+				[]string{"T-" + strconv.FormatInt(sandbox.Number, 10)})
+		}
 		err = s.park(ctx, job, sandbox)
 	}
 	return err
 }
+
+// flakeGapPattern matches a Blocked line about a repo's flake.nix: a tool gap
+// the repo's own flake fixes, not the job image.
+var flakeGapPattern = regexp.MustCompile(`(?i)\bflake(\.nix|\.lock)?\b`)
 
 // noImagePattern matches an agent saying that no change to the job image fixes
 // its gap.

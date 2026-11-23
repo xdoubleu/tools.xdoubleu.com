@@ -101,9 +101,9 @@ func (p *PhaseTimes) AddWatch(b, g, e time.Time)     { p.addWatch(b, g, e) }
 func (p *PhaseTimes) Summary(d time.Duration) string { return p.summary(d) }
 func (p *PhaseTimes) SetAgent(d time.Duration)       { p.agent = d }
 
-// ContainerfileProblemForTest runs the sandbox-fix diff check.
-func ContainerfileProblemForTest(files []string, oldText, newText string) error {
-	return containerfileProblem(files, oldText, newText)
+// FlakeProblemForTest runs the sandbox-fix diff check.
+func FlakeProblemForTest(files []string) error {
+	return flakeProblem(files)
 }
 
 // RetriesOf is a finished job's repeated attempts by cause.
