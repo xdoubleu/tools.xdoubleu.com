@@ -41,7 +41,8 @@ func selfCheckedRule(file string) string {
 	case hasAnySuffix(file, "_test.go", ".test.ts", ".test.tsx"):
 		return "tests"
 	case path.Base(file) == "Makefile" || strings.HasPrefix(file, ".github/") ||
-		strings.HasPrefix(file, "tools/") || path.Base(file) == "Containerfile":
+		strings.HasPrefix(file, "tools/") || path.Base(file) == "Containerfile" ||
+		path.Base(file) == "flake.nix" || path.Base(file) == "flake.lock":
 		return "CI/build"
 	case hasAnyPrefix(file, "factory-runner/", "api/internal/platform/factory/",
 		"api/internal/platform/githubapp/"):
