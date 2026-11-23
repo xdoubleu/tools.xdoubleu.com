@@ -2,7 +2,7 @@
 """
 Resolve the web/ TS/TSX lines changed vs origin/main, for scoping a
 diff-only StrykerJS `--mutate` run (see `web/scripts/test-mutation-diff.sh`).
-Reuses `diff_coverage_ts.py`'s `get_changed_lines`.
+Reuses `diff_lines.py`'s `get_changed_lines`.
 
 Usage:
     python3 ../tools/diff_files_ts.py
@@ -18,7 +18,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from diff_coverage_ts import ALL_LINES, get_changed_lines, run_git  # noqa: E402
+from diff_lines import ALL_LINES, get_changed_lines, is_ts_source, run_git  # noqa: E402
 
 
 def ranges(lines):
@@ -53,7 +53,7 @@ def main():
     repo_root = repo_root_out.strip()
 
     project_rel = os.path.relpath(project_dir, repo_root)
-    for entry in mutate_entries(get_changed_lines(repo_root, project_rel)):
+    for entry in mutate_entries(get_changed_lines(repo_root, project_rel, is_ts_source)):
         print(entry)
 
 

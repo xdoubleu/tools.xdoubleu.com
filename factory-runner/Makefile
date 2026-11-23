@@ -19,7 +19,7 @@ tools/mutation:
 # Mirrors api/'s target: gremlins on Go packages changed vs origin/main, mutants
 # scoped to changed lines; fails if a changed line's mutant is SKIPPED.
 test/mutation/diff: tools/mutation
-	@pkgs=$$(python3 ../tools/diff_packages_go.py); \
+	@pkgs=$$(python3 ../tools/diff_packages_go.py) || exit 1; \
 	if [ -z "$$pkgs" ]; then \
 		echo "No changed Go packages vs origin/main -- nothing to mutation-test."; \
 	else \

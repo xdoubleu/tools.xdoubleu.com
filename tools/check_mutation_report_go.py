@@ -23,7 +23,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from diff_coverage_go import ALL_LINES, get_changed_lines, run_git  # noqa: E402
+from diff_lines import ALL_LINES, get_changed_lines, is_go_source, run_git  # noqa: E402
 
 
 def changed_mutants(pkg, report, changed_lines, status):
@@ -47,7 +47,7 @@ def main():
 
     repo_root = run_git(['rev-parse', '--show-toplevel'], project_dir).strip()
     project_rel = os.path.relpath(project_dir, repo_root)
-    changed_lines = get_changed_lines(repo_root, project_rel)
+    changed_lines = get_changed_lines(repo_root, project_rel, is_go_source)
 
     with open(report_path) as f:
         report = json.load(f)
