@@ -266,6 +266,10 @@ type JobRunner struct {
 	// limitUntil is the unix time in nanoseconds a usage limit holds back new
 	// claims until, shared by every running job.
 	limitUntil atomic.Int64
+	// fault is why the VM would not start, and faultUntil (unix nanoseconds) when
+	// claims resume; a fault is the runner's, not the job's.
+	fault      atomic.Pointer[string]
+	faultUntil atomic.Int64
 	// running holds the ids of the jobs in flight, whose directories the sweep
 	// leaves alone.
 	running sync.Map
@@ -394,9 +398,30 @@ func (r *JobRunner) holdClaims(t time.Time) {
 	}
 }
 
-// claimsHeld says whether a usage limit still holds back new claims.
+// claimsHeld says whether a usage limit or a runner fault still holds back new claims.
 func (r *JobRunner) claimsHeld(now time.Time) bool {
-	return now.UnixNano() < r.limitUntil.Load()
+	return now.UnixNano() < max(r.limitUntil.Load(), r.faultUntil.Load())
+}
+
+// holdFault stops new claims until t because the VM could not start, which
+// every job would meet.
+func (r *JobRunner) holdFault(reason string, t time.Time) {
+	r.fault.Store(&reason)
+	r.faultUntil.Store(t.UnixNano())
+}
+
+// clearFault notes that a VM started again.
+func (r *JobRunner) clearFault() {
+	r.fault.Store(nil)
+	r.faultUntil.Store(0)
+}
+
+// Fault is why claims are held for a VM that would not start; empty when none is.
+func (r *JobRunner) Fault() string {
+	if p := r.fault.Load(); p != nil && r.now().UnixNano() < r.faultUntil.Load() {
+		return *p
+	}
+	return ""
 }
 
 // Next claims one job and runs it to the end, reporting whether there was one.

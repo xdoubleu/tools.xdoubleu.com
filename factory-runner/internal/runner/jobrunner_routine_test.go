@@ -117,7 +117,7 @@ func (noVM) Open(context.Context, runner.SandboxSpec) (runner.SandboxSession, er
 	return nil, errors.New("no vm")
 }
 
-func TestAJobWhoseVMCannotOpenFailsWithTheReason(t *testing.T) {
+func TestAJobWhoseVMCannotOpenPausesTheRunnerAndRequeuesIt(t *testing.T) {
 	for name, job := range map[string]*runner.ClaimedJob{
 		"a routine": newRoutineJob(),
 		"a task":    newJob(),
@@ -132,7 +132,11 @@ func TestAJobWhoseVMCannotOpenFailsWithTheReason(t *testing.T) {
 
 		got := env.api.done()[0]
 		assert.False(t, got.succeeded, name)
-		assert.Contains(t, got.outcome, "The sandbox could not run the job: no vm", name)
+		assert.True(t, got.limited, name)
+		assert.Empty(t, got.blocked, name)
+		assert.Contains(t, got.outcome, "The runner could not start a VM: no vm", name)
+		assert.Contains(t, env.runner.Fault(), "no vm", name)
+		assert.True(t, env.runner.LimitUntil().IsZero(), name)
 	}
 }
 

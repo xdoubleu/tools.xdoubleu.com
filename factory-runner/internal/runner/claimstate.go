@@ -140,6 +140,8 @@ type ClaimSources struct {
 	Jobs func() []string
 	// LimitUntil is when a usage limit lifts; zero when none holds.
 	LimitUntil func() time.Time
+	// Fault is why VMs would not start; empty when they do.
+	Fault func() string
 }
 
 // SetClaimSources tells the control where the job loop's numbers come from.
@@ -188,6 +190,10 @@ func (c *Control) ClaimState() ClaimState {
 		slices.Sort(s.Jobs)
 		s.Running = len(s.Jobs)
 	}
+	var fault string
+	if src.Fault != nil {
+		fault = src.Fault()
+	}
 	var limit time.Time
 	if src.LimitUntil != nil {
 		limit = src.LimitUntil()
@@ -207,6 +213,8 @@ func (c *Control) ClaimState() ClaimState {
 		s.Reason = "restarting after an update"
 	case draining:
 		s.Reason = "draining for a newer release"
+	case fault != "":
+		s.Reason = "runner fault: " + fault
 	case c.now().Before(limit):
 		s.Reason = "usage limit until " + limit.Local().Format("15:04")
 	case s.Running >= s.Max:

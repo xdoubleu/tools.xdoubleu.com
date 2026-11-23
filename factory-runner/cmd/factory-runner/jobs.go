@@ -108,6 +108,7 @@ func newJobRunner(
 	if a.control != nil {
 		a.control.SetClaimSources(runner.ClaimSources{
 			Max: jobs.MaxJobsNow, Jobs: jobs.RunningJobs, LimitUntil: jobs.LimitUntil,
+			Fault: jobs.Fault,
 		})
 	}
 	jobs.MakeRoom(ctx, func(ctx context.Context) { pruneImages(ctx, cfg, exec, log) })

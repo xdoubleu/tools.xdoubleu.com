@@ -35,6 +35,14 @@ without the server being able to push arbitrary code.
   ([adr-0055](adr-0055-wardcase-harness-sandbox.md)) when it is absent. No job
   image is built from this repo and no manifest is staged into `downloads/`; the
   toolchain comes from the checkout's flake.
+- **Release order: wardcase image, then the runner.** Push a `wardcase-v*` tag
+  (`build-wardcase-image.yml` publishes the image) and make the ghcr package public,
+  then build the runner. The runner build on `main` fails when no tag exists or the
+  image can't be pulled anonymously, so a release never ships `dev`.
+- **A VM that won't start pauses the runner.** A missing image or failed VM start is
+  the runner's fault, not the job's: the job is handed back like a usage limit (task
+  requeued, no Needs you, no "Sandbox:" task), claims pause for ten minutes and the
+  status shows "runner fault".
 - **Update only when idle.** Hourly, if no job runs, the runner reads the release
   file; if it differs it downloads the binary and signature beside the heartbeat
   loop (so a slow download never makes it look offline), verifies, checks it is

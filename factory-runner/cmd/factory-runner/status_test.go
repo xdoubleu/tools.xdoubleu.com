@@ -25,7 +25,7 @@ func TestStatusSaysWhyTheRunnerDoesOrDoesNotClaim(t *testing.T) {
 	control.SetJobsOff("pull failed: no space left")
 	control.SetClaimSources(runner.ClaimSources{
 		Max: func() int { return 2 }, Jobs: func() []string { return []string{"j1"} },
-		LimitUntil: nil,
+		LimitUntil: nil, Fault: nil,
 	})
 	control.RecordQueued(2)
 	require.NoError(t, runner.WriteStatus(e.app.home, control.Report()))
