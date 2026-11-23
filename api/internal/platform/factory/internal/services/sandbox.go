@@ -25,7 +25,7 @@ func IsSandboxTask(t *models.Task) bool {
 
 // ReportSandbox files a sandbox problem: it comments on the open task the title
 // names (T-n), else the repo's open sandbox task with the same or a close title,
-// else creates one (straight into Ready, as a bug). created is false for a repeat.
+// else creates one (Ready as a bug, but Backlog when the runner files it). created is false for a repeat.
 func (s *TaskService) ReportSandbox(
 	ctx context.Context,
 	actor models.Actor,
@@ -65,6 +65,10 @@ var waitingPattern = regexp.MustCompile(
 // isSandboxGap reports whether a Blocked line can be a sandbox gap: one naming
 // tasks or work that does not exist yet is a dependency.
 func isSandboxGap(blocked string) bool {
+	if strings.HasPrefix(blocked, "The agent exited with status") ||
+		strings.HasPrefix(blocked, "The sandbox could not run the job") {
+		return false
+	}
 	return !taskRefPattern.MatchString(blocked) && !waitingPattern.MatchString(blocked)
 }
 

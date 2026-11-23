@@ -56,8 +56,9 @@ func TestAProviderOutageThatStaysReportsWhatTheHarnessSaid(t *testing.T) {
 	got := p.api.done()
 	require.Len(t, got, 1)
 	assert.False(t, got[0].succeeded)
-	assert.Contains(t, got[0].blocked, "The agent exited with status 1.")
-	assert.Contains(t, got[0].blocked, "API Error: No internet route",
+	assert.Empty(t, got[0].blocked)
+	assert.Contains(t, got[0].outcome, "The agent exited with status 1.")
+	assert.Contains(t, got[0].outcome, "API Error: No internet route",
 		"the block names the failure, so its report can be acted on")
-	assert.Contains(t, got[0].blocked, "EHOSTUNREACH")
+	assert.Contains(t, got[0].outcome, "EHOSTUNREACH")
 }

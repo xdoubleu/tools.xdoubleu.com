@@ -166,7 +166,7 @@ func TestAGapNoImageChangeFixesIsABugTaskNotAParkedTask(t *testing.T) {
 		}
 	}
 	require.Len(t, bugs, 1, "the second report reuses the open task")
-	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_READY, bugs[0].Status)
+	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_BACKLOG, bugs[0].Status)
 	assert.NotContains(t, bugs[0].Labels, "factory-sandbox")
 }
 
