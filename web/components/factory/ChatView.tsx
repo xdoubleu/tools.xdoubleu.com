@@ -40,6 +40,20 @@ export default function ChatView({ id, chat, onLeave }: ChatViewProps) {
     bottom.current?.scrollIntoView?.({ block: 'end' })
   }, [items, transcript.items[items - 1]])
 
+  // The page also grows after a render (the shell's header mounts late): stay at the bottom unless scrolled up.
+  useEffect(() => {
+    if (typeof ResizeObserver === 'undefined') return
+    const root = document.documentElement
+    let height = root.scrollHeight
+    const observer = new ResizeObserver(() => {
+      const atBottom = window.innerHeight + window.scrollY >= height - 64
+      height = root.scrollHeight
+      if (atBottom) bottom.current?.scrollIntoView?.({ block: 'end' })
+    })
+    observer.observe(document.body)
+    return () => observer.disconnect()
+  }, [])
+
   const question = pendingAsk(transcript.items)
 
   const answerAsk = async (askId: number, text: string) => {
@@ -114,26 +128,33 @@ export default function ChatView({ id, chat, onLeave }: ChatViewProps) {
           </Button>
         </Card>
       )}
-      <div ref={bottom} />
       {!stopped && (
         <form
           onSubmit={(e) => void submit(e)}
           className="sticky bottom-[calc(var(--tab-bar-height)+env(safe-area-inset-bottom))] mt-4 space-y-2 bg-bg py-2 lg:bottom-0"
         >
           {failed && <Alert tone="danger">That didn&apos;t go through. Try again.</Alert>}
-          <Textarea
-            aria-label={current === 'asking' ? 'Your answer' : 'Message'}
-            rows={2}
-            value={text}
-            disabled={!canSend || pending}
-            placeholder={canSend ? 'Message the agent' : stateLabel(current)}
-            onChange={(e) => setText(e.target.value)}
-          />
-          <Button type="submit" disabled={!canSend || pending || text.trim() === ''}>
-            {current === 'asking' ? 'Answer' : 'Send'}
-          </Button>
+          <div className="flex items-end gap-2">
+            <Textarea
+              aria-label={current === 'asking' ? 'Your answer' : 'Message'}
+              rows={2}
+              className="flex-1"
+              value={text}
+              disabled={!canSend || pending}
+              placeholder={canSend ? 'Message the agent' : stateLabel(current)}
+              onChange={(e) => setText(e.target.value)}
+            />
+            <Button type="submit" disabled={!canSend || pending || text.trim() === ''}>
+              {current === 'asking' ? 'Answer' : 'Send'}
+            </Button>
+          </div>
         </form>
       )}
+      {/* After the composer, with the shell's bottom padding as margin, so the newest item clears it. */}
+      <div
+        ref={bottom}
+        className="scroll-mb-[calc(var(--tab-bar-height)+env(safe-area-inset-bottom)+1.5rem)] lg:scroll-mb-6"
+      />
       <ConfirmDialog
         open={closing}
         onOpenChange={setClosing}

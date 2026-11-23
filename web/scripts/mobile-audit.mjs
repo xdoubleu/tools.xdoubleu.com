@@ -145,13 +145,22 @@ function collect({ minTap, minGap, minInputFont, tolerance }) {
     })
   }
 
+  // The fixed or sticky layer a target sits in; content scrolls past those, so it is never crowded by them.
+  const layer = (el) => {
+    for (let n = el; n; n = n.parentElement) {
+      const { position } = getComputedStyle(n)
+      if (position === 'fixed' || position === 'sticky') return n
+    }
+    return null
+  }
   const crowded = []
-  const boxes = targets.map((el) => ({ el, r: el.getBoundingClientRect() }))
+  const boxes = targets.map((el) => ({ el, r: el.getBoundingClientRect(), layer: layer(el) }))
   for (let i = 0; i < boxes.length; i++) {
     for (let j = i + 1; j < boxes.length; j++) {
       const a = boxes[i]
       const b = boxes[j]
       if (a.el.contains(b.el) || b.el.contains(a.el)) continue
+      if (a.layer !== b.layer) continue
       const dx = Math.max(0, Math.max(a.r.left - b.r.right, b.r.left - a.r.right))
       const dy = Math.max(0, Math.max(a.r.top - b.r.bottom, b.r.top - a.r.bottom))
       if (dx === 0 && dy === 0) continue // overlapping/nested layouts, not a gap
