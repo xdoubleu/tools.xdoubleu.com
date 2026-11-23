@@ -3,7 +3,7 @@
 Resolve the set of api/ Go package directories changed vs origin/main, for
 scoping a diff-only `gremlins unleash` mutation-testing run (see
 `api/Makefile`'s `test/mutation/diff` target). Reuses
-`diff_coverage_go.py`'s `get_changed_lines`.
+`diff_lines.py`'s `get_changed_lines`.
 
 Usage:
     python3 ../tools/diff_packages_go.py
@@ -22,7 +22,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from diff_coverage_go import get_changed_lines, run_git  # noqa: E402
+from diff_lines import get_changed_lines, is_go_source, run_git  # noqa: E402
 
 
 def main():
@@ -35,7 +35,7 @@ def main():
     repo_root = repo_root_out.strip()
 
     project_rel = os.path.relpath(project_dir, repo_root)
-    changed_lines = get_changed_lines(repo_root, project_rel)
+    changed_lines = get_changed_lines(repo_root, project_rel, is_go_source)
 
     dirs = set()
     for path in changed_lines:

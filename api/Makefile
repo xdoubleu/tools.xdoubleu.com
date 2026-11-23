@@ -209,7 +209,7 @@ test/pprof:
 # mutant is still SKIPPED and lists NOT COVERED ones. Serial because test packages share Postgres
 # schemas. .gremlins.yaml excludes gen/ and *_mock.go.
 test/mutation/diff: tools/mutation
-	@pkgs=$$(python3 ../tools/diff_packages_go.py); \
+	@pkgs=$$(python3 ../tools/diff_packages_go.py) || exit 1; \
 	if [ -z "$$pkgs" ]; then \
 		echo "No changed Go packages vs origin/main -- nothing to mutation-test."; \
 	else \

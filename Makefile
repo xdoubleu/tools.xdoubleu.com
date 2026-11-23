@@ -81,3 +81,4 @@ lint/docs:
 # Exercise scripts/check_feature_gate.sh against a synthetic repo.
 lint/docs/test:
 	./scripts/test_check_feature_gate.sh
+	./scripts/test_mutation_diff.sh
