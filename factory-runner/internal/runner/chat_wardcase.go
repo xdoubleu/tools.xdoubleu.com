@@ -39,7 +39,7 @@ func (r *JobRunner) openWardcaseChat(
 		URL:  remote(job.RepoOwner, job.RepoName),
 		Base: job.DefaultBranch, Branch: job.Branch, Token: spec.Token,
 		Harness: session.OpenCode, OpenCodeModel: spec.Model,
-		Board: nil, MCP: spec.MCP,
+		Board: nil, MCP: spec.MCP, Order: nil,
 		OnEvent: func(e acp.Event) { forwardEvent(spec.OnEvent, e) },
 	}
 	if job.MCPClientID != "" && job.MCPClientSecret != "" {

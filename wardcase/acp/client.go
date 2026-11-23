@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"time"
 )
 
 // ProtocolVersion is the ACP major version wardcase speaks.
@@ -19,7 +20,8 @@ const (
 // Event is something the agent reported while a prompt ran.
 type Event struct {
 	// Kind is "update" for a session/update, "permission" for a permission request
-	// the client answered.
+	// the client answered, "limited" for a usage limit and "switch" for a move to
+	// another harness.
 	Kind string
 	// Update is the session/update's `update` object, as the agent sent it.
 	Update json.RawMessage
@@ -27,6 +29,11 @@ type Event struct {
 	// and Option the option that was chosen ("" when none allowed it).
 	Tool   json.RawMessage
 	Option string
+	// Resets is when a "limited" event's usage limit lifts, zero if unknown, and
+	// Harness the harness a "switch" event continues on. wardcase adds both kinds
+	// itself; the agent never sends them.
+	Resets  time.Time
+	Harness string
 }
 
 // UpdateKind is the update's `sessionUpdate` tag, such as "agent_message_chunk".
@@ -88,7 +95,10 @@ func (c *Client) handle(
 		if err := json.Unmarshal(params, &p); err != nil {
 			return nil, err //nolint:wrapcheck // a JSON-RPC error to the agent
 		}
-		c.emit(Event{Kind: "update", Update: p.Update, Tool: nil, Option: ""})
+		c.emit(Event{
+			Kind: "update", Update: p.Update, Tool: nil, Option: "",
+			Resets: time.Time{}, Harness: "",
+		})
 		return nil, nil //nolint:nilnil // a notification has no result
 	case MethodRequestPermission:
 		return c.permission(params), nil
@@ -120,7 +130,8 @@ func (c *Client) permission(params json.RawMessage) map[string]permissionOutcome
 			}
 		}
 	}
-	c.emit(Event{Kind: "permission", Update: nil, Tool: p.ToolCall, Option: chosen})
+	c.emit(Event{Kind: "permission", Update: nil, Tool: p.ToolCall, Option: chosen,
+		Resets: time.Time{}, Harness: ""})
 	if chosen == "" {
 		cancelled := permissionOutcome{Outcome: StopCancelled, OptionID: ""}
 		return map[string]permissionOutcome{outcomeKey: cancelled}

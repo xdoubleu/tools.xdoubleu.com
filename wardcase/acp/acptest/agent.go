@@ -31,13 +31,16 @@ type Agent struct {
 	RequireAuth bool
 	// Authenticated is the method id the client signed in with.
 	Authenticated string
+	// LimitError, when set, is the error every prompt is answered with, as a
+	// harness answers at its usage limit.
+	LimitError string
 }
 
 // New returns an Agent.
 func New() *Agent {
 	return &Agent{
 		mu: sync.Mutex{}, outcomes: nil, prompts: nil, cancel: make(chan struct{}, 1),
-		Options: nil, RequireAuth: false, Authenticated: "",
+		Options: nil, RequireAuth: false, Authenticated: "", LimitError: "",
 	}
 }
 
@@ -130,7 +133,11 @@ func (a *Agent) prompt(
 	}
 	a.mu.Lock()
 	a.prompts = append(a.prompts, text)
+	limit := a.LimitError
 	a.mu.Unlock()
+	if limit != "" {
+		return nil, &acp.RPCError{Code: -32603, Message: limit, Data: nil}
+	}
 	if text == "wait" {
 		select {
 		case <-a.cancel:

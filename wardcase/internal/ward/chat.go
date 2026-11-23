@@ -35,6 +35,9 @@ type ChatRequest struct {
 	// MCP are further MCP servers the session reaches through the proxy, beside
 	// the config's.
 	MCP []vm.MCPServer
+	// Order, when set, replaces the config's harness order for the offer at a usage
+	// limit (Chat.Limit).
+	Order []string
 	// OnEvent receives each session/update, and each permission request wardcase
 	// allowed. It is called one event at a time.
 	OnEvent func(acp.Event)
@@ -64,6 +67,15 @@ type Chat struct {
 	closeOnce sync.Once
 	left      Leftover
 	removed   bool
+
+	req     ChatRequest
+	harness string
+	dir     string
+	tape    *tape
+
+	mu    sync.Mutex
+	limit *Limit
+	seed  string
 }
 
 // OpenChat starts the worktree and VM, runs the harness's ACP server in it and
@@ -73,6 +85,9 @@ func (r *Runner) OpenChat(ctx context.Context, req ChatRequest) (*Chat, error) {
 		return nil, fmt.Errorf("%s has no ACP server for a chat", req.Harness)
 	}
 	rr := *r
+	if len(req.Order) > 0 {
+		rr.Config.Order = req.Order
+	}
 	if req.OpenCodeModel != "" {
 		rr.Config.OpenCode.Model = req.OpenCodeModel
 	}
@@ -91,7 +106,7 @@ func (r *Runner) OpenChat(ctx context.Context, req ChatRequest) (*Chat, error) {
 	if err != nil {
 		return nil, err
 	}
-	chat, err := rr.startChat(ctx, sess, req)
+	chat, err := rr.startChat(ctx, sess, req, newTape())
 	if err != nil {
 		rr.finish(context.WithoutCancel(ctx), sess)
 		return nil, err
@@ -100,7 +115,7 @@ func (r *Runner) OpenChat(ctx context.Context, req ChatRequest) (*Chat, error) {
 }
 
 func (r *Runner) startChat(
-	ctx context.Context, sess session, req ChatRequest,
+	ctx context.Context, sess session, req ChatRequest, tp *tape,
 ) (*Chat, error) {
 	h, env, egress, err := r.harness(req.Harness)
 	if err != nil {
@@ -154,6 +169,8 @@ func (r *Runner) startChat(
 		r: r, sess: sess, box: box, client: nil, id: "", outcome: outcomeDir,
 		stdin: stdinW, stop: stop, attached: make(chan error, 1),
 		closeOnce: sync.Once{}, left: noLeftover(), removed: false,
+		req: req, harness: req.Harness, dir: dir, tape: tp,
+		mu: sync.Mutex{}, limit: nil, seed: "",
 	}
 	go func() {
 		_, attachErr := attacher.Attach(runCtx, h.ACP(), stdinR, stdoutW, false)
@@ -198,6 +215,9 @@ func (c *Chat) onEvent(next func(acp.Event)) func(acp.Event) {
 			fmt.Fprintf(c.r.Notes, "wardcase: allowed a tool call (%s): %s\n",
 				e.Option, e.Tool)
 		}
+		if e.Kind == "update" && e.UpdateKind() == "agent_message_chunk" {
+			c.tape.agentText(e.Text())
+		}
 		if next != nil {
 			next(e)
 		}
@@ -227,12 +247,6 @@ func (c *Chat) Branch() string { return c.sess.branch }
 
 // Path is the worktree the session works in.
 func (c *Chat) Path() string { return c.sess.path }
-
-// Prompt sends a prompt and returns the stop reason once the turn ends; the
-// updates reach ChatRequest.OnEvent meanwhile.
-func (c *Chat) Prompt(ctx context.Context, text string) (string, error) {
-	return c.client.Prompt(ctx, c.id, text)
-}
 
 // Cancel asks the agent to stop the turn in progress.
 func (c *Chat) Cancel() error { return c.client.Cancel(c.id) }

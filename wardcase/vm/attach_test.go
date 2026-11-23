@@ -133,3 +133,14 @@ func TestLimitInTextReadsBothForms(t *testing.T) {
 	hit, _ = vm.LimitInText("all good")
 	assert.False(t, hit)
 }
+
+func TestLimitInErrorReadsProviderRefusalsAndClaudesText(t *testing.T) {
+	for _, text := range []string{
+		"Claude AI usage limit reached|0", "Insufficient credits", `{"code":429}`,
+	} {
+		hit, _ := vm.LimitInError(text)
+		assert.True(t, hit, text)
+	}
+	hit, _ := vm.LimitInError("connection reset")
+	assert.False(t, hit)
+}

@@ -25,6 +25,9 @@ type ChatRequest struct {
 	// MCP servers by name, both reached through the egress proxy.
 	Board *Board
 	MCP   []vm.MCPServer
+	// Order is the harnesses to offer at a usage limit, in turn after Harness; those
+	// without an ACP server are skipped. Without it nothing is offered.
+	Order []string
 	// OnEvent receives every event, one at a time, in order.
 	OnEvent func(Event)
 }
@@ -46,7 +49,7 @@ func (s *Runner) Start(ctx context.Context, req ChatRequest) (*Chat, error) {
 			URL: req.URL, Base: req.Base, Branch: req.Branch, Token: req.Token,
 		},
 		Dir: "", Harness: req.Harness, OpenCodeModel: req.OpenCodeModel,
-		Board: req.Board, MCP: req.MCP, OnEvent: req.OnEvent,
+		Board: req.Board, MCP: req.MCP, Order: req.Order, OnEvent: req.OnEvent,
 	})
 	if err != nil {
 		return nil, err //nolint:wrapcheck // ward's errors name their step
@@ -64,6 +67,29 @@ func (c *Chat) Prompt(ctx context.Context, text string) (string, error) {
 // stop reason "cancelled".
 func (c *Chat) Cancel() error {
 	return c.c.Cancel() //nolint:wrapcheck // acp's errors name the method
+}
+
+// StopLimited is the stop reason Prompt returns when the harness stopped at its
+// usage limit.
+const StopLimited = ward.StopLimited
+
+// Limit is a usage limit a chat stopped at: who stopped, when it lifts (zero if
+// unknown) and the harness to offer next ("" when none is left).
+type Limit = ward.Limit
+
+// Limit is the usage limit the last Prompt stopped at, if it did. A "limited"
+// event carries it as the turn ends.
+func (c *Chat) Limit() (Limit, bool) { return c.c.Limit() }
+
+// Switch continues the chat on another harness in the same worktree, seeded with
+// a summary of the conversation; model is the OpenRouter model id for OpenCode.
+// A "switch" event marks the move.
+func (c *Chat) Switch(ctx context.Context, harness, model string) error {
+	if err := c.c.Switch(ctx, harness, model); err != nil {
+		return err //nolint:wrapcheck // ward's errors name their step
+	}
+	c.harness = harness
+	return nil
 }
 
 // Close ends the session, destroys the VM and returns the leftover report; a

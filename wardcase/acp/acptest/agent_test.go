@@ -55,3 +55,21 @@ func TestTheScriptedAgentRefusesASessionUntilAuthenticated(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "api-key", agent.AuthenticatedWith())
 }
+
+func TestTheScriptedAgentAnswersPromptsWithItsLimitError(t *testing.T) {
+	toAgentR, toAgentW := io.Pipe()
+	toClientR, toClientW := io.Pipe()
+	agent := acptest.New()
+	agent.LimitError = "usage limit reached"
+	go agent.Serve(context.Background(), toAgentR, toClientW)
+	client := acp.NewClient(toClientR, toAgentW, nil)
+	go func() { _ = client.Serve(context.Background()) }()
+	defer toAgentW.Close()
+
+	ctx := context.Background()
+	require.NoError(t, client.Initialize(ctx))
+	id, err := client.NewSession(ctx, "/work")
+	require.NoError(t, err)
+	_, err = client.Prompt(ctx, id, "hi")
+	require.ErrorContains(t, err, "usage limit reached")
+}
