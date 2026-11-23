@@ -112,7 +112,7 @@ const (
 // the printf format $mfmt (given the name and the proxy URL); empty if there are none.
 const mcpList = `list=""; sep=""
   if [ "${WARDCASE_MCP:-}" != off ]; then
-    list=$(printf "$mfmt" board "$WARDCASE_PROXY/mcp"); sep=,
+    list=$(printf "$mfmt" tools-apps "$WARDCASE_PROXY/mcp"); sep=,
   fi
   for n in ${WARDCASE_MCP_SERVERS:-}; do
     list="$list$sep$(printf "$mfmt" "$n" "$WARDCASE_PROXY/mcp-$n")"; sep=,

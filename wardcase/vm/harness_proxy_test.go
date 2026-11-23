@@ -101,9 +101,9 @@ func TestClaudeIsPointedAtTheProxyAndTheBoardThroughIt(t *testing.T) {
 		Servers map[string]server `json:"mcpServers"`
 	}
 	require.NoError(t, json.Unmarshal(got.config, &mcp), string(got.config))
-	assert.Equal(t, "http", mcp.Servers["board"].Type)
-	assert.Equal(t, proxyURL+"/mcp", mcp.Servers["board"].URL)
-	assert.Empty(t, mcp.Servers["board"].Headers, "the host adds the credential")
+	assert.Equal(t, "http", mcp.Servers["tools-apps"].Type)
+	assert.Equal(t, proxyURL+"/mcp", mcp.Servers["tools-apps"].URL)
+	assert.Empty(t, mcp.Servers["tools-apps"].Headers, "the host adds the credential")
 	assert.NotContains(t, mcp.Servers, "posthog", "servers are configured, not built in")
 }
 
@@ -179,8 +179,8 @@ func TestOpenCodeIsPointedAtOpenRouterAndTheBoardThroughTheProxy(t *testing.T) {
 	require.NoError(t, json.Unmarshal(got.config, &cfg), string(got.config))
 	assert.Equal(t, proxyURL+"/openrouter/v1", cfg.Provider["openrouter"].Options.BaseURL)
 	assert.Contains(t, cfg.Provider["openrouter"].Models, "vendor/model:free")
-	assert.Equal(t, "remote", cfg.MCP["board"].Type)
-	assert.Equal(t, proxyURL+"/mcp", cfg.MCP["board"].URL)
+	assert.Equal(t, "remote", cfg.MCP["tools-apps"].Type)
+	assert.Equal(t, proxyURL+"/mcp", cfg.MCP["tools-apps"].URL)
 	assert.NotContains(t, cfg.MCP, "posthog", "servers are configured, not built in")
 	assert.Contains(t, strings.Join(got.args, " "), "-m openrouter/vendor/model:free")
 }

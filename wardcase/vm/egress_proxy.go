@@ -74,7 +74,7 @@ type EgressConfig struct {
 // MCPServer is an MCP server the VM reaches through the proxy at /mcp-<Name>, with
 // no credential of its own: the proxy adds the bearer token.
 type MCPServer struct {
-	// Name is lower-case letters, digits and dashes, and is not "board".
+	// Name is lower-case letters, digits and dashes, and is not "tools-apps", the board's.
 	Name string
 	// URL is the server's fixed endpoint.
 	URL string
@@ -87,7 +87,7 @@ type MCPServer struct {
 
 // MCPServerName reports whether name can name an MCP server.
 func MCPServerName(name string) bool {
-	return mcpName.MatchString(name) && name != "board"
+	return mcpName.MatchString(name) && name != "tools-apps"
 }
 
 var mcpName = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,30}$`)
