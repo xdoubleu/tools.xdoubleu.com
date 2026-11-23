@@ -26,9 +26,9 @@ Gate on **lines changed vs `origin/main`**, locally and in CI. The test workflow
   are excluded.
 - Mutation testing (`make test/mutation/diff`, `npm run test:mutation:diff`,
   #1632) reuses the same diff scoping via `tools/diff_packages_go.py` /
-  `tools/diff_files_ts.py`, on their own `tools/diff_lines.py`; the module
+  `tools/diff_files_ts.py`, built on `tools/diff_lines.py`, since the module
   doesn't expose the changed-file list. `make lint/docs/test` runs them against
-  a scratch repo.
+  a scratch repo and checks that a helper error fails the targets.
 
 The gate's logic lives in its own module, `github.com/xdoubleu/diff-coverage`, so other repos
 (`check-in` first) can drop Codecov too. Threshold, base ref and include/exclude

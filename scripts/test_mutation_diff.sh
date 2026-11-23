@@ -30,4 +30,13 @@ printf '{"files":[]}' >"$tmp/r.json"
 (cd api && python3 "$ROOT_DIR/tools/check_mutation_report_go.py" ./pkg/a "$tmp/r.json" >/dev/null 2>&1)
 check "report checker imports" "$?" "0"
 
+# A failing helper must fail the make target, not read as "nothing changed".
+mkdir "$tmp/bin" && printf '#!/bin/sh\nexit 1\n' >"$tmp/bin/python3" && chmod +x "$tmp/bin/python3"
+for dir in api factory-runner; do
+  PATH="$tmp/bin:$PATH" make -s -C "$ROOT_DIR/$dir" -o tools/mutation test/mutation/diff >/dev/null 2>&1
+  check "$dir target fails closed" "$?" "2"
+done
+PATH="$tmp/bin:$PATH" bash "$ROOT_DIR/web/scripts/test-mutation-diff.sh" >/dev/null 2>&1
+check "web script fails closed" "$?" "1"
+
 exit $((fails > 0))
