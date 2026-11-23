@@ -106,6 +106,12 @@ func (g *Git) review(
 		}
 	}
 	span := from + ".." + to
+	if since != "" && g.commitCount(ctx, review, span) == 0 {
+		// A resume that only re-ran checks adds nothing: the branch's earlier
+		// work is what gets published, so it is the work that's checked.
+		from = "refs/heads/" + base
+		span = from + ".." + to
+	}
 	if err = g.hasChanges(ctx, review, span, from+"..."+to); err != nil {
 		return err
 	}
@@ -132,6 +138,19 @@ func plainGitDir(cloneDir string) error {
 		return fmt.Errorf("%w: the clone borrows objects from elsewhere", ErrHostCheck)
 	}
 	return nil
+}
+
+// commitCount is how many commits span holds, or -1 when git can't say.
+func (g *Git) commitCount(ctx context.Context, review, span string) int {
+	out, err := g.git(ctx, review, "rev-list", "--count", span)
+	if err != nil {
+		return -1
+	}
+	n, convErr := strconv.Atoi(strings.TrimSpace(string(out)))
+	if convErr != nil {
+		return -1
+	}
+	return n
 }
 
 // hasChanges refuses a branch with no commits, or whose commits add up to no
