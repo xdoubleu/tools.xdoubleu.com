@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"slices"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -19,7 +21,8 @@ const waitResumePrompt = "The tasks you were waiting on are merged. Update your 
 
 // ResumeWaiting resumes every Backlog task whose waited-on tasks have all merged:
 // a job continues its newest session on its branch, so the run that was approved
-// goes on. A task with no session goes to Needs you.
+// goes on. A task with no session goes to Needs you. A task split into slices has
+// nothing left to do once they merge: it goes to Done.
 func (s *JobService) ResumeWaiting(ctx context.Context) (int, error) {
 	ids, err := s.tasks.WaitOver(ctx)
 	if err != nil {
@@ -44,6 +47,9 @@ func (s *JobService) resumeWaiting(ctx context.Context, taskID uuid.UUID) error 
 	}
 	if hasActive(jobs) {
 		return s.tasks.SetWaitingOn(ctx, taskID, nil)
+	}
+	if done, splitErr := s.resolveSplit(ctx, taskID); done || splitErr != nil {
+		return splitErr
 	}
 	// Jobs are newest first: resume the newest session there is.
 	i := slices.IndexFunc(jobs, func(j models.Job) bool { return j.SessionID != "" })
@@ -70,4 +76,40 @@ func (s *JobService) resumeWaiting(ctx context.Context, taskID uuid.UUID) error 
 	return s.finishTask(ctx, taskID, systemAuthor,
 		"The tasks this one waited on are merged; it resumes on its branch.",
 		models.StatusInProgress)
+}
+
+// epicLabel prefixes the label a slice carries.
+const epicLabel = "epic:"
+
+// resolveSplit moves a task to Done when everything it waited on is a slice
+// filed after it (an epic: task), reporting whether it did.
+func (s *JobService) resolveSplit(ctx context.Context, taskID uuid.UUID) (bool, error) {
+	task, err := s.tasks.Get(ctx, taskID)
+	if err != nil {
+		return false, err
+	}
+	parts, err := s.tasks.WaitingOn(ctx, taskID)
+	if err != nil {
+		return false, err
+	}
+	if len(parts) == 0 {
+		return false, nil
+	}
+	refs := make([]string, 0, len(parts))
+	for i := range parts {
+		sl := &parts[i]
+		if !sl.CreatedAt.After(task.CreatedAt) || !isSlice(sl) {
+			return false, nil
+		}
+		refs = append(refs, "T-"+strconv.FormatInt(sl.Number, 10))
+	}
+	return true, s.finishTask(ctx, taskID, systemAuthor,
+		"Split into "+strings.Join(refs, ", ")+", all merged; nothing is left here.",
+		models.StatusDone)
+}
+
+func isSlice(t *models.Task) bool {
+	return slices.ContainsFunc(t.Labels, func(l string) bool {
+		return strings.HasPrefix(strings.ToLower(l), epicLabel)
+	})
 }

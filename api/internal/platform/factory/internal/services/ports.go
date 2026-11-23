@@ -84,6 +84,7 @@ type TaskStore interface {
 		t models.Task,
 		actor models.Actor,
 	) (*models.Task, error)
+	WaitingOn(ctx context.Context, id uuid.UUID) ([]models.Task, error)
 	WaitOver(ctx context.Context) ([]uuid.UUID, error)
 }
 

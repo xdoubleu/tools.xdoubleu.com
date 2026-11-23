@@ -85,3 +85,25 @@ func TestMovingAWaitingTaskEndsItsWait(t *testing.T) {
 	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_BACKLOG, env.task(t, id).Task.Status)
 	assert.Nil(t, env.claim(t))
 }
+
+func TestASplitTaskIsDoneOnceItsSlicesMerge(t *testing.T) {
+	env, _ := parkEnv(t)
+	task := env.newTask(t, "too big "+uuid.NewString())
+	env.run(t, task.Id)
+	claimed := env.claim(t)
+	slice := env.newLabelledTask(t, "slice "+uuid.NewString(), "epic:big")
+	_, err := env.runner.CompleteJob(bearer(env.token), &factoryv1.CompleteJobRequest{
+		JobId: claimed.Id, SessionId: "sess", WaitingOn: []string{slice.Id},
+	})
+	require.NoError(t, err)
+
+	require.NoError(t, env.app.ResumeParkedNow(context.Background()))
+	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_BACKLOG, env.task(t, task.Id).Task.Status)
+
+	setStatus(t, slice.Id, "done")
+	require.NoError(t, env.app.ResumeParkedNow(context.Background()))
+	got := env.task(t, task.Id)
+	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_DONE, got.Task.Status)
+	assert.Contains(t, lastComment(got), "Split into")
+	assert.Nil(t, env.claim(t))
+}
