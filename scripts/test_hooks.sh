@@ -349,57 +349,6 @@ printf '%s' "$out" | jq -e '.decision == "block"' > /dev/null 2>&1 &&
   pass "the same work blocks Stop outside a factory job" ||
   fail "the same work blocks Stop outside a factory job" "$out"
 
-# --- PostToolUse lint/docs hook -----------------------------------------
-LINTDOCS_HOOK="$ROOT_DIR/.claude/hooks/post-edit-lint-docs.sh"
-stub=$(mktemp -d)
-mkdir -p "$stub/scripts"
-printf '#!/usr/bin/env bash\necho "AGENTS.md: 2000 words, budget 1000"\nexit 1\n' > "$stub/scripts/lint_docs.sh"
-chmod +x "$stub/scripts/lint_docs.sh"
-out=$(jq -n --arg cwd "$stub" '{cwd:$cwd}' | "$LINTDOCS_HOOK")
-if printf '%s' "$out" | jq -e '.hookSpecificOutput.additionalContext | contains("budget 1000")' > /dev/null 2>&1; then
-  pass "lint/docs hook surfaces a failing check"
-else
-  fail "lint/docs hook surfaces a failing check" "$out"
-fi
-printf '#!/usr/bin/env bash\nexit 0\n' > "$stub/scripts/lint_docs.sh"
-out=$(jq -n --arg cwd "$stub" '{cwd:$cwd}' | "$LINTDOCS_HOOK")
-if [ -z "$out" ]; then
-  pass "lint/docs hook is silent when the check passes"
-else
-  fail "lint/docs hook is silent when the check passes" "$out"
-fi
-rm -rf "$stub"
-
-# --- lint_docs.sh comment check on untracked files ----------------------
-lintrepo=$(setup_repo lint-docs)
-mkdir -p "$lintrepo/scripts"
-cp "$ROOT_DIR/scripts/lint_docs.sh" "$lintrepo/scripts/"
-git -C "$lintrepo" add scripts && git -C "$lintrepo" commit -q -m script
-git -C "$lintrepo" update-ref refs/remotes/origin/main HEAD
-write_comment_file() {
-  { for _ in $(seq "$2"); do echo "// note"; done; echo "package x"; } > "$lintrepo/$1"
-}
-write_comment_file new.go 7
-out=$(BASE_REF=origin/main "$lintrepo/scripts/lint_docs.sh" 2>&1)
-if [ $? -ne 0 ] && printf '%s' "$out" | grep -q "new.go:1: 7-line comment block"; then
-  pass "lint_docs flags a long comment block in an untracked file"
-else
-  fail "lint_docs flags a long comment block in an untracked file" "$out"
-fi
-write_comment_file new.go 6
-if out=$(BASE_REF=origin/main "$lintrepo/scripts/lint_docs.sh" 2>&1); then
-  pass "lint_docs passes a 6-line comment block in an untracked file"
-else
-  fail "lint_docs passes a 6-line comment block in an untracked file" "$out"
-fi
-printf 'new.go\n' > "$lintrepo/.gitignore"
-write_comment_file new.go 7
-if out=$(BASE_REF=origin/main "$lintrepo/scripts/lint_docs.sh" 2>&1); then
-  pass "lint_docs ignores gitignored files"
-else
-  fail "lint_docs ignores gitignored files" "$out"
-fi
-
 echo "---"
 if [ "$fail_count" -eq 0 ]; then
   echo "All hook tests passed."

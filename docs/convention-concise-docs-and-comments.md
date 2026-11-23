@@ -1,6 +1,6 @@
 # Convention: concise docs and comments
 
-- Enforced by: `make lint/docs` (CI `docs-lint`, `finish-task`, Claude `PostToolUse` hook, OpenCode `repo-guard` idle nudge) for budgets (instruction files, skills, ADRs at 1000 words), long comment blocks and `docs/spec-*.md` files, and `scripts/lint_doc_paths.sh` for backticked repo paths that must exist (exempt a removed one with `<!-- historical -->` at line end, or an `- Affects (historical):` line); review for the rest
+- Enforced by: the `doc-budgets` plugin from `xdoubleu/skills` (its README has the config format and the exemptions), configured by `.claude/doc-budgets.json`. `make lint/docs` runs it in CI `docs-lint` and `finish-task`; the plugin's `PostToolUse` hook (Claude Code) and `doc-budgets.js` port (OpenCode) run it on edit. It checks line budgets (instruction files, skills, ADRs) and backticked repo paths in the instruction files; review covers the rest
 - Issues: #1850
 
 ## Rule
