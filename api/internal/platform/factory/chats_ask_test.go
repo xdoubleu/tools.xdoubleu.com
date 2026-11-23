@@ -100,7 +100,7 @@ func TestTappingAnOptionOfAChatQuestionContinuesTheAgentWithIt(t *testing.T) {
 	assert.Equal(t, fmodels.ChatAsking, e.state(t), "the card waits for the person")
 
 	_, err := e.client.AnswerChat(context.Background(), &factoryv1.AnswerChatRequest{
-		Id: e.chat.ID.String(), Text: "B", AskId: int32(seq), //nolint:gosec // small
+		Id: e.chat.ID.String(), Text: "B", AskId: int32(seq),
 	})
 	require.NoError(t, err)
 
@@ -131,7 +131,7 @@ func TestAnUnansweredChatQuestionIsKeptWaitingForWithItsAskID(t *testing.T) {
 	assert.InDelta(t, seq, first.out["ask_id"], 0)
 
 	_, err := e.client.AnswerChat(context.Background(), &factoryv1.AnswerChatRequest{
-		Id: e.chat.ID.String(), Text: "Yes", AskId: int32(seq), //nolint:gosec // small
+		Id: e.chat.ID.String(), Text: "Yes", AskId: int32(seq),
 	})
 	require.NoError(t, err)
 	again := <-e.ask(t, map[string]any{"ask_id": seq})

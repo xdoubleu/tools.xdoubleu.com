@@ -139,6 +139,8 @@ func New(
 		webURL:        "",
 		webhookSecret: "",
 		digests:       nil,
+		chatWSOnce:    sync.Once{},
+		chatWS:        nil,
 	}
 	for _, opt := range opts {
 		opt(a)
