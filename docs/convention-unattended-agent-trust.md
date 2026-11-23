@@ -1,7 +1,7 @@
 # Convention: unattended agents act only on human-approved work
 
 - Enforced by: nothing but review (`statusRule` in
-  `.claude/github-triage.config.json`; `ready-issues-sweep`, `red-pr-repair`,
+  `.claude/github-triage.config.json`; `red-pr-repair`,
   `finish-task`, and the issue-filing routines)
 - Issues: #1899, #1851, #2055
 
@@ -30,10 +30,8 @@ a manual merge until the host arms them.
 - **Routines file to the board as their own agent account**, never as the
   person, and never to GitHub issues: the account sees only `factory_*` tools
   ([ADR-0039](adr-0039-agent-accounts.md)).
-- **The executor trusts only known authors.** `ready-issues-sweep` skips an
-  issue not opened by the owner (`author_association: OWNER`) or the routines
-  App (`xdoubleu-routines[bot]`), and gives subagents only comments whose
-  `author_association` is OWNER, MEMBER or COLLABORATOR.
+- **The executor trusts only known authors.** Jobs run only for tasks a human
+  or an agent account moved to Ready on the board.
 - **The executor acts only on text the owner could see at approval.** It
   skips a Ready issue whose body holds an HTML comment, which GitHub doesn't
   render, or that someone other than the owner edited after the Ready move.
