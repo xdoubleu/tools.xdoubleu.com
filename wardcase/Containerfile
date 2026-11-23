@@ -28,7 +28,8 @@ RUN npm install -g "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}" \
 
 # Nix (single-user, /nix owned by the job user). wardcase mounts a shared store
 # over /nix, which hides this install, so it is kept at /opt/nix-seed and copied
-# into an empty store by the first session.
+# into an empty store by the first session. The install's profile lives under
+# /home/node, so profiles/default is linked to its /nix/store path.
 RUN mkdir -m 0755 /nix /etc/nix \
     && echo 'experimental-features = nix-command flakes' > /etc/nix/nix.conf \
     && chown node:node /nix
@@ -38,7 +39,8 @@ RUN case "${TARGETARCH}" in amd64) a=x86_64 ;; arm64) a=aarch64 ;; *) exit 1 ;; 
     && curl -fsSL -o "/tmp/${d}.tar.xz" "https://releases.nixos.org/nix/nix-${NIX_VERSION}/${d}.tar.xz" \
     && tar -xJf "/tmp/${d}.tar.xz" -C /tmp \
     && "/tmp/${d}/install" --no-daemon \
-    && rm -rf /tmp/nix-*
+    && rm -rf /tmp/nix-* \
+    && ln -s "$(readlink -f /home/node/.nix-profile)" /nix/var/nix/profiles/default
 USER root
 RUN mv /nix /opt/nix-seed && mkdir -m 0755 /nix && chown node:node /nix
 USER node

@@ -43,8 +43,10 @@ func (s *ContainerSandbox) nixScriptAt(root, seed, proxyURL string) string {
 		substituters = proxyURL + "/nixcache/"
 	}
 	var b strings.Builder
-	b.WriteString("[ -e " + root + "/var/nix/profiles/default ] || cp -a " +
-		seed + "/. " + root + "/\n")
+	// No -p: the mount point's own times and owner cannot be set, and would fail.
+	b.WriteString("[ -e " + root + "/var/nix/profiles/default ] || cp -RP " +
+		seed + "/. " + root + "/ || { echo 'wardcase: seeding " + root +
+		" from " + seed + " failed' >&2; exit 1; }\n")
 	b.WriteString("export PATH=" + root + "/var/nix/profiles/default/bin:$PATH\n")
 	// No sandbox or build users: the VM is the sandbox, and it holds no capabilities.
 	b.WriteString("export NIX_CONFIG='experimental-features = nix-command flakes\n" +
