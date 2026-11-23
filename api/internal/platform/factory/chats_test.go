@@ -123,7 +123,7 @@ func TestChatStopFreesTheSlotAndSealsTheTranscript(t *testing.T) {
 	s, err := e.start(t)
 	require.NoError(t, err)
 
-	stopped, err := e.svc.Chats.Stop(ctx, e.admin, s.ID, "branch left behind")
+	stopped, err := e.svc.Chats.Stop(ctx, e.admin, s.ID, "branch left behind", "")
 	require.NoError(t, err)
 
 	assert.Equal(t, models.ChatStopped, stopped.State)
@@ -182,7 +182,7 @@ func TestChatListNewestFirstWithoutStopped(t *testing.T) {
 	require.NoError(t, err)
 	second, err := e.start(t)
 	require.NoError(t, err)
-	_, err = e.svc.Chats.Stop(ctx, e.admin, first.ID, "")
+	_, err = e.svc.Chats.Stop(ctx, e.admin, first.ID, "", "")
 	require.NoError(t, err)
 
 	all, err := e.svc.Chats.List(ctx, e.admin, false)

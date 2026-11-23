@@ -165,7 +165,7 @@ func TestAWaitingAskFailsWhenTheChatStops(t *testing.T) {
 	s := e.start(t)
 	ask, err := e.svc.Ask(ctx, s.ID, abChoice())
 	require.NoError(t, err)
-	_, err = e.svc.Stop(ctx, e.admin, s.ID, "")
+	_, err = e.svc.Stop(ctx, e.admin, s.ID, "", "")
 	require.NoError(t, err)
 
 	_, _, err = e.svc.AwaitAnswer(ctx, s.ID, ask, time.Second)

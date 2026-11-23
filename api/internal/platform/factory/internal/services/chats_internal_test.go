@@ -196,7 +196,15 @@ func (r chatRepos) Get(context.Context, uuid.UUID) (*models.Repo, error) {
 
 type chatTasks struct {
 	TaskStore
-	task models.Task
+	task     models.Task
+	comments *[]string
+}
+
+func (t chatTasks) AddComment(
+	_ context.Context, _ uuid.UUID, author, body string,
+) (*models.Comment, error) {
+	*t.comments = append(*t.comments, author+": "+body)
+	return nil, nil //nolint:nilnil // unused by the service
 }
 
 func (t chatTasks) Get(context.Context, uuid.UUID) (*models.Task, error) {
@@ -239,6 +247,7 @@ func withRunners(runners ...models.Runner) chatRunners {
 func withTask(task models.Task) chatTasks {
 	var t chatTasks
 	t.task = task
+	t.comments = new([]string)
 	return t
 }
 
@@ -410,19 +419,19 @@ func TestChatStopKeepsTheReportAndOnlyOnce(t *testing.T) {
 	ctx := context.Background()
 	s := e.start(t)
 
-	stopped, err := e.svc.Stop(ctx, e.admin, s.ID, "  left a branch  ")
+	stopped, err := e.svc.Stop(ctx, e.admin, s.ID, "  left a branch  ", "")
 
 	require.NoError(t, err)
 	assert.Equal(t, models.ChatStopped, stopped.State)
 	assert.Equal(t, "left a branch", stopped.Report)
-	_, err = e.svc.Stop(ctx, e.admin, s.ID, "")
+	_, err = e.svc.Stop(ctx, e.admin, s.ID, "", "")
 	assert.ErrorIs(t, err, ErrConflict)
 	assert.ErrorIs(t, e.svc.SendMessage(ctx, e.admin, s.ID, "hi"), ErrConflict)
-	_, err = e.svc.Stop(ctx, e.admin, s.ID, strings.Repeat("a", maxChatReportLen+1))
+	_, err = e.svc.Stop(ctx, e.admin, s.ID, strings.Repeat("a", maxChatReportLen+1), "")
 	assert.ErrorIs(t, err, ErrInvalid)
-	_, err = e.svc.Stop(ctx, e.admin, uuid.New(), "")
+	_, err = e.svc.Stop(ctx, e.admin, uuid.New(), "", "")
 	assert.ErrorIs(t, err, database.ErrResourceNotFound)
-	_, err = e.svc.Stop(ctx, chatActor("", false, false), s.ID, "")
+	_, err = e.svc.Stop(ctx, chatActor("", false, false), s.ID, "", "")
 	assert.ErrorIs(t, err, ErrForbidden)
 }
 
@@ -430,7 +439,7 @@ func TestChatListHidesStoppedWhenAskedTo(t *testing.T) {
 	e := newChatEnv(t)
 	ctx := context.Background()
 	live, gone := e.start(t), e.start(t)
-	_, err := e.svc.Stop(ctx, e.admin, gone.ID, "")
+	_, err := e.svc.Stop(ctx, e.admin, gone.ID, "", "")
 	require.NoError(t, err)
 
 	all, err := e.svc.List(ctx, e.admin, false)
@@ -518,7 +527,7 @@ func TestChatRecordEventsRules(t *testing.T) {
 	assert.Len(t, e.chats.events[s.ID][0].Payload, maxEventBytes)
 	assert.Equal(t, models.ChatWorking, e.chats.sessions[s.ID].State)
 
-	_, err := e.svc.Stop(ctx, e.admin, s.ID, "")
+	_, err := e.svc.Stop(ctx, e.admin, s.ID, "", "")
 	require.NoError(t, err)
 	assert.ErrorIs(t, e.svc.RecordEvents(ctx, e.runner.ID, s.ID, "", event), ErrConflict)
 }
@@ -545,7 +554,7 @@ func TestChatEndStopsASessionTheRunnerEnded(t *testing.T) {
 func TestChatEndAddsToAPersonsReport(t *testing.T) {
 	e := newChatEnv(t)
 	s := e.start(t)
-	_, err := e.svc.Stop(context.Background(), e.admin, s.ID, "done for today")
+	_, err := e.svc.Stop(context.Background(), e.admin, s.ID, "done for today", "")
 	require.NoError(t, err)
 
 	stopped, err := e.svc.End(context.Background(), e.runner.ID, s.ID, "1 commit unpushed")
@@ -560,7 +569,7 @@ func TestChatEndAddsToAPersonsReport(t *testing.T) {
 func TestChatEndWithNothingLeftChangesNothing(t *testing.T) {
 	e := newChatEnv(t)
 	s := e.start(t)
-	_, err := e.svc.Stop(context.Background(), e.admin, s.ID, "bye")
+	_, err := e.svc.Stop(context.Background(), e.admin, s.ID, "bye", "")
 	require.NoError(t, err)
 
 	_, err = e.svc.End(context.Background(), e.runner.ID, s.ID, "")
@@ -578,4 +587,51 @@ func TestChatEndIsForTheirOwnRunnerOnly(t *testing.T) {
 	_, err := e.svc.End(context.Background(), uuid.New(), s.ID, "x")
 
 	require.ErrorIs(t, err, ErrForbidden)
+}
+
+func TestChatStopPostsTheSummaryOnTheTask(t *testing.T) {
+	e := newChatEnv(t)
+	ctx := context.Background()
+	in := startIn(e.repo.ID, e.runner.ID, models.HarnessClaudeCode)
+	in.TaskID = uuid.New()
+	s, err := e.svc.Start(ctx, e.admin, in)
+	require.NoError(t, err)
+
+	_, err = e.svc.Stop(ctx, e.admin, s.ID, "", strings.Repeat("a", maxChatReportLen+1))
+	require.ErrorIs(t, err, ErrInvalid)
+
+	_, err = e.svc.Stop(ctx, e.admin, s.ID, "", "  Did the thing.  ")
+
+	require.NoError(t, err)
+	comments := postedComments(t, e.svc)
+	assert.Equal(
+		t,
+		[]string{"runner:" + e.runner.ID.String() + ": Did the thing."},
+		comments,
+	)
+}
+
+func TestChatStopWithoutATaskOrSummaryPostsNothing(t *testing.T) {
+	e := newChatEnv(t)
+	ctx := context.Background()
+	s := e.start(t)
+	_, err := e.svc.Stop(ctx, e.admin, s.ID, "", "summary")
+	require.NoError(t, err)
+	assert.Empty(t, postedComments(t, e.svc))
+
+	in := startIn(e.repo.ID, e.runner.ID, models.HarnessClaudeCode)
+	in.TaskID = uuid.New()
+	s, err = e.svc.Start(ctx, e.admin, in)
+	require.NoError(t, err)
+	_, err = e.svc.Stop(ctx, e.admin, s.ID, "", "")
+	require.NoError(t, err)
+	assert.Empty(t, postedComments(t, e.svc))
+}
+
+// postedComments is what the service commented on its fake task store.
+func postedComments(t *testing.T, svc *ChatService) []string {
+	t.Helper()
+	tasks, ok := svc.tasks.(chatTasks)
+	require.True(t, ok)
+	return *tasks.comments
 }

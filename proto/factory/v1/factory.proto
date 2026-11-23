@@ -428,6 +428,8 @@ message AnswerChatResponse {}
 message StopChatRequest {
   string id = 1;
   string report = 2;
+  // Posted as a comment on the chat's task when it has one.
+  string summary = 3;
 }
 message StopChatResponse {
   Chat chat = 1;
