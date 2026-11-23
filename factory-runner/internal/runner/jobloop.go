@@ -306,10 +306,10 @@ func (l *jobLoop) attempt(command []string, prompt string) step {
 		return over(res)
 	}
 	if res.blocked == "" && len(res.waitingOn) == 0 {
-		if fb := l.runGates(); fb != "" {
+		if fb, why := l.runGates(); fb != "" {
 			ref, _ := os.ReadFile(filepath.Join(l.dirs.clone, ".git", "refs", "heads",
 				l.job.Branch))
-			return again(res, "gate failed: "+short(fb), "gate:"+short(fb),
+			return again(res, "gate failed: "+why, "gate:"+why,
 				strings.TrimSpace(string(ref)), fb)
 		}
 	}

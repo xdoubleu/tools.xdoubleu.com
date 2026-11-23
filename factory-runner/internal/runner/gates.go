@@ -50,22 +50,23 @@ func gatesFor(gates []hostGate, changed []string) []hostGate {
 }
 
 // runGates runs the repo's matching gates in the job VM, returning the first
-// failure's feedback for the agent, or "" when all pass or none are defined.
-func (l *jobLoop) runGates() string {
+// failure's feedback for the agent and its one-line reason for the task, or ""
+// when all pass or none are defined.
+func (l *jobLoop) runGates() (string, string) {
 	began := l.now()
 	defer func() { l.times.gates += l.now().Sub(began) }()
 	// The base branch's list, so the agent cannot edit its own gates away.
 	raw, err := l.r.Git.git(l.ctx, l.dirs.clone, "cat-file", "blob",
 		"origin/main:"+gatesFile)
 	if err != nil {
-		return ""
+		return "", ""
 	}
 	gates := parseGates(string(raw))
 	if len(gates) == 0 {
-		return ""
+		return "", ""
 	}
 	if c := l.syncBase(); c != "" {
-		return c
+		return c, short(c)
 	}
 	var diff bytes.Buffer
 	code, err := l.session.Exec(l.ctx, []string{bashCmd, "-c",
@@ -84,14 +85,26 @@ func (l *jobLoop) runGates() string {
 			continue
 		}
 		if l.ended() != "" {
-			return ""
+			return "", ""
 		}
-		tail := gateExcerpt(out.String(), gateTail)
-		return fmt.Sprintf("The gate `%s` before pushing and it failed:"+
+		tail := redact(gateExcerpt(out.String(), gateTail), l.events.redactions)
+		return fmt.Sprintf("The gate `%s` ran before pushing and failed:"+
 			"\n\n%s\n\nFix it, run it yourself, commit, and write the outcome again.",
-			g.command, redact(tail, l.events.redactions))
+			g.command, tail), gateWhy(g.command, tail)
 	}
-	return ""
+	return "", ""
+}
+
+// gateWhy is a failed gate's reason on one line: its command and the end of its
+// output, where the error is, short enough that "gate failed: " and short()
+// keep that end.
+func gateWhy(command, excerpt string) string {
+	s := strings.Join(strings.Fields(excerpt), " ")
+	room := maxWhy - len("gate failed: `") - len(command) - len("`: ...")
+	if len(s) > room {
+		s = "..." + strings.ToValidUTF8(s[len(s)-max(room, 0):], "")
+	}
+	return "`" + command + "`: " + s
 }
 
 const (

@@ -57,28 +57,20 @@ lint/skills:
 
 # Line budgets for agent instruction files, skills and ADRs, and backticked
 # repo paths that must exist: the xdoubleu/skills doc-budgets plugin at a
-# pinned commit, configured by .claude/doc-budgets.json. Set DOC_BUDGETS_DIR
-# to a plugin checkout to run offline; without it, a cached or Nix-store
-# checkout is used before cloning.
+# pinned commit, configured by .claude/doc-budgets.json. A factory job fetches
+# it through the egress proxy. Set DOC_BUDGETS_DIR to a plugin checkout to run
+# offline.
 DOC_BUDGETS_VERSION ?= 537d2caae13e00fced04cc290b5bf4b2f19264b7
 DOC_BUDGETS_DIR ?= $(or $(XDG_CACHE_HOME),$(HOME)/.cache)/doc-budgets/$(DOC_BUDGETS_VERSION)
-DOC_BUDGETS_STORE := $(patsubst %/scripts/lint_docs.sh,%,$(firstword $(wildcard /nix/store/*/plugins/doc-budgets/scripts/lint_docs.sh)))
 lint/docs:
-	@dir="$(DOC_BUDGETS_DIR)"; \
-	if [ ! -x "$$dir/scripts/lint_docs.sh" ] && [ "$(origin DOC_BUDGETS_DIR)" = file ] && [ -n "$(DOC_BUDGETS_STORE)" ]; then \
-		dir="$(DOC_BUDGETS_STORE)"; \
-	fi; \
-	test -x "$$dir/scripts/lint_docs.sh" || { \
-		rm -rf "$$dir.tmp" && \
-		git clone -q https://github.com/xdoubleu/skills "$$dir.tmp" && \
-		git -C "$$dir.tmp" -c advice.detachedHead=false checkout -q $(DOC_BUDGETS_VERSION) && \
-		mkdir -p "$$(dirname "$$dir")" && \
-		mv "$$dir.tmp/plugins/doc-budgets" "$$dir" && \
-		rm -rf "$$dir.tmp"; } && \
-	"$$dir/scripts/lint_docs.sh" && \
-	"$$dir/scripts/lint_doc_paths.sh"
+	@test -x "$(DOC_BUDGETS_DIR)/scripts/lint_docs.sh" || \
+		./scripts/fetch_doc_budgets.sh $(DOC_BUDGETS_VERSION) "$(DOC_BUDGETS_DIR)"
+	"$(DOC_BUDGETS_DIR)/scripts/lint_docs.sh"
+	"$(DOC_BUDGETS_DIR)/scripts/lint_doc_paths.sh"
 
-# Exercise scripts/check_feature_gate.sh against a synthetic repo.
+# Exercise scripts/check_feature_gate.sh against a synthetic repo, and
+# scripts/fetch_doc_budgets.sh against a fake proxy.
 lint/docs/test:
 	./scripts/test_check_feature_gate.sh
 	./scripts/test_mutation_diff.sh
+	./scripts/test_fetch_doc_budgets.sh
