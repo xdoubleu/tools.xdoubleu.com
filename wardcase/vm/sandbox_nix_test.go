@@ -161,3 +161,13 @@ func TestTheNixStoreIsMountedReadWriteAndFlakesAreEntered(t *testing.T) {
 	assert.Contains(t, execLine, "nix develop")
 	assert.Contains(t, execLine, "-le 3145728")
 }
+
+func TestASeedThatCannotBeCopiedFailsTheSessionLoudly(t *testing.T) {
+	script := vm.NixScriptForTest(nixBox(t, 0), t.TempDir(),
+		filepath.Join(t.TempDir(), "missing"), "") + `exec "$@"`
+
+	out, err := osexec.Command("sh", "-c", script, "sh", "true").CombinedOutput()
+
+	require.Error(t, err)
+	assert.Contains(t, string(out), "wardcase: seeding")
+}
