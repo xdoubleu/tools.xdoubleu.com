@@ -45,7 +45,7 @@ func New(
 		Board:   &BoardService{tasks: tasks, jobs: jobs},
 		Chats: &ChatService{
 			chats: stores.Chats, repos: stores.Repos, tasks: stores.Tasks,
-			runners: stores.Runners, now: time.Now,
+			runners: stores.Runners, now: time.Now, askPoll: askPollEvery,
 		},
 	}
 }

@@ -416,10 +416,12 @@ message SendChatMessageRequest {
 }
 message SendChatMessageResponse {}
 
-// Replies to a question the harness asked.
+// Replies to a question the harness asked. With ask_id (the seq of an `ask`
+// event) it answers that question card; without, a question asked in prose.
 message AnswerChatRequest {
   string id = 1;
   string text = 2;
+  int32 ask_id = 3;
 }
 message AnswerChatResponse {}
 

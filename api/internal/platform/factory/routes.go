@@ -13,7 +13,7 @@ import (
 )
 
 func (a *Factory) Routes(prefix string, mux *http.ServeMux) {
-	chats := fhttp.NewChatWS(a.Ctx, a.Logger, a.services.Chats, a.services.Runners)
+	chats := a.chatSocket()
 	deps := &fconnect.Deps{
 		Services:      a.services,
 		Logger:        a.Logger,
@@ -48,5 +48,12 @@ func (a *Factory) Routes(prefix string, mux *http.ServeMux) {
 
 // RegisterMCPTools exposes the board to agent accounts (docs/adr-0040).
 func (a *Factory) RegisterMCPTools(srv *mcp.Server) {
-	fmcp.Register(srv, a.services)
+	fmcp.Register(srv, a.services, a.chatSocket())
+}
+
+func (a *Factory) chatSocket() *fhttp.ChatWS {
+	a.chatWSOnce.Do(func() {
+		a.chatWS = fhttp.NewChatWS(a.Ctx, a.Logger, a.services.Chats, a.services.Runners)
+	})
+	return a.chatWS
 }

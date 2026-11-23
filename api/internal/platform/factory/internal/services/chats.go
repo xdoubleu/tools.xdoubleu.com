@@ -31,6 +31,8 @@ type ChatService struct {
 	tasks   TaskStore
 	runners RunnerStore
 	now     func() time.Time
+	// askPoll is how often a waiting chat_ask looks for the answer.
+	askPoll time.Duration
 }
 
 // StartChat is what a new session needs; TaskID is uuid.Nil for none.
@@ -307,7 +309,8 @@ func cleanChatEvents(
 		case e.Kind == "" || len(e.Kind) > maxKindLen:
 			return nil, badRequest("an event needs a kind of up to 40 characters")
 		case e.Kind == models.ChatEventMessage || e.Kind == models.ChatEventAnswer ||
-			e.Kind == models.ChatEventStopped:
+			e.Kind == models.ChatEventStopped || e.Kind == models.ChatEventAsk ||
+			e.Kind == models.ChatEventAskAnswer:
 			return nil, badRequest("the kind " + e.Kind + " is reserved")
 		}
 		out = append(out, models.ChatEventInput{Kind: e.Kind, Payload: truncate(e.Payload)})

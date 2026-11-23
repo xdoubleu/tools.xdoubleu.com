@@ -467,7 +467,7 @@ describe('chats', () => {
     await result.current.send('c1', 'hi')
     expect(mockClient.sendChatMessage).toHaveBeenCalledWith({ id: 'c1', text: 'hi' })
     await result.current.answer('c1', 'yes')
-    expect(mockClient.answerChat).toHaveBeenCalledWith({ id: 'c1', text: 'yes' })
+    expect(mockClient.answerChat).toHaveBeenCalledWith({ id: 'c1', text: 'yes', askId: 0 })
     expect(await result.current.close('c1')).toEqual({ id: 'c1', report: 'left' })
     expect(mockClient.stopChat).toHaveBeenCalledWith({ id: 'c1', report: '' })
     expect(mockMutate).toHaveBeenCalledTimes(2)

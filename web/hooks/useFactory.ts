@@ -71,7 +71,8 @@ export function useChatActions() {
       return chat
     },
     send: (id: string, text: string) => client.sendChatMessage({ id, text }),
-    answer: (id: string, text: string) => client.answerChat({ id, text }),
+    /** Answers the chat's question card `askId`, or with 0 a question asked in prose. */
+    answer: (id: string, text: string, askId = 0) => client.answerChat({ id, text, askId }),
     /** Closes the chat; the runner reports what it left behind. */
     close: async (id: string) => {
       const { chat } = await client.stopChat({ id, report: '' })

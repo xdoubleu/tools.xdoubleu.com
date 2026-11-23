@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"sync/atomic"
 
 	"tools.xdoubleu.com/wardcase/acp"
 	"tools.xdoubleu.com/wardcase/session"
@@ -56,7 +57,9 @@ func (r *JobRunner) openWardcaseChat(
 	if err != nil {
 		return nil, fmt.Errorf("start the session: %w", err)
 	}
-	return wardcaseChat{chat}, nil
+	return &wardcaseChat{
+		c: chat, instructions: spec.Instructions, started: atomic.Bool{},
+	}, nil
 }
 
 // forwardEvent turns an ACP event into the transcript's kind and payload.
@@ -78,17 +81,25 @@ func orNull(raw []byte) string {
 }
 
 // wardcaseChat adapts wardcase's Chat to ChatSession.
-type wardcaseChat struct{ c *session.Chat }
+type wardcaseChat struct {
+	c            *session.Chat
+	instructions string
+	started      atomic.Bool
+}
 
-func (w wardcaseChat) Prompt(ctx context.Context, text string) (string, error) {
+// Prompt sends the instructions ahead of the first message.
+func (w *wardcaseChat) Prompt(ctx context.Context, text string) (string, error) {
+	if !w.started.Swap(true) && w.instructions != "" {
+		text = w.instructions + "\n\n" + text
+	}
 	return w.c.Prompt(ctx, text) //nolint:wrapcheck // names the method
 }
 
-func (w wardcaseChat) Cancel() error {
+func (w *wardcaseChat) Cancel() error {
 	return w.c.Cancel() //nolint:wrapcheck // names the method
 }
 
-func (w wardcaseChat) Close(ctx context.Context) ChatLeft {
+func (w *wardcaseChat) Close(ctx context.Context) ChatLeft {
 	res := w.c.Close(ctx)
 	return ChatLeft{
 		Branch: res.Branch, Path: res.Path,

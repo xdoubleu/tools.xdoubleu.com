@@ -7,6 +7,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -17,6 +18,7 @@ import (
 	"tools.xdoubleu.com/internal/kit/threading"
 	"tools.xdoubleu.com/internal/platform/auth"
 	fconnect "tools.xdoubleu.com/internal/platform/factory/connect"
+	fhttp "tools.xdoubleu.com/internal/platform/factory/http"
 	"tools.xdoubleu.com/internal/platform/factory/internal/jobs"
 	"tools.xdoubleu.com/internal/platform/factory/internal/repositories"
 	"tools.xdoubleu.com/internal/platform/factory/internal/services"
@@ -45,6 +47,9 @@ type Factory struct {
 	// endpoint off.
 	webhookSecret string
 	digests       services.DigestSource
+	// chatWS is shared by the routes and the MCP tools, which both push chat events.
+	chatWSOnce sync.Once
+	chatWS     *fhttp.ChatWS
 }
 
 // WithJobAccounts makes every claimed job run as an agent account of its own,
@@ -134,6 +139,8 @@ func New(
 		webURL:        "",
 		webhookSecret: "",
 		digests:       nil,
+		chatWSOnce:    sync.Once{},
+		chatWS:        nil,
 	}
 	for _, opt := range opts {
 		opt(a)

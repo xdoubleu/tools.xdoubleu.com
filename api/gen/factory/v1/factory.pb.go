@@ -3205,11 +3205,13 @@ func (*SendChatMessageResponse) Descriptor() ([]byte, []int) {
 	return file_factory_v1_factory_proto_rawDescGZIP(), []int{48}
 }
 
-// Replies to a question the harness asked.
+// Replies to a question the harness asked. With ask_id (the seq of an `ask`
+// event) it answers that question card; without, a question asked in prose.
 type AnswerChatRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	Text          string                 `protobuf:"bytes,2,opt,name=text,proto3" json:"text,omitempty"`
+	AskId         int32                  `protobuf:"varint,3,opt,name=ask_id,json=askId,proto3" json:"ask_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3256,6 +3258,13 @@ func (x *AnswerChatRequest) GetText() string {
 		return x.Text
 	}
 	return ""
+}
+
+func (x *AnswerChatRequest) GetAskId() int32 {
+	if x != nil {
+		return x.AskId
+	}
+	return 0
 }
 
 type AnswerChatResponse struct {
@@ -3688,10 +3697,11 @@ const file_factory_v1_factory_proto_rawDesc = "" +
 	"\x16SendChatMessageRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04text\x18\x02 \x01(\tR\x04text\"\x19\n" +
-	"\x17SendChatMessageResponse\"7\n" +
+	"\x17SendChatMessageResponse\"N\n" +
 	"\x11AnswerChatRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
-	"\x04text\x18\x02 \x01(\tR\x04text\"\x14\n" +
+	"\x04text\x18\x02 \x01(\tR\x04text\x12\x15\n" +
+	"\x06ask_id\x18\x03 \x01(\x05R\x05askId\"\x14\n" +
 	"\x12AnswerChatResponse\"9\n" +
 	"\x0fStopChatRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x16\n" +

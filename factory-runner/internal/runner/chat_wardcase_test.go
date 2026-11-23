@@ -76,7 +76,10 @@ func TestAChatRunsInWardcaseWithTheBoardAccountAndStreamsTheTurn(t *testing.T) {
 	ended := s.waitEnded()
 	require.NoError(t, <-done)
 
-	assert.Equal(t, []string{"hello"}, agent.Prompts())
+	prompts := agent.Prompts()
+	require.Len(t, prompts, 1)
+	assert.Contains(t, prompts[0], "factory_chat_ask", "the instructions come first")
+	assert.True(t, strings.HasSuffix(prompts[0], "\n\nhello"), prompts[0])
 	var kinds []string
 	updates, _ = s.snapshot()
 	for _, u := range updates {

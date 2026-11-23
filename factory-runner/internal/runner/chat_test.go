@@ -335,6 +335,7 @@ func TestAChatBridgesTheSocketToTheSessionAndReportsWhatItLeft(t *testing.T) {
 	assert.Equal(t, "ghs_clone", f.spec.Token)
 	assert.Equal(t, "agent/chat-abcd1234", f.spec.Job.Branch)
 	require.Len(t, f.spec.MCP, 1, "the device's MCP servers come with the chat")
+	assert.Contains(t, f.spec.Instructions, "factory_chat_ask")
 	assert.Empty(t, r.RunningJobs())
 }
 

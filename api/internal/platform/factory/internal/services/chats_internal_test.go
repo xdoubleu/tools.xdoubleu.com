@@ -113,6 +113,30 @@ func (m *memChats) After(
 	return out, nil
 }
 
+func (m *memChats) Ask(
+	ctx context.Context, id uuid.UUID, payload string,
+) (int, error) {
+	if err := m.Append(ctx, id, []models.ChatEventInput{
+		{Kind: models.ChatEventAsk, Payload: payload},
+	}); err != nil {
+		return 0, err
+	}
+	m.sessions[id].State = models.ChatAsking
+	return m.sessions[id].LastSeq, nil
+}
+
+func (m *memChats) ForJob(
+	_ context.Context, jobID uuid.UUID,
+) (*models.ChatSession, error) {
+	for _, c := range m.sessions {
+		if c.JobID == jobID {
+			out := *c
+			return &out, nil
+		}
+	}
+	return nil, database.ErrResourceNotFound
+}
+
 func (m *memChats) Stop(
 	_ context.Context, id uuid.UUID, report string, _ models.JobStatus,
 ) (*models.ChatSession, error) {
@@ -240,7 +264,7 @@ func newChatEnv(t *testing.T) chatEnv {
 	repo.ID = uuid.New()
 	chats := newMemChats()
 	svc := &ChatService{
-		chats: chats, repos: nil, tasks: nil, runners: nil,
+		chats: chats, repos: nil, tasks: nil, runners: nil, askPoll: time.Millisecond,
 		now: func() time.Time { return now },
 	}
 	var repos chatRepos
@@ -464,7 +488,8 @@ func TestChatRecordEventsRules(t *testing.T) {
 	assert.ErrorIs(t, e.svc.RecordEvents(ctx, e.runner.ID, s.ID, "stopped", event),
 		ErrInvalid, "stopping is the person's call")
 	for _, kind := range []string{"", strings.Repeat("k", maxKindLen+1),
-		models.ChatEventMessage, models.ChatEventAnswer, models.ChatEventStopped} {
+		models.ChatEventMessage, models.ChatEventAnswer, models.ChatEventStopped,
+		models.ChatEventAsk, models.ChatEventAskAnswer} {
 		assert.ErrorIs(t, e.svc.RecordEvents(ctx, e.runner.ID, s.ID, "",
 			[]models.ChatEventInput{{Kind: kind, Payload: "x"}}), ErrInvalid, kind)
 	}

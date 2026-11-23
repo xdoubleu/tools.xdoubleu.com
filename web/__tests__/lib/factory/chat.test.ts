@@ -3,6 +3,7 @@ import {
   chatSocketUrl,
   EMPTY_TRANSCRIPT,
   isChatFrame,
+  pendingAsk,
   stateLabel,
   toolLine,
   type ChatFrame,
@@ -98,6 +99,42 @@ describe('applyFrame', () => {
     ])
     expect(t.items).toEqual([{ type: 'error', seq: 1, text: 'boom' }])
     expect(t.cursor).toBe(4)
+  })
+})
+
+describe('question cards', () => {
+  const asked = frame(3, 'ask', { question: 'A or B?', options: ['A', 'B', 4], multi: true })
+
+  it('shows a question as an unanswered card, kept across a reload replay', () => {
+    const t = fold([asked])
+    expect(t.items).toEqual([
+      {
+        type: 'ask',
+        seq: 3,
+        question: 'A or B?',
+        options: ['A', 'B'],
+        multi: true,
+        answer: null
+      }
+    ])
+    expect(pendingAsk(t.items)).toBe(3)
+  })
+
+  it('marks the card answered by the event that names it', () => {
+    const t = fold([asked, frame(5, 'ask_answer', { ask: 3, answer: 'B' })])
+    expect(t.items[0]).toMatchObject({ type: 'ask', answer: 'B' })
+    expect(pendingAsk(t.items)).toBe(0)
+  })
+
+  it('leaves other cards alone and tolerates a malformed question', () => {
+    const t = fold([
+      asked,
+      frame(4, 'ask', 'nope'),
+      frame(5, 'ask_answer', { ask: 4, answer: 'x' })
+    ])
+    expect(t.items[0]).toMatchObject({ answer: null })
+    expect(t.items[1]).toMatchObject({ question: '', options: [], multi: false, answer: 'x' })
+    expect(pendingAsk(t.items)).toBe(3)
   })
 })
 

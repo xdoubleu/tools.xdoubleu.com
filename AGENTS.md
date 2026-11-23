@@ -148,6 +148,6 @@ Update this file when structure, packages, targets or conventions change. `docs/
   - [0059](docs/adr-0059-wardcase-mcp-servers-on-host.md) wardcase MCP
   - [0060](docs/adr-0060-wardcase-interactive-sessions-over-acp.md) ACP
   - [0061](docs/adr-0061-factory-chat-runner-bridge.md) chat
-  - [0061](docs/adr-0061-factory-chat-runner-bridge.md) factory-chat-runner-bridge
+  - [0062](docs/adr-0062-chat-questions-as-cards.md) questions
 - **Conventions:** [concise-docs-and-comments](docs/convention-concise-docs-and-comments.md) · [hexagonal-apps](docs/convention-hexagonal-apps.md) · [database-queries](docs/convention-database-queries.md) · [task-lifecycle](docs/convention-task-lifecycle.md) · [deploy-secrets](docs/convention-deploy-secrets.md) · [feature-review-policy](docs/convention-feature-review-policy.md) · [mcp-gap-first](docs/convention-mcp-gap-first.md) · [ui-standards](docs/convention-ui-standards.md) · [unattended-agent-trust](docs/convention-unattended-agent-trust.md)
 - Host-layer decisions: [`infra/README.md`](infra/README.md).

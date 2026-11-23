@@ -24,11 +24,12 @@ import (
 //
 //nolint:gochecknoglobals // shared expectations for the apps-MCP tests
 var appsToolNames = []string{
-	// factory (13)
+	// factory (14)
 	"factory_list_repos", "factory_list_tasks", "factory_get_task", "factory_get_job",
 	"factory_create_task", "factory_comment_task", "factory_move_task",
 	"factory_move_tasks", "factory_update_task", "factory_list_routines",
 	"factory_set_routine", "factory_run_routine", "factory_delete_routine",
+	"factory_chat_ask",
 	// games (5)
 	"games_get_steam", "games_get_steam_game", "games_get_steam_distribution",
 	"games_get_recently_active_games", "games_get_integrations",

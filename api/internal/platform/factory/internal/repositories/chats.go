@@ -103,6 +103,40 @@ func (r *ChatsRepository) Get(
 		`SELECT `+chatColumns+` FROM factory.chat_sessions WHERE id = $1`, id))
 }
 
+// ForJob returns the session of a chat job.
+func (r *ChatsRepository) ForJob(
+	ctx context.Context,
+	jobID uuid.UUID,
+) (*models.ChatSession, error) {
+	return scanChat(r.db.QueryRow(ctx,
+		`SELECT `+chatColumns+` FROM factory.chat_sessions WHERE job_id = $1`, jobID))
+}
+
+// Ask appends a question event and moves the session to asking in one
+// statement; a stopped or unknown session is a conflict.
+func (r *ChatsRepository) Ask(
+	ctx context.Context,
+	id uuid.UUID,
+	payload string,
+) (int, error) {
+	var seq int
+	err := r.db.QueryRow(ctx, `
+		WITH s AS (
+			UPDATE factory.chat_sessions
+			SET last_seq = last_seq + 1, state = 'asking', updated_at = now()
+			WHERE id = $1 AND state <> 'stopped'
+			RETURNING last_seq
+		), e AS (
+			INSERT INTO factory.chat_events (session_id, seq, kind, payload)
+			SELECT $1, s.last_seq, $3, $2 FROM s
+		)
+		SELECT last_seq FROM s`, id, payload, models.ChatEventAsk).Scan(&seq)
+	if err != nil {
+		return 0, notFoundIsConflict(postgres.PgxErrorToHTTPError(err))
+	}
+	return seq, nil
+}
+
 // List returns the newest sessions first, without the stopped ones when
 // activeOnly.
 func (r *ChatsRepository) List(
