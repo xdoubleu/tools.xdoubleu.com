@@ -65,6 +65,26 @@ func TestAFailingHostGateGoesBackToTheAgentBeforeAnyPush(t *testing.T) {
 	assert.Contains(t, p.sandbox.specs[3].Stdin, "lint boom")
 	assert.Contains(t, p.sandbox.specs[3].Stdin, "make lint")
 	assert.Less(t, len(p.sandbox.specs[3].Stdin), 3400, "output is cut to its tail")
+	p.api.mu.Lock()
+	comments := strings.Join(p.api.comments, "\n")
+	p.api.mu.Unlock()
+	assert.Contains(t, comments, "gate failed: `make lint`: ...")
+	assert.Contains(t, comments, "lint boom",
+		"the task hears the error, not the output's head")
+}
+
+func TestGateWhyKeepsTheEndOfTheOutput(t *testing.T) {
+	excerpt := "du: cannot access gc-socket: Operation not supported\n" +
+		strings.Repeat("noise\n", 200) + "make: *** [lint/docs] Error 1"
+
+	why := runner.GateWhyForTest("make lint/docs", excerpt)
+
+	assert.True(t, strings.HasPrefix(why, "`make lint/docs`: ..."), why)
+	assert.True(t, strings.HasSuffix(why, "make: *** [lint/docs] Error 1"), why)
+	assert.NotContains(t, why, "gc-socket")
+	assert.Equal(t, "gate failed: "+why, runner.ShortForTest("gate failed: "+why),
+		"short() keeps it whole")
+	assert.Equal(t, "`true`: a b", runner.GateWhyForTest("true", "a\n  b\n"))
 }
 
 func TestGateExcerptKeepsTheFailingPackage(t *testing.T) {

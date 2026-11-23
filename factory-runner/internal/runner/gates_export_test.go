@@ -22,3 +22,9 @@ func GatesForTest(text string, changed []string) []string {
 func GateExcerptForTest(output string, limit int) string {
 	return gateExcerpt(output, limit)
 }
+
+// GateWhyForTest exposes gateWhy.
+func GateWhyForTest(command, excerpt string) string { return gateWhy(command, excerpt) }
+
+// ShortForTest exposes short.
+func ShortForTest(s string) string { return short(s) }

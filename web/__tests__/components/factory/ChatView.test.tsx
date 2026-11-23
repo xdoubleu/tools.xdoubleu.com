@@ -140,4 +140,40 @@ describe('ChatView', () => {
     renderView()
     expect(screen.getByText('No report was recorded.')).toBeInTheDocument()
   })
+
+  it('stays at the bottom as the page grows, unless scrolled up', () => {
+    let onResize = () => {}
+    const disconnect = vi.fn()
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        constructor(cb: () => void) {
+          onResize = cb
+        }
+        observe() {}
+        disconnect = disconnect
+      }
+    )
+    const scroll = vi.fn()
+    const original = Element.prototype.scrollIntoView
+    Element.prototype.scrollIntoView = scroll
+    const root = document.documentElement
+    const height = vi.spyOn(root, 'scrollHeight', 'get').mockReturnValue(window.innerHeight)
+    setSocket('idle')
+    const { unmount } = renderView()
+    scroll.mockClear()
+
+    height.mockReturnValue(window.innerHeight + 500)
+    onResize()
+    expect(scroll).toHaveBeenCalledTimes(1)
+
+    onResize()
+    expect(scroll).toHaveBeenCalledTimes(1)
+
+    unmount()
+    expect(disconnect).toHaveBeenCalled()
+    height.mockRestore()
+    Element.prototype.scrollIntoView = original
+    vi.unstubAllGlobals()
+  })
 })
