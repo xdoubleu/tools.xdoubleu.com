@@ -166,7 +166,7 @@ func TestAGapNoImageChangeFixesIsABugTaskNotAParkedTask(t *testing.T) {
 		}
 	}
 	require.Len(t, bugs, 1, "the second report reuses the open task")
-	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_READY, bugs[0].Status)
+	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_BACKLOG, bugs[0].Status)
 	assert.NotContains(t, bugs[0].Labels, "factory-sandbox")
 }
 
@@ -186,7 +186,8 @@ func TestARoutineBlockedEveryRunFilesOneSandboxTask(t *testing.T) {
 	}
 	found := sandboxTasks(t, env, "Sandbox: routine noop is blocked")
 	require.Len(t, found, 1)
-	assert.Len(t, withoutPickupNotes(env.task(t, found[0].Id).Comments), 3)
+	assert.Len(t, withoutPickupNotes(env.task(t, found[0].Id).Comments), 2,
+		"one per repeat run")
 }
 
 func TestTheReconcilerMovesInProgressTasksWithoutAJob(t *testing.T) {

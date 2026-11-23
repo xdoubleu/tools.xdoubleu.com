@@ -172,8 +172,9 @@ func (s *TaskService) Create(
 
 // startsReady reports whether an agent's new task skips Backlog: it carries a
 // defect or retro label and its text is renderable (else it waits in Backlog).
+// A task the runner files waits too: a job would run in the sandbox it reports.
 func startsReady(actor models.Actor, in TaskInput) bool {
-	if actor.Kind != models.ActorAgent {
+	if actor.Kind != models.ActorAgent || strings.HasPrefix(actor.ID, "runner:") {
 		return false
 	}
 	has := slices.ContainsFunc(in.Labels, func(l string) bool {

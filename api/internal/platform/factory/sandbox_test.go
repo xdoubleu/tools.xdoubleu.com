@@ -46,11 +46,11 @@ func TestABlockedJobFilesASandboxTaskAndARepeatCommentsOnIt(t *testing.T) {
 	found := sandboxTasks(t, env, title)
 	require.Len(t, found, 1)
 	assert.Equal(t, title, found[0].Title)
-	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_READY, found[0].Status)
+	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_BACKLOG, found[0].Status)
 	got := env.task(t, found[0].Id)
 	comments := withoutPickupNotes(got.Comments)
-	require.Len(t, comments, 2)
-	assert.Contains(t, comments[1].Body, problem)
+	require.Len(t, comments, 1, "the repeat; a Backlog task has no Ready move")
+	assert.Contains(t, comments[0].Body, problem)
 
 	// A job that is not blocked files nothing.
 	task := env.newTask(t, "more work")
@@ -114,4 +114,23 @@ func TestAJobAccountReportsToTheSandboxBoardOnly(t *testing.T) {
 	_, err = callTool(t, session, "factory_comment_task",
 		map[string]any{"task_id": other.Id, "body": "Nope."})
 	require.Error(t, err)
+}
+
+func TestAnAgentCrashFilesNothingAndParksNothing(t *testing.T) {
+	env, _ := accountsEnv(t)
+	for _, blocked := range []string{
+		"The agent exited with status 1.\n\nIts last output:\nboom",
+		"The sandbox could not run the job: no vm",
+	} {
+		task := env.newTask(t, "crashes "+uuid.NewString())
+		env.run(t, task.Id)
+		claimed := env.claim(t)
+		_, err := env.runner.CompleteJob(bearer(env.token),
+			&factoryv1.CompleteJobRequest{
+				JobId: claimed.Id, SessionId: "s", Blocked: blocked,
+			})
+		require.NoError(t, err)
+		assert.Empty(t, sandboxTasks(t, env, "Sandbox: "+blocked[:30]))
+		assert.NotContains(t, env.task(t, task.Id).Task.Labels, "waiting-on-sandbox")
+	}
 }

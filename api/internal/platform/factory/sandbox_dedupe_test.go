@@ -63,7 +63,8 @@ func TestABlockedLineWithTheSameCauseReusesTheOpenSandboxTask(t *testing.T) {
 
 	found := sandboxTasks(t, env, "Sandbox: "+first)
 	require.Len(t, found, 1)
-	assert.Len(t, withoutPickupNotes(env.task(t, found[0].Id).Comments), 2)
+	assert.Len(t, withoutPickupNotes(env.task(t, found[0].Id).Comments), 1,
+		"the repeat")
 }
 
 func TestAWaitingOnJobNamingItsOwnTaskDoesNotParkIt(t *testing.T) {

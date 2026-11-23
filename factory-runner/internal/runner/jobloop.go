@@ -451,7 +451,6 @@ func (l *jobLoop) agent(command []string, prompt string) (string, *step) {
 		if tail := l.failureTail(); tail != "" {
 			reason += "\n\nIts last output:\n" + tail
 		}
-		res.blocked = noOutcomeBlock(text, reason, l.secrets, res.blocked)
 	case text == "":
 		reason = "The agent exited cleanly but wrote no outcome file."
 		res.blocked = noOutcomeBlock(text, reason, l.secrets, res.blocked)

@@ -36,7 +36,8 @@ func TestAJobThatEndsWithoutAnOutcomeIsReportedAsBlocked(t *testing.T) {
 	env = newEnv(t, writes("", 3), newJob())
 	_, err = env.runner.Next(context.Background())
 	require.NoError(t, err)
-	assert.Contains(t, env.api.done()[0].blocked, "exited with status 3")
+	assert.Empty(t, env.api.done()[0].blocked, "a crash is a failed job, not a gap")
+	assert.Contains(t, env.api.done()[0].outcome, "exited with status 3")
 
 	env = newEnv(t, func(context.Context, runner.SandboxSpec) (int, error) {
 		return 0, errors.New("vm gone")
