@@ -3,7 +3,9 @@ package mcp
 import (
 	"context"
 	"errors"
+	"time"
 
+	"github.com/google/uuid"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -93,11 +95,33 @@ type mcpRunRoutineArgs struct {
 	Name string `json:"name" jsonschema:"routine name, from factory_list_routines"`
 }
 
+//nolint:lll // struct tags can't wrap
+type mcpChatAskArgs struct {
+	Question string   `json:"question,omitempty"    jsonschema:"the question to put to the person; required unless ask_id is set"`
+	Options  []string `json:"options,omitempty"     jsonschema:"2 to 4 short options to choose from; two options make a confirmation. The person can also type another answer."`
+	Multi    bool     `json:"multi_select,omitempty" jsonschema:"whether the person may choose several options"`
+	AskID    int      `json:"ask_id,omitempty"      jsonschema:"the ask_id of a question still waiting, to keep waiting for its answer; leave out for a new question"`
+}
+
+// ChatPublisher pushes a chat's new events to the sockets watching it.
+type ChatPublisher interface {
+	Publish(id uuid.UUID)
+}
+
+// ChatAskWait is how long one factory_chat_ask call waits for the answer: well
+// within the request's budget, after which the agent asks again with the ask_id.
+// It is a variable so tests can shorten it.
+//
+//nolint:gochecknoglobals // a tunable, set only by tests
+var ChatAskWait = 15 * time.Second
+
 // Register exposes the board to agent accounts (docs/adr-0040). The
 // tools act as the agent, which may move a task into Ready; the move is
 // recorded as a comment.
-func Register(srv *mcp.Server, svc *services.Services) {
-	t := &mcpTools{svc: svc, present: present.Presenter{Labels: svc.Jobs}}
+func Register(srv *mcp.Server, svc *services.Services, chats ChatPublisher) {
+	t := &mcpTools{
+		svc: svc, present: present.Presenter{Labels: svc.Jobs}, chats: chats,
+	}
 
 	mcptools.AddAgentReadTool(srv, mcpAppName, "factory_list_repos",
 		"The repos the factory works on: id, owner, name and default branch. "+
@@ -144,11 +168,20 @@ func Register(srv *mcp.Server, svc *services.Services) {
 	mcptools.AddAgentWriteTool(srv, mcpAppName, "factory_run_routine",
 		"Queue a job for a routine now, even when it is disabled. One already "+
 			"queued or running is a conflict.", t.runRoutine)
+	mcptools.AddAgentWriteTool(srv, mcpAppName, "factory_chat_ask",
+		"Ask the person you are chatting with a question and wait for the "+
+			"answer, which shows as a card with your options and a free-text "+
+			"\"other\". Only a chat session can call it. Give 2 to 4 options, or "+
+			"two for a confirmation. The call waits about 15 seconds; when the "+
+			"result says it is still waiting, call factory_chat_ask again with the "+
+			"ask_id it returned, and keep doing so until it holds the answer.",
+		t.chatAsk)
 }
 
 type mcpTools struct {
 	svc     *services.Services
 	present present.Presenter
+	chats   ChatPublisher
 }
 
 // agentActor is the calling account as a board actor: an agent, or a person
@@ -419,4 +452,42 @@ func (t *mcpTools) runRoutine(
 		return nil, present.MapError(err)
 	}
 	return &factoryv1.RunRoutineResponse{Job: present.ProtoJob(job)}, nil
+}
+
+func (t *mcpTools) chatAsk(
+	ctx context.Context, args mcpChatAskArgs,
+) (proto.Message, error) {
+	actor, err := agentActor(ctx)
+	if err != nil {
+		return nil, err
+	}
+	userID, err := uuid.Parse(actor.ID)
+	if err != nil || actor.Kind != models.ActorAgent {
+		return nil, errors.New("only a chat session can ask the person a question")
+	}
+	job, err := t.svc.Jobs.JobOf(ctx, userID)
+	if err != nil {
+		return nil, present.MapError(err)
+	}
+	if job == nil || !job.IsChat() {
+		return nil, errors.New("only a chat session can ask the person a question")
+	}
+	reply, err := t.svc.Chats.AskPerson(ctx, job.ID, args.AskID,
+		services.AskInput{
+			Question: args.Question, Options: args.Options, Multi: args.Multi,
+		}, ChatAskWait, t.chats.Publish)
+	if err != nil {
+		return nil, present.MapError(err)
+	}
+	if !reply.Answered {
+		return structpb.NewStruct(map[string]any{
+			"status": "waiting",
+			"ask_id": reply.AskID,
+			"note": "The person has not answered yet. Call factory_chat_ask again with " +
+				"this ask_id to keep waiting.",
+		})
+	}
+	return structpb.NewStruct(map[string]any{
+		"status": "answered", "ask_id": reply.AskID, "answer": reply.Answer,
+	})
 }

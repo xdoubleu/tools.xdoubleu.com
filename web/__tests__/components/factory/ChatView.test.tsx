@@ -86,7 +86,26 @@ describe('ChatView', () => {
     fireEvent.change(screen.getByLabelText('Your answer'), { target: { value: 'yes' } })
     fireEvent.click(screen.getByRole('button', { name: 'Answer' }))
     expect(await screen.findByText(/didn't go through/)).toBeInTheDocument()
-    expect(actions.answer).toHaveBeenCalledWith('c1', 'yes')
+    expect(actions.answer).toHaveBeenCalledWith('c1', 'yes', 0)
+  })
+
+  it('answers a question card with its id, and the composer answers the pending card', async () => {
+    setSocket('asking', [
+      {
+        type: 'ask',
+        seq: 4,
+        question: 'A or B?',
+        options: ['A', 'B'],
+        multi: false,
+        answer: null
+      }
+    ])
+    renderView()
+    fireEvent.click(screen.getByRole('button', { name: 'B' }))
+    await waitFor(() => expect(actions.answer).toHaveBeenCalledWith('c1', 'B', 4))
+    fireEvent.change(screen.getByLabelText('Your answer'), { target: { value: 'neither' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Answer' }))
+    await waitFor(() => expect(actions.answer).toHaveBeenCalledWith('c1', 'neither', 4))
   })
 
   it('closes after confirming and shows the leftover report', async () => {

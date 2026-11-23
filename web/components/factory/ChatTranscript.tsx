@@ -3,6 +3,7 @@ import remarkGfm from 'remark-gfm'
 import { Check, Circle, CircleDot } from 'lucide-react'
 import type { ChatItem } from '@/lib/factory/chat'
 import { toolLine } from '@/lib/factory/chat'
+import ChatAskCard from '@/components/factory/ChatAskCard'
 import { Alert } from '@/components/ui/alert'
 import { Card } from '@/components/ui/card'
 import { Collapsible } from '@/components/ui/collapsible'
@@ -25,7 +26,12 @@ function PlanIcon({ status }: { status: string }) {
   return <Circle className="size-4 shrink-0 text-muted" aria-hidden />
 }
 
-function Item({ item }: { item: ChatItem }) {
+interface AskProps {
+  open: boolean
+  onAnswer: (askId: number, text: string) => Promise<void>
+}
+
+function Item({ item, ask }: { item: ChatItem; ask: AskProps }) {
   switch (item.type) {
     case 'user':
       return (
@@ -44,6 +50,8 @@ function Item({ item }: { item: ChatItem }) {
           </pre>
         </Collapsible>
       )
+    case 'ask':
+      return <ChatAskCard item={item} open={ask.open} onAnswer={ask.onAnswer} />
     case 'plan':
       return (
         <Card variant="inset" padding="sm" className="space-y-2">
@@ -64,11 +72,11 @@ function Item({ item }: { item: ChatItem }) {
 }
 
 /** The streamed transcript of a chat. */
-export default function ChatTranscript({ items }: { items: ChatItem[] }) {
+export default function ChatTranscript({ items, ...ask }: { items: ChatItem[] } & AskProps) {
   return (
     <div className="space-y-3" aria-live="polite" aria-label="Transcript" role="log">
       {items.map((item) => (
-        <Item key={`${item.type}-${item.seq}`} item={item} />
+        <Item key={`${item.type}-${item.seq}`} item={item} ask={ask} />
       ))}
     </div>
   )

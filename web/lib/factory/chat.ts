@@ -24,6 +24,16 @@ export type ChatItem =
       status: string
       detail: string
     }
+  | {
+      type: 'ask'
+      /** The question's id: the seq of its event. */
+      seq: number
+      question: string
+      options: string[]
+      multi: boolean
+      /** The person's answer, once given. */
+      answer: string | null
+    }
   | { type: 'plan'; seq: number; entries: PlanEntry[] }
   | { type: 'error'; seq: number; text: string }
 
@@ -159,6 +169,29 @@ export function applyFrame(t: ChatTranscript, frame: ChatFrame): ChatTranscript 
           }
         ]
       }
+    case 'ask': {
+      const q = parse(frame.payload)
+      const options = Array.isArray(q.options) ? q.options.filter((o) => typeof o === 'string') : []
+      const ask: ChatItem = {
+        type: 'ask',
+        seq: frame.seq,
+        question: str(q.question),
+        options,
+        multi: q.multi === true,
+        answer: null
+      }
+      return { cursor, items: [...t.items, ask] }
+    }
+    case 'ask_answer': {
+      const a = parse(frame.payload)
+      const answer = str(a.answer)
+      return {
+        cursor,
+        items: t.items.map((item) =>
+          item.type === 'ask' && item.seq === a.ask ? { ...item, answer } : item
+        )
+      }
+    }
     case 'update':
       return { cursor, items: applyUpdate(t.items, frame.seq, parse(frame.payload)) }
     case 'error':
@@ -196,4 +229,10 @@ export function chatSocketUrl(apiUrl: string, id: string, after: number): string
 
 export function isChatFrame(value: unknown): value is ChatFrame {
   return isObj(value) && typeof value.seq === 'number' && typeof value.kind === 'string'
+}
+
+/** The id of the question card still waiting for the person, if any. */
+export function pendingAsk(items: ChatItem[]): number {
+  const last = items.findLast((i) => i.type === 'ask' && i.answer === null)
+  return last?.seq ?? 0
 }

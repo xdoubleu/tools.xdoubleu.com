@@ -336,6 +336,11 @@ type ChatStore interface {
 		id uuid.UUID,
 		afterSeq, limit int,
 	) ([]models.ChatEvent, error)
+	// Ask appends a question event and moves the session to asking in one step,
+	// returning the event's seq; a stopped session is a conflict.
+	Ask(ctx context.Context, id uuid.UUID, payload string) (int, error)
+	// ForJob returns the session of a chat job.
+	ForJob(ctx context.Context, jobID uuid.UUID) (*models.ChatSession, error)
 	// Stop ends an unstopped session, keeping its report and finishing its job
 	// as jobStatus; a stopped one is a conflict.
 	Stop(

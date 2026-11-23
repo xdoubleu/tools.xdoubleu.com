@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import type { Chat } from '@/lib/gen/factory/v1/factory_pb'
-import { stateLabel } from '@/lib/factory/chat'
+import { pendingAsk, stateLabel } from '@/lib/factory/chat'
 import { useChatSocket } from '@/hooks/useChatSocket'
 import { useChatActions } from '@/hooks/useFactory'
 import ChatTranscript from '@/components/factory/ChatTranscript'
@@ -40,6 +40,12 @@ export default function ChatView({ id, chat, onLeave }: ChatViewProps) {
     bottom.current?.scrollIntoView?.({ block: 'end' })
   }, [items, transcript.items[items - 1]])
 
+  const question = pendingAsk(transcript.items)
+
+  const answerAsk = async (askId: number, text: string) => {
+    await answer(id, text, askId)
+  }
+
   const submit = async (e: FormEvent) => {
     e.preventDefault()
     const body = text.trim()
@@ -47,7 +53,7 @@ export default function ChatView({ id, chat, onLeave }: ChatViewProps) {
     setPending(true)
     setFailed(false)
     try {
-      await (current === 'asking' ? answer(id, body) : send(id, body))
+      await (current === 'asking' ? answer(id, body, question) : send(id, body))
       setText('')
     } catch {
       setFailed(true)
@@ -98,7 +104,7 @@ export default function ChatView({ id, chat, onLeave }: ChatViewProps) {
           {current === '' ? 'Starting…' : 'Ready. Say what you want done.'}
         </p>
       )}
-      <ChatTranscript items={transcript.items} />
+      <ChatTranscript items={transcript.items} open={!stopped} onAnswer={answerAsk} />
       {stopped && (
         <Card variant="inset" padding="md" className="mt-4 space-y-2" data-testid="chat-report">
           <SectionHeading>Left behind</SectionHeading>

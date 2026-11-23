@@ -192,4 +192,8 @@ const (
 	ChatEventMessage = "user_message"
 	ChatEventAnswer  = "user_answer"
 	ChatEventStopped = "stopped"
+	// ChatEventAsk is a question the agent put to the person with chat_ask; its
+	// seq is the question's id. ChatEventAskAnswer is the person's reply to it.
+	ChatEventAsk       = "ask"
+	ChatEventAskAnswer = "ask_answer"
 )

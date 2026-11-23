@@ -26,6 +26,16 @@ const (
 	stateIdle       = "idle"
 )
 
+// chatInstructions is the chat's system prompt, sent ahead of the first message:
+// ACP has no system prompt of its own, and OpenCode's own question tool may not
+// reach the person.
+const chatInstructions = "You are in a chat with a person through the factory. " +
+	"When you need them to choose between options or to confirm something, call " +
+	"the factory_chat_ask tool (a question, 2 to 4 options, multi_select when " +
+	"several may be chosen) instead of asking in prose or with another question " +
+	"tool: it shows them a card and returns their answer. When it returns status " +
+	"waiting, call it again with the same ask_id until it returns the answer."
+
 // ChatSession is the harness session of one chat, wardcase's session.Chat in
 // production.
 type ChatSession interface {
@@ -56,6 +66,8 @@ type ChatSpec struct {
 	Model string
 	// MCP are the device's MCP servers the session gets beside the board.
 	MCP []MCPServer
+	// Instructions go to the harness ahead of the first message.
+	Instructions string
 	// OnEvent receives what the harness reports, one at a time, in order: kind is
 	// "update" or "permission", payload JSON.
 	OnEvent func(kind, payload string)
@@ -150,7 +162,10 @@ func (r *JobRunner) openChat(
 	job *ClaimedJob,
 	onEvent func(kind, payload string),
 ) (ChatSession, error) {
-	spec := ChatSpec{Job: job, Token: "", Model: "", MCP: nil, OnEvent: onEvent}
+	spec := ChatSpec{
+		Job: job, Token: "", Model: "", MCP: nil, Instructions: chatInstructions,
+		OnEvent: onEvent,
+	}
 	if oc, ok := r.Harness.(OpenCode); ok {
 		spec.Model = oc.Model
 	}

@@ -100,7 +100,16 @@ func (h *chatConnectHandler) AnswerChat(
 	ctx context.Context,
 	req *factoryv1.AnswerChatRequest,
 ) (*factoryv1.AnswerChatResponse, error) {
-	id, err := h.reply(ctx, req.GetId(), req.GetText(), h.app.Services.Chats.Answer)
+	answer := h.app.Services.Chats.Answer
+	if req.GetAskId() > 0 {
+		answer = func(
+			ctx context.Context, actor models.Actor, id uuid.UUID, text string,
+		) error {
+			return h.app.Services.Chats.AnswerAsk(
+				ctx, actor, id, int(req.GetAskId()), text)
+		}
+	}
+	id, err := h.reply(ctx, req.GetId(), req.GetText(), answer)
 	if err != nil {
 		return nil, err
 	}
