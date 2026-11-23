@@ -600,8 +600,12 @@ func TestChatStopPostsTheSummaryOnTheTask(t *testing.T) {
 	_, err = e.svc.Stop(ctx, e.admin, s.ID, "", "  Did the thing.  ")
 
 	require.NoError(t, err)
-	comments := *e.svc.tasks.(chatTasks).comments
-	assert.Equal(t, []string{"runner:" + e.runner.ID.String() + ": Did the thing."}, comments)
+	comments := postedComments(t, e.svc)
+	assert.Equal(
+		t,
+		[]string{"runner:" + e.runner.ID.String() + ": Did the thing."},
+		comments,
+	)
 }
 
 func TestChatStopWithoutATaskOrSummaryPostsNothing(t *testing.T) {
@@ -610,7 +614,7 @@ func TestChatStopWithoutATaskOrSummaryPostsNothing(t *testing.T) {
 	s := e.start(t)
 	_, err := e.svc.Stop(ctx, e.admin, s.ID, "", "summary")
 	require.NoError(t, err)
-	assert.Empty(t, *e.svc.tasks.(chatTasks).comments)
+	assert.Empty(t, postedComments(t, e.svc))
 
 	in := startIn(e.repo.ID, e.runner.ID, models.HarnessClaudeCode)
 	in.TaskID = uuid.New()
@@ -618,5 +622,13 @@ func TestChatStopWithoutATaskOrSummaryPostsNothing(t *testing.T) {
 	require.NoError(t, err)
 	_, err = e.svc.Stop(ctx, e.admin, s.ID, "", "")
 	require.NoError(t, err)
-	assert.Empty(t, *e.svc.tasks.(chatTasks).comments)
+	assert.Empty(t, postedComments(t, e.svc))
+}
+
+// postedComments is what the service commented on its fake task store.
+func postedComments(t *testing.T, svc *ChatService) []string {
+	t.Helper()
+	tasks, ok := svc.tasks.(chatTasks)
+	require.True(t, ok)
+	return *tasks.comments
 }
