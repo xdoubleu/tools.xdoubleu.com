@@ -176,6 +176,8 @@ export function stateLabel(state: string): string {
       return 'Waiting for your answer'
     case 'idle':
       return 'Ready'
+    case 'paused':
+      return 'Paused'
     case 'stopped':
       return 'Closed'
     default:

@@ -102,6 +102,7 @@ export default function ChatClient() {
   const { data, error, isLoading } = useFactoryChats()
   const { data: repos } = useFactoryRepos()
   const id = params.get('chat')
+  const [repoFilter, setRepoFilter] = useState('')
   const open = (chatId: string) => router.push(`/factory/chat?chat=${encodeURIComponent(chatId)}`)
 
   if (id) {
@@ -122,6 +123,8 @@ export default function ChatClient() {
     return repo ? repoLabel(repo) : 'Repo'
   }
 
+  const chats = data?.chats.filter((c) => !repoFilter || c.repoId === repoFilter) ?? []
+
   return (
     <PageContainer size="narrow">
       <PageHeader title="Chat" />
@@ -129,14 +132,36 @@ export default function ChatClient() {
       <NewChat onStarted={(chat) => open(chat.id)} />
       {error && !data && <ErrorState what="chats" />}
       {isLoading && !data && <LoadingState label="chats" />}
-      {data && data.chats.length === 0 && <EmptyState>No chats yet.</EmptyState>}
       {data && data.chats.length > 0 && (
+        <Field label="Filter by repo" htmlFor="chat-filter" className="mb-4">
+          <Select
+            id="chat-filter"
+            value={repoFilter}
+            onChange={(e) => setRepoFilter(e.target.value)}
+          >
+            <option value="">All repos</option>
+            {reposOf(repos).map((repo) => (
+              <option key={repo.id} value={repo.id}>
+                {repoLabel(repo)}
+              </option>
+            ))}
+          </Select>
+        </Field>
+      )}
+      {data && data.chats.length === 0 && <EmptyState>No chats yet.</EmptyState>}
+      {data && data.chats.length > 0 && chats.length === 0 && (
+        <EmptyState>No chats for this repo.</EmptyState>
+      )}
+      {chats.length > 0 && (
         <GroupedList aria-label="Chats">
-          {data.chats.map((chat) => (
+          {chats.map((chat) => (
             <GroupedListItem key={chat.id}>
               <div className="min-w-0 flex-1">
                 <p className="break-words font-medium">{repoName(chat.repoId)}</p>
-                <p className="text-xs text-muted">{harnessLabel(chat.harness)}</p>
+                <p className="text-xs text-muted">
+                  {harnessLabel(chat.harness)}
+                  {chat.taskId && ' · linked to a task'}
+                </p>
               </div>
               <Badge variant={chat.state === 'stopped' ? 'secondary' : 'success'}>
                 {stateLabel(chat.state)}
