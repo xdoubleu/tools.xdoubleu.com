@@ -49,8 +49,8 @@ func TestABlockedJobFilesASandboxTaskAndARepeatCommentsOnIt(t *testing.T) {
 	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_BACKLOG, found[0].Status)
 	got := env.task(t, found[0].Id)
 	comments := withoutPickupNotes(got.Comments)
-	require.Len(t, comments, 2)
-	assert.Contains(t, comments[1].Body, problem)
+	require.Len(t, comments, 1, "the repeat; a Backlog task has no Ready move")
+	assert.Contains(t, comments[0].Body, problem)
 
 	// A job that is not blocked files nothing.
 	task := env.newTask(t, "more work")

@@ -25,7 +25,8 @@ func IsSandboxTask(t *models.Task) bool {
 
 // ReportSandbox files a sandbox problem: it comments on the open task the title
 // names (T-n), else the repo's open sandbox task with the same or a close title,
-// else creates one (Ready as a bug, but Backlog when the runner files it). created is false for a repeat.
+// else creates one (Ready as a bug, Backlog when the runner files it). created is
+// false for a repeat.
 func (s *TaskService) ReportSandbox(
 	ctx context.Context,
 	actor models.Actor,
