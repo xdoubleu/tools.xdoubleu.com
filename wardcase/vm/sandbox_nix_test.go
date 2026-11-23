@@ -89,9 +89,17 @@ func TestACheckoutWithAFlakeRunsInsideItsDevShell(t *testing.T) {
 	calls, out := nixSession(t, t.TempDir(), checkout, "http://gw:8118", nixBox(t, 0))
 
 	assert.Contains(t, out, "ran in "+filepath.Base(checkout))
-	assert.Equal(t, "develop --no-write-lock-file --override-input nixpkgs "+
-		"tarball+http://gw:8118/nixsrc/NixOS/nixpkgs/tar.gz/abc123 --command sh -c "+
-		"echo ran in $(basename $PWD)\n", calls)
+	root := ""
+	for _, f := range strings.Fields(calls) {
+		if strings.Contains(f, "/devshell-") {
+			root = f
+		}
+	}
+	assert.Equal(t, "profile wipe-history --profile "+root+"\n"+
+		"develop --profile "+root+" --no-write-lock-file --override-input nixpkgs "+
+		"tarball+http://gw:8118/nixsrc/NixOS/nixpkgs/tar.gz/abc123 --command env -u "+
+		"https_proxy sh -c echo ran in $(basename $PWD)\n", calls)
+	assert.Equal(t, "devshell-"+filepath.Base(checkout), filepath.Base(root))
 }
 
 func TestAFlakeWithoutAProxyIsEnteredWithoutOverrides(t *testing.T) {
@@ -99,8 +107,8 @@ func TestAFlakeWithoutAProxyIsEnteredWithoutOverrides(t *testing.T) {
 
 	calls, _ := nixSession(t, t.TempDir(), checkout, "", nixBox(t, 0))
 
-	assert.True(t,
-		strings.HasPrefix(calls, "develop --no-write-lock-file --command sh"), calls)
+	assert.Contains(t, calls, "--no-write-lock-file --command env -u https_proxy sh")
+	assert.NotContains(t, calls, "--override-input")
 }
 
 func TestTheStoreIsCollectedOnlyPastItsCap(t *testing.T) {

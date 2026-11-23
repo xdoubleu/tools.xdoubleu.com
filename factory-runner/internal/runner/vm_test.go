@@ -14,7 +14,7 @@ func TestTheJobProxyRefusesABadUpstream(t *testing.T) {
 		GeminiKey: nil, MCPServers: nil,
 		MCPRejected: nil, Transport: nil, Anthropic: "not a url", OpenRouter: "",
 		OpenAI: "", Gemini: "", GoProxy: "", NPM: "", RubyGems: "",
-		NixCache: "", NixSrc: "", Log: nil,
+		NixCache: "", NixSrc: "", Log: nil, FetchHosts: nil, Dial: nil,
 	}
 	_, err := runner.NewEgressProxy(cfg)
 	require.ErrorContains(t, err, "egress route anthropic")
