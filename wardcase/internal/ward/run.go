@@ -311,12 +311,13 @@ func (r *Runner) runOnce(
 	if err = r.addMCP(&egress, env, headless, checkout); err != nil {
 		return outcome{}, err
 	}
-	env["WARDCASE_RUN"] = randomID()
 	env[vm.MCPEnv] = vm.MCPOff
 	if x := r.extra; x != nil {
 		addChatMCP(&egress, env, x.chatRequest())
 		maps(env, x.Env)
 	}
+	// Last: the run id names the VM, and a caller's would reuse its own VM's name.
+	env["WARDCASE_RUN"] = randomID()
 	proxy, err := r.NewProxy(egress)
 	if err != nil {
 		return outcome{}, fmt.Errorf("the egress proxy: %w", err)

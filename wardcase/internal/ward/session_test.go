@@ -295,3 +295,21 @@ func TestASessionTakesTheCallersEnvironmentAndDirectories(t *testing.T) {
 	require.NoError(t, err)
 	assert.DirExists(t, outcome, "the caller's outcome directory is kept")
 }
+
+// The run id names the session's VM and network: a caller's own (a factory job's
+// VM still running) must not make this session reuse and tear down that VM.
+func TestASessionGetsItsOwnRunIDOverTheCallers(t *testing.T) {
+	sf := newSessionFixture(t)
+	req := sf.request("agent/run-id")
+	req.Extra = &ward.SessionExtra{
+		Env:        map[string]string{"WARDCASE_RUN": "job-vm"},
+		OutcomeDir: t.TempDir(), SessionDir: t.TempDir(), Board: nil, MCP: nil,
+	}
+	sf.f.box.act = func(_ int, r run, _ io.Writer) int {
+		assert.NotEmpty(t, r.spec.Env["WARDCASE_RUN"])
+		assert.NotEqual(t, "job-vm", r.spec.Env["WARDCASE_RUN"])
+		return 0
+	}
+	_, err := sf.f.r.RunSession(context.Background(), req)
+	require.NoError(t, err)
+}
