@@ -9,8 +9,8 @@ const sampleKeys = [
   undefined
 ]
 let revalidated: unknown[] = []
-const mockMutate = vi.fn(async (match: (key: unknown) => boolean) => {
-  revalidated = sampleKeys.filter(match)
+const mockMutate = vi.fn(async (match: string | ((key: unknown) => boolean)) => {
+  revalidated = typeof match === 'function' ? sampleKeys.filter(match) : [match]
 })
 vi.mock('swr', () => ({
   __esModule: true,
@@ -39,7 +39,12 @@ const mockClient = {
   listAgentAccounts: vi.fn().mockResolvedValue({ accounts: [] }),
   listRunners: vi.fn().mockResolvedValue({ runners: [] }),
   createRunner: vi.fn().mockResolvedValue({ pairingCode: 'ABCDE-FGHJK' }),
-  revokeRunner: vi.fn().mockResolvedValue({})
+  revokeRunner: vi.fn().mockResolvedValue({}),
+  listChats: vi.fn().mockResolvedValue({ chats: [] }),
+  startChat: vi.fn().mockResolvedValue({ chat: { id: 'c1' } }),
+  sendChatMessage: vi.fn().mockResolvedValue({}),
+  answerChat: vi.fn().mockResolvedValue({}),
+  stopChat: vi.fn().mockResolvedValue({ chat: { id: 'c1', report: 'left' } })
 }
 vi.mock('@/lib/client', () => ({
   createServiceClient: vi.fn(() => mockClient)
@@ -47,13 +52,16 @@ vi.mock('@/lib/client', () => ({
 vi.mock('@/lib/gen/factory/v1/factory_pb', async (importOriginal) => ({
   ...(await importOriginal<object>()),
   TaskService: {},
-  RepoService: {}
+  RepoService: {},
+  ChatService: {}
 }))
 vi.mock('@/lib/gen/factory/v1/agent_accounts_pb', () => ({ AgentAccountService: {} }))
 vi.mock('@/lib/gen/factory/v1/runners_pb', () => ({ RunnerAdminService: {} }))
 
 import useSWR from 'swr'
 import {
+  useChatActions,
+  useFactoryChats,
   useFactoryActions,
   useFactoryAgents,
   useFactoryRepos,
@@ -437,5 +445,31 @@ describe('useJobLog', () => {
   it('does not refresh a log that was never active', () => {
     renderHook(() => useJobLog('j-1', false))
     expect(mockSwrMutate).not.toHaveBeenCalled()
+  })
+})
+
+describe('chats', () => {
+  it('lists every chat', () => {
+    renderHook(() => useFactoryChats())
+    expect(mockUseSWR).toHaveBeenCalledWith('/factory/chats', expect.any(Function))
+    expect(mockClient.listChats).toHaveBeenCalledWith({ activeOnly: false })
+  })
+
+  it('starts, sends, answers and closes', async () => {
+    mockMutate.mockClear()
+    const { result } = renderHook(() => useChatActions())
+    expect(await result.current.start('r1', 2, 'run1')).toEqual({ id: 'c1' })
+    expect(mockClient.startChat).toHaveBeenCalledWith({
+      repoId: 'r1',
+      harness: 2,
+      runnerId: 'run1'
+    })
+    await result.current.send('c1', 'hi')
+    expect(mockClient.sendChatMessage).toHaveBeenCalledWith({ id: 'c1', text: 'hi' })
+    await result.current.answer('c1', 'yes')
+    expect(mockClient.answerChat).toHaveBeenCalledWith({ id: 'c1', text: 'yes' })
+    expect(await result.current.close('c1')).toEqual({ id: 'c1', report: 'left' })
+    expect(mockClient.stopChat).toHaveBeenCalledWith({ id: 'c1', report: '' })
+    expect(mockMutate).toHaveBeenCalledTimes(2)
   })
 })

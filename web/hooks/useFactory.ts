@@ -3,10 +3,12 @@ import useSWR, { useSWRConfig } from 'swr'
 import { swrKeys } from '@/lib/swrKeys'
 import { createServiceClient } from '@/lib/client'
 import { AgentAccountService } from '@/lib/gen/factory/v1/agent_accounts_pb'
-import { RepoService, TaskService } from '@/lib/gen/factory/v1/factory_pb'
+import { ChatService, RepoService, TaskService } from '@/lib/gen/factory/v1/factory_pb'
 import { RunnerAdminService } from '@/lib/gen/factory/v1/runners_pb'
 import type {
   GetTaskResponse,
+  Harness,
+  ListChatsResponse,
   JobEvent,
   ListReposResponse,
   ListRoutinesResponse,
@@ -48,6 +50,35 @@ export function useFactoryRoutines() {
         data?.routines.some((r) => jobActive(r.lastJob)) ? JOB_POLL_MS : 0
     }
   )
+}
+
+/** Every chat, newest first. */
+export function useFactoryChats() {
+  const client = createServiceClient(ChatService)
+  return useSWR<ListChatsResponse, Error>(swrKeys.factoryChats, () =>
+    client.listChats({ activeOnly: false })
+  )
+}
+
+/** Chat writes; each revalidates the chat list. */
+export function useChatActions() {
+  const client = createServiceClient(ChatService)
+  const { mutate } = useSWRConfig()
+  return {
+    start: async (repoId: string, harness: Harness, runnerId: string) => {
+      const { chat } = await client.startChat({ repoId, harness, runnerId })
+      await mutate(swrKeys.factoryChats)
+      return chat
+    },
+    send: (id: string, text: string) => client.sendChatMessage({ id, text }),
+    answer: (id: string, text: string) => client.answerChat({ id, text }),
+    /** Closes the chat; the runner reports what it left behind. */
+    close: async (id: string) => {
+      const { chat } = await client.stopChat({ id, report: '' })
+      await mutate(swrKeys.factoryChats)
+      return chat
+    }
+  }
 }
 
 /** How often the runner's state is refreshed: a little under its 45 s online window. */

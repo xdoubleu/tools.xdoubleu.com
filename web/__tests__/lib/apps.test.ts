@@ -82,6 +82,7 @@ describe('sections', () => {
       factory: [
         { label: 'Board', href: '/factory' },
         { label: 'Runner', href: '/factory/runners' },
+        { label: 'Chat', href: '/factory/chat' },
         { label: 'Routines', href: '/factory/routines' },
         { label: 'Repos', href: '/factory/repos' }
       ],
