@@ -201,12 +201,13 @@ func describeWait(state models.ChatState) string {
 }
 
 // Stop ends the session, keeping the report of what it left behind, and frees
-// the runner's slot.
+// the runner's slot. A non-empty summary is posted as a comment on the
+// session's task, authored by the session's runner.
 func (s *ChatService) Stop(
 	ctx context.Context,
 	actor models.Actor,
 	id uuid.UUID,
-	report string,
+	report, summary string,
 ) (*models.ChatSession, error) {
 	if err := requireChatActor(actor); err != nil {
 		return nil, err
@@ -215,6 +216,10 @@ func (s *ChatService) Stop(
 	if utf8.RuneCountInString(report) > maxChatReportLen {
 		return nil, badRequest("the report is too long")
 	}
+	summary = strings.TrimSpace(summary)
+	if utf8.RuneCountInString(summary) > maxChatReportLen {
+		return nil, badRequest("the summary is too long")
+	}
 	if _, err := s.chats.Get(ctx, id); err != nil {
 		return nil, err
 	}
@@ -222,7 +227,16 @@ func (s *ChatService) Stop(
 	if errors.Is(err, database.ErrResourceConflict) {
 		return nil, conflict("the session has already stopped")
 	}
-	return session, err
+	if err != nil {
+		return nil, err
+	}
+	if summary != "" && session.TaskID != uuid.Nil {
+		author := "runner:" + session.RunnerID.String()
+		if _, err = s.tasks.AddComment(ctx, session.TaskID, author, summary); err != nil {
+			return nil, err
+		}
+	}
+	return session, nil
 }
 
 // Events replays a session's events with seq above afterSeq, oldest first, so a

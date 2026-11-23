@@ -152,7 +152,7 @@ func (h *chatConnectHandler) StopChat(
 	if err != nil {
 		return nil, err
 	}
-	session, err := h.app.Services.Chats.Stop(ctx, actor, id, req.GetReport())
+	session, err := h.app.Services.Chats.Stop(ctx, actor, id, req.GetReport(), req.GetSummary())
 	if err != nil {
 		return nil, present.MapError(err)
 	}

@@ -3304,9 +3304,11 @@ func (*AnswerChatResponse) Descriptor() ([]byte, []int) {
 }
 
 type StopChatRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Report        string                 `protobuf:"bytes,2,opt,name=report,proto3" json:"report,omitempty"`
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	Id     string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Report string                 `protobuf:"bytes,2,opt,name=report,proto3" json:"report,omitempty"`
+	// Posted as a comment on the chat's task when it has one.
+	Summary       string `protobuf:"bytes,3,opt,name=summary,proto3" json:"summary,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3351,6 +3353,13 @@ func (x *StopChatRequest) GetId() string {
 func (x *StopChatRequest) GetReport() string {
 	if x != nil {
 		return x.Report
+	}
+	return ""
+}
+
+func (x *StopChatRequest) GetSummary() string {
+	if x != nil {
+		return x.Summary
 	}
 	return ""
 }
@@ -3702,10 +3711,11 @@ const file_factory_v1_factory_proto_rawDesc = "" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04text\x18\x02 \x01(\tR\x04text\x12\x15\n" +
 	"\x06ask_id\x18\x03 \x01(\x05R\x05askId\"\x14\n" +
-	"\x12AnswerChatResponse\"9\n" +
+	"\x12AnswerChatResponse\"S\n" +
 	"\x0fStopChatRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x16\n" +
-	"\x06report\x18\x02 \x01(\tR\x06report\"8\n" +
+	"\x06report\x18\x02 \x01(\tR\x06report\x12\x18\n" +
+	"\asummary\x18\x03 \x01(\tR\asummary\"8\n" +
 	"\x10StopChatResponse\x12$\n" +
 	"\x04chat\x18\x01 \x01(\v2\x10.factory.v1.ChatR\x04chat\"3\n" +
 	"\x10ListChatsRequest\x12\x1f\n" +

@@ -410,19 +410,19 @@ func TestChatStopKeepsTheReportAndOnlyOnce(t *testing.T) {
 	ctx := context.Background()
 	s := e.start(t)
 
-	stopped, err := e.svc.Stop(ctx, e.admin, s.ID, "  left a branch  ")
+	stopped, err := e.svc.Stop(ctx, e.admin, s.ID, "  left a branch  ", "")
 
 	require.NoError(t, err)
 	assert.Equal(t, models.ChatStopped, stopped.State)
 	assert.Equal(t, "left a branch", stopped.Report)
-	_, err = e.svc.Stop(ctx, e.admin, s.ID, "")
+	_, err = e.svc.Stop(ctx, e.admin, s.ID, "", "")
 	assert.ErrorIs(t, err, ErrConflict)
 	assert.ErrorIs(t, e.svc.SendMessage(ctx, e.admin, s.ID, "hi"), ErrConflict)
-	_, err = e.svc.Stop(ctx, e.admin, s.ID, strings.Repeat("a", maxChatReportLen+1))
+	_, err = e.svc.Stop(ctx, e.admin, s.ID, strings.Repeat("a", maxChatReportLen+1), "")
 	assert.ErrorIs(t, err, ErrInvalid)
-	_, err = e.svc.Stop(ctx, e.admin, uuid.New(), "")
+	_, err = e.svc.Stop(ctx, e.admin, uuid.New(), "", "")
 	assert.ErrorIs(t, err, database.ErrResourceNotFound)
-	_, err = e.svc.Stop(ctx, chatActor("", false, false), s.ID, "")
+	_, err = e.svc.Stop(ctx, chatActor("", false, false), s.ID, "", "")
 	assert.ErrorIs(t, err, ErrForbidden)
 }
 
@@ -430,7 +430,7 @@ func TestChatListHidesStoppedWhenAskedTo(t *testing.T) {
 	e := newChatEnv(t)
 	ctx := context.Background()
 	live, gone := e.start(t), e.start(t)
-	_, err := e.svc.Stop(ctx, e.admin, gone.ID, "")
+	_, err := e.svc.Stop(ctx, e.admin, gone.ID, "", "")
 	require.NoError(t, err)
 
 	all, err := e.svc.List(ctx, e.admin, false)
@@ -518,7 +518,7 @@ func TestChatRecordEventsRules(t *testing.T) {
 	assert.Len(t, e.chats.events[s.ID][0].Payload, maxEventBytes)
 	assert.Equal(t, models.ChatWorking, e.chats.sessions[s.ID].State)
 
-	_, err := e.svc.Stop(ctx, e.admin, s.ID, "")
+	_, err := e.svc.Stop(ctx, e.admin, s.ID, "", "")
 	require.NoError(t, err)
 	assert.ErrorIs(t, e.svc.RecordEvents(ctx, e.runner.ID, s.ID, "", event), ErrConflict)
 }
