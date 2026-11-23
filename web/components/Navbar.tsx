@@ -21,7 +21,7 @@ export default function Navbar() {
       <nav className="mx-auto flex items-center justify-between py-1 pl-[var(--inset-left)] pr-[max(0.5rem,env(safe-area-inset-right))] sm:py-2 sm:pr-[var(--inset-right)]">
         <Link
           href="/"
-          className="flex min-h-11 min-w-0 items-center truncate text-sm font-semibold text-fg transition-colors hover:text-accent"
+          className="flex min-h-11 min-w-11 items-center truncate text-sm font-semibold text-fg transition-colors hover:text-accent"
         >
           {title}
         </Link>
