@@ -676,3 +676,30 @@ func TestPollingMergedPullRequestsSendsAFixedNumberOfQueries(t *testing.T) {
 	many := mergedPollQueries(t, 12)
 	assert.Equal(t, few, many)
 }
+
+func TestAMergedPullRequestMovesATaskWhoseJobFinishedWithoutIt(t *testing.T) {
+	env, gh := githubEnv(t)
+	task := env.newTask(t, "had a job")
+	require.NotEmpty(t, env.finishedJob(t, task.Id).Id)
+	env.putInReview(t, task.Id)
+	gh.merge(pullURL(11), "Task: had a job ("+task.Id+")")
+
+	require.NoError(t, env.poll(t))
+
+	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_TESTING,
+		env.task(t, task.Id).Task.Status)
+}
+
+func TestAMergedPullRequestLeavesATaskWithARunningJob(t *testing.T) {
+	env, gh := githubEnv(t)
+	task := env.newTask(t, "running")
+	env.run(t, task.Id)
+	require.NotNil(t, env.claim(t))
+	env.putInReview(t, task.Id)
+	gh.merge(pullURL(12), "Task: running ("+task.Id+")")
+
+	require.NoError(t, env.poll(t))
+
+	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_IN_REVIEW,
+		env.task(t, task.Id).Task.Status)
+}

@@ -164,8 +164,8 @@ func countBy(jobs []models.Job, author string) int {
 
 // ReconcileBoard moves the tasks the board shows wrongly: an In progress task
 // with no job, untouched for a while, to where its work stands (a parked one to
-// Backlog), and a Needs you task whose pull request merged to Testing. It returns
-// how many moved; one failing task doesn't stop the others.
+// Backlog), and a Needs you or In review task whose pull request merged to
+// Testing. It returns how many moved; one failing task doesn't stop the others.
 func (s *JobService) ReconcileBoard(ctx context.Context) (int, error) {
 	all, err := s.tasks.List(ctx, "")
 	if err != nil {
@@ -181,7 +181,9 @@ func (s *JobService) ReconcileBoard(ctx context.Context) (int, error) {
 			did, err = s.reconcileInProgress(ctx, t)
 		case models.StatusNeedsYou:
 			did, err = s.reconcileNeedsYou(ctx, t)
-		case models.StatusBacklog, models.StatusReady, models.StatusInReview,
+		case models.StatusInReview:
+			did, err = s.reconcileInReview(ctx, t)
+		case models.StatusBacklog, models.StatusReady,
 			models.StatusTesting, models.StatusDone:
 			continue
 		}
@@ -230,6 +232,24 @@ func (s *JobService) reconcileNeedsYou(
 		return false, err
 	}
 	return true, s.toTesting(ctx, t, t.PRURL, "", "This task was waiting on you.")
+}
+
+// reconcileInReview moves an In review task whose pull request merged without
+// the merge reaching it, as when a session other than a job opened the pull request.
+func (s *JobService) reconcileInReview(
+	ctx context.Context,
+	t *models.Task,
+) (bool, error) {
+	if t.PRState != StateMerged || t.PRURL == "" {
+		return false, nil
+	}
+	jobs, err := s.jobs.ByTask(ctx, t.ID)
+	if err != nil || hasActive(jobs) {
+		return false, err
+	}
+	to, note := s.afterMergeStatus(ctx, t, t.PRURL)
+	return true, s.finishTask(ctx, t.ID, systemAuthor,
+		"Its pull request was merged: "+t.PRURL+withNote(note), to)
 }
 
 func hasActive(jobs []models.Job) bool {
