@@ -52,6 +52,14 @@ if grep -q '\.proto$' <<<"$files"; then
 	run proto api make proto/check/local
 	touched web && run proto web npm run generate:check:local
 fi
+# No github.com in the sandbox: unless DOC_BUDGETS_DIR is set or the pinned
+# checkout is cached, use a doc-budgets plugin checkout from the Nix store.
+cached=${XDG_CACHE_HOME:-$HOME/.cache}/doc-budgets
+if [ -z "${DOC_BUDGETS_DIR:-}" ] && ! compgen -G "$cached/*/scripts/lint_docs.sh" >/dev/null; then
+	for d in /nix/store/*/plugins/doc-budgets; do
+		[ -x "$d/scripts/lint_docs.sh" ] && export DOC_BUDGETS_DIR=$d && break
+	done
+fi
 run docs . make lint/docs
 
 line="Checks:"
