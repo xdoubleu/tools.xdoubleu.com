@@ -289,3 +289,28 @@ func TestALostJobWhoseGitHubReadFailsFallsBackToTheStoredState(t *testing.T) {
 	got := env.task(t, id)
 	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_IN_REVIEW, got.Task.Status)
 }
+
+func TestTheReconcilerMovesInReviewTasksWhosePullRequestMerged(t *testing.T) {
+	env := browserJobEnv(t)
+
+	merged := env.newTask(t, "merged "+uuid.NewString())
+	env.finishedJob(t, merged.Id)
+	setStatus(t, merged.Id, "in_review")
+	linkPR(t, merged.Id, "merged")
+
+	running := env.newTask(t, "running "+uuid.NewString())
+	env.run(t, running.Id)
+	require.NotNil(t, env.claim(t))
+	setStatus(t, running.Id, "in_review")
+	linkPR(t, running.Id, "merged")
+
+	open := env.newTask(t, "open "+uuid.NewString())
+	setStatus(t, open.Id, "in_review")
+	linkPR(t, open.Id, "open")
+
+	require.NoError(t, env.app.ReconcileBoardNow(context.Background()))
+	status := func(id string) factoryv1.TaskStatus { return env.task(t, id).Task.Status }
+	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_TESTING, status(merged.Id))
+	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_IN_REVIEW, status(running.Id))
+	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_IN_REVIEW, status(open.Id))
+}

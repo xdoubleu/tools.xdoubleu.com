@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -357,7 +358,10 @@ func (s *JobService) testingAfterMerge(
 	if err != nil {
 		return false, err
 	}
-	if len(jobs) > 0 {
+	// A running job, or one that opened this pull request, is the poll's to follow.
+	if hasActive(jobs) || slices.ContainsFunc(jobs, func(j models.Job) bool {
+		return j.PRURL == pr.URL
+	}) {
 		return false, nil
 	}
 	to, note := s.afterMergeStatus(ctx, task, pr.URL)
