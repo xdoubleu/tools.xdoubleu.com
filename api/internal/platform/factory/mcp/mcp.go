@@ -97,10 +97,10 @@ type mcpRunRoutineArgs struct {
 
 //nolint:lll // struct tags can't wrap
 type mcpChatAskArgs struct {
-	Question string   `json:"question,omitempty"    jsonschema:"the question to put to the person; required unless ask_id is set"`
-	Options  []string `json:"options,omitempty"     jsonschema:"2 to 4 short options to choose from; two options make a confirmation. The person can also type another answer."`
+	Question string   `json:"question,omitempty"     jsonschema:"the question to put to the person; required unless ask_id is set"`
+	Options  []string `json:"options,omitempty"      jsonschema:"2 to 4 short options to choose from; two options make a confirmation. The person can also type another answer."`
 	Multi    bool     `json:"multi_select,omitempty" jsonschema:"whether the person may choose several options"`
-	AskID    int      `json:"ask_id,omitempty"      jsonschema:"the ask_id of a question still waiting, to keep waiting for its answer; leave out for a new question"`
+	AskID    int      `json:"ask_id,omitempty"       jsonschema:"the ask_id of a question still waiting, to keep waiting for its answer; leave out for a new question"`
 }
 
 // ChatPublisher pushes a chat's new events to the sockets watching it.
