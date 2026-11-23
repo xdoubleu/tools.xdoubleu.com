@@ -1,0 +1,128 @@
+{
+  "repoId": "tools.xdoubleu.com",
+  "defaultBranch": "main",
+  "board": {
+    "getTask": "mcp__tools-apps__factory_get_task",
+    "listTasks": "mcp__tools-apps__factory_list_tasks",
+    "createTask": "mcp__tools-apps__factory_create_task",
+    "updateTask": "mcp__tools-apps__factory_update_task",
+    "moveTask": "mcp__tools-apps__factory_move_task",
+    "commentTask": "mcp__tools-apps__factory_comment_task"
+  },
+  "labels": {
+    "types": [
+      "bug",
+      "enhancement",
+      "feature",
+      "chore",
+      "documentation",
+      "spike"
+    ],
+    "scopes": [
+      "reading",
+      "games",
+      "recipes",
+      "mealplans",
+      "shoppinglist",
+      "platform",
+      "infra"
+    ],
+    "fallbackScope": "platform"
+  },
+  "priorityRule": "p0 = fixes or restores something that already works but is broken; p1 = improves existing working functionality; p2 = brand-new features. A new feature never outranks a broken thing; when ambiguous take the lower one and add the label needs-priority-review.",
+  "areas": [
+    {
+      "name": "api",
+      "paths": [
+        "api/**"
+      ],
+      "gates": {
+        "lint": "make -C api lint",
+        "test": "make -C api test",
+        "coverage": "make -C api test/cov/diff",
+        "docs": "make lint/docs",
+        "build": "make -C api build"
+      }
+    },
+    {
+      "name": "web",
+      "paths": [
+        "web/**"
+      ],
+      "gates": {
+        "lint": "npm --prefix web run lint",
+        "test": "npm --prefix web test",
+        "coverage": "npm --prefix web run test:cov:diff",
+        "build": "npm --prefix web run build",
+        "docs": "make lint/docs"
+      }
+    },
+    {
+      "name": "factory-runner",
+      "paths": [
+        "factory-runner/**"
+      ],
+      "gates": {
+        "lint": "make -C factory-runner lint",
+        "test": "make -C factory-runner test",
+        "coverage": "make -C factory-runner test/cov/diff",
+        "docs": "make lint/docs",
+        "build": "make -C factory-runner build"
+      }
+    },
+    {
+      "name": "wardcase",
+      "paths": [
+        "wardcase/**"
+      ],
+      "gates": {
+        "lint": "make -C wardcase lint",
+        "test": "make -C wardcase test",
+        "coverage": "make -C wardcase test/cov/diff",
+        "docs": "make lint/docs",
+        "build": "make -C wardcase build"
+      }
+    },
+    {
+      "name": "selfupdate",
+      "paths": [
+        "selfupdate/**"
+      ],
+      "gates": {
+        "lint": "make -C selfupdate lint",
+        "test": "make -C selfupdate test",
+        "coverage": "make -C selfupdate test/cov/diff",
+        "docs": "make lint/docs"
+      }
+    },
+    {
+      "name": "kobo-gateway",
+      "paths": [
+        "kobo-gateway/**"
+      ],
+      "gates": {
+        "lint": "make -C kobo-gateway lint",
+        "test": "make -C kobo-gateway test",
+        "docs": "make lint/docs"
+      }
+    },
+    {
+      "name": "docs-and-tooling",
+      "paths": [
+        "docs/**",
+        "scripts/**",
+        ".claude/**",
+        ".agents/**",
+        "*.md",
+        "Makefile"
+      ],
+      "gates": {
+        "docs": "make lint/docs"
+      }
+    }
+  ],
+  "prWaitCommand": "scripts/pr_wait.sh",
+  "factory": {
+    "finishCommand": "make factory/finish"
+  }
+}

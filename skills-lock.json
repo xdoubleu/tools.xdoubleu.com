@@ -7,6 +7,12 @@
       "skillPath": "skills/engineering/code-review/SKILL.md",
       "computedHash": "caa9a086baaf9e0f7cd71f64edfa83da6821c05e826b083221f3d02e3d6a1905"
     },
+    "finish-task": {
+      "source": "xdoubleu/skills",
+      "sourceType": "github",
+      "skillPath": "plugins/task-lifecycle/skills/finish-task/SKILL.md",
+      "computedHash": "31e1f1d45e85c3c3e309fa915ed28f59cbdf71187174a4eab40a29f1525f2544"
+    },
     "grilling": {
       "source": "mattpocock/skills",
       "sourceType": "github",
@@ -19,11 +25,23 @@
       "skillPath": "plugins/github-issue-triage/skills/issue-triage/SKILL.md",
       "computedHash": "7a0c2af61e57238688d2e122ad6b4d91842c96d667182c55d5b8edcc9e9152f9"
     },
+    "refine-feature": {
+      "source": "xdoubleu/skills",
+      "sourceType": "github",
+      "skillPath": "plugins/task-lifecycle/skills/refine-feature/SKILL.md",
+      "computedHash": "25bbfc6ff0383cb64c638412c0b90382b5c1577afc2dc92830fb2d55fc9d0a6b"
+    },
     "refine-issue": {
       "source": "xdoubleu/skills",
       "sourceType": "github",
       "skillPath": "plugins/github-issue-triage/skills/refine-issue/SKILL.md",
       "computedHash": "141ff0ca3d4425aeb547be28a6efe9fb89c5c0efe85757345126f3bbdc73a653"
+    },
+    "refine-task": {
+      "source": "xdoubleu/skills",
+      "sourceType": "github",
+      "skillPath": "plugins/task-lifecycle/skills/refine-task/SKILL.md",
+      "computedHash": "f7d9d60922a802ee70e8b0eb70e4868a7c9f1f320a04bafd3acf5c886298de09"
     },
     "session-retro": {
       "source": "xdoubleu/skills",
@@ -36,6 +54,12 @@
       "sourceType": "github",
       "skillPath": "plugins/git-task-flow/skills/ship-pr/SKILL.md",
       "computedHash": "d2ec05553a979185b3fb6982f1fd5bed666077869a94b487a86b16d8c81be306"
+    },
+    "start-task": {
+      "source": "xdoubleu/skills",
+      "sourceType": "github",
+      "skillPath": "plugins/task-lifecycle/skills/start-task/SKILL.md",
+      "computedHash": "e0d617ec86803970493b03dd825c6794e578d61bceb718c47026c8382aa2d0a2"
     },
     "task-worktree": {
       "source": "xdoubleu/skills",

@@ -2,7 +2,7 @@
 
 - Status: Accepted; the `ExitPlanMode` reminder was removed on 2026-11-21 (T-741)
 - Issues: #1236, #1238, #1400, #1619, #1440, #1706
-- Affects: `.claude/settings.json`, `.claude/hooks/stop-check-unshipped-work.sh`, `.claude/skills/start-task/`, `.claude/skills/finish-task/`, root `Makefile` (`hooks/test`)
+- Affects: `.claude/settings.json`, `.claude/hooks/stop-check-unshipped-work.sh`, root `Makefile` (`hooks/test`)
 
 ## Context
 

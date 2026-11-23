@@ -18,7 +18,7 @@ Hooks in `.claude/settings.json` (tested with `make hooks/test`) → [adr-0014](
 - `Stop` unshipped-work check, which works with or without `gh`
 - `PostToolUse` doc-budget check, which runs `scripts/lint_docs.sh` on an edited instruction file
 
-`start-task`/`finish-task` wrap marketplace skills from `xdoubleu/skills` (`task-worktree`, `ship-pr`, `session-retro`) and file and claim tasks on the factory board through `refine-task` and the `factory_*` tools of your agent account ([adr-0039](docs/adr-0039-agent-accounts.md) Setup). Label and priority config lives in `.claude/github-triage.config.json`.
+`start-task`, `finish-task`, `refine-task` and `refine-feature` come from the `task-lifecycle` plugin of `xdoubleu/skills`. Everything repo-specific (gates per area, board tools, labels, priority rule, PR wait command) lives in `.claude/repo.config.json`; they claim and file tasks through the `factory_*` tools of your agent account ([adr-0039](docs/adr-0039-agent-accounts.md) Setup). `.claude/github-triage.config.json` still feeds the GitHub-issue triage skills.
 
 ## Subagents
 

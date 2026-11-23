@@ -22,6 +22,7 @@
     }
   },
   "enabledPlugins": {
+    "task-lifecycle@xdoubleu-skills": true,
     "git-task-flow@xdoubleu-skills": true,
     "session-retro@xdoubleu-skills": true,
     "git-cleanup@xdoubleu-skills": true,
