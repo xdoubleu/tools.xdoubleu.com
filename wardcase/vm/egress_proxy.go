@@ -11,6 +11,7 @@ import (
 	"net/netip"
 	"net/url"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -107,6 +108,9 @@ type route struct {
 	rejected func()
 	// readOnly refuses everything but GET and HEAD.
 	readOnly bool
+	// followHosts lists the hosts a redirect from the upstream may be followed to,
+	// here at the proxy, since the VM can't reach them.
+	followHosts []string
 }
 
 // EgressProxy is the only way out of a job's VM (docs/adr-0043): a handful of fixed
@@ -115,6 +119,7 @@ type route struct {
 type EgressProxy struct {
 	routes []route
 	rp     *httputil.ReverseProxy
+	rt     http.RoundTripper
 	log    *slog.Logger
 }
 
@@ -133,7 +138,7 @@ func bearer(key func() (string, error)) func(context.Context) (string, error) {
 
 // NewEgressProxy builds the proxy for one job.
 func NewEgressProxy(cfg EgressConfig) (*EgressProxy, error) {
-	p := &EgressProxy{routes: nil, rp: nil, log: cfg.Log}
+	p := &EgressProxy{routes: nil, rp: nil, rt: nil, log: cfg.Log}
 	if p.log == nil {
 		p.log = slog.New(slog.DiscardHandler)
 	}
@@ -177,17 +182,23 @@ func NewEgressProxy(cfg EgressConfig) (*EgressProxy, error) {
 		}
 	}
 	// Dependency registries: public, unauthenticated, read-only.
-	for _, reg := range []struct{ name, prefix, base string }{
-		{"goproxy", "/goproxy/", orDefault(cfg.GoProxy, goProxyURL)},
-		{"npm", "/npm/", orDefault(cfg.NPM, npmURL)},
-		{"rubygems", "/rubygems/", orDefault(cfg.RubyGems, rubyGemsURL)},
-		{"nixcache", "/nixcache/", orDefault(cfg.NixCache, nixCacheURL)},
-		{"nixsrc", "/nixsrc/", orDefault(cfg.NixSrc, nixSrcURL)},
+	// The Go proxy answers a module zip with a redirect to its blob store.
+	for _, reg := range []struct {
+		name, prefix, base string
+		follow             []string
+	}{
+		{"goproxy", "/goproxy/", orDefault(cfg.GoProxy, goProxyURL),
+			[]string{"storage.googleapis.com"}},
+		{"npm", "/npm/", orDefault(cfg.NPM, npmURL), nil},
+		{"rubygems", "/rubygems/", orDefault(cfg.RubyGems, rubyGemsURL), nil},
+		{"nixcache", "/nixcache/", orDefault(cfg.NixCache, nixCacheURL), nil},
+		{"nixsrc", "/nixsrc/", orDefault(cfg.NixSrc, nixSrcURL), nil},
 	} {
 		if err := p.addRoute(reg.name, reg.prefix, false, reg.base, nil, nil); err != nil {
 			return nil, err
 		}
 		p.routes[len(p.routes)-1].readOnly = true
+		p.routes[len(p.routes)-1].followHosts = reg.follow
 	}
 	transport := cfg.Transport
 	if transport == nil {
@@ -202,6 +213,7 @@ func NewEgressProxy(cfg EgressConfig) (*EgressProxy, error) {
 		t.ResponseHeaderTimeout = upstreamHeaderMax
 		transport = t
 	}
+	p.rt = transport
 	p.rp = &httputil.ReverseProxy{ //nolint:exhaustruct // defaults for the rest
 		Rewrite:        p.rewrite,
 		Transport:      transport,
@@ -239,7 +251,7 @@ func (p *EgressProxy) addRoute(
 	}
 	p.routes = append(p.routes, route{
 		name: name, prefix: prefix, exact: exact, target: target, auth: auth,
-		rejected: rejected, readOnly: false, header: "",
+		rejected: rejected, readOnly: false, header: "", followHosts: nil,
 	})
 	return nil
 }
@@ -356,12 +368,43 @@ func (p *EgressProxy) rewrite(pr *httputil.ProxyRequest) {
 // whose credential was refused.
 func (p *EgressProxy) modifyResponse(resp *http.Response) error {
 	resp.Header.Del("Set-Cookie")
-	if resp.StatusCode == http.StatusUnauthorized {
-		if got, ok := resp.Request.Context().Value(routeKey{}).(routed); ok &&
-			got.route.rejected != nil {
-			got.route.rejected()
-		}
+	got, ok := resp.Request.Context().Value(routeKey{}).(routed)
+	if !ok {
+		return nil
 	}
+	if resp.StatusCode == http.StatusUnauthorized && got.route.rejected != nil {
+		got.route.rejected()
+	}
+	return p.followRedirect(resp, got.route)
+}
+
+// followRedirect replaces a redirect to one of the route's followHosts with the
+// target's own response. Any other redirect passes through to the VM.
+func (p *EgressProxy) followRedirect(resp *http.Response, rt *route) error {
+	switch resp.StatusCode {
+	case http.StatusMovedPermanently, http.StatusFound, http.StatusSeeOther,
+		http.StatusTemporaryRedirect, http.StatusPermanentRedirect:
+	default:
+		return nil
+	}
+	loc, err := resp.Location()
+	if err != nil || loc.Scheme != "https" ||
+		!slices.Contains(rt.followHosts, loc.Hostname()) {
+		return nil //nolint:nilerr // an unfollowable redirect passes through
+	}
+	ctx := resp.Request.Context()
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, loc.String(), nil)
+	if err != nil {
+		return nil //nolint:nilerr // an unfollowable redirect passes through
+	}
+	next, err := p.rt.RoundTrip(req) //nolint:bodyclose // handed on as resp's body
+	if err != nil {
+		return err
+	}
+	_ = resp.Body.Close()
+	next.Header.Del("Set-Cookie")
+	next.Request = resp.Request
+	*resp = *next
 	return nil
 }
 

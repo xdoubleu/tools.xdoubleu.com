@@ -475,3 +475,47 @@ func TestAnEmptyGeminiKeyIsUnavailable(t *testing.T) {
 	rec := do(t, p, http.MethodPost, "/gemini/v1beta/x", `{}`, nil)
 	assert.Equal(t, http.StatusBadGateway, rec.Code)
 }
+
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripFunc) RoundTrip(r *http.Request) (*http.Response, error) {
+	return f(r)
+}
+
+func TestTheGoProxyZipRedirectIsFollowedAtTheProxyOnlyForItsBlobStore(t *testing.T) {
+	var fetched []string
+	rt := roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		h := http.Header{}
+		if r.URL.Path == "/mod.zip" {
+			h.Set("Location", r.URL.Query().Get("to"))
+			return &http.Response{
+				StatusCode: http.StatusFound, Header: h, Request: r,
+				Body: io.NopCloser(strings.NewReader("")),
+			}, nil
+		}
+		fetched = append(fetched, r.URL.Host)
+		h.Set("Set-Cookie", "x=1")
+		return &http.Response{
+			StatusCode: http.StatusOK, Header: h, Request: r,
+			Body: io.NopCloser(strings.NewReader("zip-bytes")),
+		}, nil
+	})
+	p, _ := proxyFor(t, func(c *vm.EgressConfig) {
+		c.GoProxy = "https://proxy.example"
+		c.Transport = rt
+	})
+
+	rec := do(t, p, http.MethodGet,
+		"/goproxy/mod.zip?to=https://storage.googleapis.com/blob", "", nil)
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.Equal(t, "zip-bytes", rec.Body.String())
+	assert.Empty(t, rec.Header().Get("Set-Cookie"))
+
+	for _, to := range []string{
+		"https://evil.example/blob", "http://storage.googleapis.com/blob",
+	} {
+		rec = do(t, p, http.MethodGet, "/goproxy/mod.zip?to="+to, "", nil)
+		assert.Equal(t, http.StatusFound, rec.Code, to)
+	}
+	assert.Equal(t, []string{"storage.googleapis.com"}, fetched)
+}
