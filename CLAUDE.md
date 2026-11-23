@@ -17,7 +17,7 @@ Hooks in `.claude/settings.json` (tested with `make hooks/test`) → [adr-0014](
 - worktree edit guard
 - `Stop` unshipped-work check, which works with or without `gh`
 
-The `doc-budgets@xdoubleu-skills` plugin adds the `PostToolUse` doc-budget check, configured by `.claude/doc-budgets.json`; `make lint/docs` runs the same scripts at a pinned tag.
+The `doc-budgets@xdoubleu-skills` plugin adds the `PostToolUse` doc-budget check, configured by `.claude/doc-budgets.json`; `make lint/docs` runs the same scripts at a pinned commit.
 
 `start-task`, `finish-task`, `refine-task` and `refine-feature` come from the `task-lifecycle` plugin of `xdoubleu/skills`. Everything repo-specific (gates per area, board tools, labels, priority rule, PR wait command) lives in `.claude/repo.config.json`; they claim and file tasks through the `factory_*` tools of your agent account ([adr-0039](docs/adr-0039-agent-accounts.md) Setup). `.claude/github-triage.config.json` still feeds the GitHub-issue triage skills.
 

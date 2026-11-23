@@ -57,16 +57,18 @@ lint/skills:
 
 # Line budgets for agent instruction files, skills and ADRs, and backticked
 # repo paths that must exist: the xdoubleu/skills doc-budgets plugin at a
-# pinned tag, configured by .claude/doc-budgets.json. Set DOC_BUDGETS_DIR to a
-# plugin checkout to run offline.
-DOC_BUDGETS_VERSION ?= doc-budgets-v1.0.0
+# pinned commit, configured by .claude/doc-budgets.json. Set DOC_BUDGETS_DIR
+# to a plugin checkout to run offline.
+DOC_BUDGETS_VERSION ?= 537d2caae13e00fced04cc290b5bf4b2f19264b7
 DOC_BUDGETS_DIR ?= $(or $(XDG_CACHE_HOME),$(HOME)/.cache)/doc-budgets/$(DOC_BUDGETS_VERSION)
 lint/docs:
 	@test -x "$(DOC_BUDGETS_DIR)/scripts/lint_docs.sh" || { \
 		rm -rf "$(DOC_BUDGETS_DIR).tmp" && \
-		git clone -q --depth 1 --branch $(DOC_BUDGETS_VERSION) https://github.com/xdoubleu/skills "$(DOC_BUDGETS_DIR).tmp" && \
+		git clone -q https://github.com/xdoubleu/skills "$(DOC_BUDGETS_DIR).tmp" && \
+		git -C "$(DOC_BUDGETS_DIR).tmp" -c advice.detachedHead=false checkout -q $(DOC_BUDGETS_VERSION) && \
 		mkdir -p "$(dir $(DOC_BUDGETS_DIR))" && \
-		mv "$(DOC_BUDGETS_DIR).tmp/plugins/doc-budgets" "$(DOC_BUDGETS_DIR)"; }
+		mv "$(DOC_BUDGETS_DIR).tmp/plugins/doc-budgets" "$(DOC_BUDGETS_DIR)" && \
+		rm -rf "$(DOC_BUDGETS_DIR).tmp"; }
 	"$(DOC_BUDGETS_DIR)/scripts/lint_docs.sh"
 	"$(DOC_BUDGETS_DIR)/scripts/lint_doc_paths.sh"
 
