@@ -196,7 +196,15 @@ func (r chatRepos) Get(context.Context, uuid.UUID) (*models.Repo, error) {
 
 type chatTasks struct {
 	TaskStore
-	task models.Task
+	task     models.Task
+	comments *[]string
+}
+
+func (t chatTasks) AddComment(
+	_ context.Context, _ uuid.UUID, author, body string,
+) (*models.Comment, error) {
+	*t.comments = append(*t.comments, author+": "+body)
+	return nil, nil //nolint:nilnil // unused by the service
 }
 
 func (t chatTasks) Get(context.Context, uuid.UUID) (*models.Task, error) {
@@ -239,6 +247,7 @@ func withRunners(runners ...models.Runner) chatRunners {
 func withTask(task models.Task) chatTasks {
 	var t chatTasks
 	t.task = task
+	t.comments = new([]string)
 	return t
 }
 
@@ -545,7 +554,7 @@ func TestChatEndStopsASessionTheRunnerEnded(t *testing.T) {
 func TestChatEndAddsToAPersonsReport(t *testing.T) {
 	e := newChatEnv(t)
 	s := e.start(t)
-	_, err := e.svc.Stop(context.Background(), e.admin, s.ID, "done for today")
+	_, err := e.svc.Stop(context.Background(), e.admin, s.ID, "done for today", "")
 	require.NoError(t, err)
 
 	stopped, err := e.svc.End(context.Background(), e.runner.ID, s.ID, "1 commit unpushed")
@@ -560,7 +569,7 @@ func TestChatEndAddsToAPersonsReport(t *testing.T) {
 func TestChatEndWithNothingLeftChangesNothing(t *testing.T) {
 	e := newChatEnv(t)
 	s := e.start(t)
-	_, err := e.svc.Stop(context.Background(), e.admin, s.ID, "bye")
+	_, err := e.svc.Stop(context.Background(), e.admin, s.ID, "bye", "")
 	require.NoError(t, err)
 
 	_, err = e.svc.End(context.Background(), e.runner.ID, s.ID, "")
@@ -578,4 +587,36 @@ func TestChatEndIsForTheirOwnRunnerOnly(t *testing.T) {
 	_, err := e.svc.End(context.Background(), uuid.New(), s.ID, "x")
 
 	require.ErrorIs(t, err, ErrForbidden)
+}
+
+func TestChatStopPostsTheSummaryOnTheTask(t *testing.T) {
+	e := newChatEnv(t)
+	ctx := context.Background()
+	in := startIn(e.repo.ID, e.runner.ID, models.HarnessClaudeCode)
+	in.TaskID = uuid.New()
+	s, err := e.svc.Start(ctx, e.admin, in)
+	require.NoError(t, err)
+
+	_, err = e.svc.Stop(ctx, e.admin, s.ID, "", "  Did the thing.  ")
+
+	require.NoError(t, err)
+	comments := *e.svc.tasks.(chatTasks).comments
+	assert.Equal(t, []string{"runner:" + e.runner.ID.String() + ": Did the thing."}, comments)
+}
+
+func TestChatStopWithoutATaskOrSummaryPostsNothing(t *testing.T) {
+	e := newChatEnv(t)
+	ctx := context.Background()
+	s := e.start(t)
+	_, err := e.svc.Stop(ctx, e.admin, s.ID, "", "summary")
+	require.NoError(t, err)
+	assert.Empty(t, *e.svc.tasks.(chatTasks).comments)
+
+	in := startIn(e.repo.ID, e.runner.ID, models.HarnessClaudeCode)
+	in.TaskID = uuid.New()
+	s, err = e.svc.Start(ctx, e.admin, in)
+	require.NoError(t, err)
+	_, err = e.svc.Stop(ctx, e.admin, s.ID, "", "")
+	require.NoError(t, err)
+	assert.Empty(t, *e.svc.tasks.(chatTasks).comments)
 }
