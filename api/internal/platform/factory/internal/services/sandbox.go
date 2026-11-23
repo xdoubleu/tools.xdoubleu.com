@@ -204,7 +204,8 @@ func (s *TaskService) reportBug(
 
 // backlogWaiting moves a task whose job found it depends on other tasks to
 // Backlog, naming them, and records them so ResumeWaiting resumes it once they
-// merge. A task with a pull request stays where it is.
+// merge. A task with a pull request stays where it is; one whose dependencies
+// had all merged already goes to Needs you.
 func (s *JobService) backlogWaiting(
 	ctx context.Context,
 	job *models.Job,
@@ -213,13 +214,26 @@ func (s *JobService) backlogWaiting(
 	if job.PRURL != "" {
 		return nil
 	}
-	if err := s.finishTask(ctx, job.TaskID, systemAuthor,
+	numbers := refNumbers(waiting)
+	merged, err := s.tasks.AllMerged(ctx, numbers)
+	if err != nil {
+		return err
+	}
+	if merged {
+		// Its wait would be over at once and resume the same run again.
+		return s.finishTask(ctx, job.TaskID, systemAuthor,
+			"The job waits on "+strings.Join(waiting, ", ")+
+				", but they were already merged, so something else blocks it. "+
+				"The job's outcome:\n\n"+job.Outcome,
+			models.StatusNeedsYou)
+	}
+	if err = s.finishTask(ctx, job.TaskID, systemAuthor,
 		"Waiting on "+strings.Join(waiting, ", ")+
 			"; moved to Backlog, and it resumes by itself once they are merged.",
 		models.StatusBacklog); err != nil {
 		return err
 	}
-	return s.tasks.SetWaitingOn(ctx, job.TaskID, refNumbers(waiting))
+	return s.tasks.SetWaitingOn(ctx, job.TaskID, numbers)
 }
 
 // refNumbers is the task numbers of "T-n" refs.

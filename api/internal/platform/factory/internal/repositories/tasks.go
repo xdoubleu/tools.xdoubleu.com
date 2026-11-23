@@ -281,6 +281,47 @@ func (r *TasksRepository) SetWaitingOn(
 	return postgres.PgxErrorToHTTPError(err)
 }
 
+// WaitingOn loads the tasks a task waits on.
+func (r *TasksRepository) WaitingOn(
+	ctx context.Context,
+	id uuid.UUID,
+) ([]models.Task, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT `+getColumns+` FROM factory.tasks t
+		WHERE number = ANY(
+			SELECT unnest(waiting_on) FROM factory.tasks WHERE id = $1)
+		ORDER BY number`, id)
+	if err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	defer rows.Close()
+
+	out := []models.Task{}
+	for rows.Next() {
+		t, scanErr := scanTask(rows)
+		if scanErr != nil {
+			return nil, scanErr
+		}
+		out = append(out, *t)
+	}
+	return out, rows.Err()
+}
+
+// AllMerged reports whether every numbered task exists and is Done, in Testing
+// or merged.
+func (r *TasksRepository) AllMerged(
+	ctx context.Context,
+	numbers []int64,
+) (bool, error) {
+	var merged bool
+	err := r.db.QueryRow(ctx, `
+		SELECT count(*) = cardinality($1::bigint[])
+			AND coalesce(bool_and(status IN ('done', 'testing') OR merge_sha <> ''),
+				false)
+		FROM factory.tasks WHERE number = ANY($1)`, numbers).Scan(&merged)
+	return merged, postgres.PgxErrorToHTTPError(err)
+}
+
 // WaitOver lists the Backlog tasks whose waited-on tasks are all Done, in
 // Testing or merged. A number with no task counts as done.
 func (r *TasksRepository) WaitOver(ctx context.Context) ([]uuid.UUID, error) {
