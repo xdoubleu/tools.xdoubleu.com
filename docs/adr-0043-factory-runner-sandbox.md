@@ -31,7 +31,7 @@ tool and reads anywhere by default.
   cache from the repo's lockfiles (`go mod download`, `npm ci`) and mounts them
   read-only; the VM runs with `GOPROXY=off` and `npm ci --offline`. A registry
   that fetches whatever the client names (the `proxy.golang.org/attacker.example/…`
-  leak) is never reachable.
+  leak) is never reachable. The egress proxy follows the Go proxy's module-zip redirect to `storage.googleapis.com` itself, and only that host.
 - **No Docker daemon.** `make lint/infra` and `make grafana/verify` need Docker, so CI
   runs them, not the job.
 - **Credentials: the token reaches the VM through an allowlisted route only.**
