@@ -1,0 +1,65 @@
+{
+  "budgets": [
+    {
+      "glob": "AGENTS.md",
+      "maxLines": 160
+    },
+    {
+      "glob": "CLAUDE.md",
+      "maxLines": 45
+    },
+    {
+      "glob": "api/AGENTS.md",
+      "maxLines": 130
+    },
+    {
+      "glob": "web/AGENTS.md",
+      "maxLines": 65
+    },
+    {
+      "glob": "kobo-gateway/AGENTS.md",
+      "maxLines": 40
+    },
+    {
+      "glob": "factory-runner/AGENTS.md",
+      "maxLines": 60
+    },
+    {
+      "glob": ".claude/skills/*/SKILL.md",
+      "maxLines": 140
+    },
+    {
+      "glob": "docs/adr-*.md",
+      "maxLines": 125
+    }
+  ],
+  "pathCheck": [
+    "AGENTS.md",
+    "CLAUDE.md",
+    "api/AGENTS.md",
+    "web/AGENTS.md",
+    "kobo-gateway/AGENTS.md",
+    "factory-runner/AGENTS.md"
+  ],
+  "pathIgnore": [
+    "@/hooks/navigation",
+    "components/ui/link",
+    "dist/sw.js",
+    "factory/http/chats_ws.go",
+    "gen/",
+    "internal/platform/spa",
+    "learningpaths/internal/todoist",
+    "lint/darwin",
+    "mcp/guide.go",
+    "migrations/",
+    "net/http",
+    "pkg/",
+    "pkg/irail",
+    "platform/family",
+    "platform/oauthconn",
+    "public/downloads/",
+    "test/mutation/diff",
+    "testdata/",
+    "xdoubleu/skills"
+  ]
+}

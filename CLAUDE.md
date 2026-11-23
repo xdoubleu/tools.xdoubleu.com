@@ -16,7 +16,8 @@ Hooks in `.claude/settings.json` (tested with `make hooks/test`) → [adr-0014](
 
 - worktree edit guard
 - `Stop` unshipped-work check, which works with or without `gh`
-- `PostToolUse` doc-budget check, which runs `scripts/lint_docs.sh` on an edited instruction file
+
+The `doc-budgets@xdoubleu-skills` plugin adds the `PostToolUse` doc-budget check, configured by `.claude/doc-budgets.json`; `make lint/docs` runs the same scripts at a pinned tag.
 
 `start-task`, `finish-task`, `refine-task` and `refine-feature` come from the `task-lifecycle` plugin of `xdoubleu/skills`. Everything repo-specific (gates per area, board tools, labels, priority rule, PR wait command) lives in `.claude/repo.config.json`; they claim and file tasks through the `factory_*` tools of your agent account ([adr-0039](docs/adr-0039-agent-accounts.md) Setup). `.claude/github-triage.config.json` still feeds the GitHub-issue triage skills.
 
@@ -36,4 +37,4 @@ claude mcp add --transport http tools-apps https://tools.xdoubleu.com/api/apps/m
 
 ## OpenCode
 
-OpenCode shares `AGENTS.md`, the MCP server, and `.claude/skills/` (via `skills.paths` in `opencode.json`). Its copies of the marketplace skills live under `.agents/skills/` (`skills-lock.json`, `npx skills update`), so don't copy them into `.claude/skills/`. `.opencode/plugins/repo-guard/` ports the worktree guard, the session-start fast-forward of main, the unshipped-work check (as a nudge), and the doc-budget check.
+OpenCode shares `AGENTS.md`, the MCP server, and `.claude/skills/` (via `skills.paths` in `opencode.json`). Its copies of the marketplace skills live under `.agents/skills/` (`skills-lock.json`, `npx skills update`), so don't copy them into `.claude/skills/`. `.opencode/plugins/repo-guard/` ports the worktree guard, the session-start fast-forward of main, and the unshipped-work check (as a nudge). `.opencode/plugins/doc-budgets.js` is the plugin's doc-budget port; `make lint/docs` fetches its scripts, so point `DOC_BUDGETS_DIR` at them.

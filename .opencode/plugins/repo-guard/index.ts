@@ -1,6 +1,6 @@
 // repo-guard — OpenCode port of .claude/settings.json's hooks: worktree edit
-// guard, main ff-merge on setup, and idle nudges for unshipped work (reusing
-// stop-check-unshipped-work.sh and its dedupe state) and `make lint/docs`.
+// guard, main ff-merge on setup, and an idle nudge for unshipped work (reusing
+// stop-check-unshipped-work.sh and its dedupe state).
 // No `@opencode/plugin` import: this dir has no node_modules.
 import { execFileSync } from "node:child_process"
 import { join } from "node:path"
@@ -104,28 +104,13 @@ function unshippedWorkReason(dir: string): string | undefined {
   }
 }
 
-// Returns scripts/lint_docs.sh's failure output, else undefined.
-function lintDocsFailure(dir: string): string | undefined {
-  try {
-    execFileSync(join(dir, "scripts/lint_docs.sh"), [], {
-      cwd: dir,
-      stdio: ["ignore", "pipe", "ignore"],
-    })
-    return undefined
-  } catch (err) {
-    const out = String((err as { stdout?: unknown }).stdout ?? "").trim()
-    return out || undefined
-  }
-}
-
 export default {
   id: "repo-guard",
   async setup(ctx: PluginContext) {
     // An Actions runner's checkout is throwaway and routines edit it in place.
     if (process.env.GITHUB_ACTIONS === "true") return
     // A factory job runs in a sandbox on a branch the host cloned: the sandbox is the
-    // boundary, and nothing there is a worktree to guard or a PR to nudge toward. The
-    // doc-budget check below still applies, as it does under Claude Code.
+    // boundary, and nothing there is a worktree to guard or a PR to nudge toward.
     const factoryJob = Boolean(process.env.FACTORY_JOB)
     if (!factoryJob) fastForwardMain(ctx.location.directory)
 
@@ -150,9 +135,6 @@ export default {
       }
     })
 
-    // Last lint/docs output per session, so an unchanged failure isn't re-nudged.
-    const lastLintDocs = new Map<string, string>()
-
     // 3. Unshipped-work check, armed per prompt and fired on idle. The
     //    per-commit state file makes repeats and re-entry idempotent.
     await ctx.session.hook("prompt", (event) => {
@@ -162,14 +144,6 @@ export default {
           await ctx.session.wait({ sessionID })
           const session = await ctx.session.get({ sessionID })
           const dir = session.location.directory
-          const lint = lintDocsFailure(dir)
-          if (lint && lint !== lastLintDocs.get(sessionID)) {
-            await ctx.session.synthetic({
-              sessionID,
-              text: `repo-guard: make lint/docs fails — trim per docs/convention-concise-docs-and-comments.md:\n${lint}`,
-            })
-          }
-          lastLintDocs.set(sessionID, lint ?? "")
           const reason = factoryJob ? undefined : unshippedWorkReason(dir)
           if (reason) {
             await ctx.session.synthetic({

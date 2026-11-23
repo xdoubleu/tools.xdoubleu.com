@@ -362,8 +362,8 @@ jobs:
       - name: make lint/skills
         run: make lint/skills
 
-  # Also runs on push: PRs merged off the same base can each pass a word
-  # budget and overrun it together. BASE_REF=HEAD leaves only the budgets.
+  # Also runs on push: PRs merged off the same base can each pass a line
+  # budget and overrun it together.
   docs-lint:
     name: Docs and Comments Lint
     runs-on: ubuntu-latest
@@ -375,8 +375,6 @@ jobs:
           fetch-depth: 0
       - name: make lint/docs
         run: make lint/docs
-        env:
-          BASE_REF: ${{ github.event_name == 'push' && 'HEAD' || format('origin/{0}', github.base_ref) }}
       - name: make lint/docs/test
         run: make lint/docs/test
 
