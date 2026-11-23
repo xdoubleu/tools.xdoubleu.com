@@ -597,6 +597,9 @@ func TestChatStopPostsTheSummaryOnTheTask(t *testing.T) {
 	s, err := e.svc.Start(ctx, e.admin, in)
 	require.NoError(t, err)
 
+	_, err = e.svc.Stop(ctx, e.admin, s.ID, "", strings.Repeat("a", maxChatReportLen+1))
+	require.ErrorIs(t, err, ErrInvalid)
+
 	_, err = e.svc.Stop(ctx, e.admin, s.ID, "", "  Did the thing.  ")
 
 	require.NoError(t, err)
