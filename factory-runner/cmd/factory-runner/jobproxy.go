@@ -53,7 +53,7 @@ func newJobProxy(
 		GeminiKey:     nil,
 		Gemini:        "",
 		OpenRouter:    "", GoProxy: "", NPM: "", RubyGems: "",
-		NixCache: "", NixSrc: "",
+		NixCache: "", NixSrc: "", FetchHosts: nil, Dial: nil,
 		Log: log,
 	}
 	if job.MCPClientID != "" && job.MCPClientSecret != "" {
