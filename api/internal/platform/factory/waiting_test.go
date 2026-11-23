@@ -98,7 +98,11 @@ func TestASplitTaskIsDoneOnceItsSlicesMerge(t *testing.T) {
 	require.NoError(t, err)
 
 	require.NoError(t, env.app.ResumeParkedNow(context.Background()))
-	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_BACKLOG, env.task(t, task.Id).Task.Status)
+	assert.Equal(
+		t,
+		factoryv1.TaskStatus_TASK_STATUS_BACKLOG,
+		env.task(t, task.Id).Task.Status,
+	)
 
 	setStatus(t, slice.Id, "done")
 	require.NoError(t, env.app.ResumeParkedNow(context.Background()))
@@ -106,4 +110,54 @@ func TestASplitTaskIsDoneOnceItsSlicesMerge(t *testing.T) {
 	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_DONE, got.Task.Status)
 	assert.Contains(t, lastComment(got), "Split into")
 	assert.Nil(t, env.claim(t))
+}
+
+func TestADependentOfASplitTaskIsPickedUpOnceTheSplitResolves(t *testing.T) {
+	env, _ := parkEnv(t)
+	autoPickup(t, true)
+	task := env.newTask(t, "too big "+uuid.NewString())
+	env.run(t, task.Id)
+	claimed := env.claim(t)
+	slice := env.newLabelledTask(t, "slice "+uuid.NewString(), "epic:big")
+	_, err := env.runner.CompleteJob(bearer(env.token), &factoryv1.CompleteJobRequest{
+		JobId: claimed.Id, SessionId: "sess", WaitingOn: []string{slice.Id},
+	})
+	require.NoError(t, err)
+	dependent := seedTask(
+		t,
+		"dependent",
+		"Depends on: "+task.Id+"\n\nDo it.",
+		"ready",
+		nil,
+	)
+
+	assert.Nil(t, env.claim(t))
+	env.assertSkipped(t, dependent, "depends on "+task.Id)
+
+	setStatus(t, slice.Id, "done")
+	require.NoError(t, env.app.ResumeParkedNow(context.Background()))
+	picked := env.claim(t)
+	require.NotNil(t, picked)
+	assert.Equal(t, dependent.ref(), picked.TaskId)
+}
+
+func TestAJobWaitingOnlyOnMergedTasksGoesToNeedsYouNotAResume(t *testing.T) {
+	env, _ := parkEnv(t)
+	dep := env.newTask(t, "dependency "+uuid.NewString())
+	setStatus(t, dep.Id, "done")
+	task := env.newTask(t, "waits "+uuid.NewString())
+	env.run(t, task.Id)
+	claimed := env.claim(t)
+	_, err := env.runner.CompleteJob(bearer(env.token), &factoryv1.CompleteJobRequest{
+		JobId: claimed.Id, SessionId: "sess-" + claimed.Id,
+		Outcome: "the real blocker is elsewhere", WaitingOn: []string{dep.Id},
+	})
+	require.NoError(t, err)
+
+	got := env.task(t, task.Id)
+	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_NEEDS_YOU, got.Task.Status)
+	assert.Contains(t, lastComment(got), "already merged")
+	assert.Contains(t, lastComment(got), "the real blocker is elsewhere")
+	require.NoError(t, env.app.ResumeParkedNow(context.Background()))
+	assert.Nil(t, env.claim(t), "nothing resumes it")
 }
