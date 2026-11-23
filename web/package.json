@@ -93,7 +93,7 @@
       "@babel/core": "8.1.2"
     },
     "browserslist": "4.29.6",
-    "baseline-browser-mapping": "2.11.38",
+    "baseline-browser-mapping": "2.11.39",
     "postcss-selector-parser": "7.2.1",
     "minimatch": "^11.0.1",
     "qs": "6.17.1"
