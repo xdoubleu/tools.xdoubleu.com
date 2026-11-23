@@ -818,7 +818,7 @@ func TestAReplyResumesTheSessionOnTheTasksBranch(t *testing.T) {
 	assert.Equal(t, "Fixed.", got.outcome)
 }
 
-func TestAReplyThatAddsNoCommitIsNotPublishable(t *testing.T) {
+func TestAResumeThatAddsNoCommitPublishesTheBranchsEarlierWork(t *testing.T) {
 	var runs int
 	env := newEnv(t, func(
 		ctx context.Context, spec runner.SandboxSpec,
@@ -840,8 +840,34 @@ func TestAReplyThatAddsNoCommitIsNotPublishable(t *testing.T) {
 	_, err := env.runner.Next(context.Background())
 	require.NoError(t, err)
 	got := env.api.done()[1]
-	assert.False(t, got.succeeded, "the earlier commits don't count for the reply")
-	assert.Contains(t, got.outcome, "no commits")
+	assert.True(t, got.succeeded, got.outcome)
+}
+
+func TestAResumeThatAddsNoCommitToABranchWithoutWorkIsNotPublishable(t *testing.T) {
+	var runs int
+	env := newEnv(t, func(
+		_ context.Context, spec runner.SandboxSpec,
+	) (int, error) {
+		runs++
+		if runs == 1 {
+			gitIn(t, spec.CloneDir, "-c", "user.name=a", "-c", "user.email=a@x.io",
+				"commit", "-q", "--allow-empty", "-m", "nothing")
+		}
+		_ = os.WriteFile(
+			filepath.Join(spec.OutcomeDir, "outcome.md"),
+			[]byte("Nothing."),
+			0o644,
+		)
+		return 0, nil
+	}, newJob())
+	ranFirstJob(t, env)
+	env.api.jobs = append(env.api.jobs, replyJob())
+
+	_, err := env.runner.Next(context.Background())
+	require.NoError(t, err)
+	got := env.api.done()[1]
+	assert.False(t, got.succeeded)
+	assert.Contains(t, got.outcome, "change nothing")
 }
 
 func TestAReplyThatRewritesTheBranchIsRefused(t *testing.T) {
