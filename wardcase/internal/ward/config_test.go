@@ -99,7 +99,7 @@ func TestABadMCPEntryIsRefused(t *testing.T) {
 		"unknown key": "[[mcp]]\nname = \"a\"\nurl = \"https://x.example\"\ntoken = \"t\"\n",
 		"duplicate": "[[mcp]]\nname = \"a\"\nurl = \"https://x.example\"\n" +
 			"[[mcp]]\nname = \"a\"\nurl = \"https://y.example\"\n",
-		"reserved name":  "[[mcp]]\nname = \"board\"\nurl = \"https://x.example\"\n",
+		"reserved name":  "[[mcp]]\nname = \"tools-apps\"\nurl = \"https://x.example\"\n",
 		"bad name":       "[[mcp]]\nname = \"A b\"\nurl = \"https://x.example\"\n",
 		"plain http":     "[[mcp]]\nname = \"a\"\nurl = \"http://x.example/mcp\"\n",
 		"no url":         "[[mcp]]\nname = \"a\"\n",

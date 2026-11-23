@@ -410,7 +410,7 @@ func TestAnMCPServerAnswering401TellsItsOwner(t *testing.T) {
 func TestABadMCPServerIsRefusedWhenBuildingTheProxy(t *testing.T) {
 	token := func(context.Context) (string, error) { return "t", nil }
 	for _, srv := range []vm.MCPServer{
-		{Name: "board", URL: "https://x.example/mcp", Token: token, Rejected: nil},
+		{Name: "tools-apps", URL: "https://x.example/mcp", Token: token, Rejected: nil},
 		{Name: "Bad Name", URL: "https://x.example/mcp", Token: token, Rejected: nil},
 		{Name: "ok", URL: "https://x.example/mcp", Token: nil, Rejected: nil},
 		{Name: "ok", URL: "not a url", Token: token, Rejected: nil},
