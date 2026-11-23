@@ -17,7 +17,7 @@ The invoking prompt states the mode; default to interactive.
   merged/mergeable PR (`start-task` → fix → `finish-task`).
 - **Unattended** (nightly routine): **detection-only**. Each subagent
   root-causes and files/updates a refined board task; never writes fixes or
-  opens PRs (`ready-issues-sweep` does once a human moves them to Ready). Never
+  opens PRs (the factory runner does once they reach Ready). Never
   end on a question — decisions needing a human become "file/update a task and
   move on".
 
