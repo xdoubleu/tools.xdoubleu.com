@@ -126,7 +126,12 @@ describe('ChatClient', () => {
     fireEvent.change(screen.getByLabelText('Filter by repo'), { target: { value: 'r1' } })
     expect(screen.queryByText('Ready')).not.toBeInTheDocument()
     expect(screen.getByText('Paused')).toBeInTheDocument()
-    fireEvent.change(screen.getByLabelText('Filter by repo'), { target: { value: 'none' } })
+  })
+
+  it('says so when no chat is in the filtered repo', () => {
+    setup({ chats: [chat({ id: 'c2', repoId: 'gone', harness: 2, state: 'idle' })] })
+    render(<ChatClient />)
+    fireEvent.change(screen.getByLabelText('Filter by repo'), { target: { value: 'r1' } })
     expect(screen.getByText('No chats for this repo.')).toBeInTheDocument()
   })
 
