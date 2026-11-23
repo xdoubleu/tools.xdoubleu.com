@@ -2,6 +2,7 @@ package ward_test
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -40,6 +41,12 @@ func (l *events) kinds() []string {
 	return out
 }
 
+func (l *events) last() acp.Event {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	return l.e[len(l.e)-1]
+}
+
 // chatFixture plays OpenCode's ACP server with a scripted agent.
 func newEvents() *events { return &events{mu: sync.Mutex{}, e: nil} }
 
@@ -58,7 +65,8 @@ func chatRequest(sf *sessionFixture, log *events) ward.ChatRequest {
 	return ward.ChatRequest{
 		Source:  &ward.Source{URL: sf.origin, Base: "main", Branch: "agent/chat", Token: ""},
 		Dir:     "",
-		Harness: ward.OpenCode, OpenCodeModel: "", Board: nil, MCP: nil, OnEvent: log.add,
+		Harness: ward.OpenCode, OpenCodeModel: "", Board: nil, MCP: nil, Order: nil,
+		OnEvent: log.add,
 	}
 }
 
@@ -279,4 +287,137 @@ func TestAChatWithoutABoardHasNone(t *testing.T) {
 	defer chat.Close(ctx)
 
 	assert.Equal(t, vm.MCPOff, sf.f.box.runs[0].spec.Env[vm.MCPEnv])
+}
+
+// limitFixture plays OpenCode at its usage limit, then Codex as a fresh agent.
+func limitFixture(
+	t *testing.T, limit string,
+) (*sessionFixture, *acptest.Agent) {
+	t.Helper()
+	sf := newSessionFixture(t)
+	sf.f.r.Config.Order = []string{ward.Claude, ward.OpenCode, ward.Codex}
+	sf.f.r.Secrets = memSecrets{ward.SecretOpenRouter: "k", ward.SecretOpenAI: "host-key"}
+	limited, next := acptest.New(), acptest.New()
+	limited.LimitError = limit
+	sf.f.box.stream = func(_ run, in io.Reader, out io.Writer) int {
+		agent := limited
+		if len(sf.f.box.runs) > 1 {
+			agent = next
+		}
+		agent.Serve(context.Background(), in, out)
+		return 0
+	}
+	return sf, next
+}
+
+func TestALimitOffersTheNextACPHarnessAndTheSwitchCarriesASummary(t *testing.T) {
+	sf, next := limitFixture(t, "You've hit your usage limit")
+	log := newEvents()
+	ctx := context.Background()
+	chat, err := sf.f.r.OpenChat(ctx, chatRequest(sf, log))
+	require.NoError(t, err)
+	defer chat.Close(ctx)
+	_, limited := chat.Limit()
+	assert.False(t, limited)
+
+	reason, err := chat.Prompt(ctx, "add a file")
+	require.NoError(t, err)
+	assert.Equal(t, ward.StopLimited, reason)
+	limit, limited := chat.Limit()
+	require.True(t, limited)
+	assert.Equal(t, ward.OpenCode, limit.Harness)
+	assert.Equal(t, ward.Codex, limit.Next, "claude has no ACP server; codex is next")
+	assert.Equal(t, []string{"limited"}, log.kinds())
+
+	worktree := chat.Path()
+	require.NoError(t, chat.Switch(ctx, ward.Codex, ""))
+	assert.Equal(t, []string{"limited", "switch"}, log.kinds())
+	assert.Equal(t, ward.Codex, log.last().Harness)
+	_, limited = chat.Limit()
+	assert.False(t, limited)
+	require.Len(t, sf.f.box.runs, 2)
+	assert.Contains(t, sf.f.box.runs[1].command[2], "exec codex-acp")
+	got, err := filepath.EvalSymlinks(sf.f.box.runs[1].spec.CloneDir)
+	require.NoError(t, err)
+	want, err := filepath.EvalSymlinks(worktree)
+	require.NoError(t, err)
+	assert.Equal(t, want, got, "the same worktree")
+
+	reason, err = chat.Prompt(ctx, "carry on")
+	require.NoError(t, err)
+	assert.Equal(t, "end_turn", reason)
+	require.Len(t, next.Prompts(), 1)
+	first := next.Prompts()[0]
+	assert.Contains(t, first, "# Handoff from opencode to codex")
+	assert.Contains(t, first, "**User:** add a file")
+	assert.True(t, strings.HasSuffix(first, "carry on"))
+
+	_, err = chat.Prompt(ctx, "again")
+	require.NoError(t, err)
+	assert.Equal(t, "again", next.Prompts()[1], "only the first prompt is seeded")
+}
+
+func TestALimitErrorCarriesTheResetTime(t *testing.T) {
+	reset := time.Now().Add(time.Hour).Truncate(time.Second)
+	sf, _ := limitFixture(t,
+		fmt.Sprintf("Claude AI usage limit reached|%d", reset.Unix()))
+	ctx := context.Background()
+	chat, err := sf.f.r.OpenChat(ctx, chatRequest(sf, newEvents()))
+	require.NoError(t, err)
+	defer chat.Close(ctx)
+
+	_, err = chat.Prompt(ctx, "hi")
+	require.NoError(t, err)
+	limit, _ := chat.Limit()
+	assert.True(t, reset.Equal(limit.Resets))
+}
+
+func TestWithNoHarnessLeftTheLimitOffersNone(t *testing.T) {
+	sf, _ := limitFixture(t, "insufficient credits")
+	sf.f.r.Config.Order = []string{ward.Claude, ward.OpenCode}
+	ctx := context.Background()
+	chat, err := sf.f.r.OpenChat(ctx, chatRequest(sf, newEvents()))
+	require.NoError(t, err)
+	defer chat.Close(ctx)
+
+	reason, err := chat.Prompt(ctx, "hi")
+	require.NoError(t, err)
+	assert.Equal(t, ward.StopLimited, reason)
+	limit, _ := chat.Limit()
+	assert.Empty(t, limit.Next)
+}
+
+func TestAnotherKindOfErrorIsNotALimit(t *testing.T) {
+	sf, _ := limitFixture(t, "boom")
+	ctx := context.Background()
+	chat, err := sf.f.r.OpenChat(ctx, chatRequest(sf, newEvents()))
+	require.NoError(t, err)
+	defer chat.Close(ctx)
+
+	_, err = chat.Prompt(ctx, "hi")
+	require.ErrorContains(t, err, "boom")
+	_, limited := chat.Limit()
+	assert.False(t, limited)
+}
+
+func TestSwitchingToAHarnessWithoutACPIsRefused(t *testing.T) {
+	sf, _ := limitFixture(t, "")
+	ctx := context.Background()
+	chat, err := sf.f.r.OpenChat(ctx, chatRequest(sf, newEvents()))
+	require.NoError(t, err)
+	defer chat.Close(ctx)
+
+	require.ErrorContains(t, chat.Switch(ctx, ward.Claude, ""), "no ACP server")
+	assert.Len(t, sf.f.box.runs, 1)
+}
+
+func TestASwitchThatCannotStartTheNextHarnessIsAnError(t *testing.T) {
+	sf, _ := limitFixture(t, "")
+	ctx := context.Background()
+	chat, err := sf.f.r.OpenChat(ctx, chatRequest(sf, newEvents()))
+	require.NoError(t, err)
+	defer chat.Close(ctx)
+
+	sf.f.r.Secrets = memSecrets{}
+	require.Error(t, chat.Switch(ctx, ward.Gemini, ""))
 }

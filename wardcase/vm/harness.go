@@ -270,19 +270,36 @@ func (OpenCode) LimitFrom(line []byte) (bool, time.Time) {
 	if json.Unmarshal(line, &event) != nil || event.Type != errorEvent {
 		return false, time.Time{}
 	}
-	// The texts of OpenRouter's credit and rate-limit errors.
-	marks := []string{
+	return providerLimit(string(line)), time.Time{}
+}
+
+// providerLimitMarks are the texts of OpenRouter's credit and rate-limit errors.
+func providerLimitMarks() []string {
+	return []string{
 		"insufficient credits", "requires more credits", "can only afford",
 		"rate limit exceeded", "rate-limited", "rate limited", "free-models-per-day",
 		`"code":402`, `"code":429`, `"statuscode":402`, `"statuscode":429`,
 	}
-	lower := bytes.ToLower(line)
-	for _, mark := range marks {
-		if bytes.Contains(lower, []byte(mark)) {
-			return true, time.Time{}
+}
+
+// LimitInError reads the text of an error a harness's provider answered with (an
+// ACP error's message and data, say): Claude Code's usage-limit text, or a credit
+// or rate-limit refusal. The reset is zero unless the text carries one.
+func LimitInError(text string) (bool, time.Time) {
+	if hit, at := LimitInText(text); hit {
+		return true, at
+	}
+	return providerLimit(text), time.Time{}
+}
+
+func providerLimit(text string) bool {
+	lower := strings.ToLower(text)
+	for _, mark := range providerLimitMarks() {
+		if strings.Contains(lower, mark) {
+			return true
 		}
 	}
-	return false, time.Time{}
+	return false
 }
 
 // TransientError implements Harness: OpenCode reports a failed request as an error

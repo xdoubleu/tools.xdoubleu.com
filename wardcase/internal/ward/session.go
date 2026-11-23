@@ -69,7 +69,7 @@ type SessionResult struct {
 func (x *SessionExtra) chatRequest() ChatRequest {
 	return ChatRequest{
 		Source: nil, Dir: "", Harness: "",
-		OpenCodeModel: "", Board: x.Board, MCP: x.MCP, OnEvent: nil,
+		OpenCodeModel: "", Board: x.Board, MCP: x.MCP, Order: nil, OnEvent: nil,
 	}
 }
 
