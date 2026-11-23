@@ -28,10 +28,11 @@ RUN npm install -g "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}" \
 
 # Nix (single-user, /nix owned by the job user). wardcase mounts a shared store
 # over /nix, which hides this install, so it is kept at /opt/nix-seed and copied
-# into an empty store by the first session.
-RUN mkdir -m 0755 /nix /etc/nix \
+# into an empty store by the first session. /opt/claude-config is Claude's config
+# seed (vm.ClaudeConfigSeed), empty here; the host skills cache mounts over it.
+RUN mkdir -m 0755 /nix /etc/nix /opt/claude-config \
     && echo 'experimental-features = nix-command flakes' > /etc/nix/nix.conf \
-    && chown node:node /nix
+    && chown node:node /nix /opt/claude-config
 USER node
 RUN case "${TARGETARCH}" in amd64) a=x86_64 ;; arm64) a=aarch64 ;; *) exit 1 ;; esac \
     && d="nix-${NIX_VERSION}-${a}-linux" \
