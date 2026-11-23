@@ -91,7 +91,7 @@ func NewControl(pausePath, version string, activity *Activity) *Control {
 		wake:       make(chan struct{}, 1),
 		restart:    make(chan struct{}, 1),
 		kick:       make(chan struct{}, 1),
-		sources:    ClaimSources{Max: nil, Jobs: nil, LimitUntil: nil},
+		sources:    ClaimSources{Max: nil, Jobs: nil, LimitUntil: nil, Fault: nil},
 		jobsOff:    "",
 		queued:     QueuedUnknown,
 	}

@@ -322,6 +322,7 @@ func (e *lifeEnv) start() *generation {
 		}
 		a.control.SetClaimSources(runner.ClaimSources{
 			Max: jobs.MaxJobsNow, Jobs: jobs.RunningJobs, LimitUntil: jobs.LimitUntil,
+			Fault: jobs.Fault,
 		})
 		g.runnerOf.Store(jobs)
 		return jobs, nil

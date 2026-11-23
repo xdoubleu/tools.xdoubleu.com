@@ -29,6 +29,22 @@ jobs:
           # Jobs run in wardcase's base image of the newest wardcase-v* tag (adr-0043).
           version=$(git ls-remote --tags --refs origin 'wardcase-v*' \
             | sed 's|.*refs/tags/wardcase-v||' | sort -V | tail -n 1)
+          # A release must name an image Macs can pull without credentials, never
+          # `dev` (adr-0042). Pull requests don't ship, so they may build with it.
+          if [ "${{ github.ref }}" = "refs/heads/main" ] && [ "${{ github.event_name }}" != "pull_request" ]; then
+            if [ -z "$version" ]; then
+              echo "::error::No wardcase-v* tag exists; publish the wardcase image first (adr-0042)."
+              exit 1
+            fi
+            token=$(curl -fsS "https://ghcr.io/token?scope=repository:xdoubleu/wardcase:pull" \
+              | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')
+            if ! curl -fsS -o /dev/null -H "Authorization: Bearer $token" \
+              -H 'Accept: application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.manifest.v1+json' \
+              "https://ghcr.io/v2/xdoubleu/wardcase/manifests/$version"; then
+              echo "::error::ghcr.io/xdoubleu/wardcase:$version is not pullable anonymously; publish it and make the package public (adr-0042)."
+              exit 1
+            fi
+          fi
           make dist RELEASE=${{ github.sha }} WARDCASE_VERSION="${version:-dev}" \
             UPDATE_PUBLIC_KEY=${{ vars.FACTORY_RUNNER_UPDATE_PUBKEY }}
           echo -n "${{ github.sha }}" > dist/factory-runner-release.txt

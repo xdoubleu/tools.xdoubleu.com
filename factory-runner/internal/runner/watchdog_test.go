@@ -153,7 +153,7 @@ func TestClaimStateNamesWhyAndTheStatusFileRoundTrips(t *testing.T) {
 	c.SetClaimSources(runner.ClaimSources{
 		Max:        func() int { return 2 },
 		Jobs:       func() []string { return []string{"b", "a"} },
-		LimitUntil: nil,
+		LimitUntil: nil, Fault: nil,
 	})
 	c.RecordQueued(3)
 
@@ -164,7 +164,7 @@ func TestClaimStateNamesWhyAndTheStatusFileRoundTrips(t *testing.T) {
 
 	c.SetClaimSources(runner.ClaimSources{
 		Max: func() int { return 2 }, Jobs: func() []string { return []string{"a"} },
-		LimitUntil: nil,
+		LimitUntil: nil, Fault: nil,
 	})
 	assert.Equal(t, "Claiming (1 of 2 slots used)", c.ClaimState().Line())
 
@@ -208,6 +208,7 @@ func TestClaimStateReasonsInOrder(t *testing.T) {
 	c.SetClaimSources(runner.ClaimSources{
 		Max: func() int { return 0 }, Jobs: nil,
 		LimitUntil: func() time.Time { return time.Now().Add(time.Hour) },
+		Fault:      nil,
 	})
 	assert.Contains(t, c.ClaimState().Reason, "usage limit until")
 	_ = now
@@ -263,4 +264,16 @@ func TestActivityReconcileDropsACountNoJobBacks(t *testing.T) {
 	assert.Zero(t, a.Reconcile(2))
 	assert.Equal(t, 2, a.Reconcile(0))
 	assert.True(t, a.Idle())
+}
+
+func TestAVMFaultHoldsClaimsAndShowsOnTheStatus(t *testing.T) {
+	c := runner.NewControl(filepath.Join(t.TempDir(), "paused"), "v1",
+		runner.NewActivity(awakeStub()))
+	c.SetClaimSources(runner.ClaimSources{
+		Max: func() int { return 1 }, Jobs: nil, LimitUntil: nil,
+		Fault: func() string { return "no image" },
+	})
+	st := c.ClaimState()
+	assert.False(t, st.Claiming)
+	assert.Equal(t, "Holding: runner fault: no image (0 of 1 slots used)", st.Line())
 }

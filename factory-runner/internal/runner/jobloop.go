@@ -35,7 +35,9 @@ const (
 	transientWait = 15 * time.Second
 	// defaultLimitWait is how long a usage limit with no reset time is waited out.
 	defaultLimitWait = time.Hour
-	maxLimitWait     = 7 * 24 * time.Hour
+	// vmFaultWait is how long claims pause after a VM would not start.
+	vmFaultWait  = 10 * time.Minute
+	maxLimitWait = 7 * 24 * time.Hour
 	// tokenLife is how long a push token is reused for reading the pull request.
 	tokenLife   = 20 * time.Minute
 	noteTimeout = 15 * time.Second
@@ -146,12 +148,19 @@ func (l *jobLoop) open() *result {
 	}
 	session, err := openSession(l.ctx, l.r.Sandbox, spec)
 	if err != nil {
-		reason := "The sandbox could not run the job: " + err.Error()
-		res := failed(reason)
+		// The VM or its image is the runner's fault, so every job would meet it:
+		// hold claims and hand the job back, as for a usage limit, instead of
+		// failing it and its task.
+		until := l.now().Add(vmFaultWait)
+		reason := "The runner could not start a VM: " + err.Error()
+		l.r.holdFault(short(reason), until)
+		res := failed(reason + "\n\nThe runner is paused and will retry; " +
+			"the task goes back to the queue.")
 		res.session = l.tap.Session()
-		res.blocked = noOutcomeBlock("", reason, l.secrets, "")
+		res.limited, res.resetsAt = true, until
 		return &res
 	}
+	l.r.clearFault()
 	l.session = session
 	return nil
 }
