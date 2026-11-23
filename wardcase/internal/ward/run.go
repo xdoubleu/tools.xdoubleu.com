@@ -384,6 +384,7 @@ func (r *Runner) harness(
 		MCPRejected: nil, Transport: nil, Anthropic: "", OpenRouter: "", OpenAI: "",
 		Gemini:  "",
 		GoProxy: "", NPM: "", RubyGems: "", NixCache: "", NixSrc: "", Log: nil,
+		FetchHosts: nil, Dial: nil,
 	}
 	switch name {
 	case Claude:

@@ -53,7 +53,9 @@ func (s *ContainerSandbox) nixScriptAt(root, seed, proxyURL string) string {
 		"sandbox = false\nbuild-users-group =\nsubstituters = " + substituters + "'\n")
 	b.WriteString("[ \"$(du -sk " + root + "/store | cut -f1)\" -le " +
 		strconv.FormatInt((limit+kib-1)/kib, 10) + " ] || nix store gc >&2 || true\n")
-	b.WriteString("if [ -f flake.nix ]; then\n  set -- --command \"$@\"\n")
+	b.WriteString("if [ -f flake.nix ]; then\n")
+	// The dev shell's own command runs without the proxy variable.
+	b.WriteString("  set -- --command env -u https_proxy \"$@\"\n")
 	if proxyURL != "" {
 		b.WriteString("  if [ -f flake.lock ]; then\n    list=$(jq -r '" + flakeInputs +
 			"' flake.lock)\n    while read -r in owner repo rev; do\n" +
@@ -62,6 +64,19 @@ func (s *ContainerSandbox) nixScriptAt(root, seed, proxyURL string) string {
 			"\"tarball+" + proxyURL + "/nixsrc/$owner/$repo/tar.gz/$rev\" \"$@\"\n" +
 			"    done <<EOF\n$list\nEOF\n  fi\n")
 	}
-	b.WriteString("  set -- nix develop --no-write-lock-file \"$@\"\nfi\n")
+	// The profile roots the dev shell against the store's GC, one per repo with
+	// its older generations wiped. The proxy tunnels fixed-output fetches (a
+	// tool built from source) to its fetch hosts when nix is given it.
+	b.WriteString("  dev=$(git config --get remote.origin.url 2>/dev/null | " +
+		"sed 's|.*/||; s|\\.git$||')\n" +
+		"  [ -n \"$dev\" ] || dev=$(basename \"$PWD\")\n" +
+		"  profile=" + root + "/var/nix/profiles/devshell-$dev\n" +
+		"  nix profile wipe-history --profile \"$profile\" >&2 || true\n")
+	prefix := ""
+	if proxyURL != "" {
+		prefix = "env https_proxy=" + proxyURL + " "
+	}
+	b.WriteString("  set -- " + prefix + "nix develop --profile \"$profile\" " +
+		"--no-write-lock-file \"$@\"\nfi\n")
 	return b.String()
 }

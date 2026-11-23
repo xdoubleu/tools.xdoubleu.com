@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net"
 	"net/http"
@@ -35,6 +36,7 @@ const (
 	proxyHeaderWait   = 15 * time.Second
 	upstreamHeaderMax = 10 * time.Minute
 	proxyStopWait     = 5 * time.Second
+	tunnelHalves      = 2
 )
 
 // EgressConfig says where the proxy sends traffic and which credentials it adds.
@@ -68,7 +70,12 @@ type EgressConfig struct {
 	// flake's inputs come from.
 	NixCache string
 	NixSrc   string
-	Log      *slog.Logger
+	// FetchHosts are the "host:port" a CONNECT tunnel may reach, for Nix's
+	// fixed-output source fetches; nil means the defaults, empty none.
+	FetchHosts []string
+	// Dial opens a tunnel's upstream connection; nil means a plain TCP dial.
+	Dial func(ctx context.Context, network, addr string) (net.Conn, error)
+	Log  *slog.Logger
 }
 
 // MCPServer is an MCP server the VM reaches through the proxy at /mcp-<Name>, with
@@ -121,6 +128,15 @@ type EgressProxy struct {
 	rp     *httputil.ReverseProxy
 	rt     http.RoundTripper
 	log    *slog.Logger
+	// fetchHosts and dial serve CONNECT.
+	fetchHosts []string
+	dial       func(ctx context.Context, network, addr string) (net.Conn, error)
+}
+
+// defaultFetchHosts is where Nix's fixed-output fetches (fetchFromGitHub and
+// the tarballs.nixos.org bootstrap sources) come from.
+func defaultFetchHosts() []string {
+	return []string{"github.com:443", "codeload.github.com:443", "tarballs.nixos.org:443"}
 }
 
 type authKey struct{}
@@ -138,7 +154,10 @@ func bearer(key func() (string, error)) func(context.Context) (string, error) {
 
 // NewEgressProxy builds the proxy for one job.
 func NewEgressProxy(cfg EgressConfig) (*EgressProxy, error) {
-	p := &EgressProxy{routes: nil, rp: nil, rt: nil, log: cfg.Log}
+	p := &EgressProxy{
+		routes: nil, rp: nil, rt: nil, log: cfg.Log,
+		fetchHosts: orHosts(cfg.FetchHosts), dial: orDial(cfg.Dial),
+	}
 	if p.log == nil {
 		p.log = slog.New(slog.DiscardHandler)
 	}
@@ -290,6 +309,10 @@ func (p *EgressProxy) match(requestPath string) (*route, string) {
 
 // ServeHTTP implements http.Handler.
 func (p *EgressProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodConnect {
+		p.tunnel(w, r)
+		return
+	}
 	switch r.Method {
 	case http.MethodGet, http.MethodPost, http.MethodDelete, http.MethodHead:
 	default:
@@ -326,6 +349,68 @@ func (p *EgressProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	r.Body = http.MaxBytesReader(w, r.Body, maxProxyBody)
 	r2 := r.WithContext(context.WithValue(ctx, routeKey{}, routed{route: rt, rest: rest}))
 	p.rp.ServeHTTP(w, r2)
+}
+
+func orHosts(hosts []string) []string {
+	if hosts == nil {
+		return defaultFetchHosts()
+	}
+	return hosts
+}
+
+func orDial(
+	dial func(context.Context, string, string) (net.Conn, error),
+) func(context.Context, string, string) (net.Conn, error) {
+	if dial == nil {
+		var d net.Dialer
+		d.Timeout = proxyHeaderWait
+		return d.DialContext
+	}
+	return dial
+}
+
+// tunnel serves CONNECT to a fetch host, so a Nix build's fixed-output fetch
+// (hash-checked, no credentials) reaches its source; any other host is refused.
+func (p *EgressProxy) tunnel(w http.ResponseWriter, r *http.Request) {
+	if !slices.Contains(p.fetchHosts, r.Host) {
+		p.log.Warn("egress tunnel refused", "host", safePath(r.Host))
+		http.Error(w, "not allowed", http.StatusForbidden)
+		return
+	}
+	hj, ok := w.(http.Hijacker)
+	if !ok {
+		http.Error(w, "tunnel unsupported", http.StatusInternalServerError)
+		return
+	}
+	up, err := p.dial(r.Context(), "tcp", r.Host)
+	if err != nil {
+		p.log.Warn("egress tunnel failed", "host", safePath(r.Host))
+		http.Error(w, "upstream unavailable", http.StatusBadGateway)
+		return
+	}
+	conn, buf, err := hj.Hijack()
+	if err != nil {
+		_ = up.Close()
+		return
+	}
+	p.log.Info("egress", "route", "fetch", "method", r.Method)
+	_, _ = buf.WriteString("HTTP/1.1 200 Connection Established\r\n\r\n")
+	if buf.Flush() != nil {
+		_ = conn.Close()
+		_ = up.Close()
+		return
+	}
+	done := make(chan struct{}, tunnelHalves)
+	pipe := func(dst, src net.Conn, from io.Reader) {
+		_, _ = io.Copy(dst, from)
+		_ = dst.Close()
+		_ = src.Close()
+		done <- struct{}{}
+	}
+	go pipe(up, conn, buf)
+	go pipe(conn, up, up)
+	<-done
+	<-done
 }
 
 type routeKey struct{}

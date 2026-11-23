@@ -51,6 +51,7 @@ func proxyFor(
 	t.Helper()
 	up := newUpstream(t)
 	cfg := vm.EgressConfig{
+		FetchHosts: nil, Dial: nil,
 		Server:        up.srv.URL,
 		MCPToken:      func(context.Context) (string, error) { return "mcp-token", nil },
 		OpenRouterKey: func() (string, error) { return "real-or-key", nil },
@@ -160,7 +161,7 @@ func TestEverythingElseIsRefusedAndNeverReachesAnUpstream(t *testing.T) {
 		rec := do(t, p, http.MethodGet, target, "", nil)
 		assert.Equal(t, http.StatusForbidden, rec.Code, target)
 	}
-	for _, m := range []string{http.MethodPut, http.MethodPatch, http.MethodConnect} {
+	for _, m := range []string{http.MethodPut, http.MethodPatch} {
 		assert.Equal(t, http.StatusMethodNotAllowed,
 			do(t, p, m, "/anthropic/v1/messages", "", nil).Code, m)
 	}
@@ -241,6 +242,7 @@ func TestResponsesStreamAsTheyArrive(t *testing.T) {
 	up := httptest.NewServer(http.HandlerFunc(events))
 	defer up.Close()
 	p, err := vm.NewEgressProxy(vm.EgressConfig{
+		FetchHosts: nil, Dial: nil,
 		Server: "", MCPToken: nil, OpenRouterKey: nil, OpenAIKey: nil,
 		GeminiKey: nil, MCPServers: nil,
 		MCPRejected: nil,
@@ -266,6 +268,7 @@ func TestResponsesStreamAsTheyArrive(t *testing.T) {
 
 func TestABadUpstreamBaseIsRejectedWhenBuildingTheProxy(t *testing.T) {
 	_, err := vm.NewEgressProxy(vm.EgressConfig{
+		FetchHosts: nil, Dial: nil,
 		Server: "", MCPToken: nil, OpenRouterKey: nil, OpenAIKey: nil,
 		GeminiKey: nil, MCPServers: nil,
 		MCPRejected: nil,
@@ -416,6 +419,7 @@ func TestABadMCPServerIsRefusedWhenBuildingTheProxy(t *testing.T) {
 		{Name: "ok", URL: "not a url", Token: token, Rejected: nil},
 	} {
 		_, err := vm.NewEgressProxy(vm.EgressConfig{
+			FetchHosts: nil, Dial: nil,
 			MCPServers: []vm.MCPServer{srv}, Server: "", MCPToken: nil, OpenRouterKey: nil,
 			OpenAIKey: nil,
 			GeminiKey: nil, MCPRejected: nil, Transport: nil, Anthropic: "", OpenRouter: "",
