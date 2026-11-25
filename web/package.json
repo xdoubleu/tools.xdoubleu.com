@@ -39,7 +39,7 @@
     "@readium/shared": "2.9.0",
     "@sentry/react": "11.16.0",
     "clsx": "2.1.1",
-    "dompurify": "3.4.18",
+    "dompurify": "3.5.0",
     "lucide-react": "1.77.0",
     "pdfjs-dist": "6.5.438",
     "posthog-js": "1.453.2",
