@@ -71,7 +71,7 @@
     "@types/react-dom": "19.3.0",
     "@vitejs/plugin-react": "6.3.0",
     "@vitest/coverage-v8": "5.1.1",
-    "dependency-cruiser": "18.8.0",
+    "dependency-cruiser": "18.9.0",
     "eslint": "10.15.0",
     "fake-indexeddb": "6.2.8",
     "jsdom": "31.0.1",
