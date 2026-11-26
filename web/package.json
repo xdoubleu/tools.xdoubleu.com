@@ -87,7 +87,7 @@
   },
   "overrides": {
     "@readium/shared": "2.9.0",
-    "brace-expansion": "5.0.13",
+    "brace-expansion": "5.1.0",
     "@babel/core": "8.1.3",
     "@stryker-mutator/instrumenter": {
       "@babel/core": "8.1.3"
