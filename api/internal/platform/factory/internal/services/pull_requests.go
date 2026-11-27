@@ -354,6 +354,10 @@ func (s *JobService) testingAfterMerge(
 	if task.Status != models.StatusInReview && !early(task.Status) {
 		return false, nil
 	}
+	// This merge was handled before; a task back in an early column has more work.
+	if pr.MergeSHA != "" && task.MergeSHA == pr.MergeSHA {
+		return false, nil
+	}
 	jobs, err := s.jobs.ByTask(ctx, id)
 	if err != nil {
 		return false, err
