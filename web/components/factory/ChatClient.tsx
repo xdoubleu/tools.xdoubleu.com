@@ -95,10 +95,10 @@ function harnessLabel(h: Harness): string {
   return HARNESSES.find((x) => x.value === h)?.label ?? 'Harness'
 }
 
-/** The factory chat page: pick a chat, or start one. */
 /** States of a chat that holds no running VM. */
 const RESTING = new Set(['stopped', 'paused'])
 
+/** The factory chat page: pick a chat, or start one. */
 export default function ChatClient() {
   const params = useSearchParams()
   const router = useRouter()
