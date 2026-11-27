@@ -313,6 +313,25 @@ func TestAMergedPullRequestLinkingAJoblessTaskMovesItToTestingOnce(t *testing.T)
 	assert.Len(t, env.task(t, task.Id).Comments, 1)
 }
 
+func TestARequeuedTaskIsNotMovedAgainByAnAlreadyHandledMerge(t *testing.T) {
+	env, gh := githubEnv(t)
+	task := env.newTask(t, "partly shipped")
+	env.putInReview(t, task.Id)
+	gh.merge(pullURL(11), "Task: partly shipped ("+task.Id+")")
+	require.NoError(t, env.poll(t))
+	require.Equal(t, factoryv1.TaskStatus_TASK_STATUS_TESTING,
+		env.task(t, task.Id).Task.Status)
+
+	_, err := env.tasks.MoveTask(context.Background(), &factoryv1.MoveTaskRequest{
+		Id: task.Id, Status: factoryv1.TaskStatus_TASK_STATUS_READY,
+	})
+	require.NoError(t, err)
+	require.NoError(t, env.poll(t))
+
+	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_READY,
+		env.task(t, task.Id).Task.Status)
+}
+
 func TestAMergedLinkedPullRequestLeavesATaskNotInReview(t *testing.T) {
 	env, gh := githubEnv(t)
 	task := env.newTask(t, "moved on")
