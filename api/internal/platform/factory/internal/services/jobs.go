@@ -595,6 +595,10 @@ func noteDropped(why string) string {
 func (s *JobService) ExpireLost(ctx context.Context) error {
 	// Whatever else fails, no ended job keeps a working secret.
 	defer s.sweepAccounts(ctx)
+	if s.chats != nil {
+		// Best effort: a failed purge is tried again on the next sweep.
+		_, _ = s.chats.PurgeClosed(ctx, s.now().Add(-ChatEventsKeptFor))
+	}
 	lost, err := s.jobs.ExpireLost(ctx, s.now().Add(-LostAfter))
 	if err != nil {
 		return err

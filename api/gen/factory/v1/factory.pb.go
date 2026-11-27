@@ -2869,16 +2869,18 @@ type Chat struct {
 	TaskId   string  `protobuf:"bytes,3,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
 	Harness  Harness `protobuf:"varint,4,opt,name=harness,proto3,enum=factory.v1.Harness" json:"harness,omitempty"`
 	RunnerId string  `protobuf:"bytes,5,opt,name=runner_id,json=runnerId,proto3" json:"runner_id,omitempty"`
-	// idle, working, asking or stopped.
+	// idle, working, asking, paused or stopped.
 	State  string `protobuf:"bytes,6,opt,name=state,proto3" json:"state,omitempty"`
 	Branch string `protobuf:"bytes,7,opt,name=branch,proto3" json:"branch,omitempty"`
 	// What the session left behind when it stopped.
-	Report        string `protobuf:"bytes,8,opt,name=report,proto3" json:"report,omitempty"`
-	LastSeq       int32  `protobuf:"varint,9,opt,name=last_seq,json=lastSeq,proto3" json:"last_seq,omitempty"`
-	CreatedBy     string `protobuf:"bytes,10,opt,name=created_by,json=createdBy,proto3" json:"created_by,omitempty"`
-	CreatedAt     string `protobuf:"bytes,11,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt     string `protobuf:"bytes,12,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	StoppedAt     string `protobuf:"bytes,13,opt,name=stopped_at,json=stoppedAt,proto3" json:"stopped_at,omitempty"`
+	Report    string `protobuf:"bytes,8,opt,name=report,proto3" json:"report,omitempty"`
+	LastSeq   int32  `protobuf:"varint,9,opt,name=last_seq,json=lastSeq,proto3" json:"last_seq,omitempty"`
+	CreatedBy string `protobuf:"bytes,10,opt,name=created_by,json=createdBy,proto3" json:"created_by,omitempty"`
+	CreatedAt string `protobuf:"bytes,11,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt string `protobuf:"bytes,12,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	StoppedAt string `protobuf:"bytes,13,opt,name=stopped_at,json=stoppedAt,proto3" json:"stopped_at,omitempty"`
+	// The person's newest message, cut short.
+	LastMessage   string `protobuf:"bytes,14,opt,name=last_message,json=lastMessage,proto3" json:"last_message,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3000,6 +3002,13 @@ func (x *Chat) GetUpdatedAt() string {
 func (x *Chat) GetStoppedAt() string {
 	if x != nil {
 		return x.StoppedAt
+	}
+	return ""
+}
+
+func (x *Chat) GetLastMessage() string {
+	if x != nil {
+		return x.LastMessage
 	}
 	return ""
 }
@@ -3676,7 +3685,7 @@ const file_factory_v1_factory_proto_rawDesc = "" +
 	"\x11UpdateRepoRequest\x12$\n" +
 	"\x04repo\x18\x01 \x01(\v2\x10.factory.v1.RepoR\x04repo\":\n" +
 	"\x12UpdateRepoResponse\x12$\n" +
-	"\x04repo\x18\x01 \x01(\v2\x10.factory.v1.RepoR\x04repo\"\xf1\x02\n" +
+	"\x04repo\x18\x01 \x01(\v2\x10.factory.v1.RepoR\x04repo\"\x94\x03\n" +
 	"\x04Chat\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\arepo_id\x18\x02 \x01(\tR\x06repoId\x12\x17\n" +
@@ -3695,7 +3704,8 @@ const file_factory_v1_factory_proto_rawDesc = "" +
 	"\n" +
 	"updated_at\x18\f \x01(\tR\tupdatedAt\x12\x1d\n" +
 	"\n" +
-	"stopped_at\x18\r \x01(\tR\tstoppedAt\"\x90\x01\n" +
+	"stopped_at\x18\r \x01(\tR\tstoppedAt\x12!\n" +
+	"\flast_message\x18\x0e \x01(\tR\vlastMessage\"\x90\x01\n" +
 	"\x10StartChatRequest\x12\x17\n" +
 	"\arepo_id\x18\x01 \x01(\tR\x06repoId\x12\x17\n" +
 	"\atask_id\x18\x02 \x01(\tR\x06taskId\x12-\n" +

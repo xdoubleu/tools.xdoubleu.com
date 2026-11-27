@@ -113,6 +113,14 @@ describe('ChatClient', () => {
     expect(screen.getAllByText('Claude Code').length).toBeGreaterThan(1)
   })
 
+  it('shows the last message of a chat', () => {
+    setup({
+      chats: [chat({ id: 'c1', repoId: 'r1', harness: 2, state: 'paused', lastMessage: 'fix the bug' })]
+    })
+    render(<ChatClient />)
+    expect(screen.getByText('fix the bug')).toBeInTheDocument()
+  })
+
   it('filters the list by repo and shows a paused chat', () => {
     setup({
       chats: [

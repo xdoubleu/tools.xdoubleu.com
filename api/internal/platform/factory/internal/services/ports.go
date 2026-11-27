@@ -354,6 +354,20 @@ type ChatStore interface {
 	// ClaimFor marks the oldest unclaimed, unstopped session pinned to the runner
 	// as claimed and returns it; none is not found.
 	ClaimFor(ctx context.Context, runnerID uuid.UUID) (*models.ChatSession, error)
+	// Pause finishes an idle session's chat job, freeing the runner's slot, and
+	// moves it to paused; a session in another state is a conflict.
+	Pause(ctx context.Context, id uuid.UUID) (*models.ChatSession, error)
+	// Reopen starts a new chat job for a paused session and unclaims it, so its
+	// runner starts the VM again; a runner at its job cap or a session that is not
+	// paused is a conflict.
+	Reopen(
+		ctx context.Context,
+		id uuid.UUID,
+		createdBy string,
+	) (*models.ChatSession, error)
+	// PurgeClosed deletes the events of sessions closed before the cutoff, keeping
+	// the session rows, and returns how many sessions it purged.
+	PurgeClosed(ctx context.Context, before time.Time) (int, error)
 	// AppendReport adds text to a session's report, which a person's stop may have
 	// set already.
 	AppendReport(ctx context.Context, id uuid.UUID, text string) error

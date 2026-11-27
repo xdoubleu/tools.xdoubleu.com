@@ -33,7 +33,7 @@ export default function ChatView({ id, chat, onLeave }: ChatViewProps) {
 
   const current = state || chat?.state || ''
   const stopped = current === 'stopped'
-  const canSend = current === 'idle' || current === 'asking'
+  const canSend = current === 'idle' || current === 'asking' || current === 'paused'
   const items = transcript.items.length
 
   useEffect(() => {

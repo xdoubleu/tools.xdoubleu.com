@@ -22,6 +22,8 @@ const (
 	MaxChatEvents     = 500
 	// MaxChatSessions is the most sessions one list returns.
 	MaxChatSessions = 100
+	// ChatEventsKeptFor is how long a closed chat keeps its events.
+	ChatEventsKeptFor = 30 * 24 * time.Hour
 )
 
 // ChatService runs chat sessions: a person talking to a harness on one runner.
@@ -87,7 +89,7 @@ func (s *ChatService) Start(
 	session, err := s.chats.Start(ctx, models.ChatSession{
 		ID: uuid.Nil, RepoID: repo.ID, TaskID: in.TaskID, Harness: in.Harness,
 		RunnerID: in.RunnerID, JobID: uuid.Nil, State: "", Branch: branch,
-		Report: "", LastSeq: 0, CreatedBy: "", CreatedAt: time.Time{},
+		Report: "", LastMessage: "", LastSeq: 0, CreatedBy: "", CreatedAt: time.Time{},
 		UpdatedAt: time.Time{}, StoppedAt: nil,
 	}, actor.String())
 	if errors.Is(err, database.ErrResourceConflict) {
@@ -137,13 +139,24 @@ func (s *ChatService) List(
 	return s.chats.List(ctx, activeOnly, MaxChatSessions)
 }
 
-// SendMessage hands the harness a message while it waits for one.
+// SendMessage hands the harness a message while it waits for one. A paused chat
+// takes it too: the chat starts its runner's VM again in the same worktree.
 func (s *ChatService) SendMessage(
 	ctx context.Context,
 	actor models.Actor,
 	id uuid.UUID,
 	text string,
 ) error {
+	if err := requireChatActor(actor); err != nil {
+		return err
+	}
+	session, err := s.chats.Get(ctx, id)
+	if err != nil {
+		return err
+	}
+	if session.State == models.ChatPaused {
+		return s.resume(ctx, actor, id, text)
+	}
 	return s.reply(ctx, actor, id, text, models.ChatIdle, models.ChatEventMessage)
 }
 
@@ -170,18 +183,15 @@ func (s *ChatService) reply(
 	if err := requireChatActor(actor); err != nil {
 		return err
 	}
-	text = strings.TrimSpace(text)
-	if text == "" {
-		return badRequest("the message is empty")
-	}
-	if utf8.RuneCountInString(text) > maxChatMessageLen {
-		return badRequest("the message is too long")
-	}
-	// Not found stays distinct from a session in the wrong state.
-	if _, err := s.chats.Get(ctx, id); err != nil {
+	text, err := cleanChatMessage(text)
+	if err != nil {
 		return err
 	}
-	_, err := s.chats.Transition(
+	// Not found stays distinct from a session in the wrong state.
+	if _, err = s.chats.Get(ctx, id); err != nil {
+		return err
+	}
+	_, err = s.chats.Transition(
 		ctx, id, []models.ChatState{waiting}, models.ChatWorking)
 	if errors.Is(err, database.ErrResourceConflict) {
 		return conflict("the session is not waiting for a " + describeWait(waiting))
@@ -191,6 +201,39 @@ func (s *ChatService) reply(
 	}
 	return s.chats.Append(ctx, id,
 		[]models.ChatEventInput{{Kind: kind, Payload: text}})
+}
+
+// resume starts a paused chat again and hands it the message that woke it.
+func (s *ChatService) resume(
+	ctx context.Context,
+	actor models.Actor,
+	id uuid.UUID,
+	text string,
+) error {
+	text, err := cleanChatMessage(text)
+	if err != nil {
+		return err
+	}
+	if _, err = s.chats.Reopen(ctx, id, actor.String()); err != nil {
+		if errors.Is(err, database.ErrResourceConflict) {
+			return conflict("the runner is already running as many jobs as it allows")
+		}
+		return err
+	}
+	return s.chats.Append(ctx, id,
+		[]models.ChatEventInput{{Kind: models.ChatEventMessage, Payload: text}})
+}
+
+// cleanChatMessage trims a person's text and checks its length.
+func cleanChatMessage(text string) (string, error) {
+	text = strings.TrimSpace(text)
+	if text == "" {
+		return "", badRequest("the message is empty")
+	}
+	if utf8.RuneCountInString(text) > maxChatMessageLen {
+		return "", badRequest("the message is too long")
+	}
+	return text, nil
 }
 
 func describeWait(state models.ChatState) string {
@@ -275,7 +318,7 @@ func (s *ChatService) RecordEvents(
 		return badRequest("too many events in one call")
 	}
 	if state != "" && state != models.ChatIdle && state != models.ChatWorking &&
-		state != models.ChatAsking {
+		state != models.ChatAsking && state != models.ChatPaused {
 		return badRequest("invalid state")
 	}
 	cleaned, err := cleanChatEvents(events)
@@ -299,6 +342,10 @@ func (s *ChatService) RecordEvents(
 	}
 	if state == "" {
 		return nil
+	}
+	if state == models.ChatPaused {
+		_, err = s.chats.Pause(ctx, id)
+		return stoppedIsConflict(err)
 	}
 	_, err = s.chats.Transition(ctx, id, []models.ChatState{
 		models.ChatIdle, models.ChatWorking, models.ChatAsking,
@@ -330,6 +377,12 @@ func cleanChatEvents(
 		out = append(out, models.ChatEventInput{Kind: e.Kind, Payload: truncate(e.Payload)})
 	}
 	return out, nil
+}
+
+// PurgeClosed deletes the events of chats closed more than ChatEventsKeptFor ago;
+// their session rows stay as the summary.
+func (s *ChatService) PurgeClosed(ctx context.Context) (int, error) {
+	return s.chats.PurgeClosed(ctx, s.now().Add(-ChatEventsKeptFor))
 }
 
 // Feed returns a session with its events above afterSeq, oldest first. It checks

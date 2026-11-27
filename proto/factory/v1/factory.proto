@@ -387,7 +387,7 @@ message Chat {
   string task_id = 3;
   Harness harness = 4;
   string runner_id = 5;
-  // idle, working, asking or stopped.
+  // idle, working, asking, paused or stopped.
   string state = 6;
   string branch = 7;
   // What the session left behind when it stopped.
@@ -397,6 +397,8 @@ message Chat {
   string created_at = 11;
   string updated_at = 12;
   string stopped_at = 13;
+  // The person's newest message, cut short.
+  string last_message = 14;
 }
 
 message StartChatRequest {

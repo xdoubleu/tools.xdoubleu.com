@@ -3,6 +3,7 @@ package repositories
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -13,6 +14,9 @@ import (
 	"tools.xdoubleu.com/internal/platform/factory/internal/models"
 )
 
+// maxLastMessage is how many characters of a message the list keeps.
+const maxLastMessage = 200
+
 type ChatsRepository struct {
 	db postgres.DB
 }
@@ -20,14 +24,14 @@ type ChatsRepository struct {
 const chatColumns = `id, repo_id,
 	COALESCE(task_id, '00000000-0000-0000-0000-000000000000'), harness, runner_id,
 	COALESCE(job_id, '00000000-0000-0000-0000-000000000000'), state, branch, report,
-	last_seq, created_by, created_at, updated_at, stopped_at`
+	last_seq, created_by, created_at, updated_at, stopped_at, last_message`
 
 func scanChat(row rowScanner) (*models.ChatSession, error) {
 	var c models.ChatSession
 	err := row.Scan(
 		&c.ID, &c.RepoID, &c.TaskID, &c.Harness, &c.RunnerID, &c.JobID, &c.State,
 		&c.Branch, &c.Report, &c.LastSeq, &c.CreatedBy, &c.CreatedAt, &c.UpdatedAt,
-		&c.StoppedAt,
+		&c.StoppedAt, &c.LastMessage,
 	)
 	if err != nil {
 		return nil, postgres.PgxErrorToHTTPError(err)
@@ -221,17 +225,24 @@ func appendChatEvents(
 	for i, e := range events {
 		kinds[i], payloads[i] = e.Kind, e.Payload
 	}
+	lastMessage := ""
+	for _, e := range events {
+		if e.Kind == models.ChatEventMessage || e.Kind == models.ChatEventAnswer {
+			lastMessage = clip(e.Payload, maxLastMessage)
+		}
+	}
 	tag, err := db.Exec(ctx, `
 		WITH s AS (
 			UPDATE factory.chat_sessions
-			SET last_seq = last_seq + $2::int, updated_at = now()
+			SET last_seq = last_seq + $2::int, updated_at = now(),
+				last_message = CASE WHEN $6 = '' THEN last_message ELSE $6 END
 			WHERE id = $1 AND (state <> 'stopped' OR $5)
 			RETURNING last_seq
 		)
 		INSERT INTO factory.chat_events (session_id, seq, kind, payload)
 		SELECT $1, s.last_seq - $2::int + t.n::int, t.kind, t.payload
 		FROM s, unnest($3::text[], $4::text[]) WITH ORDINALITY AS t(kind, payload, n)`,
-		id, len(events), kinds, payloads, toStopped)
+		id, len(events), kinds, payloads, toStopped, lastMessage)
 	if err != nil {
 		return postgres.PgxErrorToHTTPError(err)
 	}
@@ -365,4 +376,128 @@ func (r *ChatsRepository) AppendReport(
 		return database.ErrResourceNotFound
 	}
 	return nil
+}
+
+// Pause stops an idle session's hold on its runner: the chat job finishes, which
+// frees the slot, and the session waits for the next message. A session in any
+// other state is a conflict.
+func (r *ChatsRepository) Pause(
+	ctx context.Context,
+	id uuid.UUID,
+) (*models.ChatSession, error) {
+	//nolint:exhaustruct // default tx options
+	tx, err := r.db.BeginTx(ctx, pgx.TxOptions{})
+	if err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	c, err := scanChat(tx.QueryRow(ctx, `
+		UPDATE factory.chat_sessions SET state = 'paused', updated_at = now()
+		WHERE id = $1 AND state = 'idle'
+		RETURNING `+chatColumns, id))
+	if err != nil {
+		return nil, notFoundIsConflict(err)
+	}
+	if _, err = tx.Exec(ctx, `
+		UPDATE factory.jobs SET status = 'succeeded', finished_at = now(),
+			outcome = 'Paused after sitting idle.'
+		WHERE id = $1 AND status = 'running'`, c.JobID); err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	if err = tx.Commit(ctx); err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	return c, nil
+}
+
+// Reopen takes a paused session back to working on a new running chat job and
+// unclaims it, so its runner starts the VM again. A runner already at its job cap
+// is a conflict, as is a session that is not paused.
+func (r *ChatsRepository) Reopen(
+	ctx context.Context,
+	id uuid.UUID,
+	createdBy string,
+) (*models.ChatSession, error) {
+	//nolint:exhaustruct // default tx options
+	tx, err := r.db.BeginTx(ctx, pgx.TxOptions{})
+	if err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	var runnerID uuid.UUID
+	if err = tx.QueryRow(ctx, `
+		SELECT runner_id FROM factory.chat_sessions
+		WHERE id = $1 AND state = 'paused' FOR UPDATE`, id).Scan(&runnerID); err != nil {
+		return nil, notFoundIsConflict(postgres.PgxErrorToHTTPError(err))
+	}
+	var maxJobs, running int
+	if err = tx.QueryRow(ctx,
+		`SELECT max_jobs FROM factory.runners WHERE id = $1 FOR UPDATE`, runnerID,
+	).Scan(&maxJobs); err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	if err = tx.QueryRow(ctx, `
+		SELECT count(*) FROM factory.jobs
+		WHERE status = 'running' AND runner_id = $1`, runnerID).Scan(&running); err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	if running >= maxJobs {
+		return nil, database.ErrResourceConflict
+	}
+	var jobID uuid.UUID
+	if err = tx.QueryRow(ctx, `
+		INSERT INTO factory.jobs (
+			kind, repo_id, harness, prompt, branch, status, created_by, runner_id,
+			started_at, last_check_in
+		)
+		SELECT 'chat', repo_id, harness, '', branch, 'running', $2, runner_id,
+			now(), now()
+		FROM factory.chat_sessions WHERE id = $1
+		RETURNING id`, id, createdBy).Scan(&jobID); err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	c, err := scanChat(tx.QueryRow(ctx, `
+		UPDATE factory.chat_sessions
+		SET state = 'working', job_id = $2, claimed_at = NULL, updated_at = now()
+		WHERE id = $1
+		RETURNING `+chatColumns, id, jobID))
+	if err != nil {
+		return nil, err
+	}
+	if err = tx.Commit(ctx); err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	return c, nil
+}
+
+// PurgeClosed deletes the events of sessions closed before the cutoff and marks
+// them, so their row stays as the summary. It returns how many sessions it purged.
+func (r *ChatsRepository) PurgeClosed(
+	ctx context.Context,
+	before time.Time,
+) (int, error) {
+	var purged int
+	err := r.db.QueryRow(ctx, `
+		WITH s AS (
+			UPDATE factory.chat_sessions SET events_purged_at = now()
+			WHERE state = 'stopped' AND stopped_at < $1 AND events_purged_at IS NULL
+			RETURNING id
+		), d AS (
+			DELETE FROM factory.chat_events WHERE session_id IN (SELECT id FROM s)
+		)
+		SELECT count(*) FROM s`, before).Scan(&purged)
+	if err != nil {
+		return 0, postgres.PgxErrorToHTTPError(err)
+	}
+	return purged, nil
+}
+
+// clip cuts s to at most n characters.
+func clip(s string, n int) string {
+	if runes := []rune(s); len(runes) > n {
+		return string(runes[:n])
+	}
+	return s
 }

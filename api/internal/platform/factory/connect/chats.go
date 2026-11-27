@@ -26,19 +26,20 @@ var _ factoryv1connect.ChatServiceHandler = (*chatConnectHandler)(nil)
 
 func protoChat(c *models.ChatSession) *factoryv1.Chat {
 	out := &factoryv1.Chat{
-		Id:        c.ID.String(),
-		RepoId:    c.RepoID.String(),
-		TaskId:    "",
-		Harness:   present.HarnessToProto(c.Harness),
-		RunnerId:  c.RunnerID.String(),
-		State:     string(c.State),
-		Branch:    c.Branch,
-		Report:    c.Report,
-		LastSeq:   int32(c.LastSeq), //nolint:gosec // bounded by the event cap
-		CreatedBy: c.CreatedBy,
-		CreatedAt: c.CreatedAt.Format(time.RFC3339),
-		UpdatedAt: c.UpdatedAt.Format(time.RFC3339),
-		StoppedAt: formatTime(c.StoppedAt),
+		Id:          c.ID.String(),
+		RepoId:      c.RepoID.String(),
+		TaskId:      "",
+		Harness:     present.HarnessToProto(c.Harness),
+		RunnerId:    c.RunnerID.String(),
+		State:       string(c.State),
+		Branch:      c.Branch,
+		Report:      c.Report,
+		LastSeq:     int32(c.LastSeq), //nolint:gosec // bounded by the event cap
+		CreatedBy:   c.CreatedBy,
+		CreatedAt:   c.CreatedAt.Format(time.RFC3339),
+		UpdatedAt:   c.UpdatedAt.Format(time.RFC3339),
+		StoppedAt:   formatTime(c.StoppedAt),
+		LastMessage: c.LastMessage,
 	}
 	if c.TaskID != uuid.Nil {
 		out.TaskId = c.TaskID.String()

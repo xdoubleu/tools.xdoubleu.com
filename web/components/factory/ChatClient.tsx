@@ -162,8 +162,13 @@ export default function ChatClient() {
                   {harnessLabel(chat.harness)}
                   {chat.taskId && ' · linked to a task'}
                 </p>
+                {chat.lastMessage && (
+                  <p className="truncate text-sm text-muted">{chat.lastMessage}</p>
+                )}
               </div>
-              <Badge variant={chat.state === 'stopped' ? 'secondary' : 'success'}>
+              <Badge
+                variant={chat.state === 'stopped' || chat.state === 'paused' ? 'secondary' : 'success'}
+              >
                 {stateLabel(chat.state)}
               </Badge>
               <Button variant="secondary" onClick={() => open(chat.id)}>
