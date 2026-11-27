@@ -115,7 +115,9 @@ describe('ChatClient', () => {
 
   it('shows the last message of a chat', () => {
     setup({
-      chats: [chat({ id: 'c1', repoId: 'r1', harness: 2, state: 'paused', lastMessage: 'fix the bug' })]
+      chats: [
+        chat({ id: 'c1', repoId: 'r1', harness: 2, state: 'paused', lastMessage: 'fix the bug' })
+      ]
     })
     render(<ChatClient />)
     expect(screen.getByText('fix the bug')).toBeInTheDocument()

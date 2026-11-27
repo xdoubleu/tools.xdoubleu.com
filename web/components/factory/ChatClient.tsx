@@ -96,6 +96,9 @@ function harnessLabel(h: Harness): string {
 }
 
 /** The factory chat page: pick a chat, or start one. */
+/** States of a chat that holds no running VM. */
+const RESTING = new Set(['stopped', 'paused'])
+
 export default function ChatClient() {
   const params = useSearchParams()
   const router = useRouter()
@@ -166,9 +169,7 @@ export default function ChatClient() {
                   <p className="truncate text-sm text-muted">{chat.lastMessage}</p>
                 )}
               </div>
-              <Badge
-                variant={chat.state === 'stopped' || chat.state === 'paused' ? 'secondary' : 'success'}
-              >
+              <Badge variant={RESTING.has(chat.state) ? 'secondary' : 'success'}>
                 {stateLabel(chat.state)}
               </Badge>
               <Button variant="secondary" onClick={() => open(chat.id)}>
