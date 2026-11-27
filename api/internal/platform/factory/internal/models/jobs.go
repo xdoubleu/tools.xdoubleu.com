@@ -144,7 +144,10 @@ const (
 	// ChatWorking is the harness at work on a message.
 	ChatWorking ChatState = "working"
 	// ChatAsking waits for the person to answer a question the harness asked.
-	ChatAsking  ChatState = "asking"
+	ChatAsking ChatState = "asking"
+	// ChatPaused stopped its VM after sitting idle and freed the runner's slot;
+	// the next message starts it again in the same worktree.
+	ChatPaused  ChatState = "paused"
 	ChatStopped ChatState = "stopped"
 )
 
@@ -164,12 +167,14 @@ type ChatSession struct {
 	// Branch is the worktree branch the session commits to.
 	Branch string
 	// Report is what the session left behind when it stopped.
-	Report    string
-	LastSeq   int
-	CreatedBy string
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	StoppedAt *time.Time
+	Report string
+	// LastMessage is the person's newest message, cut short for the list.
+	LastMessage string
+	LastSeq     int
+	CreatedBy   string
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+	StoppedAt   *time.Time
 }
 
 // ChatEvent is one numbered entry of a chat session's transcript.

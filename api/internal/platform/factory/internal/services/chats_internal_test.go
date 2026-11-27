@@ -21,13 +21,15 @@ type memChats struct {
 	started  []models.ChatSession
 	claimed  map[uuid.UUID]bool
 	full     bool
+	// purgedBefore is the cutoff of the last PurgeClosed.
+	purgedBefore time.Time
 }
 
 func newMemChats() *memChats {
 	m := &memChats{
 		sessions: map[uuid.UUID]*models.ChatSession{},
 		events:   map[uuid.UUID][]models.ChatEvent{},
-		started:  nil, claimed: map[uuid.UUID]bool{}, full: false,
+		started:  nil, claimed: map[uuid.UUID]bool{}, full: false, purgedBefore: time.Time{},
 	}
 	return m
 }
@@ -171,6 +173,32 @@ func (m *memChats) ClaimFor(
 		}
 	}
 	return nil, database.ErrResourceNotFound
+}
+
+func (m *memChats) Pause(
+	_ context.Context, id uuid.UUID,
+) (*models.ChatSession, error) {
+	return m.Transition(context.Background(), id,
+		[]models.ChatState{models.ChatIdle}, models.ChatPaused)
+}
+
+func (m *memChats) Reopen(
+	_ context.Context, id uuid.UUID, _ string,
+) (*models.ChatSession, error) {
+	if m.full {
+		return nil, database.ErrResourceConflict
+	}
+	c, err := m.Transition(context.Background(), id,
+		[]models.ChatState{models.ChatPaused}, models.ChatWorking)
+	if err == nil {
+		delete(m.claimed, id)
+	}
+	return c, err
+}
+
+func (m *memChats) PurgeClosed(_ context.Context, before time.Time) (int, error) {
+	m.purgedBefore = before
+	return 0, nil
 }
 
 func (m *memChats) AppendReport(_ context.Context, id uuid.UUID, text string) error {
@@ -634,4 +662,50 @@ func postedComments(t *testing.T, svc *ChatService) []string {
 	tasks, ok := svc.tasks.(chatTasks)
 	require.True(t, ok)
 	return *tasks.comments
+}
+
+func TestChatPausesWhenTheRunnerSaysSoAndReopensOnAMessage(t *testing.T) {
+	e := newChatEnv(t)
+	ctx := context.Background()
+	s := e.start(t)
+
+	require.NoError(t, e.svc.RecordEvents(ctx, e.runner.ID, s.ID, models.ChatPaused, nil))
+	paused, err := e.svc.Get(ctx, e.admin, s.ID)
+	require.NoError(t, err)
+	assert.Equal(t, models.ChatPaused, paused.State)
+	assert.ErrorIs(t, e.svc.RecordEvents(ctx, e.runner.ID, s.ID, models.ChatPaused, nil),
+		ErrConflict, "only an idle chat pauses")
+
+	require.NoError(t, e.svc.SendMessage(ctx, e.admin, s.ID, "  carry on "))
+	got, err := e.svc.Get(ctx, e.admin, s.ID)
+	require.NoError(t, err)
+	assert.Equal(t, models.ChatWorking, got.State)
+	assert.False(t, e.chats.claimed[s.ID], "the runner claims it again")
+	events, err := e.svc.Events(ctx, e.admin, s.ID, 0, 10)
+	require.NoError(t, err)
+	require.Len(t, events, 1)
+	assert.Equal(t, "carry on", events[0].Payload)
+}
+
+func TestChatReopenNeedsAFreeSlotAndAValidMessage(t *testing.T) {
+	e := newChatEnv(t)
+	ctx := context.Background()
+	s := e.start(t)
+	require.NoError(t, e.svc.RecordEvents(ctx, e.runner.ID, s.ID, models.ChatPaused, nil))
+
+	assert.ErrorIs(t, e.svc.SendMessage(ctx, e.admin, s.ID, " "), ErrInvalid)
+	e.chats.full = true
+	assert.ErrorIs(t, e.svc.SendMessage(ctx, e.admin, s.ID, "hi"), ErrConflict)
+	got, err := e.svc.Get(ctx, e.admin, s.ID)
+	require.NoError(t, err)
+	assert.Equal(t, models.ChatPaused, got.State)
+}
+
+func TestChatPurgeClosedUsesTheRetention(t *testing.T) {
+	e := newChatEnv(t)
+
+	_, err := e.svc.PurgeClosed(context.Background())
+
+	require.NoError(t, err)
+	assert.Equal(t, e.svc.now().Add(-ChatEventsKeptFor), e.chats.purgedBefore)
 }
