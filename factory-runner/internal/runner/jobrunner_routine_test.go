@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -149,6 +150,8 @@ func TestAJobWhoseVMCannotOpenPausesTheRunnerAndRequeuesIt(t *testing.T) {
 		assert.True(t, got.limited, name)
 		assert.Empty(t, got.blocked, name)
 		assert.Contains(t, got.outcome, "The runner could not start a VM: no vm", name)
+		assert.True(t, strings.HasPrefix(got.outcome, "Runner environment fault: "+
+			"the runner could not start a VM; task requeued."), name)
 		assert.Contains(t, env.runner.Fault(), "no vm", name)
 		assert.True(t, env.runner.LimitUntil().IsZero(), name)
 	}

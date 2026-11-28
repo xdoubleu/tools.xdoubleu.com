@@ -631,6 +631,22 @@ func (s *ContainerSandbox) cleanup(name string) {
 		&sink)
 }
 
+// StopRuns stops the VMs of the given runs (their WARDCASE_RUN ids): a VM keeps
+// its handles on a dropped /nix volume, so they must stop before it is attached
+// again. It returns the names it could not stop.
+func (s *ContainerSandbox) StopRuns(ctx context.Context, runs []string) []string {
+	var failed []string
+	for _, run := range runs {
+		name := "wardcase-" + shortID(run)
+		var sink bytes.Buffer
+		code, err := s.Exec.Exec(ctx, []string{ContainerCLI, "stop", name}, nil, &sink)
+		if err != nil || code != 0 {
+			failed = append(failed, name)
+		}
+	}
+	return failed
+}
+
 func mount(source, target string, readonly bool) string {
 	m := "type=bind,source=" + filepath.Clean(source) + ",target=" + target
 	if readonly {

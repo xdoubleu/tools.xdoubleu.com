@@ -156,8 +156,8 @@ func (l *jobLoop) open() *result {
 		until := l.now().Add(vmFaultWait)
 		reason := "The runner could not start a VM: " + err.Error()
 		l.r.holdFault(short(reason), until)
-		res := failed(reason + "\n\nThe runner is paused and will retry; " +
-			"the task goes back to the queue.")
+		res := failed(envFaultLine("the runner could not start a VM") + "\n\n" +
+			reason + "\n\nThe runner is paused and will retry.")
 		res.session = l.tap.Session()
 		res.limited, res.resetsAt = true, until
 		return &res

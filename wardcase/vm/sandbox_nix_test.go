@@ -19,10 +19,15 @@ import (
 const stubNix = `#!/bin/sh
 echo "$*" >> "$CALLS"
 [ "$1" != store ] || echo "gc: cannot access gc-socket" >&2
-[ "$1" = develop ] || exit 0
-while [ "$1" != --command ]; do shift; done
-shift
-exec "$@"
+[ "$1" = print-dev-env ] || exit 0
+[ -z "$FAIL_DEVENV" ] || { echo "error: flake broke" >&2; exit 1; }
+echo "export DEVENV=stub https_proxy=leaked"
+`
+
+// stubDF reports USED_KB as the volume's used space, in df -Pk's layout.
+const stubDF = `#!/bin/sh
+echo "Filesystem 1024-blocks Used Available Capacity Mounted on"
+echo "store 100000000 ${USED_KB:-0} 0 0% $2"
 `
 
 const lockFile = `{"nodes":{
@@ -53,18 +58,20 @@ func flakeCheckout(t *testing.T, lock string) string {
 // with.
 func nixSession(
 	t *testing.T, root, checkout, proxyURL string, box *vm.ContainerSandbox,
+	env ...string,
 ) (string, string) {
 	t.Helper()
 	bin := filepath.Join(root, "var", "nix", "profiles", "default", "bin")
 	require.NoError(t, os.MkdirAll(bin, 0o755))
 	require.NoError(t, os.MkdirAll(filepath.Join(root, "store"), 0o755))
 	require.NoError(t, os.WriteFile(filepath.Join(bin, "nix"), []byte(stubNix), 0o755))
+	require.NoError(t, os.WriteFile(filepath.Join(bin, "df"), []byte(stubDF), 0o755))
 	callLog := filepath.Join(t.TempDir(), "calls")
 	script := vm.NixScriptForTest(box, root, t.TempDir(), proxyURL) + `exec "$@"`
 	cmd := osexec.Command("sh", "-c", script, "sh",
-		"sh", "-c", "echo ran in $(basename $PWD)")
+		"sh", "-c", "echo ran in $(basename $PWD) devenv=$DEVENV proxy=$https_proxy")
 	cmd.Dir = checkout
-	cmd.Env = append(os.Environ(), "CALLS="+callLog)
+	cmd.Env = append(os.Environ(), append([]string{"CALLS=" + callLog}, env...)...)
 	got, err := cmd.CombinedOutput()
 	require.NoError(t, err, string(got))
 	data, _ := os.ReadFile(callLog)
@@ -84,23 +91,62 @@ func TestACheckoutWithoutAFlakeRunsItsCommandDirectly(t *testing.T) {
 	assert.Contains(t, out, "ran in")
 }
 
-func TestACheckoutWithAFlakeRunsInsideItsDevShell(t *testing.T) {
+func TestACheckoutWithAFlakeRunsInsideItsCachedDevShell(t *testing.T) {
 	checkout := flakeCheckout(t, lockFile)
+	root := t.TempDir()
 
-	calls, out := nixSession(t, t.TempDir(), checkout, "http://gw:8118", nixBox(t, 0))
+	calls, out := nixSession(t, root, checkout, "http://gw:8118", nixBox(t, 0))
 
-	assert.Contains(t, out, "ran in "+filepath.Base(checkout))
-	root := ""
-	for _, f := range strings.Fields(calls) {
-		if strings.Contains(f, "/devshell-") {
-			root = f
-		}
-	}
-	assert.Equal(t, "profile wipe-history --profile "+root+"\n"+
-		"develop --profile "+root+" --no-write-lock-file --override-input nixpkgs "+
-		"tarball+http://gw:8118/nixsrc/NixOS/nixpkgs/tar.gz/abc123 --command env -u "+
-		"https_proxy sh -c echo ran in $(basename $PWD)\n", calls)
-	assert.Equal(t, "devshell-"+filepath.Base(checkout), filepath.Base(root))
+	assert.Contains(t, out, "ran in "+filepath.Base(checkout)+" devenv=stub proxy=\n")
+	profile := filepath.Join(root, "var", "nix", "profiles",
+		"devshell-"+filepath.Base(checkout))
+	assert.Equal(t, "profile wipe-history --profile "+profile+"\n"+
+		"print-dev-env --profile "+profile+" --no-write-lock-file --override-input "+
+		"nixpkgs tarball+http://gw:8118/nixsrc/NixOS/nixpkgs/tar.gz/abc123\n", calls)
+	envs, err := filepath.Glob(filepath.Join(root, "var", "wardcase", "devenv", "*.sh"))
+	require.NoError(t, err)
+	assert.Len(t, envs, 1)
+}
+
+func TestAnUnchangedFlakeReusesItsDevShellWithoutEvaluating(t *testing.T) {
+	checkout := flakeCheckout(t, lockFile)
+	root := t.TempDir()
+	nixSession(t, root, checkout, "http://gw:8118", nixBox(t, 0))
+	profile := filepath.Join(root, "var", "nix", "profiles",
+		"devshell-"+filepath.Base(checkout))
+	require.NoError(t, os.WriteFile(profile, nil, 0o600))
+
+	warm, out := nixSession(t, root, checkout, "http://gw:8118", nixBox(t, 0))
+	write(t, filepath.Join(checkout, "flake.lock"), lockFile+" ")
+	changed, _ := nixSession(t, root, checkout, "http://gw:8118", nixBox(t, 0))
+
+	assert.Empty(t, warm, "a cached dev shell calls no nix")
+	assert.Contains(t, out, "devenv=stub proxy=\n")
+	assert.Contains(t, changed, "print-dev-env")
+	envs, err := filepath.Glob(filepath.Join(root, "var", "wardcase", "devenv", "*.sh"))
+	require.NoError(t, err)
+	assert.Len(t, envs, 1, "a new hash replaces the repo's old environment")
+}
+
+func TestADevShellThatFailsToBuildFailsTheSessionAndCachesNothing(t *testing.T) {
+	root := t.TempDir()
+	bin := filepath.Join(root, "var", "nix", "profiles", "default", "bin")
+	require.NoError(t, os.MkdirAll(bin, 0o755))
+	require.NoError(t, os.MkdirAll(filepath.Join(root, "store"), 0o755))
+	require.NoError(t, os.WriteFile(filepath.Join(bin, "nix"), []byte(stubNix), 0o755))
+	script := vm.NixScriptForTest(nixBox(t, 0), root, t.TempDir(), "") + `exec "$@"`
+	cmd := osexec.Command("sh", "-c", script, "sh", "true")
+	cmd.Dir = flakeCheckout(t, "")
+	cmd.Env = append(os.Environ(), "CALLS=/dev/null", "FAIL_DEVENV=1")
+
+	out, err := cmd.CombinedOutput()
+
+	require.Error(t, err)
+	assert.Contains(t, string(out), "error: flake broke")
+	assert.Contains(t, string(out), "wardcase: building the flake dev shell failed")
+	envs, _ := filepath.Glob(filepath.Join(root, "var", "wardcase", "devenv", "*"))
+	assert.Empty(t, envs)
+	assert.NoDirExists(t, filepath.Join(root, "var", "wardcase.lock"))
 }
 
 func TestAFlakeWithoutAProxyIsEnteredWithoutOverrides(t *testing.T) {
@@ -108,18 +154,15 @@ func TestAFlakeWithoutAProxyIsEnteredWithoutOverrides(t *testing.T) {
 
 	calls, _ := nixSession(t, t.TempDir(), checkout, "", nixBox(t, 0))
 
-	assert.Contains(t, calls, "--no-write-lock-file --command env -u https_proxy sh")
+	assert.Contains(t, calls, "print-dev-env --profile ")
 	assert.NotContains(t, calls, "--override-input")
 }
 
 func TestTheStoreIsCollectedOnlyPastItsCap(t *testing.T) {
 	root := t.TempDir()
-	require.NoError(t, os.MkdirAll(filepath.Join(root, "store"), 0o755))
-	require.NoError(t, os.WriteFile(filepath.Join(root, "store", "big"),
-		make([]byte, 4096), 0o600))
 
-	under, _ := nixSession(t, root, t.TempDir(), "", nixBox(t, 1<<30))
-	over, _ := nixSession(t, root, t.TempDir(), "", nixBox(t, 1024))
+	under, _ := nixSession(t, root, t.TempDir(), "", nixBox(t, 1<<30), "USED_KB=1000")
+	over, _ := nixSession(t, root, t.TempDir(), "", nixBox(t, 1<<20), "USED_KB=1025")
 
 	assert.Empty(t, under, "a second session under the cap reuses the store as it is")
 	assert.Equal(t, "store gc\n", over)
@@ -127,11 +170,8 @@ func TestTheStoreIsCollectedOnlyPastItsCap(t *testing.T) {
 
 func TestTheStoresCollectionLogsToAFileNotTheJobsOutput(t *testing.T) {
 	root := t.TempDir()
-	require.NoError(t, os.MkdirAll(filepath.Join(root, "store"), 0o755))
-	require.NoError(t, os.WriteFile(filepath.Join(root, "store", "big"),
-		make([]byte, 4096), 0o600))
 
-	calls, out := nixSession(t, root, t.TempDir(), "", nixBox(t, 1024))
+	calls, out := nixSession(t, root, t.TempDir(), "", nixBox(t, 1024), "USED_KB=2")
 
 	assert.Equal(t, "store gc\n", calls)
 	assert.NotContains(t, out, "gc-socket")
@@ -183,7 +223,9 @@ func TestTheNixStoreIsMountedReadWriteAndFlakesAreEntered(t *testing.T) {
 	assert.Contains(t, run, "source="+box.NixStore+",target=/nix")
 	assert.NotContains(t, run, "target=/nix,readonly")
 	execLine := strings.Join(exec.find("exec")[0], " ")
-	assert.Contains(t, execLine, "nix develop")
+	assert.Contains(t, execLine, "nix print-dev-env")
+	assert.Contains(t, execLine, "df -Pk /nix")
+	assert.NotContains(t, execLine, "du -sk")
 	assert.Contains(t, execLine, "-le 16777216")
 }
 

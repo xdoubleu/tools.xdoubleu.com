@@ -14,7 +14,7 @@ const (
 	// defaultNixStoreMax is the store size above which a session collects garbage,
 	// well above the working set so a collection is rare.
 	defaultNixStoreMax int64 = 16 << 30
-	// kib is the unit of `du -sk`, which macOS and Linux share (`-b` is Linux only).
+	// kib is the unit of `df -Pk`, which macOS and Linux share.
 	kib int64 = 1024
 	// nixGCLog is where, under the store's root, the garbage collection logs.
 	nixGCLog = "var/log/wardcase-gc.log"
@@ -25,6 +25,9 @@ const (
 	// nixLockWait how many seconds a session waits before failing.
 	nixLockStaleMinutes = "20"
 	nixLockWait         = "1500"
+	// nixDevEnvs is where, under the store's root, each repo's dev-shell
+	// environment is cached by the hash of its flake.nix and flake.lock.
+	nixDevEnvs = "var/wardcase/devenv"
 )
 
 // flakeInputs lists a flake.lock's direct GitHub inputs as "name owner repo rev".
@@ -34,8 +37,7 @@ const flakeInputs = `.nodes as $n | $n.root.inputs | to_entries[]
 
 // nixScript is the part of a session's setup that enters the checkout's flake dev
 // shell, or "" when NixStore is unset. Inputs and binaries come through the egress
-// proxy's read-only nixsrc and nixcache routes (docs/adr-0055); locked GitHub
-// inputs are fetched as tarballs by their pinned revision.
+// proxy's read-only nixsrc and nixcache routes (docs/adr-0055).
 func (s *ContainerSandbox) nixScript(proxyURL string) string {
 	if s.NixStore == "" {
 		return ""
@@ -76,36 +78,56 @@ func (s *ContainerSandbox) nixScriptAt(root, seed, proxyURL string) string {
 	b.WriteString("export NIX_CONFIG='experimental-features = nix-command flakes\n" +
 		"sandbox = false\nbuild-users-group =\nsubstituters = " + substituters + "'\n")
 	// The collection's output goes to a log in the store: on the job's stderr it
-	// would lead every failure message ahead of the command that failed.
-	b.WriteString("{ [ \"$(du -sk " + root +
-		"/store | cut -f1)\" -le " + strconv.FormatInt((limit+kib-1)/kib, 10) +
+	// would lead every failure message ahead of the command that failed. The
+	// volume holds only the store, so its used space is the store's size: a `du`
+	// would open every inode, and the host keeps a descriptor for each.
+	b.WriteString("used=$(df -Pk " + root +
+		" 2>/dev/null | awk 'NR == 2 { print $3 }')\n" +
+		"{ [ \"${used:-0}\" -le " + strconv.FormatInt((limit+kib-1)/kib, 10) +
 		" ] || nix store gc || true; } >>" + root + "/" + nixGCLog + " 2>&1\n")
 	b.WriteString("if [ -f flake.nix ]; then\n")
-	// The dev shell's own command runs without the proxy variable.
-	b.WriteString("  set -- --command env -u https_proxy \"$@\"\n")
-	if proxyURL != "" {
-		b.WriteString("  if [ -f flake.lock ]; then\n    list=$(jq -r '" + flakeInputs +
-			"' flake.lock)\n    while read -r in owner repo rev; do\n" +
-			"      [ -n \"$in\" ] || continue\n" +
-			"      set -- --override-input \"$in\" " +
-			"\"tarball+" + proxyURL + "/nixsrc/$owner/$repo/tar.gz/$rev\" \"$@\"\n" +
-			"    done <<EOF\n$list\nEOF\n  fi\n")
-	}
 	// The profile roots the dev shell against the store's GC, one per repo with
-	// its older generations wiped. The proxy tunnels fixed-output fetches (a
-	// tool built from source) to its fetch hosts when nix is given it.
+	// its older generations wiped.
 	b.WriteString("  dev=$(git config --get remote.origin.url 2>/dev/null | " +
 		"sed 's|.*/||; s|\\.git$||')\n" +
 		"  [ -n \"$dev\" ] || dev=$(basename \"$PWD\")\n" +
-		"  profile=" + root + "/var/nix/profiles/devshell-$dev\n" +
-		"  nix profile wipe-history --profile \"$profile\" >>" + root + "/" +
+		"  profile=" + root + "/var/nix/profiles/devshell-$dev\n")
+	// Evaluating the flake unpacks and reads all of nixpkgs, so the environment
+	// is cached by the flake's hash and only a changed flake evaluates it again.
+	b.WriteString("  sum=$(cat flake.nix flake.lock 2>/dev/null | " +
+		"{ sha256sum 2>/dev/null || shasum -a 256; } | cut -c1-32)\n" +
+		"  devenvs=" + root + "/" + nixDevEnvs + "\n" +
+		"  devenv=$devenvs/$dev-$sum.sh\n" +
+		"  if [ ! -s \"$devenv\" ] || [ ! -e \"$profile\" ]; then\n" +
+		"    mkdir -p \"$devenvs\"\n" +
+		"    nix profile wipe-history --profile \"$profile\" >>" + root + "/" +
 		nixGCLog + " 2>&1 || true\n")
-	b.WriteString("fi\nnix_unlock\nif [ -f flake.nix ]; then\n")
 	prefix := ""
 	if proxyURL != "" {
+		// The proxy tunnels fixed-output fetches (a tool built from source) to
+		// its fetch hosts when nix is given it.
 		prefix = "env https_proxy=" + proxyURL + " "
 	}
-	b.WriteString("  set -- " + prefix + "nix develop --profile \"$profile\" " +
-		"--no-write-lock-file \"$@\"\nfi\n")
+	b.WriteString("    if ( set --\n")
+	if proxyURL != "" {
+		// Locked GitHub inputs come as tarballs by their pinned revision.
+		b.WriteString("      if [ -f flake.lock ]; then\n        list=$(jq -r '" +
+			flakeInputs + "' flake.lock)\n        while read -r in owner repo rev; do\n" +
+			"          [ -n \"$in\" ] || continue\n" +
+			"          set -- \"$@\" --override-input \"$in\" " +
+			"\"tarball+" + proxyURL + "/nixsrc/$owner/$repo/tar.gz/$rev\"\n" +
+			"        done <<EOF\n$list\nEOF\n      fi\n")
+	}
+	b.WriteString("      " + prefix + "nix print-dev-env --profile \"$profile\" " +
+		"--no-write-lock-file \"$@\"\n" +
+		"    ) >\"$devenv.tmp\"; then\n" +
+		"      rm -f \"$devenvs/$dev\"-*.sh\n      mv \"$devenv.tmp\" \"$devenv\"\n" +
+		"    else\n      rm -f \"$devenv.tmp\"\n      nix_unlock\n" +
+		"      echo 'wardcase: building the flake dev shell failed' >&2\n      exit 1\n" +
+		"    fi\n  fi\n")
+	// The dev shell's own command runs without the proxy variable.
+	b.WriteString("fi\nnix_unlock\nif [ -f flake.nix ]; then\n" +
+		"  set -- bash -c '. \"$0\"; unset https_proxy; exec \"$@\"' " +
+		"\"$devenv\" \"$@\"\nfi\n")
 	return b.String()
 }

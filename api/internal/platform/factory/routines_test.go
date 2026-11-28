@@ -250,3 +250,22 @@ func TestTheSeedMigrationListsBothRoutinesAndIsIdempotent(t *testing.T) {
 		}
 	}
 }
+
+func TestSlackWordsARoutinesEnvironmentFaultAsTheRunners(t *testing.T) {
+	routineEnv(t)
+	env, slack := slackEnv(t)
+	env.saveRoutine(t, "noop", false, 0)
+	_, err := env.tasks.RunRoutine(context.Background(),
+		&factoryv1.RunRoutineRequest{Name: "noop"})
+	require.NoError(t, err)
+	claimed := env.claim(t)
+
+	_, err = env.runner.CompleteJob(bearer(env.token), &factoryv1.CompleteJobRequest{
+		JobId: claimed.Id, Limited: true,
+		Outcome: "Runner environment fault: the Nix store is unreadable; task requeued.",
+	})
+	require.NoError(t, err)
+
+	assert.Contains(t, slack.last(), ":wrench: Routine noop: Runner environment fault")
+	assert.NotContains(t, slack.last(), "usage limit")
+}

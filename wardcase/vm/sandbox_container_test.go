@@ -475,3 +475,21 @@ func TestASpecTheVMCannotCarryFaithfullyIsRefusedBeforeAnythingStarts(t *testing
 	require.ErrorContains(t, err, "cannot be mounted")
 	assert.Empty(t, exec.find("exec"))
 }
+
+func TestStopRunsStopsEachRunsVMAndNamesTheFailures(t *testing.T) {
+	exec := newExecScript(func(argv []string) (int, string, error) {
+		if argv[len(argv)-1] == "wardcase-bad" {
+			return 1, "", nil
+		}
+		return 0, "", nil
+	})
+	box := sandboxWith(t, exec)
+
+	failed := box.StopRuns(context.Background(), []string{"Job-1234", "bad"})
+
+	assert.Equal(t, [][]string{
+		{"container", "stop", "wardcase-job1234"},
+		{"container", "stop", "wardcase-bad"},
+	}, exec.find("stop"))
+	assert.Equal(t, []string{"wardcase-bad"}, failed)
+}

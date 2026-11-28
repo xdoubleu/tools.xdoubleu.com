@@ -338,7 +338,7 @@ func newEnv(
 				case <-time.After(time.Millisecond):
 				}
 			},
-			Now: nil, Preflight: nil,
+			Now: nil, Preflight: nil, StopVMs: nil,
 			Log: slog.New(slog.NewTextHandler(io.Discard, nil)),
 		},
 	}

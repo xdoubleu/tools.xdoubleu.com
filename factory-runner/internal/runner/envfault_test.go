@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -50,7 +51,11 @@ func TestABrokenNixMountFailsOneJobAndHoldsTheQueueUntilPreflightPasses(t *testi
 	assert.True(t, done[0].limited, "the task is queued again, not failed")
 	assert.Equal(t, "Runner environment: the Nix store is unreadable", done[0].blocked)
 	assert.Contains(t, done[0].outcome, "goes back to the queue untouched")
-	assert.Contains(t, env.runner.Fault(), "the Nix store is unreadable")
+	assert.True(t, strings.HasPrefix(done[0].outcome, "Runner environment fault: "+
+		"the Nix store is unreadable; task requeued."), done[0].outcome)
+	assert.NotContains(t, done[0].outcome, "usage limit")
+	assert.Equal(t, "the Nix store is unreadable; re-attach the store volume",
+		env.runner.Fault())
 
 	// Held: the second job stays queued, however often the loop asks.
 	for range 3 {
@@ -198,4 +203,68 @@ func TestEnvironmentFailureSignatures(t *testing.T) {
 		"a test's I/O error is not the setup's")
 	assert.Equal(t, "the Nix store is unreadable",
 		runner.EnvironmentFailure("Device not configured", true))
+}
+
+func TestADroppedStoreStopsTheRunnersVMsOnce(t *testing.T) {
+	env := newEnv(t, deadNix, newJob())
+	var stopped [][]string
+	env.runner.StopVMs = func(_ context.Context, jobs []string) []string {
+		stopped = append(stopped, jobs)
+		return nil
+	}
+
+	_, err := env.runner.Next(context.Background())
+	require.NoError(t, err)
+
+	assert.Equal(t, [][]string{{newJob().ID}}, stopped,
+		"the job's own VM is stopped before the volume is attached again")
+}
+
+func TestAnotherEnvironmentFaultStopsNoVMs(t *testing.T) {
+	env := newEnv(t, setupDied("env: 'nix': No such file or directory"), newJob())
+	env.runner.StopVMs = func(context.Context, []string) []string {
+		t.Fatal("no VM is stopped for a missing nix")
+		return nil
+	}
+
+	_, err := env.runner.Next(context.Background())
+	require.NoError(t, err)
+	assert.Equal(t, "nix is missing in the VM", env.runner.Fault())
+}
+
+func TestFilePressureHoldsClaimsAboveSeventyPercent(t *testing.T) {
+	at := func(open uint32) func() (uint32, uint32, error) {
+		return func() (uint32, uint32, error) { return open, 1000, nil }
+	}
+
+	require.NoError(t, runner.FilePressurePreflight(at(700))(context.Background()))
+	err := runner.FilePressurePreflight(at(701))(context.Background())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "701 of 1000 system files open (kern.maxfiles)")
+	require.NoError(t, runner.FilePressurePreflight(func() (uint32, uint32, error) {
+		return 0, 0, errors.New("no sysctl")
+	})(context.Background()), "an unknown count holds nothing")
+}
+
+func TestPreflightsFailOnTheFirstFailingCheck(t *testing.T) {
+	var ran []string
+	check := func(name string, err error) func(context.Context) error {
+		return func(context.Context) error {
+			ran = append(ran, name)
+			return err
+		}
+	}
+
+	err := runner.Preflights(check("a", nil), check("b", errors.New("b")),
+		check("c", nil))(context.Background())
+
+	require.EqualError(t, err, "b")
+	assert.Equal(t, []string{"a", "b"}, ran)
+	require.NoError(t, runner.Preflights()(context.Background()))
+}
+
+func TestSystemFilesReadsThisMachinesCounts(t *testing.T) {
+	open, limit, err := runner.SystemFiles()
+	require.NoError(t, err)
+	assert.LessOrEqual(t, open, limit)
 }

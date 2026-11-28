@@ -258,6 +258,9 @@ type JobRunner struct {
 	// a job (the Nix store readable); nil skips it. A failure opens the breaker
 	// that holds claims until it passes again.
 	Preflight func(context.Context) error
+	// StopVMs stops the VMs of the given running jobs and names those it could
+	// not; nil stops none.
+	StopVMs func(ctx context.Context, jobs []string) []string
 	// Sleep and Now are the clock a job's waits use; nil means sleepCtx and
 	// time.Now. Tests replace them.
 	Sleep func(context.Context, time.Duration)

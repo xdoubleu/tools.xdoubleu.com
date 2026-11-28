@@ -11,7 +11,7 @@ internal/runner/
   client.go, jobs_client.go   the server calls
   daemon.go, control.go       heartbeat loop; pause flag, status
   claimstate.go, watchdog.go  why claims hold (`status`); stall watchdog
-  envfault.go                 environment breaker, preflight before each claim
+  envfault.go, filepressure*.go  environment breaker, preflight before each claim
   jobrunner.go                claim loop, `max_jobs`; prompt; Checks:/Blocked:/Waiting-on:/Already-fixed:
   sessions.go, jobsweep.go    hourly dir sweep
   attemptsession.go           Claude attempts via wardcase
@@ -37,7 +37,7 @@ A Claude job's attempts run through `wardcase/session` on the job's clone: `on-l
 
 `jobLoop` resumes the agent's session in one VM with each failure (gate, push, CI) until the PR merges, sharing no state → [`adr-0044`](../docs/adr-0044-factory-jobs-queue.md). A run that lost its provider is repeated in place.
 
-An attempt that dies on the runner's own environment before the agent does any work (a dead Nix mount; the store preflight remembers a seeded store, so an empty listing fails) ends `limited` with a stable `Blocked:` line: the task is requeued untouched and the server files one `Sandbox:` task per cause. The breaker then holds claims (the `runner fault` reason in `status` and the menu) until `Preflight` passes, probed every 30s and before every claim.
+An attempt that dies on the runner's own environment before the agent does any work (a dead Nix mount; the store preflight remembers a seeded store, so an empty listing fails) ends `limited` with a stable `Blocked:` line and an outcome led by `Runner environment fault:`, which the server words as such, never as a usage limit: the task is requeued untouched and the server files one `Sandbox:` task per cause. The breaker then holds claims (the `runner fault` reason in `status` and the menu) until `Preflight` passes, probed every 30s and before every claim. `Preflight` also holds claims while open files pass 70% of `kern.maxfiles` (`filepressure*.go`), since a VM holds a host descriptor per guest file lookup. A dropped Nix volume first stops this runner's job VMs (`StopVMs`), then warns to re-attach the volume.
 
 ## Distribution → [`adr-0042`](../docs/adr-0042-factory-runner-distribution.md)
 

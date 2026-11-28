@@ -274,3 +274,34 @@ func TestATaskLimitedTooManyTimesInARowGoesToNeedsYou(t *testing.T) {
 	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_NEEDS_YOU, got.Task.Status)
 	assert.Nil(t, env.claim(t), "no job is left waiting")
 }
+
+func TestAnEnvironmentFaultRequeuesItsTaskWithoutAClaudeLimit(t *testing.T) {
+	clearLimits(t)
+	t.Cleanup(func() { clearLimits(t) })
+	env, slack := slackEnv(t)
+	task := env.newTask(t, "dead store")
+	env.run(t, task.Id)
+	job := env.claim(t)
+
+	_, err := env.runner.CompleteJob(bearer(env.token), &factoryv1.CompleteJobRequest{
+		JobId: job.Id, Succeeded: false, Limited: true,
+		Outcome: "Runner environment fault: the Nix store is unreadable; " +
+			"task requeued.\n\nThe runner holds its claims.",
+	})
+	require.NoError(t, err)
+
+	got := env.task(t, task.Id)
+	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_IN_PROGRESS, got.Task.Status)
+	require.Len(t, got.Comments, 1)
+	body := got.Comments[0].Body
+	assert.Contains(t, body, "runner environment fault")
+	assert.Contains(t, body, "runs once the runner's environment is back")
+	assert.NotContains(t, body, "usage limit")
+	require.Len(t, got.Jobs, 2)
+	assert.False(t, got.Jobs[1].Limited, "no Claude limit is recorded")
+	assert.Equal(t, factoryv1.JobStatus_JOB_STATUS_QUEUED, got.Jobs[0].Status)
+	assert.Empty(t, claudeLimitedUntil(t, env), "the board shows no Claude limit")
+	assert.Contains(t, slack.last(),
+		":wrench: Runner environment fault: the Nix store is unreadable; task requeued.")
+	assert.NotContains(t, slack.last(), "usage limit")
+}
