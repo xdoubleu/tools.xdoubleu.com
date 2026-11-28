@@ -313,7 +313,7 @@ func (e *lifeEnv) start() *generation {
 			},
 			ClaudeToken: nil, OpenRouterKey: nil, AuthorEmail: "",
 			MCP: nil, Proxy: nil, Sessions: nil, OnLimit: nil, DiskFree: nil, Secrets: nil,
-			EventsEvery: 0, RunningPollEvery: 0, Sleep: nil, Now: nil,
+			EventsEvery: 0, RunningPollEvery: 0, Sleep: nil, Now: nil, Preflight: nil,
 			Sandbox: e.sandbox, Activity: a.activity, DataDir: dir,
 			GitHub: lifeGitHub{}, ServerURL: "https://tools.example.com/",
 			PublishRetry: time.Millisecond, CheckInEvery: 10 * time.Millisecond,

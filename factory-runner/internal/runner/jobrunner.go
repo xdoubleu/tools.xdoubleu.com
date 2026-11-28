@@ -254,6 +254,10 @@ type JobRunner struct {
 	// NoCIGrace is how long a pull request head may have no check runs before the
 	// repo counts as having no CI and the job stops watching; zero means 5 minutes.
 	NoCIGrace time.Duration
+	// Preflight runs before each claim and reports whether the environment can run
+	// a job (the Nix store readable); nil skips it. A failure opens the breaker
+	// that holds claims until it passes again.
+	Preflight func(context.Context) error
 	// Sleep and Now are the clock a job's waits use; nil means sleepCtx and
 	// time.Now. Tests replace them.
 	Sleep func(context.Context, time.Duration)
@@ -267,6 +271,10 @@ type JobRunner struct {
 	// claims resume; a fault is the runner's, not the job's.
 	fault      atomic.Pointer[string]
 	faultUntil atomic.Int64
+	// env is why the breaker holding claims for an environment fault is open, and
+	// envProbed (unix nanoseconds) when the preflight last ran while it was.
+	env       atomic.Pointer[string]
+	envProbed atomic.Int64
 	// running holds the ids of the jobs in flight, whose directories the sweep
 	// leaves alone.
 	running sync.Map
@@ -415,6 +423,9 @@ func (r *JobRunner) clearFault() {
 
 // Fault is why claims are held for a VM that would not start; empty when none is.
 func (r *JobRunner) Fault() string {
+	if f := r.envFault(); f != "" {
+		return f
+	}
 	if p := r.fault.Load(); p != nil && r.now().UnixNano() < r.faultUntil.Load() {
 		return *p
 	}
@@ -632,6 +643,10 @@ func (r *JobRunner) claimJob(ctx context.Context, limit int) (*ClaimedJob, error
 	if err := r.checkCredential(); err != nil {
 		return nil, err
 	}
+	// A dead mount would use up the task: claim nothing until the preflight passes.
+	if !r.envReady(ctx) {
+		return nil, nil //nolint:nilnil // holding is not an error
+	}
 	if oc, ok := r.Harness.(OpenCode); ok {
 		return r.API.ClaimJob(ctx, r.Token, limit, HarnessOpenCode, oc.Model)
 	}
@@ -716,7 +731,7 @@ func (r *JobRunner) execute(ctx context.Context, job *ClaimedJob) result {
 		token: "", tokenAt: time.Time{},
 		times:   phaseTimes{agent: 0, gates: 0, publish: 0, ci: 0, merge: 0, retries: nil},
 		greenAt: time.Time{}, began: time.Time{}, causes: nil,
-		sandboxFixed: false, sandboxOpened: false,
+		sandboxFixed: false, sandboxOpened: false, startRef: "",
 	}
 	var res result
 	if prompt, ok := routinePrompt(job.Routine); ok {

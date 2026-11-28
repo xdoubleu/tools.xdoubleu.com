@@ -31,8 +31,9 @@ type pdfLabels struct {
 	pages  int
 }
 
-// readPDFLabels reads r's /PageLabels. A PDF without any, or a malformed one,
-// yields nil, err for the latter. ledongthuc/pdf panics on malformed objects.
+// readPDFLabels reads r's /PageLabels, else the printed numbers in its page
+// text. A PDF with neither yields nil; a malformed one nil and an error.
+// ledongthuc/pdf panics on malformed objects.
 func readPDFLabels(r io.ReaderAt, size int64) (*pdfLabels, error) {
 	var labels *pdfLabels
 	var err error
@@ -55,7 +56,7 @@ func parsePDFLabels(r io.ReaderAt, size int64) (*pdfLabels, error) {
 	var ranges []labelRange
 	collectLabelRanges(reader.Trailer().Key("Root").Key("PageLabels"), 0, &ranges)
 	if len(ranges) == 0 {
-		return nil, nil //nolint:nilnil // no labels is not an error
+		return detectPrintedLabels(reader), nil
 	}
 	sort.SliceStable(ranges, func(a, b int) bool {
 		return ranges[a].index < ranges[b].index
