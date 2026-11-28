@@ -110,14 +110,12 @@ type skillLog struct {
 // a run goes on without those skills.
 func (r *Runner) addSkills(
 	ctx context.Context, env map[string]string, checkout string,
-) ([]vm.Mount, error) {
+) []vm.Mount {
 	if len(r.Config.Marketplace) == 0 {
-		return nil, nil
+		return nil
 	}
-	repo, err := LoadRepoConfig(checkout)
-	if err != nil {
-		return nil, err
-	}
+	// addMCP has refused an invalid repo file already; here it narrows nothing.
+	repo, _ := LoadRepoConfig(checkout)
 	enabled := r.enabledPlugins(repo)
 	var mounts []vm.Mount
 	var used []MarketplaceUse
@@ -156,7 +154,7 @@ func (r *Runner) addSkills(
 		}
 	}
 	r.recordSkills(used)
-	return mounts, nil
+	return mounts
 }
 
 // enabledPlugins is each marketplace's plugins the run gets: the device's list,

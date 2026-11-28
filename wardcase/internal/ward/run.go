@@ -314,11 +314,7 @@ func (r *Runner) runOnce(
 	if err = r.addMCP(&egress, env, headless, checkout); err != nil {
 		return outcome{}, err
 	}
-	skillMounts, err := r.addSkills(ctx, env, checkout)
-	if err != nil {
-		return outcome{}, err
-	}
-	mounts = append(slices.Clone(mounts), skillMounts...)
+	mounts = append(slices.Clone(mounts), r.addSkills(ctx, env, checkout)...)
 	env[vm.MCPEnv] = vm.MCPOff
 	if x := r.extra; x != nil {
 		addChatMCP(&egress, env, x.chatRequest())

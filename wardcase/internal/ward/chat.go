@@ -304,5 +304,5 @@ func (r *Runner) addMCPAndSkills(
 	if err := r.addMCP(egress, env, true, checkout); err != nil {
 		return nil, err
 	}
-	return r.addSkills(ctx, env, checkout)
+	return r.addSkills(ctx, env, checkout), nil
 }
