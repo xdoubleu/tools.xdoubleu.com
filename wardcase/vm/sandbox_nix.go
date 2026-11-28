@@ -25,6 +25,8 @@ const (
 	// nixLockWait how many seconds a session waits before failing.
 	nixLockStaleMinutes = "20"
 	nixLockWait         = "1500"
+	// nixLockTouchSeconds is how often a running build refreshes the lock.
+	nixLockTouchSeconds = "60"
 	// nixDevEnvs is where, under the store's root, each repo's dev-shell
 	// environment is cached by the hash of its flake.nix and flake.lock.
 	nixDevEnvs = "var/wardcase/devenv"
@@ -108,6 +110,11 @@ func (s *ContainerSandbox) nixScriptAt(root, seed, proxyURL string) string {
 		// its fetch hosts when nix is given it.
 		prefix = "env https_proxy=" + proxyURL + " "
 	}
+	// A cold build outlives the stale timeout, so the lock's mtime is refreshed
+	// while it runs; the loop ends with the session or once the lock is gone.
+	b.WriteString("    ( while kill -0 $$ 2>/dev/null && [ -d " + lock + " ]; do " +
+		"sleep " + nixLockTouchSeconds + "; touch " + lock + " 2>/dev/null; done ) &\n" +
+		"    keep=$!\n")
 	b.WriteString("    if ( set --\n")
 	if proxyURL != "" {
 		// Locked GitHub inputs come as tarballs by their pinned revision.
@@ -121,8 +128,10 @@ func (s *ContainerSandbox) nixScriptAt(root, seed, proxyURL string) string {
 	b.WriteString("      " + prefix + "nix print-dev-env --profile \"$profile\" " +
 		"--no-write-lock-file \"$@\"\n" +
 		"    ) >\"$devenv.tmp\"; then\n" +
-		"      rm -f \"$devenvs/$dev\"-*.sh\n      mv \"$devenv.tmp\" \"$devenv\"\n" +
-		"    else\n      rm -f \"$devenv.tmp\"\n      nix_unlock\n" +
+		"      kill $keep 2>/dev/null\n      rm -f \"$devenvs/$dev\"-*.sh\n" +
+		"      mv \"$devenv.tmp\" \"$devenv\"\n" +
+		"    else\n      kill $keep 2>/dev/null\n      rm -f \"$devenv.tmp\"\n" +
+		"      nix_unlock\n" +
 		"      echo 'wardcase: building the flake dev shell failed' >&2\n      exit 1\n" +
 		"    fi\n  fi\n")
 	// The dev shell's own command runs without the proxy variable.
