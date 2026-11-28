@@ -10,7 +10,8 @@ import (
 func TestMain(m *testing.M) {
 	for _, k := range []string{
 		"WARDCASE_PROXY", "WARDCASE_GATEWAY", "WARDCASE_RUN", "ANTHROPIC_BASE_URL",
-		"WARDCASE_MCP", "WARDCASE_MCP_SERVERS",
+		"WARDCASE_MCP", "WARDCASE_MCP_SERVERS", "WARDCASE_MARKETPLACES",
+		"WARDCASE_PLUGINS", "WARDCASE_SKILL_PATHS",
 	} {
 		_ = os.Unsetenv(k)
 	}
