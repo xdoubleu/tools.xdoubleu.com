@@ -44,57 +44,39 @@ func TestMergeLabelsRemovesThenAddsIgnoringCase(t *testing.T) {
 }
 
 func TestApplyPatchKeepsWhatItLeavesOut(t *testing.T) {
-	agent := actorOf(models.ActorAgent, false)
 	backlog := boardTask(models.StatusBacklog)
-	in, err := applyPatch(agent, backlog, patch(func(p *TaskPatch) {
+	in := applyPatch(backlog, patch(func(p *TaskPatch) {
 		p.Title = ptr("New title")
 		p.AddLabels = []string{"epic:x"}
 		p.RemoveLabels = []string{"platform"}
 	}))
-	require.NoError(t, err)
 	assert.Equal(t, "New title", in.Title)
 	assert.Equal(t, "old body", in.Body)
 	assert.Equal(t, models.PriorityP1, in.Priority)
 	assert.Equal(t, []string{"docs", "epic:x"}, in.Labels)
 
-	in, err = applyPatch(agent, backlog, patch(func(p *TaskPatch) {
+	in = applyPatch(backlog, patch(func(p *TaskPatch) {
 		p.Body = ptr("new body")
 		p.Priority = ptr(models.PriorityP0)
 		p.Labels = ptr([]string{"only"})
 	}))
-	require.NoError(t, err)
 	assert.Equal(t, "Old title", in.Title)
 	assert.Equal(t, "new body", in.Body)
 	assert.Equal(t, models.PriorityP0, in.Priority)
 	assert.Equal(t, []string{"only"}, in.Labels)
 }
 
-func TestApplyPatchReadyTextIsForPeopleInTheBrowser(t *testing.T) {
-	ready := boardTask(models.StatusReady)
-	agent := actorOf(models.ActorAgent, false)
-	browser := actorOf(models.ActorHuman, true)
-	person := actorOf(models.ActorHuman, false)
-
-	for _, edit := range []TaskPatch{
-		patch(func(p *TaskPatch) { p.Body = ptr("sneaky rewrite") }),
-		patch(func(p *TaskPatch) { p.Title = ptr("sneaky title") }),
-	} {
-		_, err := applyPatch(agent, ready, edit)
-		assert.Equal(t, http.StatusForbidden, status(t, err))
-		_, err = applyPatch(browser, ready, edit)
-		assert.NoError(t, err)
-		_, err = applyPatch(person, ready, edit)
-		assert.NoError(t, err)
+func TestApplyPatchEditsTextInEveryColumn(t *testing.T) {
+	for _, st := range []models.Status{models.StatusReady, models.StatusInProgress} {
+		in := applyPatch(boardTask(st), patch(func(p *TaskPatch) {
+			p.Title = ptr("new title")
+			p.Body = ptr("new body")
+			p.AddLabels = []string{"extra"}
+		}))
+		assert.Equal(t, "new title", in.Title, st)
+		assert.Equal(t, "new body", in.Body, st)
+		assert.Equal(t, []string{"docs", "Platform", "extra"}, in.Labels, st)
 	}
-
-	// Labels and priority stay open to an agent, and so does restating the text.
-	in, err := applyPatch(agent, ready, patch(func(p *TaskPatch) {
-		p.Title = ptr("Old title")
-		p.Priority = ptr(models.PriorityP0)
-		p.AddLabels = []string{"extra"}
-	}))
-	require.NoError(t, err)
-	assert.Equal(t, []string{"docs", "Platform", "extra"}, in.Labels)
 }
 
 func TestCheckBulkRefusesBadInput(t *testing.T) {

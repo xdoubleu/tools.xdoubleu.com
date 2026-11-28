@@ -30,8 +30,8 @@ the opposite of what the board needs.
   file contents of the job's repo reach agents with factory read access. The full log
   (`ListJobEvents`) stays browser-only. A job's own account reads only its own task's jobs.
 - `factory_update_task` edits title, body, priority and labels but never the
-  column. It refuses a title or body change once a task is Ready, because a
-  person approved that text. `factory_move_tasks` moves many tasks and returns
+  column. It edits a task in any column, Ready included: a job runs the text
+  snapshotted at the Ready move, so an edit reaches it only on the next run. `factory_move_tasks` moves many tasks and returns
   only the ids moved and failed. A job's own account can use neither.
 - Each tool is gated by the `factory` grant (an admin has it implicitly), write
   tools at the write level. An agent or a person may use them; a service
@@ -64,4 +64,4 @@ the opposite of what the board needs.
 
 ## Revisit when
 
-Agents should see jobs, or edits to a Ready task's text become necessary.
+Agents should see jobs.

@@ -162,19 +162,18 @@ func TestAgentUpdatesATaskKeepingWhatItLeavesOut(t *testing.T) {
 	assert.Equal(t, "new body", str(t, rewritten, "task", "body"))
 	assert.Equal(t, "TASK_PRIORITY_P0", str(t, rewritten, "task", "priority"))
 
-	// What a person approved by moving it to Ready can't be reworded, but the
-	// labels can still change.
-	_, err = testDB.Exec(context.Background(),
-		`UPDATE factory.tasks SET status = 'ready' WHERE id = $1`, taskKey(t, id))
-	require.NoError(t, err)
-	_, err = callTool(t, session, "factory_update_task",
-		map[string]any{"id": id, "body": "sneaky rewrite"})
-	require.Error(t, err)
-	relabelled, err := callTool(t, session, "factory_update_task",
-		map[string]any{"id": id, "add_labels": []string{"extra"}})
-	require.NoError(t, err)
-	assert.Equal(t, "new body", str(t, relabelled, "task", "body"))
-	assert.Equal(t, "TASK_STATUS_READY", str(t, relabelled, "task", "status"))
+	// Every column allows every edit: a Ready and an In progress task alike.
+	for _, status := range []string{"ready", "in_progress"} {
+		_, err = testDB.Exec(context.Background(),
+			`UPDATE factory.tasks SET status = $2 WHERE id = $1`, taskKey(t, id), status)
+		require.NoError(t, err)
+		edited, editErr := callTool(t, session, "factory_update_task",
+			map[string]any{"id": id, "title": "title in " + status,
+				"body": "body in " + status, "add_labels": []string{"extra"}})
+		require.NoError(t, editErr)
+		assert.Equal(t, "title in "+status, str(t, edited, "task", "title"))
+		assert.Equal(t, "body in "+status, str(t, edited, "task", "body"))
+	}
 
 	_, err = callTool(t, session, "factory_update_task",
 		map[string]any{"id": id, "priority": "urgent"})
