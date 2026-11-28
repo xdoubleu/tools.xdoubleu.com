@@ -6,7 +6,9 @@ package session
 
 import (
 	"context"
+	"fmt"
 	"io"
+	"os"
 
 	"tools.xdoubleu.com/wardcase/internal/ward"
 	"tools.xdoubleu.com/wardcase/vm"
@@ -46,6 +48,30 @@ type Options struct {
 	// GH runs gh in a directory, to report the branch's pull request; nil leaves
 	// pull requests unreported.
 	GH func(ctx context.Context, dir string, args ...string) (string, error)
+	// Marketplaces are the skills marketplaces every session gets, fetched on the
+	// host and mounted read-only; DeviceMarketplaces reads the device's own.
+	Marketplaces []Marketplace
+}
+
+// Marketplace is a skills marketplace: a Git URL, an optional ref and the plugins
+// to enable.
+type Marketplace = ward.MarketplaceConfig
+
+// UsedMarketplace is a marketplace a session got, at the commit it had.
+type UsedMarketplace = ward.MarketplaceUse
+
+// DeviceMarketplaces is the `[[marketplace]]` entries of the device config
+// (~/.config/wardcase/config.toml); none when it has none or does not exist.
+func DeviceMarketplaces() ([]Marketplace, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return nil, fmt.Errorf("home directory: %w", err)
+	}
+	cfg, err := ward.LoadConfig(ward.ConfigPath(home))
+	if err != nil {
+		return nil, fmt.Errorf("device config: %w", err)
+	}
+	return cfg.Marketplace, nil
 }
 
 // Request is one session.
@@ -116,6 +142,8 @@ type Result struct {
 	// Uncommitted counts changed files, Unpushed the commits on no remote.
 	Uncommitted int
 	Unpushed    int
+	// Marketplaces are the skills marketplaces the session used.
+	Marketplaces []UsedMarketplace
 }
 
 // Left says the worktree holds work not yet shipped.
@@ -123,7 +151,8 @@ func (r Result) Left() bool { return r.Uncommitted > 0 || r.Unpushed > 0 }
 
 // Runner runs sessions.
 type Runner struct {
-	r *ward.Runner
+	r            *ward.Runner
+	marketplaces []Marketplace
 }
 
 // New returns a Runner on the host's git; the VM is Options.Box.
@@ -135,7 +164,7 @@ func New(opts Options) *Runner {
 	if notes == nil {
 		notes = io.Discard
 	}
-	return &Runner{r: &ward.Runner{
+	return &Runner{marketplaces: opts.Marketplaces, r: &ward.Runner{
 		Box: opts.Box, Secrets: readOnly{opts.Secrets}, Config: emptyConfig(),
 		StateDir: opts.StateDir, TempDir: opts.TempDir,
 		Git: ward.HostGit, GitEnv: ward.HostGitEnv, GH: opts.GH,
@@ -156,12 +185,14 @@ func (s *Runner) Run(ctx context.Context, req Request) (Result, error) {
 		Prompt: req.Prompt, Harness: req.Harness, Fallback: req.Fallback,
 		Overflow: req.Overflow, OpenCodeModel: req.OpenCodeModel,
 		Dir: req.Dir, ResumeID: req.ResumeID, Extra: extra(req.Extra),
+		Marketplaces: s.marketplaces,
 	})
 	return Result{
 		ExitCode: res.ExitCode, Harness: res.Harness, Continued: res.Continued,
 		Limited: res.Limited, Branch: res.Branch, Path: res.Path,
 		SessionID: res.SessionID, Model: res.Model,
 		Uncommitted: res.Left.Uncommitted, Unpushed: res.Left.Unpushed,
+		Marketplaces: res.Marketplaces,
 	}, err
 }
 
@@ -177,6 +208,7 @@ func (readOnly) Delete(string) error { return ward.ErrNoSecret }
 func emptyConfig() ward.Config {
 	return ward.Config{
 		Order: nil, Overflow: "", OpenCode: ward.OpenCodeConfig{Model: ""}, MCP: nil,
+		Marketplace: nil,
 	}
 }
 

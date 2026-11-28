@@ -66,7 +66,7 @@ func (sf *sessionFixture) request(branch string) ward.SessionRequest {
 	return ward.SessionRequest{
 		Source: ward.Source{URL: sf.origin, Base: "main", Branch: branch, Token: ""},
 		Prompt: "fix it", Harness: ward.Claude, Fallback: "", Overflow: "",
-		OpenCodeModel: "", Dir: "", ResumeID: "", Extra: nil,
+		OpenCodeModel: "", Dir: "", ResumeID: "", Extra: nil, Marketplaces: nil,
 	}
 }
 

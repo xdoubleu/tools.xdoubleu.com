@@ -139,6 +139,12 @@ func (r *Runner) startChat(
 		_ = os.RemoveAll(outcomeDir)
 		return nil, err
 	}
+	skillMounts, err := r.addSkills(ctx, env, checkout)
+	if err != nil {
+		_ = os.RemoveAll(outcomeDir)
+		return nil, err
+	}
+	mounts = append(slices.Clone(mounts), skillMounts...)
 	env["WARDCASE_RUN"] = randomID()
 	addChatMCP(&egress, env, req)
 	proxy, err := r.NewProxy(egress)

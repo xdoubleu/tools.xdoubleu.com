@@ -1,6 +1,7 @@
 package vm_test
 
 import (
+	"encoding/json"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -83,4 +84,32 @@ func TestClaudeCodeReportsTheModelFromTheInitEventOnly(t *testing.T) {
 	assert.Empty(t, h.Model([]byte(`{"type":"assistant","model":"claude-y"}`)))
 	assert.Empty(t, h.Model([]byte(`not json "model"`)))
 	assert.Empty(t, h.Model([]byte(`{"type":"result"}`)))
+}
+
+func TestClaudeRegistersTheMountedMarketplacesAndEnablesTheListedPlugins(t *testing.T) {
+	seed, session := t.TempDir(), t.TempDir()
+	t.Setenv(vm.MarketplacesEnv, "skills extra")
+	t.Setenv(vm.PluginsEnv, "dev@skills tools@extra")
+
+	runClaude(t, vm.ClaudeCode{}.Command(), seed, session)
+
+	data, err := os.ReadFile(filepath.Join(session, "settings.json"))
+	require.NoError(t, err)
+	var cfg struct {
+		Known map[string]struct {
+			Source struct{ Source, Path string } `json:"source"`
+		} `json:"extraKnownMarketplaces"`
+		Enabled map[string]bool `json:"enabledPlugins"`
+	}
+	require.NoError(t, json.Unmarshal(data, &cfg), string(data))
+	assert.Equal(t, "directory", cfg.Known["skills"].Source.Source)
+	assert.Equal(t, vm.MarketplacesRoot+"/skills", cfg.Known["skills"].Source.Path)
+	assert.Equal(t, vm.MarketplacesRoot+"/extra", cfg.Known["extra"].Source.Path)
+	assert.Equal(t, map[string]bool{"dev@skills": true, "tools@extra": true}, cfg.Enabled)
+}
+
+func TestClaudeWithNoMarketplaceGetsNoSettingsFile(t *testing.T) {
+	seed, session := t.TempDir(), t.TempDir()
+	runClaude(t, vm.ClaudeCode{}.Command(), seed, session)
+	assert.NoFileExists(t, filepath.Join(session, "settings.json"))
 }

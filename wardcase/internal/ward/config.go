@@ -41,6 +41,8 @@ type Config struct {
 	OpenCode OpenCodeConfig `toml:"opencode"`
 	// MCP is the MCP servers every harness gets, signed in on the host (mcp.go).
 	MCP []MCPConfig `toml:"mcp"`
+	// Marketplace is the skills marketplaces, fetched on the host (marketplace.go).
+	Marketplace []MarketplaceConfig `toml:"marketplace"`
 }
 
 // MCPConfig is one MCP server of the device.
@@ -74,6 +76,7 @@ func ConfigPath(home string) string {
 func LoadConfig(path string) (Config, error) {
 	cfg := Config{
 		Order: nil, Overflow: "", OpenCode: OpenCodeConfig{Model: ""}, MCP: nil,
+		Marketplace: nil,
 	}
 	data, err := os.ReadFile(path)
 	switch {
@@ -114,7 +117,10 @@ func (c Config) validate() error {
 	if c.OpenCode.Model != "" && !vm.ValidModel(c.OpenCode.Model) {
 		return fmt.Errorf("opencode.model %q is not an OpenRouter model id", c.OpenCode.Model)
 	}
-	return c.validateMCP()
+	if err := c.validateMCP(); err != nil {
+		return err
+	}
+	return c.validateMarketplaces()
 }
 
 func (c Config) validateMCP() error {
