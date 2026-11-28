@@ -186,8 +186,8 @@ func TestARoutineBlockedEveryRunFilesOneSandboxTask(t *testing.T) {
 	}
 	found := sandboxTasks(t, env, "Sandbox: routine noop is blocked")
 	require.Len(t, found, 1)
-	assert.Len(t, withoutPickupNotes(env.task(t, found[0].Id).Comments), 2,
-		"one per repeat run")
+	assert.Len(t, withoutPickupNotes(env.task(t, found[0].Id).Comments), 3,
+		"the Ready creation, then one per repeat run")
 }
 
 func TestTheReconcilerMovesInProgressTasksWithoutAJob(t *testing.T) {
