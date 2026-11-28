@@ -10,6 +10,8 @@ import (
 const (
 	// scanSamples is how many body pages the printed-number scan reads.
 	scanSamples = 12
+	// scanBodyDiv splits the book in fifths; the middle three are sampled.
+	scanBodyDiv = 5
 	// scanMinVotes is how many sampled pages must agree on an offset.
 	scanMinVotes = 3
 	// scanEdgeLines is how many lines at a page's top and bottom (header,
@@ -65,7 +67,7 @@ func detectPrintedLabels(reader *pdf.Reader) *pdfLabels {
 // samplePages are 1-based pages spread over the middle of the book, where
 // front and back matter don't interfere.
 func samplePages(pages int) []int {
-	lo, hi := pages/5+1, pages*4/5
+	lo, hi := pages/scanBodyDiv+1, pages*(scanBodyDiv-1)/scanBodyDiv
 	if hi-lo+1 <= scanSamples {
 		out := make([]int, 0, max(hi-lo+1, 0))
 		for p := lo; p <= hi; p++ {

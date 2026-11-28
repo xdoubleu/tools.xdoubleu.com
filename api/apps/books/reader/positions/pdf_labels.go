@@ -32,7 +32,8 @@ type pdfLabels struct {
 }
 
 // readPDFLabels reads r's /PageLabels, else the printed numbers in its page
-// text. A PDF with neither yields nil; a malformed one nil and an error. ledongthuc/pdf panics on malformed objects.
+// text. A PDF with neither yields nil; a malformed one nil and an error.
+// ledongthuc/pdf panics on malformed objects.
 func readPDFLabels(r io.ReaderAt, size int64) (*pdfLabels, error) {
 	var labels *pdfLabels
 	var err error
