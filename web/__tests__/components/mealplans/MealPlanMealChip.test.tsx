@@ -247,3 +247,50 @@ describe('MealPlanMealChip', () => {
     expect(onFocusRestored).toHaveBeenCalled()
   })
 })
+
+describe('MealPlanMealChip open recipe', () => {
+  it('offers Open recipe in the actions menu', () => {
+    const onOpenRecipe = vi.fn()
+    render(
+      <MealPlanMealChip
+        meal={makeMeal()}
+        recipe={recipe}
+        isSwapping={false}
+        inSwapMode={false}
+        pickMode="swap"
+        onMealClick={vi.fn()}
+        onMoveClick={vi.fn()}
+        onSwapClick={vi.fn()}
+        onEditClick={vi.fn()}
+        onAddClick={vi.fn()}
+        onDeleteMeal={vi.fn()}
+        onOpenRecipe={onOpenRecipe}
+      />
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Meal actions' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Open recipe' }))
+    expect(onOpenRecipe).toHaveBeenCalledWith('r1')
+  })
+
+  it('opens the recipe on a tap when the name is not truncated', () => {
+    const onOpenRecipe = vi.fn()
+    render(
+      <MealPlanMealChip
+        meal={makeMeal()}
+        recipe={recipe}
+        isSwapping={false}
+        inSwapMode={false}
+        pickMode="swap"
+        onMealClick={vi.fn()}
+        onMoveClick={vi.fn()}
+        onSwapClick={vi.fn()}
+        onEditClick={vi.fn()}
+        onAddClick={vi.fn()}
+        onDeleteMeal={vi.fn()}
+        onOpenRecipe={onOpenRecipe}
+      />
+    )
+    fireEvent.click(screen.getByText('Spaghetti bolognese'))
+    expect(onOpenRecipe).toHaveBeenCalledWith('r1')
+  })
+})

@@ -20,6 +20,8 @@ interface MealPlanCalendarProps {
   onNextWeek: () => void
   onThisWeek: () => void
   onMutate?: () => void
+  /** Opens a planned recipe; the meal menu offers it when set. */
+  onOpenRecipe?: (recipeId: string) => void
 }
 
 export default function MealPlanCalendar({
@@ -29,7 +31,8 @@ export default function MealPlanCalendar({
   onPrevWeek,
   onNextWeek,
   onThisWeek,
-  onMutate
+  onMutate,
+  onOpenRecipe
 }: MealPlanCalendarProps) {
   const {
     selectedSlot,
@@ -143,6 +146,7 @@ export default function MealPlanCalendar({
         onDeleteMeal={confirmDeleteMeal}
         onAddClick={startAdd}
         onFillDay={startFillDay}
+        onOpenRecipe={onOpenRecipe}
         focusMealId={focusMealId}
         onMealFocused={clearFocusMeal}
       />

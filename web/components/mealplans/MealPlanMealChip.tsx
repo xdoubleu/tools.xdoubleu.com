@@ -22,6 +22,7 @@ interface MealPlanMealChipProps {
   /** Adds another meal to this meal's slot. */
   onAddClick: (meal: PlanMeal) => void
   onDeleteMeal: (mealId: string) => void
+  onOpenRecipe?: (recipeId: string) => void
   /** Focus the chip, e.g. once it has been moved; `onFocusRestored` then clears the request. */
   restoreFocus?: boolean
   onFocusRestored?: () => void
@@ -39,6 +40,7 @@ export default function MealPlanMealChip({
   onEditClick,
   onAddClick,
   onDeleteMeal,
+  onOpenRecipe,
   restoreFocus,
   onFocusRestored
 }: MealPlanMealChipProps) {
@@ -48,6 +50,7 @@ export default function MealPlanMealChip({
   const [expanded, setExpanded] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const bodyRef = useRef<HTMLButtonElement>(null)
+  const nameRef = useRef<HTMLSpanElement>(null)
   const name = isCustom
     ? customItems.map(formatCustomItemLabel).join(', ')
     : recipe?.name || meal.recipeRef?.name || '?'
@@ -74,6 +77,13 @@ export default function MealPlanMealChip({
     e.stopPropagation()
     if (inSwapMode) {
       onMealClick(meal)
+      return
+    }
+    // A tap that has nothing to expand opens the recipe rather than doing nothing.
+    const label = nameRef.current
+    const truncated = !!label && label.scrollHeight > label.clientHeight
+    if (!expanded && !truncated && onOpenRecipe && !isCustom && meal.recipeId) {
+      onOpenRecipe(meal.recipeId)
       return
     }
     setExpanded((v) => !v)
@@ -131,7 +141,9 @@ export default function MealPlanMealChip({
               ))}
             </span>
           ) : (
-            <span className={cn('wrap-break-word text-sm text-fg', clamp)}>{name}</span>
+            <span ref={nameRef} className={cn('wrap-break-word text-sm text-fg', clamp)}>
+              {name}
+            </span>
           )}
         </span>
         {!isCustom && recipe?.isDraft && (
@@ -170,6 +182,11 @@ export default function MealPlanMealChip({
             )}
           >
             <div role="menu">
+              {onOpenRecipe && !isCustom && meal.recipeId && (
+                <MenuItem role="menuitem" onClick={runAction(() => onOpenRecipe(meal.recipeId))}>
+                  Open recipe
+                </MenuItem>
+              )}
               <MenuItem role="menuitem" onClick={runAction(() => onMoveClick(meal))}>
                 Move
               </MenuItem>

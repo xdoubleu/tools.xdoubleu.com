@@ -27,6 +27,7 @@ interface MealPlanWeekGridProps {
   onDeleteMeal: (mealId: string) => void
   onAddClick: (date: string, slot: string) => void
   onFillDay: (date: string) => void
+  onOpenRecipe?: (recipeId: string) => void
   /** Meal whose chip takes focus next, e.g. after a swap moved it. */
   focusMealId?: string
   onMealFocused?: () => void
@@ -48,6 +49,7 @@ export default function MealPlanWeekGrid({
   onDeleteMeal,
   onAddClick,
   onFillDay,
+  onOpenRecipe,
   focusMealId,
   onMealFocused
 }: MealPlanWeekGridProps) {
@@ -90,6 +92,7 @@ export default function MealPlanWeekGrid({
               onEditClick={onEditClick}
               onAddClick={() => onAddClick(formattedDate, slot)}
               onDeleteMeal={onDeleteMeal}
+              onOpenRecipe={onOpenRecipe}
               restoreFocus={meal.id === focusMealId}
               onFocusRestored={onMealFocused}
             />

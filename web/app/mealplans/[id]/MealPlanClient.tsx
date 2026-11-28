@@ -108,6 +108,7 @@ export default function MealPlanClient({ id }: { id: string }) {
             onNextWeek={() => setOffset(data?.nextOffset ?? offset + 1)}
             onThisWeek={() => setOffset(0)}
             onMutate={() => mutate()}
+            onOpenRecipe={(recipeId) => router.push(`/recipes/${recipeId}`)}
           />
         </>
       )}
