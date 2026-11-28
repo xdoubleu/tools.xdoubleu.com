@@ -19,6 +19,20 @@ const (
 	sqliteHeader = 16
 )
 
+// nixUnreadable is the fault of a dropped store volume, which the runner's own
+// VMs must release before it is attached again.
+const nixUnreadable = "the Nix store is unreadable"
+
+// envFaultPrefix leads the outcome of a job an environment fault handed back;
+// the server words such a job by it, never as a usage limit.
+const envFaultPrefix = "Runner environment fault: "
+
+// envFaultLine is the outcome's first line for a job an environment fault
+// handed back.
+func envFaultLine(cause string) string {
+	return envFaultPrefix + cause + "; task requeued."
+}
+
 // envSignatures name the failures of the runner's own environment: they come
 // before the harness does any task work, so every job would meet them. The label
 // is stable, so the board files one task per cause.
@@ -29,10 +43,10 @@ var envSignatures = []struct { //nolint:gochecknoglobals // a constant table
 	setup   bool
 	pattern *regexp.Regexp
 }{
-	{"the Nix store is unreadable", true, regexp.MustCompile(
+	{nixUnreadable, true, regexp.MustCompile(
 		`(?i)'nix': No such device|Device not configured|` +
 			`wardcase: seeding /nix from \S+ failed|wardcase: /nix is not empty`)},
-	{"the Nix store is unreadable", false, regexp.MustCompile(
+	{nixUnreadable, false, regexp.MustCompile(
 		`(?i)disk I/O error|input/output error`)},
 	{"nix is missing in the VM", true, regexp.MustCompile(
 		`(?i)'nix': No such file`)},
@@ -61,18 +75,35 @@ func envBlocked(signature string) string {
 }
 
 // holdEnv opens the breaker: the runner claims nothing until its preflight
-// passes again. The first signature stays.
-func (r *JobRunner) holdEnv(signature string) {
-	r.env.CompareAndSwap(nil, &signature)
+// passes again. The first signature stays. A dropped store volume stops the
+// runner's job VMs first: one alive keeps stale handles, and a volume attached
+// again under it drops again.
+func (r *JobRunner) holdEnv(ctx context.Context, signature string) {
+	opened := r.env.CompareAndSwap(nil, &signature)
 	r.envProbed.Store(r.now().UnixNano())
+	if !opened || signature != nixUnreadable {
+		return
+	}
+	var failed []string
+	if r.StopVMs != nil {
+		failed = r.StopVMs(context.WithoutCancel(ctx), r.RunningJobs())
+	}
+	r.Log.Warn("the Nix store volume dropped: this runner's job VMs are stopped; "+
+		"re-attach the store volume, claims resume once the preflight passes",
+		"not_stopped", failed)
 }
 
 // envFault is why the breaker is open; empty when it is closed.
 func (r *JobRunner) envFault() string {
-	if p := r.env.Load(); p != nil {
+	p := r.env.Load()
+	switch {
+	case p == nil:
+		return ""
+	case *p == nixUnreadable:
+		return *p + "; re-attach the store volume"
+	default:
 		return *p
 	}
-	return ""
 }
 
 // envReady runs the preflight before a claim and says whether to claim. An open
@@ -164,11 +195,11 @@ func nixStoreReadable(dir string) error {
 // environment before the agent worked: the job is handed back for requeueing and
 // the breaker opens, so no other task is used up on it.
 func (l *jobLoop) environmentEnd(signature string, res result) *step {
-	l.r.holdEnv(signature)
+	l.r.holdEnv(l.ctx, signature)
 	res.limited = true
 	res.blocked = envBlocked(signature)
-	res.outcome = strings.TrimSpace("The runner's environment failed before the " +
-		"agent started: " + signature + ".\n\nThe runner holds its claims until " +
+	res.outcome = strings.TrimSpace(envFaultLine(signature) + "\n\nThe runner's " +
+		"environment failed before the agent started. The runner holds its claims until " +
 		"its preflight passes; the task goes back to the queue untouched.\n\n" +
 		res.outcome)
 	end := over(res)

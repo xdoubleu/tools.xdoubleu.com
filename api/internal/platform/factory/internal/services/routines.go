@@ -233,6 +233,8 @@ func (s *JobService) endRoutine(
 	outcome string,
 ) {
 	switch {
+	case isEnvFault(outcome):
+		s.say.say(ctx, ":wrench: Routine "+job.Routine+": "+escape(firstLine(outcome)))
 	case job.Limited:
 		s.say.say(ctx, ":hourglass_flowing_sand: Claude's usage limit stopped routine "+
 			job.Routine+limitUntil(job.LimitResetsAt))

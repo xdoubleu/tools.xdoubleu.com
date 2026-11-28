@@ -383,6 +383,9 @@ func (s *JobService) Complete(
 	if utf8.RuneCountInString(outcome) > maxCommentLen {
 		outcome = string([]rune(outcome)[:maxCommentLen])
 	}
+	// An environment fault is the runner's, not Claude's: it holds no limit.
+	envFault := limited && isEnvFault(outcome)
+	limited = limited && !envFault
 	prURL, note := s.checkedPullRequest(ctx, id, strings.TrimSpace(prURL))
 	resetsAt := plausibleReset(limitResetsAt, time.Now())
 	job, err := s.jobs.Complete(ctx, id, status, outcome, sessionID, prURL, runnerID,
@@ -401,20 +404,11 @@ func (s *JobService) Complete(
 		s.endRoutine(ctx, job, succeeded, outcome)
 		return job, nil
 	}
-	body := "Job " + string(status) + " on branch `" + job.Branch + "`"
-	if limited {
-		body = "Job stopped by Claude's usage limit on branch `" + job.Branch + "`"
-	}
-	next := models.StatusNeedsYou
-	if limited && prURL == "" {
-		requeued, requeueErr := s.requeueLimited(ctx, job)
-		if requeueErr != nil {
-			return nil, requeueErr
-		}
-		if requeued {
-			next = models.StatusInProgress
-			body += "\n\nThe task is queued again and continues by itself once the " +
-				"limit lifts" + limitUntil(job.LimitResetsAt) + "."
+	body, next := "Job "+string(status)+" on branch `"+job.Branch+"`",
+		models.StatusNeedsYou
+	if limited || envFault {
+		if body, next, err = s.stopped(ctx, job, envFault, prURL); err != nil {
+			return nil, err
 		}
 	}
 	if prURL != "" {
@@ -432,6 +426,41 @@ func (s *JobService) Complete(
 	}
 	s.announceEnd(ctx, job, succeeded, prURL, outcome)
 	return job, nil
+}
+
+// stopped words a job a usage limit or an environment fault stopped, and
+// requeues its task unless it opened a pull request.
+func (s *JobService) stopped(
+	ctx context.Context,
+	job *models.Job,
+	envFault bool,
+	prURL string,
+) (string, models.Status, error) {
+	body := "Job stopped by Claude's usage limit on branch `" + job.Branch + "`"
+	wait := " continues by itself once the limit lifts" +
+		limitUntil(job.LimitResetsAt) + "."
+	if envFault {
+		body = "Job handed back by a runner environment fault on branch `" +
+			job.Branch + "`"
+		wait = " runs once the runner's environment is back."
+	}
+	if prURL != "" {
+		return body, models.StatusNeedsYou, nil
+	}
+	requeued, err := s.requeueLimited(ctx, job)
+	if err != nil || !requeued {
+		return body, models.StatusNeedsYou, err
+	}
+	return body + "\n\nThe task is queued again and" + wait, models.StatusInProgress, nil
+}
+
+// envFaultPrefix leads the outcome a runner reports for a job its own
+// environment handed back (a dead Nix store, a VM that would not start).
+const envFaultPrefix = "Runner environment fault: "
+
+// isEnvFault reports whether an outcome is a runner environment fault's.
+func isEnvFault(outcome string) bool {
+	return strings.HasPrefix(outcome, envFaultPrefix)
 }
 
 // maxLimitRequeues is how many limited jobs in a row a task may have before it
@@ -538,6 +567,8 @@ func (s *JobService) announceEnd(
 ) {
 	link := s.taskLink(ctx, job.TaskID)
 	switch {
+	case isEnvFault(outcome):
+		s.say.say(ctx, ":wrench: "+escape(firstLine(outcome))+" ("+link+")")
 	case job.Limited:
 		s.say.say(ctx, ":hourglass_flowing_sand: Claude's usage limit stopped a job on "+
 			link+limitUntil(job.LimitResetsAt))
