@@ -120,13 +120,15 @@ message PullRequest {
   string mergeable = 5;
 }
 
-// New tasks always start in Backlog. The repo can't change afterwards.
+// The repo can't change afterwards.
 message CreateTaskRequest {
   string title = 1;
   string body = 2;
   TaskPriority priority = 3;
   repeated string labels = 4;
   string repo_id = 5;
+  // Backlog or Ready; unspecified lets the labels decide.
+  TaskStatus status = 6;
 }
 message CreateTaskResponse {
   Task task = 1;

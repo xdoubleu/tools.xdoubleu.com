@@ -365,7 +365,7 @@ func (b *BoardService) UpdateTask(
 func applyPatch(current *models.Task, patch TaskPatch) TaskInput {
 	in := TaskInput{
 		Title: current.Title, Body: current.Body, Priority: current.Priority,
-		Labels: current.Labels,
+		Labels: current.Labels, Status: "",
 	}
 	if patch.Title != nil {
 		in.Title = *patch.Title
