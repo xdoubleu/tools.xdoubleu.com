@@ -25,8 +25,8 @@ func IsSandboxTask(t *models.Task) bool {
 
 // ReportSandbox files a sandbox problem: it comments on the open task the title
 // names (T-n), else the repo's open sandbox task with the same or a close title,
-// else creates one (Ready as a bug, Backlog when the runner files it). created is
-// false for a repeat.
+// else creates one in Ready at P1, so it is claimed ahead of other work. created
+// is false for a repeat.
 func (s *TaskService) ReportSandbox(
 	ctx context.Context,
 	actor models.Actor,
@@ -34,8 +34,8 @@ func (s *TaskService) ReportSandbox(
 	title, body string,
 ) (*models.Task, bool, error) {
 	in, err := normalise(TaskInput{
-		Title: title, Body: body, Priority: models.PriorityP2,
-		Labels: []string{SandboxLabel, "bug"},
+		Title: title, Body: body, Priority: models.PriorityP1,
+		Labels: []string{SandboxLabel, "bug"}, Status: "",
 	})
 	if err != nil {
 		return nil, false, err
@@ -182,7 +182,7 @@ func (s *TaskService) reportBug(
 ) (*models.Task, bool, error) {
 	in, err := normalise(TaskInput{
 		Title: title, Body: body, Priority: models.PriorityP2,
-		Labels: []string{"bug"},
+		Labels: []string{"bug"}, Status: "",
 	})
 	if err != nil {
 		return nil, false, err

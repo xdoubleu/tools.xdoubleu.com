@@ -162,6 +162,7 @@ func (h *taskConnectHandler) CreateTask(
 		Body:     req.Body,
 		Priority: priorityFromProto(req.Priority),
 		Labels:   req.Labels,
+		Status:   statusFromProto(req.Status),
 	})
 	if err != nil {
 		return nil, present.MapError(err)

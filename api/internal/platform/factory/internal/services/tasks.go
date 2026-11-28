@@ -31,6 +31,9 @@ type TaskInput struct {
 	Body     string
 	Priority models.Priority
 	Labels   []string
+	// Status is the start column on create, Backlog or Ready; "" lets the labels
+	// decide (see startsReady). Update ignores it.
+	Status models.Status
 }
 
 func badRequest(msg string) error {
@@ -129,7 +132,7 @@ func (s *TaskService) Get(
 	return task, comments, nil
 }
 
-// Create adds a task for a repo to Backlog; an unknown repo is not found.
+// Create adds a task for a repo in its startColumn; an unknown repo is not found.
 func (s *TaskService) Create(
 	ctx context.Context,
 	actor models.Actor,
@@ -140,13 +143,17 @@ func (s *TaskService) Create(
 	if err != nil {
 		return nil, err
 	}
+	status, err := startColumn(actor, in)
+	if err != nil {
+		return nil, err
+	}
 	task, err := s.repo.Create(ctx, models.Task{
 		ID:             uuid.Nil,
 		Number:         0,
 		RepoID:         repoID,
 		Title:          in.Title,
 		Body:           in.Body,
-		Status:         models.StatusBacklog,
+		Status:         status,
 		Priority:       in.Priority,
 		Labels:         in.Labels,
 		CreatedBy:      "",
@@ -164,21 +171,58 @@ func (s *TaskService) Create(
 		Deploy:         "",
 		DeployReason:   "",
 	}, actor)
-	if err != nil || !startsReady(actor, in) {
+	if err != nil || status != models.StatusReady || actor.Kind != models.ActorAgent {
 		return task, err
 	}
-	return s.Move(ctx, actor, task.ID, models.StatusReady)
+	// Ready is the approval to start work, so the board shows which agent gave it.
+	if _, err = s.repo.AddComment(
+		ctx, task.ID, actor.String(), "Created in Ready by "+actor.String(),
+	); err != nil {
+		return nil, err
+	}
+	return task, nil
+}
+
+// startColumn is the column a new task starts in: the one asked for, Backlog or
+// Ready, else Ready when startsReady, else Backlog. Ready takes the same checks
+// as a move there.
+func startColumn(actor models.Actor, in TaskInput) (models.Status, error) {
+	switch in.Status {
+	case "":
+		if startsReady(actor, in) {
+			return models.StatusReady, nil
+		}
+		return models.StatusBacklog, nil
+	case models.StatusBacklog:
+		return in.Status, nil
+	case models.StatusReady:
+		if err := checkMove(actor, in.Status); err != nil {
+			return "", err
+		}
+		if models.HasLabel(in.Labels, models.LabelSpike) {
+			return "", forbidden(models.SpikeReadyMessage)
+		}
+		return in.Status, checkRenderable(in.Title, in.Body)
+	case models.StatusInProgress, models.StatusInReview, models.StatusNeedsYou,
+		models.StatusTesting, models.StatusDone:
+	}
+	return "", badRequest("a task starts in backlog or ready")
 }
 
 // startsReady reports whether an agent's new task skips Backlog: it carries a
-// defect or retro label and its text is renderable (else it waits in Backlog).
-// A task the runner files waits too: a job would run in the sandbox it reports.
+// defect (bug), factory-retro or routine-found label and its text is renderable. Of the
+// runner's tasks only sandbox ones do, so the next job gets a fixed sandbox.
 func startsReady(actor models.Actor, in TaskInput) bool {
-	if actor.Kind != models.ActorAgent || strings.HasPrefix(actor.ID, "runner:") {
+	if actor.Kind != models.ActorAgent {
+		return false
+	}
+	runner := strings.HasPrefix(actor.ID, "runner:")
+	if runner && !models.HasLabel(in.Labels, SandboxLabel) {
 		return false
 	}
 	has := slices.ContainsFunc(in.Labels, func(l string) bool {
-		return strings.EqualFold(l, "bug") || strings.EqualFold(l, "factory-retro")
+		return strings.EqualFold(l, "bug") || strings.EqualFold(l, "factory-retro") ||
+			strings.EqualFold(l, "routine-found")
 	})
 	return has && checkRenderable(in.Title, in.Body) == nil
 }

@@ -50,6 +50,7 @@ type mcpCreateTaskArgs struct {
 	Body     string   `json:"body,omitempty"     jsonschema:"what to do, in markdown"`
 	Priority string   `json:"priority,omitempty" jsonschema:"p0, p1 or p2; default p2"`
 	Labels   []string `json:"labels,omitempty"   jsonschema:"labels, at most 10"`
+	Status   string   `json:"status,omitempty"   jsonschema:"start column: backlog or ready; default from the labels"`
 }
 
 type mcpCommentArgs struct {
@@ -139,8 +140,9 @@ func Register(srv *mcp.Server, svc *services.Services, chats ChatPublisher) {
 			"first, credential values removed. The events can hold code and file "+
 			"contents of the job's repo.", t.getJob)
 	mcptools.AddAgentWriteTool(srv, mcpAppName, "factory_create_task",
-		"Create a task for a repo. It starts in Backlog, except a task labelled "+
-			"bug or factory-retro, which starts in Ready.", t.createTask)
+		"Create a task for a repo in the status given (backlog or ready). Without "+
+			"one it starts in Backlog, except a task labelled bug, factory-retro or "+
+			"routine-found, which starts in Ready.", t.createTask)
 	mcptools.AddAgentWriteTool(srv, mcpAppName, "factory_comment_task",
 		"Add a comment to a task, as this agent.", t.commentTask)
 	mcptools.AddAgentWriteTool(srv, mcpAppName, "factory_move_task",
@@ -302,6 +304,7 @@ func (t *mcpTools) createTask(
 		Body:     args.Body,
 		Priority: models.Priority(args.Priority),
 		Labels:   args.Labels,
+		Status:   models.Status(args.Status),
 	})
 	if err != nil {
 		return nil, present.MapError(err)

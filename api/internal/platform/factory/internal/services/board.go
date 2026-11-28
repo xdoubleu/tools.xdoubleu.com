@@ -338,8 +338,8 @@ func checkBulk(refs []string, status models.Status) ([]string, error) {
 }
 
 // UpdateTask applies a patch to the task a reference names. A job's account
-// can't edit. An agent can't reword a Ready task: a person approved that title
-// and body when moving it to Ready.
+// can't edit. Any other actor may edit a task in any column: a Ready task's
+// approved text is snapshotted at the Ready move, so a running job is unaffected.
 func (b *BoardService) UpdateTask(
 	ctx context.Context,
 	actor models.Actor,
@@ -357,22 +357,15 @@ func (b *BoardService) UpdateTask(
 	if err != nil {
 		return nil, err
 	}
-	in, err := applyPatch(actor, current, patch)
-	if err != nil {
-		return nil, err
-	}
+	in := applyPatch(current, patch)
 	return b.tasks.Update(ctx, actor, id, in)
 }
 
 // applyPatch is the edit the patch makes to the current task.
-func applyPatch(
-	actor models.Actor,
-	current *models.Task,
-	patch TaskPatch,
-) (TaskInput, error) {
+func applyPatch(current *models.Task, patch TaskPatch) TaskInput {
 	in := TaskInput{
 		Title: current.Title, Body: current.Body, Priority: current.Priority,
-		Labels: current.Labels,
+		Labels: current.Labels, Status: "",
 	}
 	if patch.Title != nil {
 		in.Title = *patch.Title
@@ -387,12 +380,7 @@ func applyPatch(
 		in.Labels = *patch.Labels
 	}
 	in.Labels = mergeLabels(in.Labels, patch.AddLabels, patch.RemoveLabels)
-	reworded := in.Title != current.Title || in.Body != current.Body
-	agent := actor.Kind == models.ActorAgent
-	if current.Status == models.StatusReady && reworded && agent {
-		return in, forbidden("the title and body of a Ready task can't be changed")
-	}
-	return in, nil
+	return in
 }
 
 // mergeLabels applies the removals (ignoring case) and then the additions,

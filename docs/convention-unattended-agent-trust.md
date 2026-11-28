@@ -9,8 +9,8 @@
 
 - **Moving a task to Ready is the approval an unattended run relies on.** On
   the factory board a human or an agent account may do it; the move is recorded
-  as a comment naming the actor. Agents file into Backlog, except bugs and retro findings (labels `bug`, `factory-retro`; sandbox reports carry `bug`), which
-  `factory_create_task` files straight into Ready. Features and epics move to Ready only
+  as a comment naming the actor. Agents file into Backlog, except bugs, retro and routine findings (labels `bug`, `factory-retro`, `routine-found`), which
+  `factory_create_task` creates in Ready, or into the `status` (Backlog or Ready) they pass. The runner's sandbox reports start in Ready at P1, ahead of other work. Features and epics move to Ready only
   when the owner has said so. `routine-feedback` items stay in Backlog until
   then. On GitHub, only a human moves an issue to Ready.
 - **A self-fixing agent re-queues its own work.** When the only thing that
