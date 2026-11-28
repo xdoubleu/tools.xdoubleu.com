@@ -253,14 +253,16 @@ func TestDeviceMarketplacesReadTheDeviceConfig(t *testing.T) {
 
 	dir := filepath.Join(home, ".config", "wardcase")
 	require.NoError(t, os.MkdirAll(dir, 0o750))
-	body := "[[marketplace]]\nname = \"skills\"\nurl = \"https://h/s\"\nplugins = [\"dev\"]\n"
-	require.NoError(t, os.WriteFile(filepath.Join(dir, "config.toml"), []byte(body), 0o600))
+	body := "[[marketplace]]\nname = \"skills\"\nurl = \"https://h/s\"\n" +
+		"plugins = [\"dev\"]\n"
+	cfg := filepath.Join(dir, "config.toml")
+	require.NoError(t, os.WriteFile(cfg, []byte(body), 0o600))
 	got, err = session.DeviceMarketplaces()
 	require.NoError(t, err)
 	require.Len(t, got, 1)
 	assert.Equal(t, "skills", got[0].Name)
 
-	require.NoError(t, os.WriteFile(filepath.Join(dir, "config.toml"), []byte("x ="), 0o600))
+	require.NoError(t, os.WriteFile(cfg, []byte("x ="), 0o600))
 	_, err = session.DeviceMarketplaces()
 	assert.Error(t, err)
 }
