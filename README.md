@@ -93,6 +93,6 @@ and manual deploy/rollback; secret names must agree across three places →
 ## Agent Infrastructure
 
 - **Claude Code** — `CLAUDE.md` + `.claude/` (skills, hooks, settings) + plugins from the `xdoubleu/skills` marketplace.
-- **OpenCode** (OpenRouter models) — `opencode.json` + `.opencode/plugins/repo-guard`, reading `.claude/skills/` via compatibility discovery. Generic dependencies (`ship-pr`, `task-worktree`, `refine-issue`, `issue-triage`, `session-retro`, `grilling`, `code-review`) are installed under `.agents/skills/` via `npx skills add xdoubleu/skills …` / `npx skills add mattpocock/skills …` (tracked in `skills-lock.json`; refresh with `npx skills update`). No model is pinned — set `OPENROUTER_API_KEY` and pick one at the CLI.
+- **OpenCode** (OpenRouter models) — `opencode.json` + `.opencode/plugins/repo-guard`, reading `.agents/skills/`. Generic dependencies (`ship-pr`, `task-worktree`, `refine-issue`, `issue-triage`, `session-retro`, `grilling`, `code-review`) are installed under `.agents/skills/` via `npx skills add xdoubleu/skills …` / `npx skills add mattpocock/skills …` (tracked in `skills-lock.json`; refresh with `npx skills update`). No model is pinned — set `OPENROUTER_API_KEY` and pick one at the CLI.
 
 Both follow [convention-task-lifecycle](docs/convention-task-lifecycle.md).

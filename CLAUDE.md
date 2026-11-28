@@ -27,7 +27,7 @@ Use `Agent` for noisy bulk work (grep sweeps, log/CI trawls, large MCP outputs s
 
 ## Other skills
 
-`.claude/skills/` also holds operational sweeps (see each skill's description). Factory routines (scheduled jobs on the board, run by the Mac runner) run them unattended → [adr-0052](docs/adr-0052-factory-scheduled-routines.md).
+The operational sweeps (`sentry-triage`, `monitoring-sweep`, `postmortem`, `red-pr-repair`, …) come from the `ops-routines` plugin and read their tools and paths from the `ops` block of `.claude/repo.config.json`. Factory routines (scheduled jobs on the board, run by the Mac runner) run them unattended → [adr-0052](docs/adr-0052-factory-scheduled-routines.md).
 
 ## MCP
 
@@ -37,4 +37,4 @@ claude mcp add --transport http tools-apps https://tools.xdoubleu.com/api/apps/m
 
 ## OpenCode
 
-OpenCode shares `AGENTS.md`, the MCP server, and `.claude/skills/` (via `skills.paths` in `opencode.json`). Its copies of the marketplace skills live under `.agents/skills/` (`skills-lock.json`, `npx skills update`), so don't copy them into `.claude/skills/`. `.opencode/plugins/repo-guard/` ports the worktree guard, the session-start fast-forward of main, and the unshipped-work check (as a nudge). `.opencode/plugins/doc-budgets.js` is the plugin's doc-budget port; `make lint/docs` fetches its scripts, so point `DOC_BUDGETS_DIR` at them.
+OpenCode shares `AGENTS.md` and the MCP server. Its copies of the marketplace skills live under `.agents/skills/` (`skills-lock.json`, `npx skills update`; the `ops-routines` skills are added the same way). `.opencode/plugins/repo-guard/` ports the worktree guard, the session-start fast-forward of main, and the unshipped-work check (as a nudge). `.opencode/plugins/doc-budgets.js` is the plugin's doc-budget port; `make lint/docs` fetches its scripts, so point `DOC_BUDGETS_DIR` at them.

@@ -2,7 +2,7 @@
   "$schema": "https://opencode.ai/config.json",
   "instructions": ["api/AGENTS.md", "web/AGENTS.md", "kobo-gateway/AGENTS.md"],
   "skills": {
-    "paths": [".claude/skills", ".agents/skills"]
+    "paths": [".agents/skills"]
   },
   "mcp": {
     "tools-apps": {

@@ -124,5 +124,44 @@
   "prWaitCommand": "scripts/pr_wait.sh",
   "factory": {
     "finishCommand": "make factory/finish"
+  },
+  "ops": {
+    "tools": {
+      "errors": "mcp__tools-apps__get_sentry_issues",
+      "alerts": "mcp__tools-apps__get_grafana_alerts",
+      "metrics": "mcp__tools-apps__prom_query",
+      "analytics": "mcp__posthog__exec"
+    },
+    "dependabot": {
+      "prCommand": "gh pr list --label dependencies --json number,title,statusCheckRollup",
+      "mergeCommand": "gh pr merge --squash --auto"
+    },
+    "postmortem": {
+      "dir": "docs/postmortems"
+    },
+    "web": {
+      "dir": "web",
+      "viewport": {
+        "width": 375,
+        "height": 667
+      },
+      "startCommand": "npm run mobile:audit:local",
+      "pages": [
+        "/trains",
+        "/books/library"
+      ]
+    },
+    "redPr": {
+      "listCommand": "gh pr list --state open --json number,headRefName,statusCheckRollup"
+    },
+    "routines": {
+      "sentryTriage": "sentry-triage",
+      "dependabotTriage": "dependabot-triage",
+      "monitoringSweep": "nightly-maintenance-sweep",
+      "posthogUxDiscovery": "posthog-ux-discovery",
+      "mobileReview": "mobile-review",
+      "factoryRetro": "factory-retro",
+      "redPrRepair": "red-pr-repair"
+    }
   }
 }

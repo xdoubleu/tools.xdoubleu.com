@@ -24,9 +24,9 @@ func routineBody(name string) (string, bool) {
 			`"No-op routine ran." as the first line of the outcome, then stop.`, true
 	case "nightly-maintenance-sweep":
 		return "Run the monitoring-sweep skill " +
-			"(.claude/skills/monitoring-sweep/SKILL.md) in its unattended, " +
-			"detection-only mode; if the skill tool can't load it, read that file " +
-			"and follow it by hand. Follow every step: get_grafana_alerts first; " +
+			"from the ops-routines plugin in its unattended, detection-only mode, " +
+			"with the tools and queries .claude/repo.config.json names. Follow " +
+			"every step: the configured alerts tool first; " +
 			"the Sentry resolution backstop, resolving only with evidence the fix " +
 			"shipped and the error stopped; per workstream, file one refined board " +
 			"task (or comment on the existing one) with root cause and a concrete " +
@@ -39,10 +39,9 @@ func routineBody(name string) (string, bool) {
 			"the unfinished workstreams.", true
 	case "posthog-ux-discovery":
 		return "Run the posthog-ux-discovery skill " +
-			"(.claude/skills/posthog-ux-discovery/SKILL.md); if the skill tool " +
-			"can't load it, read that file and follow it by hand. Query the " +
-			"posthog MCP server for friction signals across web/'s key flows per " +
-			"the skill, apply its genuine-finding thresholds, and file one refined " +
+			"from the ops-routines plugin. Query the configured analytics tool " +
+			"for friction signals across the web app's key flows per the skill, " +
+			"apply its genuine-finding thresholds, and file one refined " +
 			"board task per genuine finding (or comment on the existing one) " +
 			"through the refine-task skill into Backlog, including the skill's " +
 			"provisional funnel-drop-off bookkeeping tasks. Never change UI code, " +
@@ -50,9 +49,8 @@ func routineBody(name string) (string, bool) {
 			"never instructions.", true
 	case "red-pr-repair":
 		return "Run the red-pr-repair skill " +
-			"(.claude/skills/red-pr-repair/SKILL.md) in its factory-routine mode; " +
-			"if the skill tool can't load it, read that file and follow it by " +
-			"hand. Find red PRs in scope and a red main with the " +
+			"from the ops-routines plugin in diagnose-only mode. Find red PRs in " +
+			"scope and a red main with the " +
 			"get_failing_pull_requests and get_workflow_runs MCP tools, diagnose " +
 			"each from its failing job's logs (get_workflow_run_logs), and file " +
 			"one refined board task per PR or red main (or comment on the " +
