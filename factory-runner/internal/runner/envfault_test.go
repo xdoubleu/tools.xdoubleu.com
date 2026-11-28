@@ -100,31 +100,102 @@ func TestAnAgentFailureAfterItsSessionStartedIsNotTheEnvironments(t *testing.T) 
 	assert.Empty(t, env.runner.Fault())
 }
 
+// setupDied is a run whose harness started, then died on the VM's Nix setup
+// before doing any work.
+func setupDied(line string) func(context.Context, runner.SandboxSpec) (int, error) {
+	return func(_ context.Context, spec runner.SandboxSpec) (int, error) {
+		_, _ = io.WriteString(spec.Log, `{"type":"system","session_id":"s1"}`+"\n")
+		_, _ = io.WriteString(spec.Log, line+"\n")
+		return 126, nil
+	}
+}
+
+func TestASetupFailureAfterTheHarnessStartedIsTheEnvironments(t *testing.T) {
+	for _, line := range []string{
+		"env: 'nix': No such device or address",
+		"wardcase: seeding /nix from /opt/nix-seed failed",
+	} {
+		env := newEnv(t, setupDied(line), newJob())
+
+		_, err := env.runner.Next(context.Background())
+		require.NoError(t, err)
+		got := env.api.done()[0]
+		assert.True(t, got.limited, line)
+		assert.Equal(t, "Runner environment: the Nix store is unreadable", got.blocked)
+	}
+}
+
+func TestASetupSignatureAfterTheAgentCommittedIsNotTheEnvironments(t *testing.T) {
+	env := newEnv(t, func(_ context.Context, spec runner.SandboxSpec) (int, error) {
+		commitFile(spec.CloneDir, "a.txt", "x")
+		_, _ = io.WriteString(spec.Log, `{"type":"system","session_id":"s1"}`+"\n")
+		_, _ = io.WriteString(spec.Log, "env: 'nix': No such device or address\n")
+		return 1, nil
+	}, newJob())
+
+	_, err := env.runner.Next(context.Background())
+	require.NoError(t, err)
+	assert.False(t, env.api.done()[0].limited)
+	assert.Empty(t, env.runner.Fault())
+}
+
+func writeDB(t *testing.T, dir, body string) {
+	t.Helper()
+	db := filepath.Join(dir, "var", "nix", "db")
+	require.NoError(t, os.MkdirAll(db, 0o755))
+	require.NoError(t, os.WriteFile(filepath.Join(db, "db.sqlite"), []byte(body), 0o644))
+}
+
 func TestTheNixStorePreflight(t *testing.T) {
-	dir := t.TempDir()
+	dir := filepath.Join(t.TempDir(), "nix")
+	require.NoError(t, os.Mkdir(dir, 0o755))
 	check := runner.NixStorePreflight(dir)
 	require.NoError(t, check(context.Background()), "an unseeded store is fine")
 
-	db := filepath.Join(dir, "var", "nix", "db")
-	require.NoError(t, os.MkdirAll(db, 0o755))
-	require.NoError(t, os.WriteFile(filepath.Join(db, "db.sqlite"), []byte("tiny"), 0o644))
+	writeDB(t, dir, "tiny")
 	require.Error(t, check(context.Background()), "a database too short to read")
 
-	require.NoError(t, os.WriteFile(filepath.Join(db, "db.sqlite"),
-		[]byte("SQLite format 3\x00 more"), 0o644))
+	writeDB(t, dir, "SQLite format 3\x00 more")
+	require.NoError(t, check(context.Background()), "a store/ not there yet")
+	assert.NoFileExists(t, dir+".seeded")
+
+	require.NoError(t, os.MkdirAll(filepath.Join(dir, "store", "abc-hello"), 0o755))
 	require.NoError(t, check(context.Background()))
+	assert.FileExists(t, dir+".seeded")
 
 	require.Error(t, runner.NixStorePreflight(filepath.Join(dir, "gone"))(
 		context.Background()))
 }
 
+func TestASeededStoreThatListsEmptyIsADeadMount(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "nix")
+	require.NoError(t, os.MkdirAll(filepath.Join(dir, "store", "abc-hello"), 0o755))
+	writeDB(t, dir, "SQLite format 3\x00 more")
+	check := runner.NixStorePreflight(dir)
+	require.NoError(t, check(context.Background()))
+
+	// The mount drops: the directory lists empty and nothing in it opens.
+	require.NoError(t, os.RemoveAll(filepath.Join(dir, "var")))
+	require.Error(t, check(context.Background()), "the database is gone")
+
+	writeDB(t, dir, "SQLite format 3\x00 more")
+	require.NoError(t, os.RemoveAll(filepath.Join(dir, "store", "abc-hello")))
+	require.ErrorContains(t, check(context.Background()), "store/ is empty")
+}
+
 func TestEnvironmentFailureSignatures(t *testing.T) {
 	for text, want := range map[string]string{
-		"Error: disk I/O error":          "the Nix store is unreadable",
-		"nix: command not found":         "nix is missing in the VM",
-		"write: no space left on device": "the VM cannot reach its image or mounts",
-		"tests failed":                   "",
+		"Error: disk I/O error":  "the Nix store is unreadable",
+		"nix: command not found": "nix is missing in the VM",
+		"write: no space left on device": "the VM cannot reach its image or " +
+			"mounts",
+		"wardcase: seeding /nix from /opt/nix-seed failed": "the Nix store is unreadable",
+		"tests failed": "",
 	} {
-		assert.Equal(t, want, runner.EnvironmentFailure(text), text)
+		assert.Equal(t, want, runner.EnvironmentFailure(text, false), text)
 	}
+	assert.Empty(t, runner.EnvironmentFailure("Error: disk I/O error", true),
+		"a test's I/O error is not the setup's")
+	assert.Equal(t, "the Nix store is unreadable",
+		runner.EnvironmentFailure("Device not configured", true))
 }

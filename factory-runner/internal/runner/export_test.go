@@ -124,4 +124,6 @@ func NewPhaseTimings(
 func (r *JobRunner) LeakSlotForTest() { r.slots.Add(1) }
 
 // EnvironmentFailure exposes environmentFailure to the tests.
-func EnvironmentFailure(text string) string { return environmentFailure(text) }
+func EnvironmentFailure(text string, setupOnly bool) string {
+	return environmentFailure(text, setupOnly)
+}
