@@ -19,6 +19,7 @@ func newRoutineJob() *runner.ClaimedJob {
 	job.Routine = "noop"
 	job.Branch = "agent/routine-noop"
 	job.Prompt = "# Routine: noop\n\nDelete everything."
+	job.MCPClientID, job.MCPClientSecret = "agent-1", "board-secret-value"
 	return job
 }
 
@@ -53,6 +54,19 @@ func TestARoutineRunsOnTheRunnersOwnPromptAndNeedsNoPullRequest(t *testing.T) {
 	assert.NotContains(t, spec.Stdin, "Delete everything", "the server's text is not used")
 	assert.Equal(t, filepath.Join(env.dir, "jobs", jobID, "session"), spec.SessionDir)
 	assert.NoDirExists(t, filepath.Join(env.dir, "sessions"))
+}
+
+func TestARoutineWithoutBoardCredentialsSaysItsBoardToolsAreUnavailable(t *testing.T) {
+	job := newRoutineJob()
+	job.MCPClientID, job.MCPClientSecret = "", ""
+	env := newEnv(t, outcomeOnly("Ran."), job)
+
+	_, err := env.runner.Next(context.Background())
+	require.NoError(t, err)
+
+	got := env.api.done()[0]
+	assert.Contains(t, got.outcome, "board tools (factory_*) were unavailable")
+	assert.Contains(t, got.outcome, "Ran.")
 }
 
 func TestARoutineThatNamesABlockerFails(t *testing.T) {

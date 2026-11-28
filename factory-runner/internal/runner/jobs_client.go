@@ -269,3 +269,8 @@ func (c *Client) CompleteJob(
 	}
 	return c.call(ctx, "CompleteJob", token, pairTimeout, req, &struct{}{})
 }
+
+// hasBoard says the claim carries the job's own board account.
+func (j *ClaimedJob) hasBoard() bool {
+	return j.MCPClientID != "" && j.MCPClientSecret != ""
+}
