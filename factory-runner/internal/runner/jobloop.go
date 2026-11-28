@@ -55,9 +55,11 @@ type jobLoop struct {
 	sandboxFixed bool
 	// sandboxOpened is set once the sandbox fix has its own pull request.
 	sandboxOpened bool
-	r             *JobRunner
-	job           *ClaimedJob
-	dirs          jobDirs
+	// startRef is the job branch's commit as the current attempt began.
+	startRef string
+	r        *JobRunner
+	job      *ClaimedJob
+	dirs     jobDirs
 	// since is where host checks start on an existing branch.
 	since   string
 	launch  launch
@@ -465,19 +467,29 @@ func (l *jobLoop) agent(command []string, prompt string) (string, *step) {
 }
 
 // envFailure names the environment fault that ended an attempt before the agent
-// worked (no outcome, no session), "" when it did not.
+// worked (no outcome, no commit), "" when it did not. Once the harness started,
+// only the setup script's signatures count: a test the agent ran can fail on I/O.
 func (l *jobLoop) envFailure(
 	text string, limited, timedOut bool, exit int, runErr error,
 ) string {
-	if text != "" || limited || timedOut || l.ended() != "" ||
-		l.tap.Session() != "" || (runErr == nil && exit == 0) {
+	if text != "" || limited || timedOut || l.branchRef() != l.startRef ||
+		l.ended() != "" ||
+		(runErr == nil && exit == 0) {
 		return ""
 	}
 	seen := l.failureTail()
 	if runErr != nil {
 		seen += "\n" + runErr.Error()
 	}
-	return environmentFailure(seen)
+	return environmentFailure(seen, l.tap.Session() != "")
+}
+
+// branchRef is the job branch's commit in the clone, "" when it has none; a
+// change across an attempt is the agent's work.
+func (l *jobLoop) branchRef() string {
+	ref, _ := os.ReadFile(filepath.Join(l.dirs.clone, ".git", "refs", "heads",
+		filepath.FromSlash(l.job.Branch)))
+	return strings.TrimSpace(string(ref))
 }
 
 // runAgent runs the harness, repeating the same run when the only thing that
@@ -488,6 +500,7 @@ func (l *jobLoop) runAgent(
 	ctx context.Context, command []string, prompt string,
 ) (int, bool, error) {
 	outPath := filepath.Join(l.dirs.outcome, outcomeFile)
+	l.startRef = l.branchRef()
 	for run := 1; ; run++ {
 		l.tap.resetTransient()
 		exit, runErr := l.exec(ctx, command, prompt,

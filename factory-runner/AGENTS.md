@@ -37,7 +37,7 @@ A Claude job's attempts run through `wardcase/session` on the job's clone: `on-l
 
 `jobLoop` resumes the agent's session in one VM with each failure (gate, push, CI) until the PR merges, sharing no state → [`adr-0044`](../docs/adr-0044-factory-jobs-queue.md). A run that lost its provider is repeated in place.
 
-An attempt that dies on the runner's own environment before the agent starts (a dead Nix mount) ends `limited` with a stable `Blocked:` line: the task is requeued untouched and the server files one `Sandbox:` task per cause. The breaker then holds claims (the `runner fault` reason in `status` and the menu) until `Preflight` passes, probed every 30s and before every claim.
+An attempt that dies on the runner's own environment before the agent does any work (a dead Nix mount; the store preflight remembers a seeded store, so an empty listing fails) ends `limited` with a stable `Blocked:` line: the task is requeued untouched and the server files one `Sandbox:` task per cause. The breaker then holds claims (the `runner fault` reason in `status` and the menu) until `Preflight` passes, probed every 30s and before every claim.
 
 ## Distribution → [`adr-0042`](../docs/adr-0042-factory-runner-distribution.md)
 

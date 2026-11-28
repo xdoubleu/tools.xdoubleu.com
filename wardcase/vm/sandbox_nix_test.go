@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -183,7 +184,7 @@ func TestTheNixStoreIsMountedReadWriteAndFlakesAreEntered(t *testing.T) {
 	assert.NotContains(t, run, "target=/nix,readonly")
 	execLine := strings.Join(exec.find("exec")[0], " ")
 	assert.Contains(t, execLine, "nix develop")
-	assert.Contains(t, execLine, "-le 3145728")
+	assert.Contains(t, execLine, "-le 16777216")
 }
 
 func TestASeedThatCannotBeCopiedFailsTheSessionLoudly(t *testing.T) {
@@ -194,4 +195,49 @@ func TestASeedThatCannotBeCopiedFailsTheSessionLoudly(t *testing.T) {
 
 	require.Error(t, err)
 	assert.Contains(t, string(out), "wardcase: seeding")
+}
+
+func TestAPopulatedStoreWithoutItsProfileIsNotSeededOver(t *testing.T) {
+	root, seed := t.TempDir(), t.TempDir()
+	require.NoError(t, os.MkdirAll(filepath.Join(root, "store", "abc-hello"), 0o755))
+	write(t, filepath.Join(seed, "seeded"), "x")
+	script := vm.NixScriptForTest(nixBox(t, 0), root, seed, "") + `exec "$@"`
+
+	out, err := osexec.Command("sh", "-c", script, "sh", "true").CombinedOutput()
+
+	require.Error(t, err)
+	assert.Contains(t, string(out), "wardcase: /nix is not empty")
+	assert.NoFileExists(t, filepath.Join(root, "seeded"))
+	assert.NoDirExists(t, filepath.Join(root, "var", "wardcase.lock"),
+		"the lock is released")
+}
+
+func TestASessionWaitsForTheStoreLockAndReleasesIt(t *testing.T) {
+	root := t.TempDir()
+	lock := filepath.Join(root, "var", "wardcase.lock")
+	require.NoError(t, os.MkdirAll(lock, 0o755))
+	go func() {
+		time.Sleep(1500 * time.Millisecond)
+		_ = os.Remove(lock)
+	}()
+	began := time.Now()
+
+	_, out := nixSession(t, root, t.TempDir(), "", nixBox(t, 0))
+
+	assert.Contains(t, out, "ran in")
+	assert.GreaterOrEqual(t, time.Since(began), time.Second)
+	assert.NoDirExists(t, lock)
+}
+
+func TestAStaleStoreLockIsBroken(t *testing.T) {
+	root := t.TempDir()
+	lock := filepath.Join(root, "var", "wardcase.lock")
+	require.NoError(t, os.MkdirAll(lock, 0o755))
+	old := time.Now().Add(-time.Hour)
+	require.NoError(t, os.Chtimes(lock, old, old))
+
+	_, out := nixSession(t, root, t.TempDir(), "", nixBox(t, 0))
+
+	assert.Contains(t, out, "ran in")
+	assert.NoDirExists(t, lock)
 }
