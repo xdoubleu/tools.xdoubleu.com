@@ -71,6 +71,7 @@ func newJobRunner(
 			RunWithEnv: nil,
 		},
 		Sandbox:       box,
+		Preflight:     runner.NixStorePreflight(box.NixStore),
 		Paused:        a.holdClaims,
 		MaxJobs:       a.maxJobs,
 		Mode:          a.mode,

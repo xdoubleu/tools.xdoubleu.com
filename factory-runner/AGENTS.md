@@ -11,6 +11,7 @@ internal/runner/
   client.go, jobs_client.go   the server calls
   daemon.go, control.go       heartbeat loop; pause flag, status
   claimstate.go, watchdog.go  why claims hold (`status`); stall watchdog
+  envfault.go                 environment breaker, preflight before each claim
   jobrunner.go                claim loop, `max_jobs`; prompt; Checks:/Blocked:/Waiting-on:/Already-fixed:
   sessions.go, jobsweep.go    hourly dir sweep
   attemptsession.go           Claude attempts via wardcase
@@ -35,6 +36,8 @@ The server is untrusted; each job needs UUID ids, an allowlisted repo, an `agent
 A Claude job's attempts run through `wardcase/session` on the job's clone: `on-limit fallback` is `OverflowAuto` on `fallback-model`; `wait` or a Reply is `OverflowOff` and the limited job requeues. The OpenRouter key stays on the host; tests fake `SessionAPI`.
 
 `jobLoop` resumes the agent's session in one VM with each failure (gate, push, CI) until the PR merges, sharing no state → [`adr-0044`](../docs/adr-0044-factory-jobs-queue.md). A run that lost its provider is repeated in place.
+
+An attempt that dies on the runner's own environment before the agent starts (a dead Nix mount) ends `limited` with a stable `Blocked:` line: the task is requeued untouched and the server files one `Sandbox:` task per cause. The breaker then holds claims (the `runner fault` reason in `status` and the menu) until `Preflight` passes, probed every 30s and before every claim.
 
 ## Distribution → [`adr-0042`](../docs/adr-0042-factory-runner-distribution.md)
 

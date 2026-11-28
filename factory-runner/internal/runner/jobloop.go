@@ -427,11 +427,13 @@ func (l *jobLoop) agent(command []string, prompt string) (string, *step) {
 		res.blocked = b
 	}
 	var reason string
-	switch {
+	switch env := l.envFailure(text, limited, timedOut, exit, runErr); {
 	case l.ended() != "":
 		reason = l.ended()
 	case timedOut:
 		reason = fmt.Sprintf("Timed out after %d minutes.", l.limit/l.r.minute())
+	case env != "":
+		return "", l.environmentEnd(env, res)
 	case runErr != nil:
 		reason = "The sandbox could not run the job: " + runErr.Error()
 		res.blocked = noOutcomeBlock(text, reason, l.secrets, res.blocked)
@@ -460,6 +462,22 @@ func (l *jobLoop) agent(command []string, prompt string) (string, *step) {
 	res.outcome = strings.TrimSpace(reason + "\n\n" + text)
 	end := over(res)
 	return "", &end
+}
+
+// envFailure names the environment fault that ended an attempt before the agent
+// worked (no outcome, no session), "" when it did not.
+func (l *jobLoop) envFailure(
+	text string, limited, timedOut bool, exit int, runErr error,
+) string {
+	if text != "" || limited || timedOut || l.ended() != "" ||
+		l.tap.Session() != "" || (runErr == nil && exit == 0) {
+		return ""
+	}
+	seen := l.failureTail()
+	if runErr != nil {
+		seen += "\n" + runErr.Error()
+	}
+	return environmentFailure(seen)
 }
 
 // runAgent runs the harness, repeating the same run when the only thing that
