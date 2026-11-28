@@ -127,3 +127,8 @@ func (r *JobRunner) LeakSlotForTest() { r.slots.Add(1) }
 func EnvironmentFailure(text string, setupOnly bool) string {
 	return environmentFailure(text, setupOnly)
 }
+
+// SystemFilesWith reads the file counts through sysctl.
+func SystemFilesWith(sysctl func(string) (uint32, error)) (uint32, uint32, error) {
+	return systemFiles(sysctl)
+}

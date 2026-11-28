@@ -41,3 +41,16 @@ func Preflights(checks ...func(context.Context) error) func(context.Context) err
 		return nil
 	}
 }
+
+// systemFiles reads the open-file count and limit through sysctl.
+func systemFiles(sysctl func(string) (uint32, error)) (uint32, uint32, error) {
+	open, err := sysctl("kern.num_files")
+	if err != nil {
+		return 0, 0, fmt.Errorf("kern.num_files: %w", err)
+	}
+	limit, err := sysctl("kern.maxfiles")
+	if err != nil {
+		return 0, 0, fmt.Errorf("kern.maxfiles: %w", err)
+	}
+	return open, limit, nil
+}
