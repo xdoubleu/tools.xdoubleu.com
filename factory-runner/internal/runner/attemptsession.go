@@ -41,15 +41,23 @@ func (l *jobLoop) exec(
 		return l.session.Exec(ctx, command, prompt, log) //nolint:wrapcheck // as Exec
 	}
 	box, _ := l.r.Sandbox.(SessionSandbox)
+	marketplaces, mkErr := session.DeviceMarketplaces()
+	if mkErr != nil {
+		l.note("The device's skill marketplaces are unreadable, so the job runs without: " +
+			mkErr.Error())
+	}
 	api := l.r.Sessions(session.Options{
 		Box: box, Secrets: l.sessionSecrets(),
 		StateDir: filepath.Join(l.r.DataDir, "attempts"), TempDir: "",
-		Out: log, Notes: log, GH: nil,
+		Out: log, Notes: log, GH: nil, Marketplaces: marketplaces,
 	})
 	req := l.sessionRequest(prompt)
 	res, err := api.Run(ctx, req)
 	if err != nil {
 		return res.ExitCode, fmt.Errorf("run the session: %w", err)
+	}
+	for _, m := range res.Marketplaces {
+		l.note("Skills marketplace " + m.Name + " at " + m.Commit)
 	}
 	if res.Continued {
 		l.note("The Claude usage limit was reached; the work continued on " +
