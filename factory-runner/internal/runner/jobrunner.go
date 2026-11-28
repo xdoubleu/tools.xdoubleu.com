@@ -749,6 +749,11 @@ func (r *JobRunner) execute(ctx context.Context, job *ClaimedJob) result {
 	if launch.mcpNote != "" {
 		res.outcome = strings.TrimSpace(launch.mcpNote + "\n\n" + res.outcome)
 	}
+	if job.Routine != "" && !job.hasBoard() {
+		res.outcome = strings.TrimSpace(
+			"The board tools (factory_*) were unavailable: the job had no board account.\n\n" +
+				res.outcome)
+	}
 	// What the agent said last is what you most want to read.
 	r.flush(ctx, job.ID, events)
 	return res

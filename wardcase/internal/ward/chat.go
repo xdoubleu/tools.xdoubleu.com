@@ -196,6 +196,8 @@ func addChatMCP(egress *vm.EgressConfig, env map[string]string, req ChatRequest)
 	if req.Board == nil {
 		env[vm.MCPEnv] = vm.MCPOff
 	} else {
+		// A caller that switched the board off first (a headless run) wants it on.
+		delete(env, vm.MCPEnv)
 		egress.Server = req.Board.Server
 		egress.MCPToken, egress.MCPRejected = req.Board.Token, req.Board.Rejected
 	}

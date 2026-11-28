@@ -251,3 +251,26 @@ func TestAnUnreadableDeviceConfigRunsTheAttemptWithoutMarketplaces(t *testing.T)
 	assert.Empty(t, fake.opts[0].Marketplaces)
 	assert.Contains(t, strings.Join(env.api.noted(), "\n"), "unreadable")
 }
+
+func TestAJobWithBoardCredentialsGetsTheBoardInItsSession(t *testing.T) {
+	job := newJob()
+	job.MCPClientID, job.MCPClientSecret = "agent-1", "board-secret-value"
+	env, fake := sessionEnv(t, runner.OnLimitWait, "", job)
+
+	_, err := env.runner.Next(context.Background())
+	require.NoError(t, err)
+
+	require.Len(t, fake.reqs, 1)
+	require.NotNil(t, fake.reqs[0].Extra.Board)
+	assert.Equal(t, env.runner.ServerURL, fake.reqs[0].Extra.Board.Server)
+}
+
+func TestAJobWithoutBoardCredentialsGetsNoBoardInItsSession(t *testing.T) {
+	env, fake := sessionEnv(t, runner.OnLimitWait, "", newJob())
+
+	_, err := env.runner.Next(context.Background())
+	require.NoError(t, err)
+
+	require.Len(t, fake.reqs, 1)
+	assert.Nil(t, fake.reqs[0].Extra.Board)
+}

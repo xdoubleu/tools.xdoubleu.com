@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/wardcase/internal/ward"
+	"tools.xdoubleu.com/wardcase/vm"
 )
 
 func gitIn(t *testing.T, dir string, args ...string) string {
@@ -312,4 +313,29 @@ func TestASessionGetsItsOwnRunIDOverTheCallers(t *testing.T) {
 	}
 	_, err := sf.f.r.RunSession(context.Background(), req)
 	require.NoError(t, err)
+}
+
+func TestASessionWithABoardKeepsTheBoardServerOn(t *testing.T) {
+	sf := newSessionFixture(t)
+	var proxied vm.EgressConfig
+	sf.f.r.NewProxy = func(cfg vm.EgressConfig) (vm.ProxyListener, error) {
+		proxied = cfg
+		return vm.NewEgressProxy(cfg)
+	}
+	req := sf.request("agent/board")
+	req.Extra = &ward.SessionExtra{
+		Env: nil, OutcomeDir: t.TempDir(), SessionDir: t.TempDir(), MCP: nil,
+		Board: &ward.Board{
+			Server:   "https://board.example",
+			Token:    func(context.Context) (string, error) { return "tok", nil },
+			Rejected: nil,
+		},
+	}
+	sf.f.box.act = func(_ int, r run, _ io.Writer) int {
+		assert.NotEqual(t, vm.MCPOff, r.spec.Env[vm.MCPEnv])
+		return 0
+	}
+	_, err := sf.f.r.RunSession(context.Background(), req)
+	require.NoError(t, err)
+	assert.Equal(t, "https://board.example", proxied.Server)
 }

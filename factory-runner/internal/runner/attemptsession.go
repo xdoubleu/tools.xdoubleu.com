@@ -93,9 +93,12 @@ func (l *jobLoop) sessionRequest(prompt string) session.Request {
 
 // board is the job's own board account, or nil for a job without one.
 func (l *jobLoop) board() *session.Board {
-	if l.job.MCPClientID == "" || l.job.MCPClientSecret == "" {
+	if !l.job.hasBoard() {
+		l.r.Log.Warn("the job has no board credentials; its board tools are unavailable",
+			"job", l.job.ID)
 		return nil
 	}
+	l.r.Log.Info("attaching the board MCP server", "job", l.job.ID)
 	//nolint:exhaustruct // the token cache starts empty
 	source := &MCPTokenSource{
 		ServerURL: l.r.ServerURL, ClientID: l.job.MCPClientID,
