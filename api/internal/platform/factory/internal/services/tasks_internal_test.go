@@ -14,7 +14,7 @@ import (
 
 // input builds a TaskInput with every field set.
 func input(title, body string, p models.Priority, labels []string) TaskInput {
-	return TaskInput{Title: title, Body: body, Priority: p, Labels: labels}
+	return TaskInput{Title: title, Body: body, Priority: p, Labels: labels, Status: ""}
 }
 
 func status(t *testing.T, err error) int {

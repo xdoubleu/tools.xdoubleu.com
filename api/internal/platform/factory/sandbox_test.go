@@ -46,11 +46,12 @@ func TestABlockedJobFilesASandboxTaskAndARepeatCommentsOnIt(t *testing.T) {
 	found := sandboxTasks(t, env, title)
 	require.Len(t, found, 1)
 	assert.Equal(t, title, found[0].Title)
-	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_BACKLOG, found[0].Status)
+	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_READY, found[0].Status)
+	assert.Equal(t, factoryv1.TaskPriority_TASK_PRIORITY_P1, found[0].Priority)
 	got := env.task(t, found[0].Id)
 	comments := withoutPickupNotes(got.Comments)
-	require.Len(t, comments, 1, "the repeat; a Backlog task has no Ready move")
-	assert.Contains(t, comments[0].Body, problem)
+	require.Len(t, comments, 2, "the Ready move and the repeat")
+	assert.Contains(t, comments[1].Body, problem)
 
 	// A job that is not blocked files nothing.
 	task := env.newTask(t, "more work")
@@ -82,7 +83,7 @@ func TestAJobAccountReportsToTheSandboxBoardOnly(t *testing.T) {
 	}
 	made, err := callTool(t, session, "factory_create_task", args)
 	require.NoError(t, err)
-	assert.Equal(t, "TASK_PRIORITY_P2", str(t, made, "task", "priority"))
+	assert.Equal(t, "TASK_PRIORITY_P1", str(t, made, "task", "priority"))
 	args["body"] = "second"
 	again, err := callTool(t, session, "factory_create_task", args)
 	require.NoError(t, err)
@@ -114,6 +115,33 @@ func TestAJobAccountReportsToTheSandboxBoardOnly(t *testing.T) {
 	_, err = callTool(t, session, "factory_comment_task",
 		map[string]any{"task_id": other.Id, "body": "Nope."})
 	require.Error(t, err)
+}
+
+func TestASandboxTaskBlockedByItsOwnGapDoesNotLoop(t *testing.T) {
+	env, _ := accountsEnv(t)
+	problem := "no compiler " + uuid.NewString()
+	title := "Sandbox: " + problem
+	task := env.newTask(t, "some work")
+	env.run(t, task.Id)
+	_, err := env.runner.CompleteJob(bearer(env.token), &factoryv1.CompleteJobRequest{
+		JobId: env.claim(t).Id, SessionId: "s", Blocked: problem,
+	})
+	require.NoError(t, err)
+	found := sandboxTasks(t, env, title)
+	require.Len(t, found, 1)
+	sandbox := found[0]
+	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_READY, sandbox.Status)
+
+	// The sandbox task's own job hits the same gap.
+	env.run(t, sandbox.Id)
+	_, err = env.runner.CompleteJob(bearer(env.token), &factoryv1.CompleteJobRequest{
+		JobId: env.claim(t).Id, SessionId: "s", Blocked: problem,
+	})
+	require.NoError(t, err)
+	assert.Len(t, sandboxTasks(t, env, title), 1)
+	got := env.task(t, sandbox.Id).Task
+	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_NEEDS_YOU, got.Status)
+	assert.NotContains(t, got.Labels, "waiting-on-sandbox")
 }
 
 func TestAnAgentCrashFilesNothingAndParksNothing(t *testing.T) {

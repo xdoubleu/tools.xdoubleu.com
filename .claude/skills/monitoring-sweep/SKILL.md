@@ -87,7 +87,7 @@ worktrees; the outcome file's first line is the summary (step 8).
    - **Unattended:** file/update one refined task per workstream via
      `refine-task` with root cause, evidence, and a concrete suggested fix.
      No branch, no PR. **Always add the `bug` and `routine-found` labels**; it
-     lands in Backlog, never Ready.
+     is created with `status: ready`.
    - Close the loop on signal data: `resolve_sentry_issue` (interactive: only
      after the fix is confirmed; unattended: only for confirmed
      duplicates/false positives), `dismiss_security_alert` per

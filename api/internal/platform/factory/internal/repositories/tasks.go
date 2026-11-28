@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"cmp"
 	"context"
 
 	"github.com/google/uuid"
@@ -202,13 +203,14 @@ func (r *TasksRepository) Create(
 		WITH t AS (
 			INSERT INTO factory.tasks
 				(repo_id, title, body, priority, labels, created_by,
-				 body_edited_by, body_edited_channel)
-			VALUES ($1, $2, $3, $4, $5, $6, $6, $7)
+				 body_edited_by, body_edited_channel, status, ready_title, ready_body)
+			VALUES ($1, $2, $3, $4, $5, $6, $6, $7, $8,
+				CASE WHEN $8 = 'ready' THEN $2 END, CASE WHEN $8 = 'ready' THEN $3 END)
 			RETURNING *
 		)
 		SELECT `+getColumns+` FROM t`,
 		t.RepoID, t.Title, t.Body, t.Priority, t.Labels, actor.String(),
-		actor.Channel(),
+		actor.Channel(), cmp.Or(t.Status, models.StatusBacklog),
 	))
 }
 
