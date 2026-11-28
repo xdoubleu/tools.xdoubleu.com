@@ -97,7 +97,10 @@ func TestClaudeRegistersTheMountedMarketplacesAndEnablesTheListedPlugins(t *test
 	require.NoError(t, err)
 	var cfg struct {
 		Known map[string]struct {
-			Source struct{ Source, Path string } `json:"source"`
+			Source struct {
+				Source string `json:"source"`
+				Path   string `json:"path"`
+			} `json:"source"`
 		} `json:"extraKnownMarketplaces"`
 		Enabled map[string]bool `json:"enabledPlugins"`
 	}

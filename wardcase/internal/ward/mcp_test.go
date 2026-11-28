@@ -213,7 +213,8 @@ func TestLoginRefusesAServerWithoutDiscoveryOrAnUnknownName(t *testing.T) {
 	defer plain.Close()
 	cfg := ward.Config{
 		Order: nil, Overflow: "", OpenCode: ward.OpenCodeConfig{Model: ""},
-		MCP: []ward.MCPConfig{{Name: "plain", URL: plain.URL + "/mcp", Jobs: false}},
+		MCP:         []ward.MCPConfig{{Name: "plain", URL: plain.URL + "/mcp", Jobs: false}},
+		Marketplace: nil,
 	}
 
 	err := ward.LoginMCP(context.Background(), cfg, memSecrets{},

@@ -139,7 +139,8 @@ const claudeStart = `[ -e "$CLAUDE_CONFIG_DIR/.seeded" ] || ` +
 if [ -n "${WARDCASE_MARKETPLACES:-}" ]; then
   mk=""; en=""; sep=""
   for n in $WARDCASE_MARKETPLACES; do
-    mk="$mk$sep\"$n\":{\"source\":{\"source\":\"directory\",\"path\":\"` + MarketplacesRoot + `/$n\"}}"; sep=,
+    mk="$mk$sep\"$n\":{\"source\":{\"source\":\"directory\",` +
+	`\"path\":\"` + MarketplacesRoot + `/$n\"}}"; sep=,
   done
   sep=""
   for p in ${WARDCASE_PLUGINS:-}; do en="$en$sep\"$p\":true"; sep=,; done

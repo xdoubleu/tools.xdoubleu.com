@@ -135,11 +135,7 @@ func (r *Runner) startChat(
 		return nil, fmt.Errorf("outcome directory: %w", err)
 	}
 	maps(env, h.SessionEnv(vm.SandboxSessionDir))
-	if err = r.addMCP(&egress, env, true, checkout); err != nil {
-		_ = os.RemoveAll(outcomeDir)
-		return nil, err
-	}
-	skillMounts, err := r.addSkills(ctx, env, checkout)
+	skillMounts, err := r.addMCPAndSkills(ctx, &egress, env, checkout)
 	if err != nil {
 		_ = os.RemoveAll(outcomeDir)
 		return nil, err
@@ -299,4 +295,14 @@ func HasACP(harness string) bool {
 
 func noLeftover() Leftover {
 	return Leftover{Uncommitted: 0, Unpushed: 0, Own: 0, PR: "", PRURL: ""}
+}
+
+// addMCPAndSkills gives a chat's VM the configured MCP servers and the marketplaces.
+func (r *Runner) addMCPAndSkills(
+	ctx context.Context, egress *vm.EgressConfig, env map[string]string, checkout string,
+) ([]vm.Mount, error) {
+	if err := r.addMCP(egress, env, true, checkout); err != nil {
+		return nil, err
+	}
+	return r.addSkills(ctx, env, checkout)
 }

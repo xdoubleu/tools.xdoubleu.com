@@ -50,7 +50,8 @@ func TestAChatFromAURLStreamsATurnAndReportsWhatItLeft(t *testing.T) {
 
 	agent := acptest.New()
 	r := session.New(session.Options{
-		Box: agentBox{agent: agent}, Secrets: secrets{"openrouter": "or"},
+		Marketplaces: nil,
+		Box:          agentBox{agent: agent}, Secrets: secrets{"openrouter": "or"},
 		StateDir: t.TempDir(), TempDir: t.TempDir(), Out: nil, Notes: nil, GH: nil,
 	})
 	var mu sync.Mutex
@@ -84,7 +85,8 @@ func TestAChatFromAURLStreamsATurnAndReportsWhatItLeft(t *testing.T) {
 
 func TestAChatOnClaudeIsRefused(t *testing.T) {
 	r := session.New(session.Options{
-		Box: agentBox{agent: acptest.New()}, Secrets: secrets{"anthropic": "x"},
+		Marketplaces: nil,
+		Box:          agentBox{agent: acptest.New()}, Secrets: secrets{"anthropic": "x"},
 		StateDir: t.TempDir(), TempDir: t.TempDir(), Out: nil, Notes: nil, GH: nil,
 	})
 	_, err := r.Start(context.Background(), session.ChatRequest{
@@ -119,9 +121,10 @@ func TestAChatAtItsLimitSwitchesToTheNextHarnessInTheOrder(t *testing.T) {
 	limited, next := acptest.New(), acptest.New()
 	limited.LimitError = "You've hit your usage limit"
 	r := session.New(session.Options{
-		Box:      &seqBox{agents: []*acptest.Agent{limited, next}, opened: 0},
-		Secrets:  secrets{"openrouter": "or", "gemini": "g"},
-		StateDir: t.TempDir(), TempDir: t.TempDir(), Out: nil, Notes: nil, GH: nil,
+		Marketplaces: nil,
+		Box:          &seqBox{agents: []*acptest.Agent{limited, next}, opened: 0},
+		Secrets:      secrets{"openrouter": "or", "gemini": "g"},
+		StateDir:     t.TempDir(), TempDir: t.TempDir(), Out: nil, Notes: nil, GH: nil,
 	})
 	ctx := context.Background()
 	chat, err := r.Start(ctx, session.ChatRequest{
@@ -148,9 +151,10 @@ func TestAChatAtItsLimitSwitchesToTheNextHarnessInTheOrder(t *testing.T) {
 
 func TestASwitchToAHarnessWithoutACPFails(t *testing.T) {
 	r := session.New(session.Options{
-		Box:      &seqBox{agents: []*acptest.Agent{acptest.New()}, opened: 0},
-		Secrets:  secrets{"openrouter": "or"},
-		StateDir: t.TempDir(), TempDir: t.TempDir(), Out: nil, Notes: nil, GH: nil,
+		Marketplaces: nil,
+		Box:          &seqBox{agents: []*acptest.Agent{acptest.New()}, opened: 0},
+		Secrets:      secrets{"openrouter": "or"},
+		StateDir:     t.TempDir(), TempDir: t.TempDir(), Out: nil, Notes: nil, GH: nil,
 	})
 	origin := t.TempDir()
 	git(t, origin, "init", "-q", "-b", "main")

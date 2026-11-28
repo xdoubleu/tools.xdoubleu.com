@@ -19,6 +19,7 @@ import (
 )
 
 const (
+	headRef         = "HEAD"
 	marketplacesDir = "marketplaces"
 	// marketplaceTTL is how long a floating ref's cache is reused before the host
 	// fetches again.
@@ -127,7 +128,8 @@ func (r *Runner) addSkills(
 		}
 		dir, commit, fetchErr := r.fetchMarketplace(ctx, m)
 		if fetchErr != nil {
-			fmt.Fprintf(r.Notes, "wardcase: marketplace %s is skipped: %v\n", m.Name, fetchErr)
+			fmt.Fprintf(r.Notes, "wardcase: marketplace %s is skipped: %v\n",
+				m.Name, fetchErr)
 			continue
 		}
 		dirs, listed := r.pluginDirs(m, dir, enabled[m.Name])
@@ -237,8 +239,8 @@ func (r *Runner) pluginDirs(
 			!safePath.MatchString(rel) {
 			continue
 		}
-		if info, statErr := os.Stat(filepath.Join(dir, filepath.FromSlash(rel), "skills")); statErr == nil &&
-			info.IsDir() {
+		skills := filepath.Join(dir, filepath.FromSlash(rel), "skills")
+		if info, statErr := os.Stat(skills); statErr == nil && info.IsDir() {
 			dirs = append(dirs, rel)
 		}
 	}
@@ -266,7 +268,7 @@ func (r *Runner) fetchMarketplace(
 	}
 	stamp := filepath.Join(dir, ".git", stampFile)
 	source := m.URL + "\n" + m.Ref
-	head, headErr := git("rev-parse", "--verify", "--quiet", "HEAD")
+	head, headErr := git("rev-parse", "--verify", "--quiet", headRef)
 	head = strings.TrimSpace(head)
 	cached := headErr == nil && head != ""
 	same := false
@@ -300,17 +302,19 @@ func (r *Runner) pullMarketplace(
 ) (string, error) {
 	ref := m.Ref
 	if ref == "" {
-		ref = "HEAD"
+		ref = headRef
 	}
-	if _, err := git("fetch", "--quiet", "--depth", "1", "--no-tags", "--", m.URL, ref); err != nil {
+	fetch := []string{"fetch", "--quiet", "--depth", "1", "--no-tags", "--", m.URL, ref}
+	if _, err := git(fetch...); err != nil {
 		return "", err
 	}
-	if _, err := git("checkout", "--quiet", "--force", "--detach", "FETCH_HEAD"); err != nil {
+	checkout := []string{"checkout", "--quiet", "--force", "--detach", "FETCH_HEAD"}
+	if _, err := git(checkout...); err != nil {
 		return "", err
 	}
 	if _, err := git("clean", "--quiet", "-dfx"); err != nil {
 		return "", err
 	}
-	head, err := git("rev-parse", "HEAD")
+	head, err := git("rev-parse", headRef)
 	return strings.TrimSpace(head), err
 }

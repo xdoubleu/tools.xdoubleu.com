@@ -16,6 +16,8 @@ import (
 	"tools.xdoubleu.com/wardcase/vm"
 )
 
+const devSkills = vm.MarketplacesRoot + "/skills/plugins/dev/skills"
+
 const manifest = `{"name":"skills","plugins":[
  {"name":"dev","source":"./plugins/dev"},
  {"name":"other","source":"./plugins/other"},
@@ -47,21 +49,21 @@ func newMarketplaceRepo(t *testing.T) *marketplaceRepo {
 	return m
 }
 
-// commit adds a commit and pushes it; it returns the new commit.
-func (m *marketplaceRepo) commit() string {
+// commit adds a commit and pushes it.
+func (m *marketplaceRepo) commit() {
 	m.t.Helper()
 	m.count++
 	write(m.t, m.work, "change"+strings.Repeat("x", m.count))
 	gitIn(m.t, m.work, "add", ".")
 	gitIn(m.t, m.work, "commit", "-q", "-m", "change")
 	gitIn(m.t, m.work, "push", "-q", m.bare, "HEAD:refs/heads/main")
-	return gitIn(m.t, m.work, "rev-parse", "HEAD")
 }
 
 // runWith runs one session with the given marketplaces on a clock that is offset
 // from now, and returns the run's VM spec and result.
 func runWith(
-	t *testing.T, sf *sessionFixture, offset time.Duration, marketplaces ...ward.MarketplaceConfig,
+	t *testing.T, sf *sessionFixture, offset time.Duration,
+	marketplaces ...ward.MarketplaceConfig,
 ) (vm.SandboxSpec, ward.SessionResult) {
 	t.Helper()
 	sf.f.r.Now = func() time.Time { return time.Now().Add(offset) }
@@ -91,12 +93,14 @@ func TestAMarketplaceIsFetchedOnTheHostAndMountedReadOnly(t *testing.T) {
 	}
 	require.NotNil(t, mount)
 	assert.True(t, mount.ReadOnly)
-	assert.FileExists(t, filepath.Join(mount.Source, "plugins", "dev", "skills", "s", "SKILL.md"))
+	skill := filepath.Join(mount.Source, "plugins", "dev", "skills", "s", "SKILL.md")
+	assert.FileExists(t, skill)
 	assert.Equal(t, "skills", spec.Env[vm.MarketplacesEnv])
 	assert.Equal(t, "dev@skills", spec.Env[vm.PluginsEnv])
-	assert.Equal(t, vm.MarketplacesRoot+"/skills/plugins/dev/skills", spec.Env[vm.SkillPathsEnv])
+	assert.Equal(t, devSkills, spec.Env[vm.SkillPathsEnv])
 	head := gitIn(t, repo.work, "rev-parse", "HEAD")
-	assert.Equal(t, []ward.MarketplaceUse{{Name: "skills", Commit: head}}, res.Marketplaces)
+	used := []ward.MarketplaceUse{{Name: "skills", Commit: head}}
+	assert.Equal(t, used, res.Marketplaces)
 	assert.Contains(t, sf.f.notes.String(), "marketplace skills at "+head)
 }
 
@@ -136,7 +140,7 @@ func TestAPinnedCommitIsFetchedOnceAndNeverRefreshed(t *testing.T) {
 	_, first := runWith(t, sf, 0, mk)
 	require.Equal(t, pinned, first.Marketplaces[0].Commit)
 
-	require.NoError(t, os.RemoveAll(repo.bare), "the source is gone: no fetch may be needed")
+	require.NoError(t, os.RemoveAll(repo.bare), "the source is gone")
 	_, later := runWith(t, sf, 5*time.Hour, mk)
 	assert.Equal(t, pinned, later.Marketplaces[0].Commit)
 	assert.NotContains(t, sf.f.notes.String(), "could not be fetched")
@@ -170,7 +174,8 @@ func TestAnOfflineHostReusesTheCacheWithAWarning(t *testing.T) {
 
 func TestAMarketplaceThatCannotBeFetchedAndHasNoCacheIsSkipped(t *testing.T) {
 	sf := newSessionFixture(t)
-	spec, res := runWith(t, sf, 0, skillsMarketplace(filepath.Join(t.TempDir(), "nope"), "", "dev"))
+	gone := filepath.Join(t.TempDir(), "nope")
+	spec, res := runWith(t, sf, 0, skillsMarketplace(gone, "", "dev"))
 
 	assert.NotContains(t, spec.Env, vm.MarketplacesEnv)
 	assert.Empty(t, res.Marketplaces)
@@ -204,23 +209,28 @@ func TestARepoFileNarrowsThePluginsAndNamesTheOnesTheDeviceLacks(t *testing.T) {
 	sf.f.r.Now = nil
 	sf.f.box.act = func(int, run, io.Writer) int { return 0 }
 	req := sf.request("agent/narrow")
-	req.Source = ward.Source{URL: checkout, Base: "main", Branch: "agent/narrow", Token: ""}
-	req.Marketplaces = []ward.MarketplaceConfig{skillsMarketplace(repo.bare, "", "dev", "other")}
+	req.Source = ward.Source{
+		URL: checkout, Base: "main", Branch: "agent/narrow", Token: "",
+	}
+	req.Marketplaces = []ward.MarketplaceConfig{
+		skillsMarketplace(repo.bare, "", "dev", "other"),
+	}
 	_, err := sf.f.r.RunSession(context.Background(), req)
 	require.NoError(t, err)
 
 	env := sf.f.box.runs[0].spec.Env
 	assert.Equal(t, "other@skills", env[vm.PluginsEnv])
-	assert.Contains(t, sf.f.notes.String(), "plugin skills/missing, which the device does not")
+	assert.Contains(t, sf.f.notes.String(), "plugin skills/missing, which the device")
 }
 
-func TestAPluginTheMarketplaceLacksIsNamedAndOneOutsideItsTreeGivesNoSkillPath(t *testing.T) {
+func TestAMissingPluginIsNamedAndARemoteOneGivesNoSkillPath(t *testing.T) {
 	repo := newMarketplaceRepo(t)
 	sf := newSessionFixture(t)
-	spec, _ := runWith(t, sf, 0, skillsMarketplace(repo.bare, "", "dev", "remote", "ghost"))
+	mk := skillsMarketplace(repo.bare, "", "dev", "remote", "ghost")
+	spec, _ := runWith(t, sf, 0, mk)
 
 	assert.Equal(t, "dev@skills remote@skills", spec.Env[vm.PluginsEnv])
-	assert.Equal(t, vm.MarketplacesRoot+"/skills/plugins/dev/skills", spec.Env[vm.SkillPathsEnv])
+	assert.Equal(t, devSkills, spec.Env[vm.SkillPathsEnv])
 	assert.Contains(t, sf.f.notes.String(), "has no plugin ghost")
 }
 
@@ -296,14 +306,15 @@ ref = "v1.2.0"
 
 func TestAnInvalidMarketplaceIsRefused(t *testing.T) {
 	for name, body := range map[string]string{
-		"bad name":     "name = \"Skills\"\nurl = \"https://x/y\"\n",
-		"no url":       "name = \"a\"\n",
-		"option url":   "name = \"a\"\nurl = \"--upload-pack=x\"\n",
-		"password":     "name = \"a\"\nurl = \"https://u:p@host/y\"\n",
-		"bad ref":      "name = \"a\"\nurl = \"https://x/y\"\nref = \"-x\"\n",
-		"bad plugin":   "name = \"a\"\nurl = \"https://x/y\"\nplugins = [\"a b\"]\n",
-		"unknown key":  "name = \"a\"\nurl = \"https://x/y\"\nbranch = \"main\"\n",
-		"listed twice": "name = \"a\"\nurl = \"https://x/y\"\n[[marketplace]]\nname = \"a\"\nurl = \"https://x/z\"\n",
+		"bad name":    "name = \"Skills\"\nurl = \"https://x/y\"\n",
+		"no url":      "name = \"a\"\n",
+		"option url":  "name = \"a\"\nurl = \"--upload-pack=x\"\n",
+		"password":    "name = \"a\"\nurl = \"https://u:p@host/y\"\n",
+		"bad ref":     "name = \"a\"\nurl = \"https://x/y\"\nref = \"-x\"\n",
+		"bad plugin":  "name = \"a\"\nurl = \"https://x/y\"\nplugins = [\"a b\"]\n",
+		"unknown key": "name = \"a\"\nurl = \"https://x/y\"\nbranch = \"main\"\n",
+		"listed twice": "name = \"a\"\nurl = \"https://x/y\"\n" +
+			"[[marketplace]]\nname = \"a\"\nurl = \"https://x/z\"\n",
 	} {
 		t.Run(name, func(t *testing.T) {
 			path := filepath.Join(t.TempDir(), "config.toml")
@@ -312,4 +323,19 @@ func TestAnInvalidMarketplaceIsRefused(t *testing.T) {
 			assert.Error(t, err)
 		})
 	}
+}
+
+func TestAChatGetsTheMarketplacesToo(t *testing.T) {
+	repo := newMarketplaceRepo(t)
+	sf, _ := chatFixture(t)
+	sf.f.r.Config.Marketplace = []ward.MarketplaceConfig{
+		skillsMarketplace(repo.bare, "", "dev"),
+	}
+	chat, err := sf.f.r.OpenChat(context.Background(), chatRequest(sf, newEvents()))
+	require.NoError(t, err)
+	defer chat.Close(context.Background())
+
+	spec := sf.f.box.runs[0].spec
+	assert.Equal(t, "dev@skills", spec.Env[vm.PluginsEnv])
+	assert.Equal(t, devSkills, spec.Env[vm.SkillPathsEnv])
 }

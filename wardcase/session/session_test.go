@@ -82,7 +82,8 @@ func TestACallerWithNoCheckoutRunsASessionFromAURLAndBranch(t *testing.T) {
 		return 0
 	}}
 	r := session.New(session.Options{
-		Box: box, Secrets: secrets{"anthropic": "oat"}, StateDir: t.TempDir(),
+		Marketplaces: nil,
+		Box:          box, Secrets: secrets{"anthropic": "oat"}, StateDir: t.TempDir(),
 		TempDir: t.TempDir(), Out: nil, Notes: nil, GH: nil,
 	})
 	res, err := r.Run(context.Background(), session.Request{
@@ -101,7 +102,8 @@ func TestACallerWithNoCheckoutRunsASessionFromAURLAndBranch(t *testing.T) {
 
 func TestARequestWithoutAPromptFails(t *testing.T) {
 	r := session.New(session.Options{
-		Box: &fakeBox{runs: 0, cmds: nil, act: nil}, Secrets: secrets{},
+		Marketplaces: nil,
+		Box:          &fakeBox{runs: 0, cmds: nil, act: nil}, Secrets: secrets{},
 		StateDir: t.TempDir(), TempDir: "", Out: nil, Notes: nil, GH: nil,
 	})
 	_, err := r.Run(context.Background(), session.Request{
@@ -126,7 +128,8 @@ func TestASessionRunsInAnExistingCheckoutOnItsBranchAndResumes(t *testing.T) {
 		return 0
 	}}
 	r := session.New(session.Options{
-		Box: box, Secrets: secrets{"anthropic": "oat"}, StateDir: t.TempDir(),
+		Marketplaces: nil,
+		Box:          box, Secrets: secrets{"anthropic": "oat"}, StateDir: t.TempDir(),
 		TempDir: t.TempDir(), Out: nil, Notes: nil, GH: nil,
 	})
 	res, err := r.Run(context.Background(), session.Request{
@@ -148,7 +151,8 @@ func TestAnExistingCheckoutOnAnotherBranchFails(t *testing.T) {
 	git(t, dir, "init", "-q", "-b", "main")
 	git(t, dir, "commit", "-q", "--allow-empty", "-m", "init")
 	r := session.New(session.Options{
-		Box: &fakeBox{runs: 0, cmds: nil, act: nil}, Secrets: secrets{},
+		Marketplaces: nil,
+		Box:          &fakeBox{runs: 0, cmds: nil, act: nil}, Secrets: secrets{},
 		StateDir: t.TempDir(), TempDir: "", Out: nil, Notes: nil, GH: nil,
 	})
 	_, err := r.Run(context.Background(), session.Request{
@@ -174,7 +178,8 @@ func TestAnExistingCheckoutKeepsItsWorkAndOverflows(t *testing.T) {
 		return 0
 	}
 	r := session.New(session.Options{
-		Box: box, Secrets: secrets{"anthropic": "oat", "openrouter": "k"},
+		Marketplaces: nil,
+		Box:          box, Secrets: secrets{"anthropic": "oat", "openrouter": "k"},
 		StateDir: t.TempDir(), TempDir: t.TempDir(), Out: nil, Notes: nil, GH: nil,
 	})
 	res, err := r.Run(context.Background(), session.Request{
@@ -192,7 +197,8 @@ func TestAnExistingCheckoutKeepsItsWorkAndOverflows(t *testing.T) {
 
 func TestAnExistingDirThatIsNotACheckoutOrIsDetachedFails(t *testing.T) {
 	r := session.New(session.Options{
-		Box: &fakeBox{runs: 0, cmds: nil, act: nil}, Secrets: secrets{},
+		Marketplaces: nil,
+		Box:          &fakeBox{runs: 0, cmds: nil, act: nil}, Secrets: secrets{},
 		StateDir: t.TempDir(), TempDir: "", Out: nil, Notes: nil, GH: nil,
 	})
 	req := session.Request{
@@ -217,7 +223,8 @@ func TestAnExtraReachesTheVM(t *testing.T) {
 		return 0
 	}}
 	r := session.New(session.Options{
-		Box: box, Secrets: secrets{"anthropic": "oat"}, StateDir: t.TempDir(),
+		Marketplaces: nil,
+		Box:          box, Secrets: secrets{"anthropic": "oat"}, StateDir: t.TempDir(),
 		TempDir: "", Out: nil, Notes: nil, GH: nil,
 	})
 	dir, out := t.TempDir(), t.TempDir()
@@ -235,4 +242,25 @@ func TestAnExtraReachesTheVM(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "j", spec.Env["FACTORY_JOB"])
 	assert.Equal(t, out, spec.OutcomeDir)
+}
+
+func TestDeviceMarketplacesReadTheDeviceConfig(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	got, err := session.DeviceMarketplaces()
+	require.NoError(t, err)
+	assert.Empty(t, got, "no config, no marketplaces")
+
+	dir := filepath.Join(home, ".config", "wardcase")
+	require.NoError(t, os.MkdirAll(dir, 0o750))
+	body := "[[marketplace]]\nname = \"skills\"\nurl = \"https://h/s\"\nplugins = [\"dev\"]\n"
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "config.toml"), []byte(body), 0o600))
+	got, err = session.DeviceMarketplaces()
+	require.NoError(t, err)
+	require.Len(t, got, 1)
+	assert.Equal(t, "skills", got[0].Name)
+
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "config.toml"), []byte("x ="), 0o600))
+	_, err = session.DeviceMarketplaces()
+	assert.Error(t, err)
 }
