@@ -282,3 +282,27 @@ func TestGeminiResumeAndTerminalPassTheirArguments(t *testing.T) {
 		nil, "none")
 	assert.Equal(t, []string{"--yolo", "--version"}, term.args)
 }
+
+func TestOpenCodeGetsTheSkillDirectoriesAsSkillPaths(t *testing.T) {
+	h := vm.OpenCode{Model: "a/b"}
+	env := append(openCodeEnv(true), vm.MCPEnv+"="+vm.MCPOff,
+		vm.SkillPathsEnv+"=/opt/marketplaces/m/p/skills /opt/marketplaces/m/q/skills")
+	got := runHarness(t, "opencode", h.Command(), env, nil, "opencode-job.json")
+
+	var cfg struct {
+		Skills struct {
+			Paths []string `json:"paths"`
+		} `json:"skills"`
+	}
+	require.NoError(t, json.Unmarshal(got.config, &cfg), string(got.config))
+	assert.Equal(t, []string{
+		"/opt/marketplaces/m/p/skills", "/opt/marketplaces/m/q/skills",
+	}, cfg.Skills.Paths)
+}
+
+func TestOpenCodeWithNoSkillPathsGetsNoSkillsKey(t *testing.T) {
+	h := vm.OpenCode{Model: "a/b"}
+	got := runHarness(t, "opencode", h.Command(), openCodeEnv(true), nil,
+		"opencode-job.json")
+	assert.NotContains(t, string(got.config), `"skills"`)
+}

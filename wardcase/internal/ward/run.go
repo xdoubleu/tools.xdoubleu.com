@@ -11,6 +11,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -62,6 +63,8 @@ type Runner struct {
 	Now func() time.Time
 	// extra is what RunSession's caller adds to each run's VM.
 	extra *SessionExtra
+	// skills collects the marketplaces RunSession's runs used; nil elsewhere.
+	skills *skillLog
 }
 
 // Request is one wardcase invocation.
@@ -311,6 +314,7 @@ func (r *Runner) runOnce(
 	if err = r.addMCP(&egress, env, headless, checkout); err != nil {
 		return outcome{}, err
 	}
+	mounts = append(slices.Clone(mounts), r.addSkills(ctx, env, checkout)...)
 	env[vm.MCPEnv] = vm.MCPOff
 	if x := r.extra; x != nil {
 		addChatMCP(&egress, env, x.chatRequest())

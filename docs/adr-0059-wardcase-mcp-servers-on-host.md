@@ -30,7 +30,7 @@ wardcase hard-coded the board and PostHog as its MCP servers, with a stored Post
 
 ## Repo narrowing
 
-An optional `.wardcase/config.toml` in the session's worktree lists `mcp = [names]` (and `plugins = ["marketplace/plugin"]`, validated, not yet applied). The session gets the listed names the device configures, after the `jobs` filter; no file means all. A name the device lacks is a warning. Any other key is refused: a repo file can't define a server, URL or credential, so repo content (which an agent's PR can change) never adds an egress route. <!-- historical -->
+An optional `.wardcase/config.toml` in the session's worktree lists `mcp = [names]` (and `plugins = ["marketplace/plugin"]`, narrowing the device's marketplace plugins). The session gets the listed names the device configures, after the `jobs` filter; no file means all. A name the device lacks is a warning. Any other key is refused: a repo file can't define a server, URL or credential, so repo content (which an agent's PR can change) never adds an egress route. <!-- historical -->
 
 ## Revisit when
 

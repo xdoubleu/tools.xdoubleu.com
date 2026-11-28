@@ -88,6 +88,18 @@ func (ClaudeCode) Command() []string {
 // so a new session directory is filled from here once; a resumed one is left alone.
 const ClaudeConfigSeed = "/opt/claude-config"
 
+// The host's skills cache: each marketplace is mounted read-only at
+// MarketplacesRoot/<name>. MarketplacesEnv lists their names, PluginsEnv the enabled
+// plugins as plugin@marketplace, and SkillPathsEnv the skill directories (for
+// harnesses that take paths); all space separated, validated names and paths, so
+// they are safe in the shell and the JSON.
+const (
+	MarketplacesRoot = "/opt/marketplaces"
+	MarketplacesEnv  = "WARDCASE_MARKETPLACES"
+	PluginsEnv       = "WARDCASE_PLUGINS"
+	SkillPathsEnv    = "WARDCASE_SKILL_PATHS"
+)
+
 // Interactive is the argv for Claude Code on a terminal, with args passed on.
 func (ClaudeCode) Interactive(args []string) []string {
 	return append([]string{"sh", "-c", claudeStart, claudeBin, claudeBin}, args...)
@@ -124,6 +136,17 @@ const mcpList = `list=""; sep=""
 const claudeStart = `[ -e "$CLAUDE_CONFIG_DIR/.seeded" ] || ` +
 	`{ cp -R "$CLAUDE_CONFIG_SEED/." "$CLAUDE_CONFIG_DIR/" && ` +
 	`touch "$CLAUDE_CONFIG_DIR/.seeded"; } || exit 1
+if [ -n "${WARDCASE_MARKETPLACES:-}" ]; then
+  mk=""; en=""; sep=""
+  for n in $WARDCASE_MARKETPLACES; do
+    mk="$mk$sep\"$n\":{\"source\":{\"source\":\"directory\",` +
+	`\"path\":\"` + MarketplacesRoot + `/$n\"}}"; sep=,
+  done
+  sep=""
+  for p in ${WARDCASE_PLUGINS:-}; do en="$en$sep\"$p\":true"; sep=,; done
+  printf '{"extraKnownMarketplaces":{%s},"enabledPlugins":{%s}}\n' "$mk" "$en" \
+    > "$CLAUDE_CONFIG_DIR/settings.json" || exit 1
+fi
 if [ -n "${WARDCASE_PROXY:-}" ]; then
   export ANTHROPIC_BASE_URL="$WARDCASE_PROXY/anthropic"
   mfmt='"%s":{"type":"http","url":"%s"}'
@@ -347,6 +370,9 @@ const openCodePrelude = `if [ -n "${WARDCASE_PROXY:-}" ]; then
   ` + mcpList + `
   mcp=""
   [ -z "$list" ] || mcp=",\"mcp\":{$list}"
+  sk=""; sep=""
+  for d in ${WARDCASE_SKILL_PATHS:-}; do sk="$sk$sep\"$d\""; sep=,; done
+  [ -z "$sk" ] || mcp="$mcp,\"skills\":{\"paths\":[$sk]}"
   printf '{"model":"openrouter/%s",` +
 	`"provider":{"openrouter":{"options":{"baseURL":"%s/openrouter/v1"},` +
 	`"models":{"%s":{}}}}%s}\n' "$1" "$p" "$1" "$mcp" > "$cfg" || exit 1

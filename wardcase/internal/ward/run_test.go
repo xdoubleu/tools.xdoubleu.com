@@ -146,7 +146,7 @@ func newFixture(t *testing.T, overflow string, answer bool) *fixture {
 		},
 		Config: ward.Config{
 			Order: []string{"claude", "opencode"}, Overflow: overflow,
-			OpenCode: ward.OpenCodeConfig{Model: "vendor/model"}, MCP: nil,
+			OpenCode: ward.OpenCodeConfig{Model: "vendor/model"}, MCP: nil, Marketplace: nil,
 		},
 		StateDir: t.TempDir(), TempDir: t.TempDir(),
 		GH: nil, GitEnv: nil, Git: fakeGit("/Users/me/wt", "/Users/me/repo/.git"),

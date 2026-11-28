@@ -29,7 +29,7 @@ func (r *JobRunner) openWardcaseChat(
 	state := filepath.Join(r.DataDir, "chats")
 	runner := session.New(session.Options{
 		Box: box, Secrets: openRouterSecret{r.OpenRouterKey}, StateDir: state,
-		TempDir: "", Out: nil, Notes: nil, GH: nil,
+		TempDir: "", Out: nil, Notes: nil, GH: nil, Marketplaces: nil,
 	})
 	job := spec.Job
 	remote := GitHubURL

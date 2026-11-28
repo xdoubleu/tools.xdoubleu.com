@@ -64,7 +64,7 @@ func acpRunner(t *testing.T, agent *acptest.Agent, notes io.Writer) *ward.Runner
 		Box: agentBox{agent: agent}, Secrets: memSecrets{ward.SecretOpenRouter: "or"},
 		Config: ward.Config{
 			Order: []string{ward.OpenCode}, Overflow: ward.OverflowOff,
-			OpenCode: ward.OpenCodeConfig{Model: "vendor/model"}, MCP: nil,
+			OpenCode: ward.OpenCodeConfig{Model: "vendor/model"}, MCP: nil, Marketplace: nil,
 		},
 		StateDir: t.TempDir(), TempDir: t.TempDir(), Git: ward.HostGit, GitEnv: nil, GH: nil,
 		NewProxy: newProxy, In: nil, Out: io.Discard, Notes: notes, Terminal: false,

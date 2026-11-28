@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 
 	"tools.xdoubleu.com/wardcase/vm"
 )
@@ -29,6 +30,8 @@ type SessionRequest struct {
 	ResumeID string
 	// Extra adds to the session's VM; nil adds nothing.
 	Extra *SessionExtra
+	// Marketplaces are the skills marketplaces the session gets.
+	Marketplaces []MarketplaceConfig
 }
 
 // SessionExtra is what a caller that owns the job around the session adds to it.
@@ -63,6 +66,8 @@ type SessionResult struct {
 	Model     string
 	// Left is what the worktree held when the run ended.
 	Left Leftover
+	// Marketplaces are the marketplaces the session used, at their commits.
+	Marketplaces []MarketplaceUse
 }
 
 // chatRequest is the part of the extras that reaches the proxy, in a chat's terms.
@@ -86,6 +91,7 @@ func (r *Runner) RunSession(
 	rr := *r
 	rr.Config = cfg
 	rr.extra = req.Extra
+	rr.skills = &skillLog{mu: sync.Mutex{}, used: nil}
 	rr.Git = func(ctx context.Context, dir string, args ...string) (string, error) {
 		return r.Git(ctx, dir, append(safeGit(), args...)...)
 	}
@@ -112,7 +118,7 @@ func (r *Runner) RunSession(
 	out := SessionResult{
 		ExitCode: res.code, Harness: res.harness, Continued: res.continued,
 		Limited: res.limited, Branch: sess.branch, Path: sess.path, Left: left,
-		SessionID: res.sessionID, Model: res.model,
+		SessionID: res.sessionID, Model: res.model, Marketplaces: rr.skills.used,
 	}
 	if removed {
 		out.Path = ""
@@ -144,7 +150,7 @@ func (r *Runner) existing(ctx context.Context, dir, branch string) (session, err
 func failed() SessionResult {
 	return SessionResult{
 		ExitCode: -1, Harness: "", Continued: false, Limited: false, Branch: "",
-		SessionID: "", Model: "", Path: "",
+		SessionID: "", Model: "", Path: "", Marketplaces: nil,
 		Left: Leftover{Uncommitted: 0, Unpushed: 0, Own: 0, PR: "", PRURL: ""},
 	}
 }
@@ -159,6 +165,7 @@ func sessionConfig(req SessionRequest) (Config, error) {
 	cfg := Config{
 		Order: []string{req.Harness}, Overflow: OverflowOff,
 		OpenCode: OpenCodeConfig{Model: req.OpenCodeModel}, MCP: nil,
+		Marketplace: req.Marketplaces,
 	}
 	switch req.Overflow {
 	case "", OverflowOff:

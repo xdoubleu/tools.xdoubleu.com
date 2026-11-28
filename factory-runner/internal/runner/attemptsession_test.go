@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 
@@ -62,6 +63,7 @@ func done(exit int) session.Result {
 	return session.Result{
 		ExitCode: exit, Harness: session.Claude, Continued: false, Limited: false,
 		SessionID: "", Model: "", Branch: "", Path: "", Uncommitted: 0, Unpushed: 0,
+		Marketplaces: nil,
 	}
 }
 
@@ -206,4 +208,46 @@ func TestAnOpenCodeJobStaysInItsOwnVMSession(t *testing.T) {
 	_, err := env.runner.Next(context.Background())
 	require.NoError(t, err)
 	assert.Empty(t, fake.reqs)
+}
+
+func TestAClaudeAttemptGetsTheDevicesMarketplacesAndNotesTheirCommits(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	dir := filepath.Join(home, ".config", "wardcase")
+	require.NoError(t, os.MkdirAll(dir, 0o750))
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "config.toml"), []byte(
+		"[[marketplace]]\nname = \"skills\"\nurl = \"https://h/s\"\nplugins = [\"dev\"]\n"),
+		0o600))
+	env, fake := sessionEnv(t, runner.OnLimitWait, "", newJob())
+	inner := fake.act
+	fake.act = func(o session.Options, req session.Request) session.Result {
+		res := inner(o, req)
+		res.Marketplaces = []session.UsedMarketplace{{Name: "skills", Commit: "abc123"}}
+		return res
+	}
+
+	_, err := env.runner.Next(context.Background())
+	require.NoError(t, err)
+
+	require.Len(t, fake.opts, 1)
+	require.Len(t, fake.opts[0].Marketplaces, 1)
+	assert.Equal(t, "skills", fake.opts[0].Marketplaces[0].Name)
+	assert.Contains(t, strings.Join(env.api.noted(), "\n"), "skills at abc123")
+}
+
+func TestAnUnreadableDeviceConfigRunsTheAttemptWithoutMarketplaces(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	dir := filepath.Join(home, ".config", "wardcase")
+	require.NoError(t, os.MkdirAll(dir, 0o750))
+	bad := filepath.Join(dir, "config.toml")
+	require.NoError(t, os.WriteFile(bad, []byte("x ="), 0o600))
+	env, fake := sessionEnv(t, runner.OnLimitWait, "", newJob())
+
+	_, err := env.runner.Next(context.Background())
+	require.NoError(t, err)
+
+	require.Len(t, fake.reqs, 1)
+	assert.Empty(t, fake.opts[0].Marketplaces)
+	assert.Contains(t, strings.Join(env.api.noted(), "\n"), "unreadable")
 }
